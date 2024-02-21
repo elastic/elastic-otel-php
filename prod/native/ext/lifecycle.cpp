@@ -543,7 +543,7 @@ int  elasticApmRequestPostDeactivate(void) {
     }
 
     Tracer* const tracer = getGlobalTracer();
-    const ConfigSnapshot* const config = getTracerCurrentConfigSnapshot( tracer );
+    // const ConfigSnapshot* const config = getTracerCurrentConfigSnapshot( tracer );
 
     resetCallInterceptionOnRequestShutdown();
 

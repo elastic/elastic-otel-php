@@ -335,38 +335,38 @@ static void parsedBoolValueToZval( const OptionMetadata* optMeta, ParsedOptionVa
     RETURN_BOOL( parsedValue.u.boolValue );
 }
 
-static ResultCode parseOptionalBoolValue( const OptionMetadata* optMeta, String rawValue, /* out */ ParsedOptionValue* parsedValue )
-{
-    ParsedOptionValue tempParsedValue;
-    ResultCode resultCode = parseBoolValueImpl( optMeta, parsedOptionValueType_optionalBool, rawValue, /* out */ &tempParsedValue );
-    if ( resultCode == resultSuccess )
-    {
-        parsedValue->u.optionalBoolValue = makeSetOptionalBool( tempParsedValue.u.boolValue );
-        parsedValue->type = parsedOptionValueType_optionalBool;
-    }
-    return resultCode;
-}
+// static ResultCode parseOptionalBoolValue( const OptionMetadata* optMeta, String rawValue, /* out */ ParsedOptionValue* parsedValue )
+// {
+//     ParsedOptionValue tempParsedValue;
+//     ResultCode resultCode = parseBoolValueImpl( optMeta, parsedOptionValueType_optionalBool, rawValue, /* out */ &tempParsedValue );
+//     if ( resultCode == resultSuccess )
+//     {
+//         parsedValue->u.optionalBoolValue = makeSetOptionalBool( tempParsedValue.u.boolValue );
+//         parsedValue->type = parsedOptionValueType_optionalBool;
+//     }
+//     return resultCode;
+// }
 
-static String streamParsedOptionalBool( const OptionMetadata* optMeta, ParsedOptionValue parsedValue, TextOutputStream* txtOutStream )
-{
-    ELASTIC_APM_ASSERT_VALID_PTR( optMeta );
-    ELASTIC_APM_ASSERT_EQ_UINT64( optMeta->defaultValue.type, parsedOptionValueType_optionalBool );
-    ELASTIC_APM_ASSERT_VALID_PARSED_OPTION_VALUE( parsedValue );
-    ELASTIC_APM_ASSERT_EQ_UINT64( parsedValue.type, optMeta->defaultValue.type );
+// static String streamParsedOptionalBool( const OptionMetadata* optMeta, ParsedOptionValue parsedValue, TextOutputStream* txtOutStream )
+// {
+//     ELASTIC_APM_ASSERT_VALID_PTR( optMeta );
+//     ELASTIC_APM_ASSERT_EQ_UINT64( optMeta->defaultValue.type, parsedOptionValueType_optionalBool );
+//     ELASTIC_APM_ASSERT_VALID_PARSED_OPTION_VALUE( parsedValue );
+//     ELASTIC_APM_ASSERT_EQ_UINT64( parsedValue.type, optMeta->defaultValue.type );
 
-    return streamString( optionalBoolToString( parsedValue.u.optionalBoolValue ), txtOutStream );
-}
+//     return streamString( optionalBoolToString( parsedValue.u.optionalBoolValue ), txtOutStream );
+// }
 
-static void parsedOptionalBoolValueToZval( const OptionMetadata* optMeta, ParsedOptionValue parsedValue, zval* return_value )
-{
-    ELASTIC_APM_ASSERT_VALID_PTR( optMeta );
-    ELASTIC_APM_ASSERT_EQ_UINT64( optMeta->defaultValue.type, parsedOptionValueType_optionalBool );
-    ELASTIC_APM_ASSERT_VALID_PARSED_OPTION_VALUE( parsedValue );
-    ELASTIC_APM_ASSERT_EQ_UINT64( parsedValue.type, optMeta->defaultValue.type );
-    ELASTIC_APM_ASSERT_VALID_PTR( return_value );
+// static void parsedOptionalBoolValueToZval( const OptionMetadata* optMeta, ParsedOptionValue parsedValue, zval* return_value )
+// {
+//     ELASTIC_APM_ASSERT_VALID_PTR( optMeta );
+//     ELASTIC_APM_ASSERT_EQ_UINT64( optMeta->defaultValue.type, parsedOptionValueType_optionalBool );
+//     ELASTIC_APM_ASSERT_VALID_PARSED_OPTION_VALUE( parsedValue );
+//     ELASTIC_APM_ASSERT_EQ_UINT64( parsedValue.type, optMeta->defaultValue.type );
+//     ELASTIC_APM_ASSERT_VALID_PTR( return_value );
 
-    RETURN_STRING( optionalBoolToString( parsedValue.u.optionalBoolValue ) );
-}
+//     RETURN_STRING( optionalBoolToString( parsedValue.u.optionalBoolValue ) );
+// }
 
 static ResultCode parseDurationValue( const OptionMetadata* optMeta, String rawValue, /* out */ ParsedOptionValue* parsedValue )
 {
@@ -606,33 +606,33 @@ static OptionMetadata buildBoolOptionMetadata(
     };
 }
 
-static OptionMetadata buildOptionalBoolOptionMetadata(
-        String name
-        , StringView iniName
-        , bool isSecret
-        , bool isDynamic
-        , OptionalBool defaultValue
-        , SetConfigSnapshotFieldFunc setFieldFunc
-        , GetConfigSnapshotFieldFunc getFieldFunc
-)
-{
-    return (OptionMetadata)
-    {
-        .name = name,
-        .iniName = iniName,
-        .isSecret = isSecret,
-        .isDynamic = isDynamic,
-        .isLoggingRelated = false,
-        .defaultValue = { defaultValue },
-        .interpretIniRawValue = &interpretOptionalBoolIniRawValue,
-        .parseRawValue = &parseOptionalBoolValue,
-        .streamParsedValue = &streamParsedOptionalBool,
-        .setField = setFieldFunc,
-        .getField = getFieldFunc,
-        .parsedValueToZval = &parsedOptionalBoolValueToZval,
-        .additionalData = {}
-    };
-}
+// static OptionMetadata buildOptionalBoolOptionMetadata(
+//         String name
+//         , StringView iniName
+//         , bool isSecret
+//         , bool isDynamic
+//         , OptionalBool defaultValue
+//         , SetConfigSnapshotFieldFunc setFieldFunc
+//         , GetConfigSnapshotFieldFunc getFieldFunc
+// )
+// {
+//     return (OptionMetadata)
+//     {
+//         .name = name,
+//         .iniName = iniName,
+//         .isSecret = isSecret,
+//         .isDynamic = isDynamic,
+//         .isLoggingRelated = false,
+//         .defaultValue = { defaultValue },
+//         .interpretIniRawValue = &interpretOptionalBoolIniRawValue,
+//         .parseRawValue = &parseOptionalBoolValue,
+//         .streamParsedValue = &streamParsedOptionalBool,
+//         .setField = setFieldFunc,
+//         .getField = getFieldFunc,
+//         .parsedValueToZval = &parsedOptionalBoolValueToZval,
+//         .additionalData = {}
+//     };
+// }
 
 static OptionMetadata buildDurationOptionMetadata(
         String name

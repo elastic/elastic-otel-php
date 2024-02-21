@@ -11,6 +11,8 @@ namespace elasticapm::php {
 class PhpBridge : public PhpBridgeInterface {
 public:
 
+    bool callInferredSpans(std::chrono::milliseconds duration) const final;
+
     std::vector<phpExtensionInfo_t> getExtensionList() const final;
     std::string getPhpInfo() const final;
 

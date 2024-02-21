@@ -68,6 +68,39 @@ bool isObjectOfClass(zval *object, std::string_view className) {
 
 }
 
+bool PhpBridge::callInferredSpans(std::chrono::milliseconds duration) const {
+    auto phpPartFacadeClass = findClassEntry("elastic\\apm\\impl\\autoinstrument\\phppartfacade"sv);
+    if (!phpPartFacadeClass) {
+        return false;
+    }
+
+    auto objectOfPhpPartFacade = getClassStaticPropertyValue(phpPartFacadeClass, "singletonInstance"sv);
+    if (!objectOfPhpPartFacade || Z_TYPE_P(objectOfPhpPartFacade) != IS_OBJECT) {
+        return false;
+    }
+
+    auto transactionForExtensionRequest =  getClassPropertyValue(phpPartFacadeClass, objectOfPhpPartFacade, "transactionForExtensionRequest"sv);
+    if (!isObjectOfClass(transactionForExtensionRequest, "Elastic\\Apm\\Impl\\AutoInstrument\\TransactionForExtensionRequest")) {
+        return false;
+    }
+
+    zend_class_entry *ceTransactionForExtensionRequest = Z_OBJCE_P(transactionForExtensionRequest);
+    if (!ceTransactionForExtensionRequest) {
+        return false;
+    }
+
+    zval *inferredSpansManager = getClassPropertyValue(ceTransactionForExtensionRequest, transactionForExtensionRequest, "inferredSpansManager"sv);
+    if (!isObjectOfClass(inferredSpansManager, "Elastic\\Apm\\Impl\\InferredSpansManager")) {
+        return false;
+    }
+
+    AutoZval rv;
+    AutoZval params;
+    ZVAL_LONG(&params[0], duration.count());
+
+    return callMethod(inferredSpansManager, "handleAutomaticCapturing"sv, params.data(), params.size(), rv.get());
+}
+
 std::string_view PhpBridge::getPhpSapiName() const {
     return sapi_module.name;
 }

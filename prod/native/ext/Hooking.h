@@ -25,7 +25,7 @@ public:
     using zend_error_cb_t = void (*)(int type, zend_string *error_filename, const uint32_t error_lineno, zend_string *message); // 8.1+
 #endif
 
-    using zend_execute_internal_t = void (*)(zend_execute_data *execute_data, zval *return_value);
+    // using zend_execute_internal_t = void (*)(zend_execute_data *execute_data, zval *return_value);
     using zend_interrupt_function_t = void (*)(zend_execute_data *execute_data);
 
 
@@ -35,22 +35,22 @@ public:
     }
 
     void fetchOriginalHooks() {
-        original_execute_internal_ = zend_execute_internal;
+        // original_execute_internal_ = zend_execute_internal;
         original_zend_interrupt_function_ = zend_interrupt_function;
         original_zend_error_cb_ = zend_error_cb;
     }
 
     void restoreOriginalHooks() {
-        zend_execute_internal = original_execute_internal_;
+        // zend_execute_internal = original_execute_internal_;
         zend_interrupt_function = original_zend_interrupt_function_;
         zend_error_cb = original_zend_error_cb_;
     }
 
     void replaceHooks();
 
-    zend_execute_internal_t getOriginalExecuteInternal() {
-        return original_execute_internal_;
-    }
+    // zend_execute_internal_t getOriginalExecuteInternal() {
+    //     return original_execute_internal_;
+    // }
 
     zend_interrupt_function_t getOriginalZendInterruptFunction() {
         return original_zend_interrupt_function_;
@@ -66,7 +66,7 @@ private:
     void operator=(Hooking const &) = delete;
     Hooking() = default;
 
-    zend_execute_internal_t original_execute_internal_ = nullptr;
+    // zend_execute_internal_t original_execute_internal_ = nullptr;
     zend_interrupt_function_t original_zend_interrupt_function_ = nullptr;
     zend_error_cb_t original_zend_error_cb_ = nullptr;
 };
