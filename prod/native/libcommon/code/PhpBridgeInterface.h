@@ -17,6 +17,7 @@ public:
 
     virtual ~PhpBridgeInterface() = default;
 
+    virtual bool callInferredSpans(std::chrono::milliseconds duration) const = 0;
     virtual std::vector<phpExtensionInfo_t> getExtensionList() const = 0;
     virtual std::string getPhpInfo() const = 0;
 
