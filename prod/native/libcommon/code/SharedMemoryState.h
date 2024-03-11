@@ -1,4 +1,4 @@
-
+#pragma once
 
 #include <boost/interprocess/anonymous_shared_memory.hpp>
 #include <boost/interprocess/mapped_region.hpp>

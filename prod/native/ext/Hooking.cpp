@@ -3,60 +3,61 @@
 
 #include <Zend/zend_API.h>
 
-#include "php_elastic_apm.h"
+#include "ModuleGlobals.h"
 
 #include "PhpBridge.h"
 #include "PhpErrorData.h"
 
 #include <memory>
 #include <string_view>
+#include "PeriodicTaskExecutor.h"
+#include "RequestScope.h"
+#include "os/OsUtils.h"
+
+#include "Zend/zend_observer.h"
 
 namespace elasticapm::php {
 
-#if PHP_VERSION_ID < 80000
-void elastic_apm_error_cb(int type, const char *error_filename, const Hooking::zend_error_cb_lineno_t error_lineno, const char *format, va_list args) { //<8.0
-#elif PHP_VERSION_ID < 80100
-void elastic_apm_error_cb(int type, const char *error_filename, const uint32_t error_lineno, zend_string *message) { // 8.0
-#else
-void elastic_apm_error_cb(int type, zend_string *error_filename, const uint32_t error_lineno, zend_string *message) { // 8.1+
-#endif
-    using namespace std::string_view_literals;
+// #if PHP_VERSION_ID < 80000
+// void elastic_apm_error_cb(int type, const char *error_filename, const Hooking::zend_error_cb_lineno_t error_lineno, const char *format, va_list args) { //<8.0
+// #elif PHP_VERSION_ID < 80100
+// void elastic_apm_error_cb(int type, const char *error_filename, const uint32_t error_lineno, zend_string *message) { // 8.0
+// #else
+// void elastic_apm_error_cb(int type, zend_string *error_filename, const uint32_t error_lineno, zend_string *message) { // 8.1+
+// #endif
+//     using namespace std::string_view_literals;
 
-    if (ELASTICAPM_G(captureErrors)) {
-#if PHP_VERSION_ID < 80000
-        char * message = nullptr;
-        va_list messageArgsCopy;
-        va_copy(messageArgsCopy, args);
-        vspprintf(/* out */ &message, 0, format, messageArgsCopy); // vspprintf allocates memory for the resulted string buffer and it needs to be freed with efree()
-        va_end(messageArgsCopy);
+//     ELOG_DEBUG(ELASTICAPM_G(globals)->logger_, __FUNCTION__);
 
-        ELASTICAPM_G(lastErrorData) = std::make_unique<elasticapm::php::PhpErrorData>(type, error_filename ? error_filename : ""sv, error_lineno, message ? message : ""sv);
+//     if (ELASTICAPM_G(captureErrors)) {
+// #if PHP_VERSION_ID < 80100
+//         ELASTICAPM_G(lastErrorData) = std::make_unique<elasticapm::php::PhpErrorData>(type, error_filename ? error_filename : ""sv, error_lineno, message ? std::string_view{ZSTR_VAL(message), ZSTR_LEN(message)} : ""sv);
+// #else
+//         ELASTICAPM_G(lastErrorData) = nullptr;
+//         ELASTICAPM_G(lastErrorData) = std::make_unique<elasticapm::php::PhpErrorData>(type, error_filename ? std::string_view{ZSTR_VAL(error_filename), ZSTR_LEN(error_filename)} : ""sv, error_lineno, message ? std::string_view{ZSTR_VAL(message), ZSTR_LEN(message)} : ""sv);
+// #endif
 
-        if (message) {
-            efree(message);
-        }
-#elif PHP_VERSION_ID < 80100
-        ELASTICAPM_G(lastErrorData) = std::make_unique<elasticapm::php::PhpErrorData>(type, error_filename ? error_filename : ""sv, error_lineno, message ? std::string_view{ZSTR_VAL(message), ZSTR_LEN(message)} : ""sv);
-#else
-        ELASTICAPM_G(lastErrorData) = nullptr;
-        ELASTICAPM_G(lastErrorData) = std::make_unique<elasticapm::php::PhpErrorData>(type, error_filename ? std::string_view{ZSTR_VAL(error_filename), ZSTR_LEN(error_filename)} : ""sv, error_lineno, message ? std::string_view{ZSTR_VAL(message), ZSTR_LEN(message)} : ""sv);
-#endif
-    }
+//     }
 
-    auto original = Hooking::getInstance().getOriginalZendErrorCb();
-    if (original == elastic_apm_error_cb) {
-        ELASTIC_APM_LOG_DIRECT_CRITICAL("originalZendErrorCallback == elasticApmZendErrorCallback dead loop detected");
-        return;
-    }
+//     auto original = Hooking::getInstance().getOriginalZendErrorCb();
+//     if (original == elastic_apm_error_cb) {
+//         ELOG_CRITICAL(ELASTICAPM_G(globals)->logger_, "originalZendErrorCallback == elasticApmZendErrorCallback dead loop detected");
+//         return;
+//     }
 
-    if (original) {
-#if PHP_VERSION_ID < 80000
-        original(type, error_filename, error_lineno, format, args);
-#else
-        original(type, error_filename, error_lineno, message);
-#endif
-    }
-}
+//     if (original) {
+//         ELOG_DEBUG(ELASTICAPM_G(globals)->logger_, "elastic_apm_error_cb calling original error_cb %p", original);
+
+
+// #if PHP_VERSION_ID < 80000
+//         original(type, error_filename, error_lineno, format, args);
+// #else
+//         original(type, error_filename, error_lineno, message);
+// #endif
+//     } else {
+//         ELOG_DEBUG(ELASTICAPM_G(globals)->logger_, "elastic_apm_error_cb missing original error_cb");
+//     }
+// }
 
 // static void elastic_execute_internal(INTERNAL_FUNCTION_PARAMETERS) {
 
@@ -67,15 +68,14 @@ void elastic_apm_error_cb(int type, zend_string *error_filename, const uint32_t 
 //             execute_internal(INTERNAL_FUNCTION_PARAM_PASSTHRU);
 //         }
 //     } zend_catch {
-//         ELASTIC_APM_LOG_DIRECT_DEBUG("%s: original call error; parent PID: %d", __FUNCTION__, (int)getParentProcessId());
+//         ELASTIC_APM_LOG_DIRECT_DEBUG("%s: original call error; parent PID: %d", __FUNCTION__, static_cast<int>(elasticapm::osutils::getParentProcessId()));
 //     } zend_end_try();
 
 //     // ELASTICAPM_G(globals)->inferredSpans_->attachBacktraceIfInterrupted();
 // }
 
-
 static void elastic_interrupt_function(zend_execute_data *execute_data) {
-    ELASTIC_APM_LOG_DIRECT_DEBUG( "%s: interrupt; parent PID: %d", __FUNCTION__, (int)getParentProcessId() );
+    ELOG_DEBUG(EAPM_GL(logger_), "%s: interrupt; parent PID: %d", __FUNCTION__, static_cast<int>(elasticapm::osutils::getParentProcessId()));
 
     // ELASTICAPM_G(globals)->inferredSpans_->attachBacktraceIfInterrupted();
 
@@ -83,15 +83,42 @@ static void elastic_interrupt_function(zend_execute_data *execute_data) {
         if (Hooking::getInstance().getOriginalZendInterruptFunction()) {
             Hooking::getInstance().getOriginalZendInterruptFunction()(execute_data);
         }
-    } zend_catch {
-        ELASTIC_APM_LOG_DIRECT_DEBUG("%s: original call error; parent PID: %d", __FUNCTION__, (int)getParentProcessId());
-    } zend_end_try();
+    }
+    zend_catch {
+        ELOG_DEBUG(EAPM_GL(logger_), "%s: original call error; parent PID: %d", __FUNCTION__, static_cast<int>(elasticapm::osutils::getParentProcessId()));
+    }
+    zend_end_try();
+}
+
+#if PHP_VERSION_ID < 80100
+void elastic_observer_error_cb(int type, const char *error_filename, uint32_t error_lineno, zend_string *message) {
+    std::string_view fileName = error_filename ? std::string_view{error_filename} : std::string_view{};
+#else
+void elastic_observer_error_cb(int type, zend_string *error_filename, uint32_t error_lineno, zend_string *message) {
+    std::string_view fileName = error_filename ? std::string_view{ZSTR_VAL(error_filename), ZSTR_LEN(error_filename)} : std::string_view{};
+#endif
+    std::string_view msg = message && ZSTR_VAL(message) ? std::string_view{ZSTR_VAL(message), ZSTR_LEN(message)} : std::string_view{};
+    ELOG_DEBUG(ELASTICAPM_G(globals)->logger_, "elastic_observer_error_cb type: %d, fn: %s:%d, msg: %s", type, fileName.data(), error_lineno,  msg.data());
+
+    static bool errorHandling = false;
+    if (errorHandling) {
+        ELOG_WARNING(ELASTICAPM_G(globals)->logger_, "elastic_observer_error_cb detected error handler loop, skipping error handler");
+        return;
+    }
+
+    errorHandling = true;
+    ELASTICAPM_G(globals)->requestScope_->handleError(type, fileName, error_lineno, msg);
+    errorHandling = false;
+
 }
 
 void Hooking::replaceHooks() {
         // zend_execute_internal = elastic_execute_internal;
         zend_interrupt_function = elastic_interrupt_function;
-        zend_error_cb = elastic_apm_error_cb;
+        // zend_error_cb = elastic_apm_error_cb;
+
+        zend_observer_error_register(elastic_observer_error_cb);
+
 }
 
 }
