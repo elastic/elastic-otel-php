@@ -20,81 +20,11 @@ namespace elasticapm::php {
 using namespace std::string_view_literals;
 using namespace std::string_literals;
 
-zend_class_entry *PhpBridge::findClassEntry(std::string_view className) const {
-    return static_cast<zend_class_entry *>(zend_hash_str_find_ptr(EG(class_table), className.data(), className.length()));
-}
-
-zval *PhpBridge::getClassStaticPropertyValue(zend_class_entry *ce, std::string_view propertyName) const {
-    if (!ce) {
-        return nullptr;
-    }
-
-    return zend_read_static_property(ce, propertyName.data(), propertyName.length(), true);
-}
-
-zval *PhpBridge::getClassPropertyValue(zend_class_entry *ce, zval *object, std::string_view propertyName) const {
-    AutoZval rv;
-    // TODO check with allocated on stack
-
-    if (Z_TYPE_P(object) != IS_OBJECT) {
-        return nullptr;
-    }
-
-#if PHP_VERSION_ID >= 80000
-    return zend_read_property(ce, Z_OBJ_P(object), propertyName.data(), propertyName.length(), 1, rv.get());
-#else
-    return zend_read_property(ce, object, propertyName.data(), propertyName.length(), 1, rv.get());
-#endif
-}
-
-zval *PhpBridge::getClassPropertyValue(zend_class_entry *ce, zend_object *object, std::string_view propertyName) const {
-    AutoZval rv;
-
-#if PHP_VERSION_ID >= 80000
-    return zend_read_property(ce, object, propertyName.data(), propertyName.length(), 1, rv.get());
-#else
-    zval zvObj;
-    ZVAL_OBJ(&zvObj, object);
-    return zend_read_property(ce, &zvObj, propertyName.data(), propertyName.length(), 1, rv.get());
-#endif
-}
-
-std::string PhpBridge::getExceptionMessage(zend_object *exception) const {
-    zval *msg = getClassPropertyValue(zend_ce_exception, exception, "message"sv);
-    if (!msg || Z_TYPE_P(msg) != IS_STRING) {
-        return {};
-    }
-    return {Z_STRVAL_P(msg), Z_STRLEN_P(msg)};
-}
-
 std::string PhpBridge::getCurrentExceptionMessage() const {
     if (!EG(exception)) {
         return {};
     }
-    return getExceptionMessage(EG(exception));
-}
-
-bool PhpBridge::callMethod(zval *object, std::string_view methodName, zval arguments[], int32_t argCount, zval *returnValue) const {
-    AutoZval zMethodName;
-    ZVAL_STRINGL(zMethodName.get(), methodName.data(), methodName.length());
-
-#if PHP_VERSION_ID >= 80000
-    return _call_user_function_impl(object, zMethodName.get(), returnValue, argCount, arguments, nullptr) == SUCCESS;
-#else
-    return _call_user_function_ex(object, zMethodName.get(), returnValue, argCount, arguments, 0) == SUCCESS;
-#endif
-}
-
-bool isObjectOfClass(zval *object, std::string_view className) {
-    if (!object || Z_TYPE_P(object) != IS_OBJECT) {
-        return false;
-    }
-
-    if (!Z_OBJCE_P(object)->name) {
-        return false;
-    }
-
-    return std::string_view{Z_OBJCE_P(object)->name->val, Z_OBJCE_P(object)->name->len} == className;
+    return std::string{getExceptionMessage(EG(exception))};
 }
 
 bool PhpBridge::callInferredSpans(std::chrono::milliseconds duration) const {
@@ -218,6 +148,102 @@ bool PhpBridge::callPHPSideErrorHandler(int type, std::string_view errorFilename
     AutoZval rv;
     return callMethod(nullptr, "\\Elastic\\Apm\\Impl\\AutoInstrument\\PhpPartFacade::handle_error"sv, arguments.get(), arguments.size(), rv.get());
 }
+
+
+zend_class_entry *findClassEntry(std::string_view className) {
+    return static_cast<zend_class_entry *>(zend_hash_str_find_ptr(EG(class_table), className.data(), className.length()));
+}
+
+zval *getClassStaticPropertyValue(zend_class_entry *ce, std::string_view propertyName) {
+    if (!ce) {
+        return nullptr;
+    }
+
+    return zend_read_static_property(ce, propertyName.data(), propertyName.length(), true);
+}
+
+zval *getClassPropertyValue(zend_class_entry *ce, zval *object, std::string_view propertyName) {
+    AutoZval rv;
+    // TODO check with allocated on stack
+
+    if (Z_TYPE_P(object) != IS_OBJECT) {
+        return nullptr;
+    }
+
+#if PHP_VERSION_ID >= 80000
+    return zend_read_property(ce, Z_OBJ_P(object), propertyName.data(), propertyName.length(), 1, rv.get());
+#else
+    return zend_read_property(ce, object, propertyName.data(), propertyName.length(), 1, rv.get());
+#endif
+}
+
+zval *getClassPropertyValue(zend_class_entry *ce, zend_object *object, std::string_view propertyName) {
+    AutoZval rv;
+
+#if PHP_VERSION_ID >= 80000
+    return zend_read_property(ce, object, propertyName.data(), propertyName.length(), 1, rv.get());
+#else
+    zval zvObj;
+    ZVAL_OBJ(&zvObj, object);
+    return zend_read_property(ce, &zvObj, propertyName.data(), propertyName.length(), 1, rv.get());
+#endif
+}
+
+std::string_view zvalToStringView(zval *zv) {
+    if (!zv || Z_TYPE_P(zv) != IS_STRING) {
+        return {};
+    }
+    return {Z_STRVAL_P(zv), Z_STRLEN_P(zv)};
+}
+
+std::string_view getExceptionMessage(zend_object *exception) {
+    return zvalToStringView(getClassPropertyValue(zend_ce_exception, exception, "message"sv));
+}
+
+std::string_view getExceptionFileName(zend_object *exception) {
+    return zvalToStringView(getClassPropertyValue(zend_ce_exception, exception, "file"sv));
+}
+
+std::string_view getExceptionClass(zend_object *exception) {
+    return zvalToStringView(getClassPropertyValue(zend_ce_exception, exception, "class"sv));
+}
+
+std::string_view getExceptionFunction(zend_object *exception) {
+    return zvalToStringView(getClassPropertyValue(zend_ce_exception, exception, "function"sv));
+}
+
+std::string_view getExceptionName(zend_object *exception) {
+    zend_string *str = exception->handlers->get_class_name(exception);
+    if (!str) {
+        return {};
+    }
+    return {ZSTR_VAL(str), ZSTR_LEN(str)};
+}
+
+
+bool callMethod(zval *object, std::string_view methodName, zval arguments[], int32_t argCount, zval *returnValue) {
+    AutoZval zMethodName;
+    ZVAL_STRINGL(zMethodName.get(), methodName.data(), methodName.length());
+
+#if PHP_VERSION_ID >= 80000
+    return _call_user_function_impl(object, zMethodName.get(), returnValue, argCount, arguments, nullptr) == SUCCESS;
+#else
+    return _call_user_function_ex(object, zMethodName.get(), returnValue, argCount, arguments, 0) == SUCCESS;
+#endif
+}
+
+bool isObjectOfClass(zval *object, std::string_view className) {
+    if (!object || Z_TYPE_P(object) != IS_OBJECT) {
+        return false;
+    }
+
+    if (!Z_OBJCE_P(object)->name) {
+        return false;
+    }
+
+    return std::string_view{Z_OBJCE_P(object)->name->val, Z_OBJCE_P(object)->name->len} == className;
+}
+
 
 
 void getCallArguments(zval *zv, zend_execute_data *ex) {

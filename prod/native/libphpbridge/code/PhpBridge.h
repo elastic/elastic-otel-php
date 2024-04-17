@@ -37,19 +37,24 @@ public:
     bool detectOpcacheRestartPending() const final;
     bool isOpcacheEnabled() const final;
 
-protected:
-    zend_class_entry *findClassEntry(std::string_view className) const;
-    zval *getClassStaticPropertyValue(zend_class_entry *ce, std::string_view propertyName) const;
-    zval *getClassPropertyValue(zend_class_entry *ce, zval *object, std::string_view propertyName) const;
-    zval *getClassPropertyValue(zend_class_entry *ce, zend_object *object, std::string_view propertyName) const;
-
-    bool callMethod(zval *object, std::string_view methodName, zval arguments[], int32_t argCount, zval *returnValue) const;
-    std::string getExceptionMessage(zend_object *exception) const;
-
 
 private:
     std::shared_ptr<elasticapm::php::LoggerInterface> log_;
 };
+
+
+zend_class_entry *findClassEntry(std::string_view className);
+zval *getClassStaticPropertyValue(zend_class_entry *ce, std::string_view propertyName);
+zval *getClassPropertyValue(zend_class_entry *ce, zval *object, std::string_view propertyName);
+zval *getClassPropertyValue(zend_class_entry *ce, zend_object *object, std::string_view propertyName);
+bool callMethod(zval *object, std::string_view methodName, zval arguments[], int32_t argCount, zval *returnValue);
+std::string_view getExceptionMessage(zend_object *exception);
+std::string_view getExceptionFileName(zend_object *exception);
+std::string_view getExceptionFunction(zend_object *exception);
+std::string_view getExceptionClass(zend_object *exception);
+
+std::string_view getExceptionName(zend_object *exception);
+bool isObjectOfClass(zval *object, std::string_view className);
 
 void getCallArguments(zval *zv, zend_execute_data *ex);
 void getScopeNameOrThis(zval *zv, zend_execute_data *execute_data);
