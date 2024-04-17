@@ -12,8 +12,8 @@ namespace elasticapm::php {
 
 using InstrumentedFunctionHooksStorage_t = InstrumentedFunctionHooksStorage<zend_ulong, AutoZval<1>>;
 
-bool instrumentInternalFunction(LoggerInterface *log, std::string_view className, std::string_view functionName, zval *callableOnEntry, zval *callableOnExit);
-zend_observer_fcall_handlers registerObserver(zend_execute_data *execute_data);
+bool instrumentFunction(LoggerInterface *log, std::string_view className, std::string_view functionName, zval *callableOnEntry, zval *callableOnExit);
+zend_observer_fcall_handlers elasticRegisterObserver(zend_execute_data *execute_data);
 
 
 }

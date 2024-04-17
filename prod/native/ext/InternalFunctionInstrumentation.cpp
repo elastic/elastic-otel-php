@@ -132,10 +132,16 @@ inline void callOriginalHandler(zif_handler handler, INTERNAL_FUNCTION_PARAMETER
 
 
 zend_ulong getHashFromExecuteData(zend_execute_data *execute_data) {
+    if (!execute_data->func->common.function_name) {
+        return 0;
+    }
+
     zend_ulong classHash = 0;
     if (execute_data->func->common.scope && execute_data->func->common.scope->name) {
         classHash = ZSTR_HASH(execute_data->func->common.scope->name);
     }
+
+
     zend_ulong funcHash = ZSTR_HASH(execute_data->func->common.function_name);
     zend_ulong hash = classHash ^ (funcHash << 1);
     return hash;
@@ -181,12 +187,10 @@ void ZEND_FASTCALL internal_function_handler(INTERNAL_FUNCTION_PARAMETERS) {
 
     callOriginalHandler(originalHandler, INTERNAL_FUNCTION_PARAM_PASSTHRU);
 
-    auto exceptionFromInstrumentedFunction = EG(exception);
-
     for (auto &callback : *callbacks) {
         try {
             auto exceptionState = saveExceptionState();
-            callPostHook(callback.second, return_value, exceptionFromInstrumentedFunction);
+            callPostHook(callback.second, return_value, exceptionState.exception);
 
             handleAndReleaseHookException(EG(exception));
             restoreExceptionState(std::move(exceptionState));
@@ -198,7 +202,7 @@ void ZEND_FASTCALL internal_function_handler(INTERNAL_FUNCTION_PARAMETERS) {
 }
 
 
-bool instrumentInternalFunction(LoggerInterface *log, std::string_view className, std::string_view functionName, zval *callableOnEntry, zval *callableOnExit) {
+bool instrumentFunction(LoggerInterface *log, std::string_view className, std::string_view functionName, zval *callableOnEntry, zval *callableOnExit) {
     //TODO if called from other place that MINIT - make ot thread safe in ZTS
     //TODO return hash and map on php side? phpside::enter(hash, args), phpside:exit(hash, rv) ?
     //TODO use hash struct instead of combined to prevent collisions
@@ -239,6 +243,7 @@ bool instrumentInternalFunction(LoggerInterface *log, std::string_view className
 
     reinterpret_cast<InstrumentedFunctionHooksStorage_t *>(EAPM_GL(hooksStorage_).get())->store(hash, AutoZval{callableOnEntry}, AutoZval{callableOnExit});
 
+    // we only keep original handler for internal (native) functions
     if (func->common.type == ZEND_INTERNAL_FUNCTION) {
         if (func->internal_function.handler != internal_function_handler) {
             InternalStorage_t::getInstance().store(hash, func->internal_function.handler);
@@ -254,27 +259,87 @@ bool instrumentInternalFunction(LoggerInterface *log, std::string_view className
 
 
 void elasticObserverFcallBeginHandler(zend_execute_data *execute_data) {
-}
-void elasticObserverFcallEndHandler(zend_execute_data *execute_data, zval *retval) {
+    auto hash = getHashFromExecuteData(execute_data);
+    ELOG_TRACE(EAPM_GL(logger_), "elasticObserverFcallBeginHandler for %zu", hash);
+    auto callbacks = reinterpret_cast<InstrumentedFunctionHooksStorage_t *>(EAPM_GL(hooksStorage_).get())->find(hash);
+
+    if (!callbacks) {
+        ELOG_ERROR(EAPM_GL(logger_), "elasticObserverFcallBeginHandler for %zu. Hooks not found", hash);
+        return;
+    }
+
+    for (auto &callback : *callbacks) {
+        try {
+            auto exceptionState = saveExceptionState();
+            callPreHook(callback.first);
+
+            handleAndReleaseHookException(EG(exception));
+            restoreExceptionState(std::move(exceptionState));
+        } catch (std::exception const &e) {
+            ELOG_CRITICAL(EAPM_GL(logger_), "elasticObserverFcallBeginHandler. Unable to call prehook");
+        }
+    }
 }
 
-zend_observer_fcall_handlers registerObserver(zend_execute_data *execute_data) {
+void elasticObserverFcallEndHandler(zend_execute_data *execute_data, zval *retval) {
     auto hash = getHashFromExecuteData(execute_data);
+    ELOG_TRACE(EAPM_GL(logger_), "elasticObserverFcallEndHandler for %zu", hash);
 
     auto callbacks = reinterpret_cast<InstrumentedFunctionHooksStorage_t *>(EAPM_GL(hooksStorage_).get())->find(hash);
     if (!callbacks) {
+        ELOG_ERROR(EAPM_GL(logger_), "elasticObserverFcallBeginHandler for %zu. Hooks not found", hash);
+        return;
+    }
+
+    for (auto &callback : *callbacks) {
+        try {
+            auto exceptionState = saveExceptionState();
+            callPostHook(callback.second, retval, exceptionState.exception);
+            handleAndReleaseHookException(EG(exception));
+            restoreExceptionState(std::move(exceptionState));
+        } catch (std::exception const &e) {
+            ELOG_CRITICAL(EAPM_GL(logger_), "elasticObserverFcallBeginHandler. Unable to call prehook");
+        }
+    }
+}
+
+//TODO get stringview for class/function for logging purposes
+
+zend_observer_fcall_handlers elasticRegisterObserver(zend_execute_data *execute_data) {
+    if (execute_data->func->common.type == ZEND_INTERNAL_FUNCTION) {
         return {nullptr, nullptr};
     }
-    // ZEND_OP_ARRAY_EXTENSION(&execute_data->func->op_array, op_array_extension)
 
-    return {elasticObserverFcallBeginHandler, elasticObserverFcallEndHandler};
+    auto hash = getHashFromExecuteData(execute_data);
+    if (hash == 0) {
+        ELOG_TRACE(EAPM_GL(logger_), "elasticRegisterObserver main scope");
+        return {nullptr, nullptr};
+    }
+
+    auto callbacks = reinterpret_cast<InstrumentedFunctionHooksStorage_t *>(EAPM_GL(hooksStorage_).get())->find(hash);
+    if (!callbacks) {
+        ELOG_TRACE(EAPM_GL(logger_), "elasticRegisterObserver hash: %zu, not instrumented");
+        return {nullptr, nullptr};
+    }
+    ELOG_TRACE(EAPM_GL(logger_), "elasticRegisterObserver hash: %zu");
+
+    bool havePreHook = false;
+    bool havePostHook = false;
+    for (auto const &item : *callbacks) {
+        if (!item.first.isNull<0>()) {
+            havePreHook = true;
+        }
+        if (!item.second.isNull<0>()) {
+            havePostHook = true;
+        }
+        if (havePreHook && havePostHook) {
+            break;
+        }
+    }
+    ELOG_TRACE(EAPM_GL(logger_), "elasticRegisterObserver hash: %zu, preHooks: %d postHooks: %d", hash, havePreHook, havePostHook);
+
+    return {havePreHook ? elasticObserverFcallBeginHandler : nullptr, havePostHook ? elasticObserverFcallEndHandler : nullptr};
 }
-    //    tutaj ustawiamy funkcje begin i end po prostu, co za syf
-    // wczesniej odpalimy hook, dodamy do local storage
-    // a potem tutaj zapodamy find(hash) i bedziemy wiedziec z kim mamy do czynbienia
-    // w op-array-extension podamy hash
-
-
 
 
 

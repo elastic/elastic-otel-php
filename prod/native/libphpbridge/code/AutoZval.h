@@ -141,6 +141,11 @@ public:
         set(INDEX, val);
     }
 
+    template <std::size_t INDEX> bool isNull() const {
+        static_assert(INDEX < SIZE);
+        return Z_TYPE_P(&value[INDEX]) == IS_NULL;
+    }
+
 private:
     zval value[SIZE];
 };
