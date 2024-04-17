@@ -17,6 +17,8 @@
 
 namespace elasticapm::php {
 
+using namespace std::literals;
+
 using InternalStorage_t = InternalFunctionInstrumentationStorage<zend_ulong, zif_handler>;
 
 struct SavedException {
@@ -54,15 +56,22 @@ void restoreExceptionState(SavedException savedException) {
 
 void handleAndReleaseHookException(zend_object *exception) {
     if (exception) {
-        //TODO log exception from hook
+        if (!instanceof_function(exception->ce, zend_ce_throwable)) {
+            return;
+        }
 
-        ELOG_CRITICAL(EAPM_GL(logger_), "TODO exception was thrown in instrumentation hook");
+        ELOG_ERROR(EAPM_GL(logger_), "Instrumentation hook has thrown exception of class '" PRsv "'. Message: '" PRsv "' Filename: '" PRsv "' Class: '" PRsv "' Function: '" PRsv "'",
+            PRsvArg(getExceptionName(exception)),
+            PRsvArg(getExceptionMessage(exception)),
+            PRsvArg(getExceptionFileName(exception)),
+            PRsvArg(getExceptionClass(exception)),
+            PRsvArg(getExceptionFunction(exception))
+            );
+        //TODO handle stack "trace"
 
         OBJ_RELEASE(EG(exception));
     }
 }
-
-
 
 void callPreHook(AutoZval<> &prehook) {
     zend_fcall_info fci = empty_fcall_info;
@@ -147,17 +156,25 @@ zend_ulong getHashFromExecuteData(zend_execute_data *execute_data) {
     return hash;
 }
 
+auto getClassAndFunctionName(zend_execute_data *execute_data) {
+    std::string_view cls;
+    if (execute_data->func->common.scope && execute_data->func->common.scope->name) {
+        cls = {ZSTR_VAL(execute_data->func->common.scope->name), ZSTR_LEN(execute_data->func->common.scope->name)};
+    }
+    std::string_view func;
+    if (execute_data->func->common.function_name) {
+        func = {ZSTR_VAL(execute_data->func->common.function_name), ZSTR_LEN(execute_data->func->common.function_name)};
+    }
+    return std::make_tuple(cls, func);
+}
+
 void ZEND_FASTCALL internal_function_handler(INTERNAL_FUNCTION_PARAMETERS) {
     auto hash = getHashFromExecuteData(execute_data);
 
     auto originalHandler = InternalStorage_t::getInstance().get(hash);
     if (!originalHandler) {
-        std::string_view cls;
-        if (execute_data->func->common.scope && execute_data->func->common.scope->name) {
-            cls = {ZSTR_VAL(execute_data->func->common.scope->name), ZSTR_LEN(execute_data->func->common.scope->name)};
-        }
-        std::string_view func(ZSTR_VAL(execute_data->func->common.function_name), ZSTR_LEN(execute_data->func->common.function_name));
-        ELOG_CRITICAL(EAPM_GL(logger_), "Unable to find function handler " PRsv ":" PRsv, PRsvArg(cls), PRsvArg(func));
+        auto [cls, func] = getClassAndFunctionName(execute_data);
+        ELOG_CRITICAL(EAPM_GL(logger_), "Unable to find function handler " PRsv "::" PRsv, PRsvArg(cls), PRsvArg(func));
         return;
     }
 
@@ -214,13 +231,13 @@ bool instrumentFunction(LoggerInterface *log, std::string_view className, std::s
         table = EG(function_table);
     } else {
         if (!EG(class_table)) {
-            ELOG_DEBUG(log, "Class table is empty. Function " PRsv "::" PRsv " not found and cannot be instrumented.", PRsvArg(className), PRsvArg(functionName));
+            ELOG_DEBUG(log, "instrumentFunction Class table is empty. Function " PRsv "::" PRsv " not found and cannot be instrumented.", PRsvArg(className), PRsvArg(functionName));
             return false;
         }
 
         auto ce = static_cast<zend_class_entry *>(zend_hash_str_find_ptr(EG(class_table), className.data(), className.length()));
         if (!ce) {
-            ELOG_DEBUG(log, "Class not found. Function " PRsv "::" PRsv " not found and cannot be instrumented.", PRsvArg(className), PRsvArg(functionName));
+            ELOG_DEBUG(log, "instrumentFunction Class not found. Function " PRsv "::" PRsv " not found and cannot be instrumented.", PRsvArg(className), PRsvArg(functionName));
             return false;
         }
 
@@ -234,12 +251,14 @@ bool instrumentFunction(LoggerInterface *log, std::string_view className, std::s
 
    	zend_function *func = reinterpret_cast<zend_function *>(zend_hash_str_find_ptr(table, functionName.data(), functionName.length()));
     if (!func) {
-        ELOG_DEBUG(log, "Function " PRsv "::" PRsv " not found and cannot be instrumented.", PRsvArg(className), PRsvArg(functionName));
+        ELOG_DEBUG(log, "instrumentFunction " PRsv "::" PRsv " not found and cannot be instrumented.", PRsvArg(className), PRsvArg(functionName));
         return false;
     }
 
     zend_ulong funcHash = ZSTR_HASH(func->common.function_name);
     zend_ulong hash = classHash ^ (funcHash << 1);
+
+    ELOG_DEBUG(log, "instrumentFunction 0x%X " PRsv "::" PRsv " type: %s is instrumented", hash, PRsvArg(className), PRsvArg(functionName), func->common.type == ZEND_INTERNAL_FUNCTION ? "internal" : "user");
 
     reinterpret_cast<InstrumentedFunctionHooksStorage_t *>(EAPM_GL(hooksStorage_).get())->store(hash, AutoZval{callableOnEntry}, AutoZval{callableOnExit});
 
@@ -260,11 +279,12 @@ bool instrumentFunction(LoggerInterface *log, std::string_view className, std::s
 
 void elasticObserverFcallBeginHandler(zend_execute_data *execute_data) {
     auto hash = getHashFromExecuteData(execute_data);
-    ELOG_TRACE(EAPM_GL(logger_), "elasticObserverFcallBeginHandler for %zu", hash);
-    auto callbacks = reinterpret_cast<InstrumentedFunctionHooksStorage_t *>(EAPM_GL(hooksStorage_).get())->find(hash);
+    ELOG_TRACE(EAPM_GL(logger_), "elasticObserverFcallBeginHandler hash 0x%X", hash);
 
+    auto callbacks = reinterpret_cast<InstrumentedFunctionHooksStorage_t *>(EAPM_GL(hooksStorage_).get())->find(hash);
     if (!callbacks) {
-        ELOG_ERROR(EAPM_GL(logger_), "elasticObserverFcallBeginHandler for %zu. Hooks not found", hash);
+        auto [cls, func] = getClassAndFunctionName(execute_data);
+        ELOG_ERROR(EAPM_GL(logger_), "Unable to find prehook handler for 0x%X " PRsv "::" PRsv, hash, PRsvArg(cls), PRsvArg(func));
         return;
     }
 
@@ -276,18 +296,20 @@ void elasticObserverFcallBeginHandler(zend_execute_data *execute_data) {
             handleAndReleaseHookException(EG(exception));
             restoreExceptionState(std::move(exceptionState));
         } catch (std::exception const &e) {
-            ELOG_CRITICAL(EAPM_GL(logger_), "elasticObserverFcallBeginHandler. Unable to call prehook");
+            auto [cls, func] = getClassAndFunctionName(execute_data);
+            ELOG_CRITICAL(EAPM_GL(logger_), "elasticObserverFcallBeginHandler. Unable to call prehook for 0x%X " PRsv "::" PRsv, hash, PRsvArg(cls), PRsvArg(func));
         }
     }
 }
 
 void elasticObserverFcallEndHandler(zend_execute_data *execute_data, zval *retval) {
     auto hash = getHashFromExecuteData(execute_data);
-    ELOG_TRACE(EAPM_GL(logger_), "elasticObserverFcallEndHandler for %zu", hash);
+    ELOG_TRACE(EAPM_GL(logger_), "elasticObserverFcallEndHandler hash 0x%X", hash);
 
     auto callbacks = reinterpret_cast<InstrumentedFunctionHooksStorage_t *>(EAPM_GL(hooksStorage_).get())->find(hash);
     if (!callbacks) {
-        ELOG_ERROR(EAPM_GL(logger_), "elasticObserverFcallBeginHandler for %zu. Hooks not found", hash);
+        auto [cls, func] = getClassAndFunctionName(execute_data);
+        ELOG_ERROR(EAPM_GL(logger_), "Unable to find posthook handler for 0x%X " PRsv "::" PRsv, hash, PRsvArg(cls), PRsvArg(func));
         return;
     }
 
@@ -298,12 +320,11 @@ void elasticObserverFcallEndHandler(zend_execute_data *execute_data, zval *retva
             handleAndReleaseHookException(EG(exception));
             restoreExceptionState(std::move(exceptionState));
         } catch (std::exception const &e) {
-            ELOG_CRITICAL(EAPM_GL(logger_), "elasticObserverFcallBeginHandler. Unable to call prehook");
+            auto [cls, func] = getClassAndFunctionName(execute_data);
+            ELOG_CRITICAL(EAPM_GL(logger_), "elasticObserverFcallBeginHandler. Unable to call posthook for 0x%X " PRsv "::" PRsv, hash, PRsvArg(cls), PRsvArg(func));
         }
     }
 }
-
-//TODO get stringview for class/function for logging purposes
 
 zend_observer_fcall_handlers elasticRegisterObserver(zend_execute_data *execute_data) {
     if (execute_data->func->common.type == ZEND_INTERNAL_FUNCTION) {
@@ -318,10 +339,10 @@ zend_observer_fcall_handlers elasticRegisterObserver(zend_execute_data *execute_
 
     auto callbacks = reinterpret_cast<InstrumentedFunctionHooksStorage_t *>(EAPM_GL(hooksStorage_).get())->find(hash);
     if (!callbacks) {
-        ELOG_TRACE(EAPM_GL(logger_), "elasticRegisterObserver hash: %zu, not instrumented");
+        ELOG_TRACE(EAPM_GL(logger_), "elasticRegisterObserver hash: 0x%X, not instrumented", hash);
         return {nullptr, nullptr};
     }
-    ELOG_TRACE(EAPM_GL(logger_), "elasticRegisterObserver hash: %zu");
+    ELOG_TRACE(EAPM_GL(logger_), "elasticRegisterObserver hash: 0x%X", hash);
 
     bool havePreHook = false;
     bool havePostHook = false;
@@ -336,15 +357,12 @@ zend_observer_fcall_handlers elasticRegisterObserver(zend_execute_data *execute_
             break;
         }
     }
-    ELOG_TRACE(EAPM_GL(logger_), "elasticRegisterObserver hash: %zu, preHooks: %d postHooks: %d", hash, havePreHook, havePostHook);
+    ELOG_TRACE(EAPM_GL(logger_), "elasticRegisterObserver hash: 0x%X, havePreHooks: %d havePostHooks: %d", hash, havePreHook, havePostHook);
 
     return {havePreHook ? elasticObserverFcallBeginHandler : nullptr, havePostHook ? elasticObserverFcallEndHandler : nullptr};
 }
 
 
-
-
-
-
+//TODO arguments post processing
 
 }
