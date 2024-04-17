@@ -26,6 +26,7 @@
 #include "ConfigurationSnapshot.h"
 #include "ForkHandler.h"
 #include "Hooking.h"
+#include "InternalFunctionInstrumentation.h"
 #include "ModuleIniEntries.h"
 #include "ModuleGlobals.h"
 #include "PeriodicTaskExecutor.h"
@@ -40,6 +41,7 @@
 #include <zend_compile.h>
 #include <zend_exceptions.h>
 #include <zend_builtin_functions.h>
+#include <Zend/zend_observer.h>
 #include "php_error.h"
 #include "util_for_PHP.h"
 
@@ -104,6 +106,10 @@ void elasticApmModuleInit(int moduleType, int moduleNumber) {
 
     ELOG_DEBUG(globals->logger_, "MINIT Replacing hooks");
     elasticapm::php::Hooking::getInstance().replaceHooks();
+
+    zend_observer_activate();
+    zend_observer_fcall_register(elasticapm::php::registerObserver);
+
 
     if (php_check_open_basedir_ex(EAPM_GL(config_)->get(&elasticapm::php::ConfigurationSnapshot::bootstrap_php_part_file).c_str(), false) != 0) {
         ELOG_WARNING(globals->logger_, "Elastic Agent bootstrap file (%s) is located outside of paths allowed by open_basedir ini setting. Read more details here https://www.elastic.co/guide/en/apm/agent/php/current/setup.html#limitations", EAPM_GL(config_)->get(&elasticapm::php::ConfigurationSnapshot::bootstrap_php_part_file).c_str());

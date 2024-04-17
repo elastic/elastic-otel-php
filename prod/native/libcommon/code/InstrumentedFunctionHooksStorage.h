@@ -23,12 +23,12 @@ public:
         callbacks_[functionKey].emplace_back(callbacks_t(std::move(callableOnEntry), std::move(callableOnExit)));
     }
 
-    std::list<callbacks_t> &find(key_t functionKey) {
+    std::list<callbacks_t> *find(key_t functionKey) {
         auto found = callbacks_.find(functionKey);
         if (found == std::end(callbacks_)) {
-            throw std::runtime_error("Callback not found");
+            return nullptr;
         }
-        return found->second;
+        return &found->second;
     }
 
     void clear() final {
