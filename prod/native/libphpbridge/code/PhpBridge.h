@@ -50,6 +50,7 @@ zval *getClassPropertyValue(zend_class_entry *ce, zend_object *object, std::stri
 bool callMethod(zval *object, std::string_view methodName, zval arguments[], int32_t argCount, zval *returnValue);
 std::string_view getExceptionMessage(zend_object *exception);
 std::string_view getExceptionFileName(zend_object *exception);
+long getExceptionLine(zend_object *exception);
 std::string_view getExceptionFunction(zend_object *exception);
 std::string_view getExceptionClass(zend_object *exception);
 

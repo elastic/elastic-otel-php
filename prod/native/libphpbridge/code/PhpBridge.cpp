@@ -204,6 +204,14 @@ std::string_view getExceptionFileName(zend_object *exception) {
     return zvalToStringView(getClassPropertyValue(zend_ce_exception, exception, "file"sv));
 }
 
+long getExceptionLine(zend_object *exception) {
+    auto value = getClassPropertyValue(zend_ce_exception, exception, "line"sv);
+    if (Z_TYPE_P(value) == IS_LONG) {
+        return Z_LVAL_P(value);
+    }
+    return -1;
+}
+
 std::string_view getExceptionClass(zend_object *exception) {
     return zvalToStringView(getClassPropertyValue(zend_ce_exception, exception, "class"sv));
 }

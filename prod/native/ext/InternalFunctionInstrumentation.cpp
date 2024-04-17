@@ -55,22 +55,20 @@ void restoreExceptionState(SavedException savedException) {
 }
 
 void handleAndReleaseHookException(zend_object *exception) {
-    if (exception) {
-        if (!instanceof_function(exception->ce, zend_ce_throwable)) {
-            return;
-        }
-
-        ELOG_ERROR(EAPM_GL(logger_), "Instrumentation hook has thrown exception of class '" PRsv "'. Message: '" PRsv "' Filename: '" PRsv "' Class: '" PRsv "' Function: '" PRsv "'",
-            PRsvArg(getExceptionName(exception)),
-            PRsvArg(getExceptionMessage(exception)),
-            PRsvArg(getExceptionFileName(exception)),
-            PRsvArg(getExceptionClass(exception)),
-            PRsvArg(getExceptionFunction(exception))
-            );
-        //TODO handle stack "trace"
-
-        OBJ_RELEASE(EG(exception));
+    if (!exception || !instanceof_function(exception->ce, zend_ce_throwable)) {
+        return;
     }
+
+    ELOG_ERROR(EAPM_GL(logger_), "Instrumentation hook has thrown exception of class '" PRsv "' in: " PRsv ":%ld Class: '" PRsv "' Function: '" PRsv "'  Message: '" PRsv "'",
+        PRsvArg(getExceptionName(exception)),
+        PRsvArg(getExceptionFileName(exception)),
+        getExceptionLine(exception),
+        PRsvArg(getExceptionClass(exception)),
+        PRsvArg(getExceptionFunction(exception)),
+        PRsvArg(getExceptionMessage(exception))
+        );
+    //TODO dump stack from "trace"
+    OBJ_RELEASE(EG(exception));
 }
 
 void callPreHook(AutoZval<> &prehook) {
@@ -198,7 +196,8 @@ void ZEND_FASTCALL internal_function_handler(INTERNAL_FUNCTION_PARAMETERS) {
             handleAndReleaseHookException(EG(exception));
             restoreExceptionState(std::move(exceptionState));
         } catch (std::exception const &e) {
-            ELOG_CRITICAL(EAPM_GL(logger_), "Unable to call prehook");
+            auto [cls, func] = getClassAndFunctionName(execute_data);
+            ELOG_CRITICAL(EAPM_GL(logger_), "%s hash: 0x%X " PRsv "::" PRsv, e.what(), hash, PRsvArg(cls), PRsvArg(func));
         }
     }
 
@@ -212,7 +211,8 @@ void ZEND_FASTCALL internal_function_handler(INTERNAL_FUNCTION_PARAMETERS) {
             handleAndReleaseHookException(EG(exception));
             restoreExceptionState(std::move(exceptionState));
         } catch (std::exception const &e) {
-            ELOG_CRITICAL(EAPM_GL(logger_), "Unable to call posthook");
+            auto [cls, func] = getClassAndFunctionName(execute_data);
+            ELOG_CRITICAL(EAPM_GL(logger_), "%s hash: 0x%X " PRsv "::" PRsv, e.what(), hash, PRsvArg(cls), PRsvArg(func));
         }
     }
 
@@ -220,8 +220,7 @@ void ZEND_FASTCALL internal_function_handler(INTERNAL_FUNCTION_PARAMETERS) {
 
 
 bool instrumentFunction(LoggerInterface *log, std::string_view className, std::string_view functionName, zval *callableOnEntry, zval *callableOnExit) {
-    //TODO if called from other place that MINIT - make ot thread safe in ZTS
-    //TODO return hash and map on php side? phpside::enter(hash, args), phpside:exit(hash, rv) ?
+    //TODO if called from other place that MINIT - make it thread safe in ZTS
     //TODO use hash struct instead of combined to prevent collisions
 
     HashTable *table = nullptr;
