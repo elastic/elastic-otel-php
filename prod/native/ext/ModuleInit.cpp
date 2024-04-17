@@ -108,7 +108,7 @@ void elasticApmModuleInit(int moduleType, int moduleNumber) {
     elasticapm::php::Hooking::getInstance().replaceHooks();
 
     zend_observer_activate();
-    zend_observer_fcall_register(elasticapm::php::registerObserver);
+    zend_observer_fcall_register(elasticapm::php::elasticRegisterObserver);
 
 
     if (php_check_open_basedir_ex(EAPM_GL(config_)->get(&elasticapm::php::ConfigurationSnapshot::bootstrap_php_part_file).c_str(), false) != 0) {

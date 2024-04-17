@@ -166,7 +166,7 @@ PHP_FUNCTION(elastic_apm_hook) {
     std::string_view className = class_name ? std::string_view{ZSTR_VAL(class_name), ZSTR_LEN(class_name)} : std::string_view{};
     std::string_view functionName = function_name ? std::string_view{ZSTR_VAL(function_name), ZSTR_LEN(function_name)} : std::string_view{};
 
-    if (elasticapm::php::instrumentInternalFunction(EAPM_GL(logger_).get(), className, functionName, pre, post)) {
+    if (elasticapm::php::instrumentFunction(EAPM_GL(logger_).get(), className, functionName, pre, post)) {
         // ELOG_WARNING(ELASTICAPM_G(globals)->logger_, "FUNCTION INSTTRUMENTED");
     }
 }
