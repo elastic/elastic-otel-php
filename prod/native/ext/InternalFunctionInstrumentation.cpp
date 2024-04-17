@@ -8,6 +8,7 @@
 #include "Zend/zend_exceptions.h"
 #include "Zend/zend_hash.h"
 #include "Zend/zend_globals.h"
+#include <Zend/zend_observer.h>
 
 
 #include "InternalFunctionInstrumentationStorage.h"
@@ -16,7 +17,7 @@
 
 namespace elasticapm::php {
 
-using InternalStorage_t = InternalFunctionInstrumentationStorage<zend_ulong, zif_handler, AutoZval<1>>;
+using InternalStorage_t = InternalFunctionInstrumentationStorage<zend_ulong, zif_handler>;
 
 struct SavedException {
     zend_object *exception = nullptr;
@@ -130,67 +131,72 @@ inline void callOriginalHandler(zif_handler handler, INTERNAL_FUNCTION_PARAMETER
 }
 
 
-void ZEND_FASTCALL internal_function_handler(INTERNAL_FUNCTION_PARAMETERS) {
+zend_ulong getHashFromExecuteData(zend_execute_data *execute_data) {
     zend_ulong classHash = 0;
     if (execute_data->func->common.scope && execute_data->func->common.scope->name) {
         classHash = ZSTR_HASH(execute_data->func->common.scope->name);
     }
     zend_ulong funcHash = ZSTR_HASH(execute_data->func->common.function_name);
     zend_ulong hash = classHash ^ (funcHash << 1);
+    return hash;
+}
 
+void ZEND_FASTCALL internal_function_handler(INTERNAL_FUNCTION_PARAMETERS) {
+    auto hash = getHashFromExecuteData(execute_data);
 
-    auto data = InternalStorage_t::getInstance().get(hash);
-    if (!data) {
+    auto originalHandler = InternalStorage_t::getInstance().get(hash);
+    if (!originalHandler) {
         std::string_view cls;
         if (execute_data->func->common.scope && execute_data->func->common.scope->name) {
             cls = {ZSTR_VAL(execute_data->func->common.scope->name), ZSTR_LEN(execute_data->func->common.scope->name)};
         }
         std::string_view func(ZSTR_VAL(execute_data->func->common.function_name), ZSTR_LEN(execute_data->func->common.function_name));
-        ELOG_CRITICAL(EAPM_GL(logger_), "Unable to find function metadata " PRsv ":" PRsv, PRsvArg(cls), PRsvArg(func));
-    }
-
-    if (!EAPM_GL(requestScope_)->isFunctional()) {
-        callOriginalHandler(data->originalHandler, INTERNAL_FUNCTION_PARAM_PASSTHRU);
+        ELOG_CRITICAL(EAPM_GL(logger_), "Unable to find function handler " PRsv ":" PRsv, PRsvArg(cls), PRsvArg(func));
         return;
     }
 
-    try {
+    if (!EAPM_GL(requestScope_)->isFunctional()) {
+        callOriginalHandler(originalHandler, INTERNAL_FUNCTION_PARAM_PASSTHRU);
+        return;
+    }
 
-        auto &callbacks = reinterpret_cast<InstrumentedFunctionHooksStorage_t *>(EAPM_GL(hooksStorage_).get())->find(hash);
+    auto callbacks = reinterpret_cast<InstrumentedFunctionHooksStorage_t *>(EAPM_GL(hooksStorage_).get())->find(hash);
+    if (!callbacks) {
+        callOriginalHandler(originalHandler, INTERNAL_FUNCTION_PARAM_PASSTHRU);
+        ELOG_WARNING(EAPM_GL(logger_), "Unable to find function callbacks");
+        return;
+    }
 
-        for (auto &callback : callbacks) {
-            try {
-                auto exceptionState = saveExceptionState();
-                callPreHook(callback.first);
+    for (auto &callback : *callbacks) {
+        try {
+            auto exceptionState = saveExceptionState();
+            callPreHook(callback.first);
 
-                handleAndReleaseHookException(EG(exception));
-                restoreExceptionState(std::move(exceptionState));
-            } catch (std::exception const &e) {
-                ELOG_CRITICAL(EAPM_GL(logger_), "Unable to call prehook");
-            }
+            handleAndReleaseHookException(EG(exception));
+            restoreExceptionState(std::move(exceptionState));
+        } catch (std::exception const &e) {
+            ELOG_CRITICAL(EAPM_GL(logger_), "Unable to call prehook");
         }
+    }
 
-        callOriginalHandler(data->originalHandler, INTERNAL_FUNCTION_PARAM_PASSTHRU);
+    callOriginalHandler(originalHandler, INTERNAL_FUNCTION_PARAM_PASSTHRU);
 
-        auto exceptionFromInstrumentedFunction = EG(exception);
+    auto exceptionFromInstrumentedFunction = EG(exception);
 
-        for (auto &callback : callbacks) {
-            try {
-                auto exceptionState = saveExceptionState();
-                callPostHook(callback.second, return_value, exceptionFromInstrumentedFunction);
+    for (auto &callback : *callbacks) {
+        try {
+            auto exceptionState = saveExceptionState();
+            callPostHook(callback.second, return_value, exceptionFromInstrumentedFunction);
 
-                handleAndReleaseHookException(EG(exception));
-                restoreExceptionState(std::move(exceptionState));
-            } catch (std::exception const &e) {
-                ELOG_CRITICAL(EAPM_GL(logger_), "Unable to call posthook");
-            }
+            handleAndReleaseHookException(EG(exception));
+            restoreExceptionState(std::move(exceptionState));
+        } catch (std::exception const &e) {
+            ELOG_CRITICAL(EAPM_GL(logger_), "Unable to call posthook");
         }
-    } catch (std::exception const &e) {
-        ELOG_WARNING(EAPM_GL(logger_), e.what());
-        callOriginalHandler(data->originalHandler, INTERNAL_FUNCTION_PARAM_PASSTHRU);
     }
 
 }
+
 
 bool instrumentInternalFunction(LoggerInterface *log, std::string_view className, std::string_view functionName, zval *callableOnEntry, zval *callableOnExit) {
     //TODO if called from other place that MINIT - make ot thread safe in ZTS
@@ -233,14 +239,47 @@ bool instrumentInternalFunction(LoggerInterface *log, std::string_view className
 
     reinterpret_cast<InstrumentedFunctionHooksStorage_t *>(EAPM_GL(hooksStorage_).get())->store(hash, AutoZval{callableOnEntry}, AutoZval{callableOnExit});
 
-    InternalStorage_t::getInstance().store(hash, AutoZval{callableOnEntry}, AutoZval{callableOnExit}, func->internal_function.handler == internal_function_handler ? std::optional<zif_handler>{} : func->internal_function.handler);
-    if (func->internal_function.handler != internal_function_handler) {
-        func->internal_function.handler = internal_function_handler;
+    if (func->common.type == ZEND_INTERNAL_FUNCTION) {
+        if (func->internal_function.handler != internal_function_handler) {
+            InternalStorage_t::getInstance().store(hash, func->internal_function.handler);
+            func->internal_function.handler = internal_function_handler;
+        }
+        ELOG_DEBUG(log, PRsv "::" PRsv " instrumented, key: %d", PRsvArg(className), PRsvArg(functionName), hash);
     }
 
 
-    ELOG_DEBUG(log, PRsv "::" PRsv " instrumented, key: %d", PRsvArg(className), PRsvArg(functionName), hash);
-
     return true;
 }
+
+
+
+void elasticObserverFcallBeginHandler(zend_execute_data *execute_data) {
+}
+void elasticObserverFcallEndHandler(zend_execute_data *execute_data, zval *retval) {
+}
+
+zend_observer_fcall_handlers registerObserver(zend_execute_data *execute_data) {
+    auto hash = getHashFromExecuteData(execute_data);
+
+    auto callbacks = reinterpret_cast<InstrumentedFunctionHooksStorage_t *>(EAPM_GL(hooksStorage_).get())->find(hash);
+    if (!callbacks) {
+        return {nullptr, nullptr};
+    }
+    // ZEND_OP_ARRAY_EXTENSION(&execute_data->func->op_array, op_array_extension)
+
+    return {elasticObserverFcallBeginHandler, elasticObserverFcallEndHandler};
+}
+    //    tutaj ustawiamy funkcje begin i end po prostu, co za syf
+    // wczesniej odpalimy hook, dodamy do local storage
+    // a potem tutaj zapodamy find(hash) i bedziemy wiedziec z kim mamy do czynbienia
+    // w op-array-extension podamy hash
+
+
+
+
+
+
+
+
+
 }
