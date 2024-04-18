@@ -75,6 +75,10 @@ void elasticApmModuleInit(int moduleType, int moduleNumber) {
     auto const &sapi = *ELASTICAPM_G(globals)->sapi_;
     auto globals = ELASTICAPM_G(globals);
 
+    elasticapm::php::registerElasticApmIniEntries(EAPM_GL(logger_).get(), moduleNumber);
+    configManager.update();
+    globals->config_->update();
+
     ELOG_DEBUG(globals->logger_, "%s entered: moduleType: %d, moduleNumber: %d, parent PID: %d, SAPI: %s (%d) is %s", __FUNCTION__, moduleType, moduleNumber, static_cast<int>(elasticapm::osutils::getParentProcessId()), sapi.getName().data(), static_cast<uint8_t>(sapi.getType()), sapi.isSupported() ? "supported" : "unsupported");
     if (!sapi.isSupported()) {
         return;
@@ -85,11 +89,6 @@ void elasticApmModuleInit(int moduleType, int moduleNumber) {
     elasticapm::php::Hooking::getInstance().fetchOriginalHooks();
 
     // CURLcode curlCode;
-
-
-    elasticapm::php::registerElasticApmIniEntries(EAPM_GL(logger_).get(), moduleNumber);
-    configManager.update();
-    globals->config_->update();
 
     logStartupPreamble(globals->logger_.get());
 
