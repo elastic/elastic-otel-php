@@ -2,6 +2,7 @@
 #include "ModuleFunctions.h"
 #include "ConfigurationStorage.h"
 #include "LoggerInterface.h"
+#include "RequestScope.h"
 #include "ModuleGlobals.h"
 #include "ModuleFunctionsImpl.h"
 #include "InternalFunctionInstrumentation.h"
@@ -166,9 +167,12 @@ PHP_FUNCTION(elastic_apm_hook) {
     std::string_view className = class_name ? std::string_view{ZSTR_VAL(class_name), ZSTR_LEN(class_name)} : std::string_view{};
     std::string_view functionName = function_name ? std::string_view{ZSTR_VAL(function_name), ZSTR_LEN(function_name)} : std::string_view{};
 
-    if (elasticapm::php::instrumentFunction(EAPM_GL(logger_).get(), className, functionName, pre, post)) {
-        // ELOG_WARNING(ELASTICAPM_G(globals)->logger_, "FUNCTION INSTTRUMENTED");
+    if (!EAPM_GL(requestScope_)->isFunctional()) {
+        ELOG_DEBUG(EAPM_GL(logger_), "elastic_apm_hook. Can't instrument " PRsv "::" PRsv " beacuse agent is not functional.", PRsvArg(className), PRsvArg(functionName));
+        return;
     }
+
+    elasticapm::php::instrumentFunction(EAPM_GL(logger_).get(), className, functionName, pre, post);
 }
 
 // clang-format off
@@ -176,8 +180,6 @@ const zend_function_entry elastic_apm_functions[] = {
     PHP_FE( elastic_apm_is_enabled, elastic_apm_no_paramters_arginfo )
     PHP_FE( elastic_apm_get_config_option_by_name, elastic_apm_get_config_option_by_name_arginfo )
     PHP_FE( elastic_apm_get_number_of_dynamic_config_options, elastic_apm_no_paramters_arginfo )
-    // PHP_FE( elastic_apm_intercept_calls_to_internal_method, elastic_apm_intercept_calls_to_internal_method_arginfo )
-    // PHP_FE( elastic_apm_intercept_calls_to_internal_function, elastic_apm_intercept_calls_to_internal_function_arginfo )
     PHP_FE( elastic_apm_send_to_server, elastic_apm_send_to_server_arginfo )
     PHP_FE( elastic_apm_log, elastic_apm_log_arginfo )
     PHP_FE( elastic_apm_get_last_thrown, elastic_apm_get_last_thrown_arginfo )

@@ -21,39 +21,6 @@ using namespace std::literals;
 
 using InternalStorage_t = InternalFunctionInstrumentationStorage<zend_ulong, zif_handler>;
 
-struct SavedException {
-    zend_object *exception = nullptr;
-    zend_object *prev_exception = nullptr;
-    const zend_op *opline_before_exception = nullptr;
-    std::optional<const zend_op *> opline;
-};
-
-SavedException saveExceptionState() {
-    SavedException savedException;
-    savedException.exception = EG(exception);
-    savedException.prev_exception = EG(prev_exception);
-    savedException.opline_before_exception = EG(opline_before_exception);
-
-    EG(exception) = nullptr;
-    EG(prev_exception) = nullptr;
-    EG(opline_before_exception) = nullptr;
-
-    if (EG(current_execute_data)) {
-        savedException.opline = EG(current_execute_data)->opline;
-    }
-    return savedException;
-}
-
-void restoreExceptionState(SavedException savedException) {
-    EG(exception) = savedException.exception;
-    EG(prev_exception) = savedException.prev_exception;
-    EG(opline_before_exception) = savedException.opline_before_exception;
-
-    if (EG(current_execute_data) && savedException.opline.has_value()) {
-        EG(current_execute_data)->opline = savedException.opline.value();
-    }
-}
-
 void handleAndReleaseHookException(zend_object *exception) {
     if (!exception || !instanceof_function(exception->ce, zend_ce_throwable)) {
         return;
@@ -90,12 +57,13 @@ void callPreHook(AutoZval<> &prehook) {
     AutoZval ret;
     fci.param_count = parameters.size();
     fci.params = parameters.get();
-    fci.named_params = NULL;
+    fci.named_params = nullptr;
     fci.retval = ret.get();
     if (zend_call_function(&fci, &fcc) != SUCCESS) {
         throw std::runtime_error("Unable to call prehook function");
     }
 }
+//TODO arguments post processing
 
 void callPostHook(AutoZval<> &hook, zval *return_value, zend_object *exception) {
     zend_fcall_info fci = empty_fcall_info;
@@ -118,7 +86,7 @@ void callPostHook(AutoZval<> &hook, zval *return_value, zend_object *exception) 
     AutoZval ret;
     fci.param_count = parameters.size();
     fci.params = parameters.get();
-    fci.named_params = NULL;
+    fci.named_params = nullptr;
     fci.retval = ret.get();
     if (zend_call_function(&fci, &fcc) != SUCCESS) {
         throw std::runtime_error("Unable to call posthook function");
@@ -362,6 +330,5 @@ zend_observer_fcall_handlers elasticRegisterObserver(zend_execute_data *execute_
 }
 
 
-//TODO arguments post processing
 
 }
