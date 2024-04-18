@@ -1,6 +1,8 @@
 #pragma once
 
 #include "PhpBridgeInterface.h"
+#include "Helpers.h"
+#include "Exceptions.h"
 
 #include <main/php_version.h>
 #include <Zend/zend_types.h>
@@ -48,11 +50,6 @@ zval *getClassStaticPropertyValue(zend_class_entry *ce, std::string_view propert
 zval *getClassPropertyValue(zend_class_entry *ce, zval *object, std::string_view propertyName);
 zval *getClassPropertyValue(zend_class_entry *ce, zend_object *object, std::string_view propertyName);
 bool callMethod(zval *object, std::string_view methodName, zval arguments[], int32_t argCount, zval *returnValue);
-std::string_view getExceptionMessage(zend_object *exception);
-std::string_view getExceptionFileName(zend_object *exception);
-long getExceptionLine(zend_object *exception);
-std::string_view getExceptionFunction(zend_object *exception);
-std::string_view getExceptionClass(zend_object *exception);
 
 std::string_view getExceptionName(zend_object *exception);
 bool isObjectOfClass(zval *object, std::string_view className);
@@ -65,5 +62,6 @@ void getFunctionDeclarationFileName(zval *zv, zend_execute_data *ex);
 void getFunctionDeclarationLineNo(zval *zv, zend_execute_data *ex);
 void getFunctionReturnValue(zval *zv, zval *retval);
 void getCurrentException(zval *zv, zend_object *exception);
+
 
 } // namespace elasticapm::php

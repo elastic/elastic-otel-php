@@ -107,9 +107,18 @@ void PhpBridge::compileAndExecuteFile(std::string_view fileName) const {
     efree(opArray);
 
     if (EG(exception) && EG(exception) != (zend_object *)-1) {
-        std::string msg = "Exception was thrown during execution of file "s;
+        std::string msg = "Exception ";
+        msg.append(getExceptionName(EG(exception)));
+
+        msg.append(zvalToStringView(getClassPropertyValue(zend_ce_throwable, EG(exception), "message"sv)));
+        msg.append(zvalToStringView(getClassPropertyValue(zend_ce_throwable, EG(exception), "string"sv)));
+        msg.append(zvalToStringView(getClassPropertyValue(zend_ce_throwable, EG(exception), "code"sv)));
+        msg.append(zvalToStringView(getClassPropertyValue(zend_ce_throwable, EG(exception), "file"sv)));
+
+
+        msg.append("| was thrown during execution of file "s);
         msg.append(fileName);
-        msg.append(": ");
+        msg.append(". ");
         msg.append(getCurrentExceptionMessage());
 
         throw std::runtime_error(msg);
@@ -189,47 +198,11 @@ zval *getClassPropertyValue(zend_class_entry *ce, zend_object *object, std::stri
 #endif
 }
 
-std::string_view zvalToStringView(zval *zv) {
-    if (!zv || Z_TYPE_P(zv) != IS_STRING) {
-        return {};
-    }
-    return {Z_STRVAL_P(zv), Z_STRLEN_P(zv)};
-}
-
-std::string_view getExceptionMessage(zend_object *exception) {
-    return zvalToStringView(getClassPropertyValue(zend_ce_exception, exception, "message"sv));
-}
-
-std::string_view getExceptionFileName(zend_object *exception) {
-    return zvalToStringView(getClassPropertyValue(zend_ce_exception, exception, "file"sv));
-}
-
-long getExceptionLine(zend_object *exception) {
-    auto value = getClassPropertyValue(zend_ce_exception, exception, "line"sv);
-    if (Z_TYPE_P(value) == IS_LONG) {
-        return Z_LVAL_P(value);
-    }
-    return -1;
-}
-
-std::string_view getExceptionClass(zend_object *exception) {
-    return zvalToStringView(getClassPropertyValue(zend_ce_exception, exception, "class"sv));
-}
-
-std::string_view getExceptionFunction(zend_object *exception) {
-    return zvalToStringView(getClassPropertyValue(zend_ce_exception, exception, "function"sv));
-}
-
-std::string_view getExceptionName(zend_object *exception) {
-    zend_string *str = exception->handlers->get_class_name(exception);
-    if (!str) {
-        return {};
-    }
-    return {ZSTR_VAL(str), ZSTR_LEN(str)};
-}
 
 
 bool callMethod(zval *object, std::string_view methodName, zval arguments[], int32_t argCount, zval *returnValue) {
+    elasticapm::utils::callOnScopeExit callOnExit([exceptionState = saveExceptionState()]() { restoreExceptionState(exceptionState); });
+
     AutoZval zMethodName;
     ZVAL_STRINGL(zMethodName.get(), methodName.data(), methodName.length());
 
