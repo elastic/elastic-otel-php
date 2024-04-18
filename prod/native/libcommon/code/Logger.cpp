@@ -2,6 +2,7 @@
 
 #include <sys/syscall.h>
 #include <sys/types.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <syslog.h>
 
@@ -124,5 +125,41 @@ void LoggerSinkSysLog::writeLog(std::string const &formattedOutput, std::string_
     ::syslog(LOG_ALERT, PRsv " " PRsv, PRsvArg(process), PRsvArg(message));
 }
 
+LogLevel LoggerSinkFile::getLevel() const {
+    return level_;
+}
+
+void LoggerSinkFile::setLevel(LogLevel level) {
+    level_ = level;
+}
+
+
+void LoggerSinkFile::writeLog(std::string const &formattedOutput, std::string_view message, std::string_view time, std::string_view level, std::string_view process) const {
+    if (fd_ < 0) {
+        return;
+    }
+    // mt-safe (multithread)
+    [[maybe_unused]] auto rv = ::write(fd_, formattedOutput.c_str(), formattedOutput.length());
+}
+
+bool LoggerSinkFile::reopen(std::string fileName) {
+    std::lock_guard<SpinLock> lock(spinLock_);
+
+    if (openedFilePath_ == fileName) {
+        return true;
+    }
+
+    if (fd_ >= 0) {
+        close(fd_);
+        openedFilePath_.clear();
+    }
+
+    fd_ = open(fileName.c_str(), O_APPEND | O_CREAT | O_WRONLY, S_IRWXU | S_IRWXG);
+    if (fd_ >=0) {
+        openedFilePath_ = std::move(fileName);
+        return true;
+    }
+    return false;
+}
 
 }

@@ -88,8 +88,9 @@ static PHP_GINIT_FUNCTION(elastic_apm) {
     //TODO store in globals and allow watch for config change (change of level)
     auto logSinkStdErr = std::make_shared<elasticapm::php::LoggerSinkStdErr>();
     auto logSinkSysLog = std::make_shared<elasticapm::php::LoggerSinkSysLog>();
+    auto logSinkFile = std::make_shared<elasticapm::php::LoggerSinkFile>();
 
-    auto logger = std::make_shared<elasticapm::php::Logger>(std::vector<std::shared_ptr<elasticapm::php::LoggerSinkInterface>>{logSinkStdErr, logSinkSysLog});
+    auto logger = std::make_shared<elasticapm::php::Logger>(std::vector<std::shared_ptr<elasticapm::php::LoggerSinkInterface>>{logSinkStdErr, logSinkSysLog, logSinkFile});
 
     ELOG_DEBUG(logger, "%s: GINIT called; parent PID: %d", __FUNCTION__, static_cast<int>(elasticapm::osutils::getParentProcessId()));
     elastic_apm_globals->globals = nullptr;
@@ -99,7 +100,7 @@ static PHP_GINIT_FUNCTION(elastic_apm) {
     auto hooksStorage = std::make_shared<elasticapm::php::InstrumentedFunctionHooksStorage_t>();
 
     try {
-        elastic_apm_globals->globals = new elasticapm::php::AgentGlobals(logger, std::move(logSinkStdErr), std::move(logSinkSysLog), std::move(phpBridge), std::move(hooksStorage), [](elasticapm::php::ConfigurationSnapshot &cfg) { return configManager.updateIfChanged(cfg); });
+        elastic_apm_globals->globals = new elasticapm::php::AgentGlobals(logger, std::move(logSinkStdErr), std::move(logSinkSysLog), std::move(logSinkFile), std::move(phpBridge), std::move(hooksStorage), [](elasticapm::php::ConfigurationSnapshot &cfg) { return configManager.updateIfChanged(cfg); });
     } catch (std::exception const &e) {
         ELOG_CRITICAL(logger, "Unable to allocate AgentGlobals. '%s'", e.what());
     }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "PhpSapi.h"
+#include "Logger.h"
 #include <functional>
 #include <memory>
 
@@ -14,6 +15,7 @@ class RequestScope;
 class ConfigurationStorage;
 class ConfigurationSnapshot;
 class LoggerSinkInterface;
+class LogSinkFile;
 class InstrumentedFunctionHooksStorageInterface;
 
 class AgentGlobals {
@@ -21,6 +23,7 @@ public:
     AgentGlobals(std::shared_ptr<LoggerInterface> logger,
         std::shared_ptr<LoggerSinkInterface> logSinkStdErr,
         std::shared_ptr<LoggerSinkInterface> logSinkSysLog,
+        std::shared_ptr<LoggerSinkFile> logSinkFile,
         std::shared_ptr<PhpBridgeInterface> bridge,
         std::shared_ptr<InstrumentedFunctionHooksStorageInterface> hooksStorage,
         std::function<bool(ConfigurationSnapshot &)> updateConfigurationSnapshot);
@@ -38,7 +41,7 @@ public:
 
     std::shared_ptr<LoggerSinkInterface> logSinkStdErr_;
     std::shared_ptr<LoggerSinkInterface> logSinkSysLog_;
-    // std::shared_ptr<elasticapm::php::LoggerSinkInterface> logSinkFile_;
+    std::shared_ptr<LoggerSinkFile> logSinkFile_;
 };
 
 } // namespace elasticapm::php
