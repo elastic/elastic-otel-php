@@ -1,5 +1,3 @@
-<?php
-
 /*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -19,11 +17,10 @@
  * under the License.
  */
 
-declare(strict_types=1);
+#pragma once
 
-use Elastic\OTel\SrcRootDir;
+#include "LoggerInterface.h"
 
-require __DIR__ . '/ElasticOTel/SrcRootDir.php';
-SrcRootDir::$fullPath = __DIR__;
+void registerSigSegvHandler(elasticapm::php::LoggerInterface *logger);
+void unregisterSigSegvHandler();
 
-require __DIR__ . '/ElasticOTel/AutoInstrument/bootstrap_php_part.php';

@@ -22,74 +22,14 @@
 #include <stdbool.h>
 #include <php.h>
 #include <zend.h>
-#include "elastic_apm_assert.h"
 #include "basic_macros.h"
-#include "basic_types.h"
-#include "log.h"
-#include "MemoryTracker.h"
-#include "ResultCode.h"
-#include "TextOutputStream_forward_decl.h"
+#include <string_view>
 
-static inline
-bool isEmtpyZstring( const zend_string* zStr )
-{
-    ELASTIC_APM_ASSERT_VALID_PTR( zStr );
-
-    return ZSTR_LEN( zStr ) == 0;
-}
-
-static inline
-StringView zStringToStringView( const zend_string* zStr )
-{
-    ELASTIC_APM_ASSERT_VALID_PTR( zStr );
-
-    return makeStringView( ZSTR_VAL( zStr ), ZSTR_LEN( zStr ) );
-}
-
-static inline
-String nullableZStringToString( const zend_string* zStr )
-{
-    return zStr == NULL ? NULL : ZSTR_VAL( zStr );
-}
-
-static inline
-StringView nullableZStringToStringView( const zend_string* zStr )
-{
-    return zStr == NULL ? ELASTIC_APM_EMPTY_STRING_VIEW : zStringToStringView( zStr );
-}
-
-static inline
-bool isNullOrEmtpyZstring( const zend_string* zStr )
-{
-    return zStr == NULL || isEmtpyZstring( zStr );
-}
-
-static inline
-bool isZarray( const zval* zValue )
-{
-    ELASTIC_APM_ASSERT_VALID_PTR( zValue );
-
-    return Z_TYPE_P( zValue ) == IS_ARRAY;
-}
-
-static inline
-const zval* findInZarrayByStringKey( const zend_array* zArray, StringView key )
-{
-    return zend_hash_str_find( zArray, key.begin, key.length );
-}
-
-ResultCode loadPhpFile( const char* filename );
-ResultCode callPhpFunctionRetBool( StringView phpFunctionName, uint32_t argsCount, zval args[], bool* retVal );
-ResultCode callPhpFunctionRetVoid( StringView phpFunctionName, uint32_t argsCount, zval args[] );
-ResultCode callPhpFunctionRetZval( StringView phpFunctionName, uint32_t argsCount, zval args[], zval* retVal );
+bool callPhpFunctionRetBool( std::string_view phpFunctionName, uint32_t argsCount, zval args[], bool* retVal );
+bool callPhpFunctionRetVoid( std::string_view phpFunctionName, uint32_t argsCount, zval args[] );
+bool callPhpFunctionRetZval( std::string_view phpFunctionName, uint32_t argsCount, zval args[], zval* retVal );
 
 void getArgsFromZendExecuteData( zend_execute_data *execute_data, size_t dstArraySize, zval dstArray[], uint32_t* argsCount );
-
-bool isPhpRunningAsCliScript();
-bool detectOpcachePreload();
-bool isScriptRestricedByOpcacheAPI();
-bool detectOpcacheRestartPending();
-void enableAccessToServerGlobal();
 
 #define ELASTIC_APM_ZEND_ADD_ASSOC( map, key, valueType, value ) ELASTIC_APM_PP_CONCAT( ELASTIC_APM_PP_CONCAT( add_assoc_, valueType ), _ex)( (map), (key), sizeof( key ) - 1, (value) )
 
@@ -108,5 +48,3 @@ void enableAccessToServerGlobal();
     } while( 0 ) \
     /**/
 
-
-String streamZVal( const zval* zVal, TextOutputStream* txtOutStream );

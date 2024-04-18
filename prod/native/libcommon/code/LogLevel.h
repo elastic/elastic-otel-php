@@ -1,5 +1,3 @@
-<?php
-
 /*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -19,11 +17,35 @@
  * under the License.
  */
 
-declare(strict_types=1);
+#pragma once
 
-use Elastic\OTel\SrcRootDir;
+#include <string_view>
 
-require __DIR__ . '/ElasticOTel/SrcRootDir.php';
-SrcRootDir::$fullPath = __DIR__;
+/**
+ * The order is important because lower numeric values are considered contained in higher ones
+ * for example logLevel_error means that both logLevel_error and logLevel_critical is enabled.
+ */
 
-require __DIR__ . '/ElasticOTel/AutoInstrument/bootstrap_php_part.php';
+
+// namespace elasticapm::php {
+
+
+enum LogLevel {
+    /**
+     * logLevel_off should not be used by logging statements - it is used only in configuration.
+     */
+    logLevel_off = 0,
+    logLevel_critical,
+    logLevel_error,
+    logLevel_warning,
+    logLevel_info,
+    logLevel_debug,
+    logLevel_trace,
+
+    first = logLevel_off,
+    last = logLevel_trace
+};
+
+// }
+
+std::string_view getLogLevelName(LogLevel level);

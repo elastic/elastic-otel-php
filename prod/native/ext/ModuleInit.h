@@ -1,5 +1,3 @@
-<?php
-
 /*
  * Licensed to Elasticsearch B.V. under one or more contributor
  * license agreements. See the NOTICE file distributed with
@@ -19,11 +17,14 @@
  * under the License.
  */
 
-declare(strict_types=1);
+#pragma once
 
-use Elastic\OTel\SrcRootDir;
+#include "Zend/zend_types.h"
 
-require __DIR__ . '/ElasticOTel/SrcRootDir.php';
-SrcRootDir::$fullPath = __DIR__;
+void elasticApmModuleInit( int moduleType, int moduleNumber );
+void elasticApmModuleShutdown( int moduleType, int moduleNumber );
 
-require __DIR__ . '/ElasticOTel/AutoInstrument/bootstrap_php_part.php';
+struct _zval_struct;
+typedef struct _zval_struct zval;
+void elasticApmGetLastThrown( zval* return_value );
+void elasticApmGetLastPhpError( zval* return_value );
