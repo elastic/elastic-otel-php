@@ -12,6 +12,7 @@
 
 #include <main/SAPI.h>
 
+#include <array>
 #include <chrono>
 #include <string_view>
 
@@ -55,9 +56,9 @@ bool PhpBridge::callInferredSpans(std::chrono::milliseconds duration) const {
 
     AutoZval rv;
     AutoZval params;
-    ZVAL_LONG(&params[0], duration.count());
+    params.setLong(duration.count());
 
-    return callMethod(inferredSpansManager, "handleAutomaticCapturing"sv, params.data(), params.size(), rv.get());
+    return callMethod(inferredSpansManager, "handleAutomaticCapturing"sv, params.get(), 1, rv.get());
 }
 
 std::string_view PhpBridge::getPhpSapiName() const {
@@ -68,7 +69,7 @@ void PhpBridge::compileAndExecuteFile(std::string_view fileName) const {
 
 #if PHP_VERSION_ID < 80100
     AutoZval fn;
-    ZVAL_STRINGL(&fn[0], fileName.data(), fileName.length());
+    fn.setString(fileName);
 #else
     AutoZendString fn(fileName);
 #endif
@@ -101,7 +102,7 @@ void PhpBridge::compileAndExecuteFile(std::string_view fileName) const {
     }
 
     AutoZval returnValue;
-    zend_execute(opArray, &returnValue[0]);
+    zend_execute(opArray, returnValue.get());
 
     destroy_op_array(opArray);
     efree(opArray);
@@ -131,9 +132,9 @@ bool PhpBridge::callPHPSideEntryPoint(LogLevel logLevel, std::chrono::time_point
         return false;
     }
 
-    AutoZval<2> arguments{logLevel, (double)std::chrono::duration_cast<std::chrono::microseconds>(requestInitStart.time_since_epoch()).count()};
+    std::array<AutoZval, 2> arguments{logLevel, (double)std::chrono::duration_cast<std::chrono::microseconds>(requestInitStart.time_since_epoch()).count()};
     AutoZval rv;
-    return callMethod(nullptr, "\\Elastic\\Apm\\Impl\\AutoInstrument\\PhpPartFacade::bootstrap"sv, arguments.get(), arguments.size(), rv.get());
+    return callMethod(nullptr, "\\Elastic\\Apm\\Impl\\AutoInstrument\\PhpPartFacade::bootstrap"sv, arguments.data()->get(), arguments.size(), rv.get());
 }
 
 bool PhpBridge::callPHPSideExitPoint() const {
@@ -152,10 +153,10 @@ bool PhpBridge::callPHPSideErrorHandler(int type, std::string_view errorFilename
         return false;
     }
 
-    AutoZval<4> arguments{type, errorFilename, errorLineno, message};
+    std::array<AutoZval, 4> arguments{type, errorFilename, errorLineno, message};
 
     AutoZval rv;
-    return callMethod(nullptr, "\\Elastic\\Apm\\Impl\\AutoInstrument\\PhpPartFacade::handle_error"sv, arguments.get(), arguments.size(), rv.get());
+    return callMethod(nullptr, "\\Elastic\\Apm\\Impl\\AutoInstrument\\PhpPartFacade::handle_error"sv, arguments.data()->get(), arguments.size(), rv.get());
 }
 
 

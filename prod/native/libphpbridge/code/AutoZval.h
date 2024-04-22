@@ -13,141 +13,129 @@ namespace elasticapm::php {
 template<typename T>
 concept NotZvalPointer = !std::same_as<T, zval *>;
 
-template <std::size_t SIZE = 1> class AutoZval {
+class AutoZval {
 public:
     AutoZval(const AutoZval &) = delete;
 
     AutoZval &operator=(const AutoZval &other) { // copy
     // TODO implement copy constructor or safer - copy_full() and copy_ref() methods
-        memcpy(&value, &other.value, sizeof(zval) * SIZE);
-        for (std::size_t idx = 0; idx < SIZE; ++idx) {
-            ZVAL_COPY(&value[idx], &other.value[idx]);
-        }
+        ZVAL_COPY(&value, &other.value);
         return *this;
     }
 
     AutoZval &operator=(AutoZval &&other) { // move
-        memcpy(&value, &other.value, sizeof(zval) * SIZE);
-        for (std::size_t idx = 0; idx < SIZE; ++idx) {
-            ZVAL_COPY_VALUE(&value[idx], &other.value[idx]);
-            ZVAL_UNDEF(&other.value[idx]); // prevent destructor
-        }
+        memcpy(&value, &other.value, sizeof(zval));
+        ZVAL_UNDEF(&other.value); // prevent destructor
         return *this;
     }
 
     AutoZval(AutoZval &&other) { // move
-        memcpy(&value, &other.value, sizeof(zval) * SIZE);
-        for (std::size_t idx = 0; idx < SIZE; ++idx) {
-            ZVAL_UNDEF(&other.value[idx]); // prevent destructor
-        }
+        memcpy(&value, &other.value, sizeof(zval));
+        ZVAL_UNDEF(&other.value); // prevent destructor
     }
 
     AutoZval() {
-        for (std::size_t idx = 0; idx < SIZE; ++idx) {
-            ZVAL_UNDEF(&value[idx]);
-        }
+        ZVAL_UNDEF(&value);
     }
 
     explicit AutoZval(zval *zv) { // copy from pointer (add reference)
         if (!zv) {
-            setNull<0>();
+            setNull();
             return;
         }
-        memcpy(&value, zv, sizeof(zval));
-        ZVAL_COPY(&value[0], zv);
+        ZVAL_COPY(&value, zv);
     }
 
-
-    template <typename... VALUES> AutoZval(VALUES &&...values) {
-        static_assert(sizeof...(VALUES) == SIZE, "Initializer size must match array size");
-        std::size_t index = 0;
-        ([&] { set(index++, values); }(), ...);
+    AutoZval(auto &&value) {
+        set(value);
     }
 
     ~AutoZval() {
-        for (std::size_t idx = 0; idx < SIZE; ++idx) {
-            zval_ptr_dtor(&value[idx]);
-        }
+        zval_ptr_dtor(&value);
     }
 
     constexpr zval &operator*() noexcept {
-        return value[0];
+        return value;
     }
 
     constexpr zval *get() noexcept {
-        return &value[0];
-    }
-
-    constexpr zval &at(std::size_t index) {
-        if (index >= SIZE) {
-            throw std::out_of_range("AutoZval index greater or equal capacity");
-        }
-        return value[index];
-    }
-
-    constexpr zval *get(std::size_t index) {
-        if (index >= SIZE) {
-            throw std::out_of_range("AutoZval index greater or equal capacity");
-        }
-        return &value[index];
+        return &value;
     }
 
     zval *data() {
-        return &value[0];
+        return &value;
     }
 
-    zval &operator[](std::size_t index) {
-        if (index >= SIZE) {
-            throw std::out_of_range("AutoZval index greater or equal capacity");
-        }
-        return value[index];
+
+    void setString(std::string_view str) {
+        ZVAL_STRINGL(&value, str.data(), str.length());
     }
 
-    constexpr std::size_t size() const noexcept {
-        return SIZE;
+    template<typename T, std::enable_if_t< std::is_convertible<T, zend_long>::value, bool> = true >
+    constexpr void setLong(T val) {
+        ZVAL_LONG(&value, val);
     }
 
-    template <std::size_t INDEX> constexpr void setString(std::string_view str) {
-        static_assert(INDEX < SIZE);
-        ZVAL_STRINGL(&value[INDEX], str.data(), str.length());
+    constexpr void setNull() {
+        ZVAL_NULL(&value);
     }
 
-    template <std::size_t INDEX> constexpr void setLong(auto val) {
-        static_assert(INDEX < SIZE);
-        ZVAL_LONG(&value[INDEX], val);
+    constexpr void setDouble(double val) {
+        ZVAL_DOUBLE(&value, val);
     }
 
-    template <std::size_t INDEX> constexpr void setNull() {
-        static_assert(INDEX < SIZE);
-        ZVAL_NULL(&value[INDEX]);
-    }
-
-    constexpr void set(std::size_t index, NotZvalPointer auto &&val) {
+    constexpr void set(NotZvalPointer auto &&val) {
         if constexpr (std::is_same_v<decltype(val), bool>) {
-            ZVAL_BOOL(&value[index], val);
+            ZVAL_BOOL(&value, val);
         } else if constexpr (std::is_floating_point_v<std::remove_reference_t<decltype(val)>>) {
-            ZVAL_DOUBLE(&value[index], val);
+            ZVAL_DOUBLE(&value, val);
         } else if constexpr (!std::is_null_pointer_v<std::remove_reference_t<decltype(val)>> && std::is_convertible_v<decltype(val), std::string_view>) {
             std::string_view sv{val};
-            ZVAL_STRINGL(&value[index], sv.data(), sv.length());
+            ZVAL_STRINGL(&value, sv.data(), sv.length());
         } else if constexpr (std::is_null_pointer_v<std::remove_reference_t<decltype(val)>>) {
-            ZVAL_NULL(&value[index]);
+            ZVAL_NULL(&value);
         } else {
-            ZVAL_LONG(&value[index], val);
+            ZVAL_LONG(&value, val);
         }
     }
 
-    template <std::size_t INDEX> constexpr void make(auto const &val) {
-        set(INDEX, val);
+    bool isNull() const {
+        return Z_TYPE_P(&value) == IS_NULL;
+    }
+    bool isUndef() const {
+        return Z_TYPE_P(&value) == IS_UNDEF;
+    }
+    bool isString() const {
+        return Z_TYPE_P(&value) == IS_STRING;
+    }
+    bool isLong() const {
+        return Z_TYPE_P(&value) == IS_LONG;
+    }
+    bool isDouble() const {
+        return Z_TYPE_P(&value) == IS_DOUBLE;
+    }
+    bool isBoolean() const {
+        return Z_TYPE_P(&value) == IS_TRUE || Z_TYPE_P(&value) == IS_FALSE;
+    }
+    bool isArray() const {
+        return Z_TYPE_P(&value) == IS_ARRAY;
+    }
+    bool isObject() const {
+        return Z_TYPE_P(&value) == IS_OBJECT;
+    }
+    bool isResource() const {
+        return Z_TYPE_P(&value) == IS_RESOURCE;
     }
 
-    template <std::size_t INDEX> bool isNull() const {
-        static_assert(INDEX < SIZE);
-        return Z_TYPE_P(&value[INDEX]) == IS_NULL;
+    uint8_t getType() const {
+        return Z_TYPE_P(&value);
     }
 
 private:
-    zval value[SIZE];
+    zval value;
 };
+
+static_assert(sizeof(zval) == sizeof(AutoZval));
+static_assert(sizeof(zval[10]) == sizeof(std::array<AutoZval, 10>));
 
 } // namespace elasticapm::php

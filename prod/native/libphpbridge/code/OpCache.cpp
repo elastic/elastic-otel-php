@@ -83,13 +83,13 @@ bool PhpBridge::detectOpcacheRestartPending() const {
     }
 
     AutoZval rv;
-    rv.setNull<0>();
+    rv.setNull();
 
     AutoZval parameters{false};
 
 	int originalErrorReportingState = EG(error_reporting); // suppress error/warning reporing
 	EG(error_reporting) = 0;
-    bool result = callMethod(NULL, "opcache_get_status", parameters.get(), parameters.size(), rv.get());
+    bool result = callMethod(NULL, "opcache_get_status", parameters.get(), 1, rv.get());
 	EG(error_reporting) = originalErrorReportingState;
 
     if (!result) {
