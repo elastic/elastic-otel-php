@@ -15,6 +15,8 @@
 #include "RequestScope.h"
 #include "InstrumentedFunctionHooksStorage.h"
 
+#include <array>
+
 namespace elasticapm::php {
 
 using namespace std::literals;
@@ -38,7 +40,7 @@ void handleAndReleaseHookException(zend_object *exception) {
     OBJ_RELEASE(EG(exception));
 }
 
-void callPreHook(AutoZval<> &prehook) {
+void callPreHook(AutoZval &prehook) {
     zend_fcall_info fci = empty_fcall_info;
     zend_fcall_info_cache fcc = empty_fcall_info_cache;
 
@@ -46,17 +48,17 @@ void callPreHook(AutoZval<> &prehook) {
         throw std::runtime_error("Unable to initialize prehook fcall");
     }
 
-    AutoZval<6> parameters;
-    getScopeNameOrThis(parameters.get(0), EG(current_execute_data));
-    getCallArguments(parameters.get(1), EG(current_execute_data));
-    getFunctionDeclaringScope(parameters.get(2), EG(current_execute_data));
-    getFunctionName(parameters.get(3), EG(current_execute_data));
-    getFunctionDeclarationFileName(parameters.get(4), EG(current_execute_data));
-    getFunctionDeclarationLineNo(parameters.get(5), EG(current_execute_data));
+    std::array<AutoZval, 6> parameters;
+    getScopeNameOrThis(parameters[0].get(), EG(current_execute_data));
+    getCallArguments(parameters[1].get(), EG(current_execute_data));
+    getFunctionDeclaringScope(parameters[2].get(), EG(current_execute_data));
+    getFunctionName(parameters[3].get(), EG(current_execute_data));
+    getFunctionDeclarationFileName(parameters[4].get(), EG(current_execute_data));
+    getFunctionDeclarationLineNo(parameters[5].get(), EG(current_execute_data));
 
     AutoZval ret;
     fci.param_count = parameters.size();
-    fci.params = parameters.get();
+    fci.params = parameters[0].get();
     fci.named_params = nullptr;
     fci.retval = ret.get();
     if (zend_call_function(&fci, &fcc) != SUCCESS) {
@@ -65,7 +67,7 @@ void callPreHook(AutoZval<> &prehook) {
 }
 //TODO arguments post processing
 
-void callPostHook(AutoZval<> &hook, zval *return_value, zend_object *exception) {
+void callPostHook(AutoZval &hook, zval *return_value, zend_object *exception) {
     zend_fcall_info fci = empty_fcall_info;
     zend_fcall_info_cache fcc = empty_fcall_info_cache;
 
@@ -73,19 +75,19 @@ void callPostHook(AutoZval<> &hook, zval *return_value, zend_object *exception) 
         throw std::runtime_error("Unable to initialize posthook fcall");
     }
 
-    AutoZval<8> parameters;
-    getScopeNameOrThis(parameters.get(0), EG(current_execute_data));
-    getCallArguments(parameters.get(1), EG(current_execute_data));
-    getFunctionReturnValue(parameters.get(2), return_value);
-    getCurrentException(parameters.get(3), exception);
-    getFunctionDeclaringScope(parameters.get(4), EG(current_execute_data));
-    getFunctionName(parameters.get(5), EG(current_execute_data));
-    getFunctionDeclarationFileName(parameters.get(6), EG(current_execute_data));
-    getFunctionDeclarationLineNo(parameters.get(7), EG(current_execute_data));
+    std::array<AutoZval, 8> parameters;
+    getScopeNameOrThis(parameters[0].get(), EG(current_execute_data));
+    getCallArguments(parameters[1].get(), EG(current_execute_data));
+    getFunctionReturnValue(parameters[2].get(), return_value);
+    getCurrentException(parameters[3].get(), exception);
+    getFunctionDeclaringScope(parameters[4].get(), EG(current_execute_data));
+    getFunctionName(parameters[5].get(), EG(current_execute_data));
+    getFunctionDeclarationFileName(parameters[6].get(), EG(current_execute_data));
+    getFunctionDeclarationLineNo(parameters[7].get(), EG(current_execute_data));
 
     AutoZval ret;
     fci.param_count = parameters.size();
-    fci.params = parameters.get();
+    fci.params = parameters[0].get();
     fci.named_params = nullptr;
     fci.retval = ret.get();
     if (zend_call_function(&fci, &fcc) != SUCCESS) {
@@ -314,10 +316,10 @@ zend_observer_fcall_handlers elasticRegisterObserver(zend_execute_data *execute_
     bool havePreHook = false;
     bool havePostHook = false;
     for (auto const &item : *callbacks) {
-        if (!item.first.isNull<0>()) {
+        if (!item.first.isNull()) {
             havePreHook = true;
         }
-        if (!item.second.isNull<0>()) {
+        if (!item.second.isNull()) {
             havePostHook = true;
         }
         if (havePreHook && havePostHook) {
