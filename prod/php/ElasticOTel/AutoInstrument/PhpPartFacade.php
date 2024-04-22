@@ -33,8 +33,6 @@ use Elastic\OTel\Util\HiddenConstructorTrait;
 use RuntimeException;
 use Throwable;
 
-require "/home/paplo/sources/elastic-otel-php/prod/php/ElasticOTel/Util/HiddenConstructorTrait.php";
-
 /**
  * Code in this file is part of implementation internals and thus it is not covered by the backward compatibility.
  *
