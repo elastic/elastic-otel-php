@@ -1,5 +1,6 @@
 #pragma once
 
+#include <utility>
 
 namespace elasticapm::utils {
 
