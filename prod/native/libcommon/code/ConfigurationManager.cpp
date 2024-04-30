@@ -98,7 +98,7 @@ std::optional<std::string> ConfigurationManager::fetchStringValue(std::string_vi
 }
 
 uint64_t ConfigurationManager::getNextRevision() {
-    return upcomingConfigRevision_++;
+    return (++upcomingConfigRevision_);
 }
 
 
