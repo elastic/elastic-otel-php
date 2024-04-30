@@ -7,7 +7,6 @@
 
 namespace elasticapm::php {
 
-
 struct SavedException {
     zend_object *exception = nullptr;
     zend_object *prev_exception = nullptr;
