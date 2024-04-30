@@ -27,7 +27,7 @@ public:
 
     std::string_view getPhpSapiName() const final;
 
-    std::string getCurrentExceptionMessage() const final;
+    std::optional<std::string_view> getCurrentExceptionMessage() const final;
 
     void compileAndExecuteFile(std::string_view fileName) const final;
 
