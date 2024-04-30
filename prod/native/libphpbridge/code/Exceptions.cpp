@@ -37,28 +37,40 @@ void restoreExceptionState(SavedException savedException) {
 }
 
 
-std::string_view getExceptionMessage(zend_object *exception) {
-    return zvalToStringView(getClassPropertyValue(zend_ce_exception, exception, "message"sv));
+std::optional<std::string_view> getExceptionMessage(zend_object *exception) {
+    return zvalToOptionalStringView(getClassPropertyValue(exception->ce, exception, "message"sv));
 }
 
-std::string_view getExceptionFileName(zend_object *exception) {
-    return zvalToStringView(getClassPropertyValue(zend_ce_exception, exception, "file"sv));
+std::optional<std::string_view> getExceptionFileName(zend_object *exception) {
+    return zvalToOptionalStringView(getClassPropertyValue(exception->ce, exception, "file"sv));
 }
 
-long getExceptionLine(zend_object *exception) {
-    auto value = getClassPropertyValue(zend_ce_exception, exception, "line"sv);
+std::optional<long> getExceptionLine(zend_object *exception) {
+    auto value = getClassPropertyValue(exception->ce, exception, "line"sv);
     if (Z_TYPE_P(value) == IS_LONG) {
         return Z_LVAL_P(value);
     }
     return -1;
 }
 
-std::string_view getExceptionClass(zend_object *exception) {
-    return zvalToStringView(getClassPropertyValue(zend_ce_exception, exception, "class"sv));
+std::optional<long> getExceptionCode(zend_object *exception) {
+    auto value = getClassPropertyValue(exception->ce, exception, "code"sv);
+    if (Z_TYPE_P(value) == IS_LONG) {
+        return Z_LVAL_P(value);
+    }
+    return std::nullopt;
 }
 
-std::string_view getExceptionFunction(zend_object *exception) {
-    return zvalToStringView(getClassPropertyValue(zend_ce_exception, exception, "function"sv));
+std::optional<std::string_view> getExceptionClass(zend_object *exception) {
+    return zvalToOptionalStringView(getClassPropertyValue(exception->ce, exception, "class"sv));
+}
+
+std::optional<std::string_view> getExceptionFunction(zend_object *exception) {
+    return zvalToOptionalStringView(getClassPropertyValue(exception->ce, exception, "function"sv));
+}
+
+std::optional<std::string_view> getExceptionStringStackTrace(zend_object *exception) {
+    return zvalToOptionalStringView(getClassPropertyValue(exception->ce, exception, "string"sv));
 }
 
 std::string_view getExceptionName(zend_object *exception) {
@@ -69,5 +81,41 @@ std::string_view getExceptionName(zend_object *exception) {
     return {ZSTR_VAL(str), ZSTR_LEN(str)};
 }
 
+std::string exceptionToString(zend_object *exception) {
+    if (!exception || !instanceof_function(exception->ce, zend_ce_throwable)) {
+        return {};
+    }
 
+    std::stringstream msg;
+    auto exceptionClass = getExceptionClass(exception);
+    auto exceptionName = getExceptionName(exception);
+
+    msg << exceptionClass.value_or(exceptionName);
+    msg << " thrown"sv;
+
+    auto message = getExceptionMessage(exception);
+    if (message.has_value()) {
+        msg << " with message '"sv << *message << "'";
+    }
+
+    auto code = getExceptionCode(exception);
+    if (code.has_value() && *code != 0) {
+        msg << " with code "sv << *code;
+    }
+
+    auto fileName = getExceptionFileName(exception);
+    if (fileName.has_value()) {
+        msg << " in "sv << *fileName;
+        auto line = getExceptionLine(exception);
+        if (line.has_value()) {
+            msg << ":"sv << *line;
+        }
+    }
+
+    auto stack = getExceptionStringStackTrace(exception);
+    if (stack.has_value() && !stack.value().empty()) {
+        msg << " stacktrace: '"sv << *stack << "'";
+    }
+    return msg.str();
+}
 }

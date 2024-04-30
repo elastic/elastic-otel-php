@@ -28,16 +28,8 @@ void handleAndReleaseHookException(zend_object *exception) {
         return;
     }
 
-    ELOG_ERROR(EAPM_GL(logger_), "Instrumentation hook has thrown exception of class '" PRsv "' in: " PRsv ":%ld Class: '" PRsv "' Function: '" PRsv "'  Message: '" PRsv "'",
-        PRsvArg(getExceptionName(exception)),
-        PRsvArg(getExceptionFileName(exception)),
-        getExceptionLine(exception),
-        PRsvArg(getExceptionClass(exception)),
-        PRsvArg(getExceptionFunction(exception)),
-        PRsvArg(getExceptionMessage(exception))
-        );
-    //TODO dump stack from "trace"
-    OBJ_RELEASE(EG(exception));
+    ELOG_ERROR(EAPM_GL(logger_), "Instrumentation hook error: %s", exceptionToString(exception).c_str());
+    OBJ_RELEASE(exception);
 }
 
 void callPreHook(AutoZval &prehook) {
@@ -108,36 +100,8 @@ inline void callOriginalHandler(zif_handler handler, INTERNAL_FUNCTION_PARAMETER
 }
 
 
-zend_ulong getHashFromExecuteData(zend_execute_data *execute_data) {
-    if (!execute_data->func->common.function_name) {
-        return 0;
-    }
-
-    zend_ulong classHash = 0;
-    if (execute_data->func->common.scope && execute_data->func->common.scope->name) {
-        classHash = ZSTR_HASH(execute_data->func->common.scope->name);
-    }
-
-
-    zend_ulong funcHash = ZSTR_HASH(execute_data->func->common.function_name);
-    zend_ulong hash = classHash ^ (funcHash << 1);
-    return hash;
-}
-
-auto getClassAndFunctionName(zend_execute_data *execute_data) {
-    std::string_view cls;
-    if (execute_data->func->common.scope && execute_data->func->common.scope->name) {
-        cls = {ZSTR_VAL(execute_data->func->common.scope->name), ZSTR_LEN(execute_data->func->common.scope->name)};
-    }
-    std::string_view func;
-    if (execute_data->func->common.function_name) {
-        func = {ZSTR_VAL(execute_data->func->common.function_name), ZSTR_LEN(execute_data->func->common.function_name)};
-    }
-    return std::make_tuple(cls, func);
-}
-
 void ZEND_FASTCALL internal_function_handler(INTERNAL_FUNCTION_PARAMETERS) {
-    auto hash = getHashFromExecuteData(execute_data);
+    auto hash = getClassAndFunctionHashFromExecuteData(execute_data);
 
     auto originalHandler = InternalStorage_t::getInstance().get(hash);
     if (!originalHandler) {
@@ -160,11 +124,9 @@ void ZEND_FASTCALL internal_function_handler(INTERNAL_FUNCTION_PARAMETERS) {
 
     for (auto &callback : *callbacks) {
         try {
-            auto exceptionState = saveExceptionState();
+            AutomaticExceptionStateRestorer restorer;
             callPreHook(callback.first);
-
             handleAndReleaseHookException(EG(exception));
-            restoreExceptionState(std::move(exceptionState));
         } catch (std::exception const &e) {
             auto [cls, func] = getClassAndFunctionName(execute_data);
             ELOG_CRITICAL(EAPM_GL(logger_), "%s hash: 0x%X " PRsv "::" PRsv, e.what(), hash, PRsvArg(cls), PRsvArg(func));
@@ -175,11 +137,10 @@ void ZEND_FASTCALL internal_function_handler(INTERNAL_FUNCTION_PARAMETERS) {
 
     for (auto &callback : *callbacks) {
         try {
-            auto exceptionState = saveExceptionState();
-            callPostHook(callback.second, return_value, exceptionState.exception);
+            AutomaticExceptionStateRestorer restorer;
+            callPostHook(callback.second, return_value, restorer.getException());
 
             handleAndReleaseHookException(EG(exception));
-            restoreExceptionState(std::move(exceptionState));
         } catch (std::exception const &e) {
             auto [cls, func] = getClassAndFunctionName(execute_data);
             ELOG_CRITICAL(EAPM_GL(logger_), "%s hash: 0x%X " PRsv "::" PRsv, e.what(), hash, PRsvArg(cls), PRsvArg(func));
@@ -237,9 +198,8 @@ bool instrumentFunction(LoggerInterface *log, std::string_view className, std::s
             InternalStorage_t::getInstance().store(hash, func->internal_function.handler);
             func->internal_function.handler = internal_function_handler;
         }
-        ELOG_DEBUG(log, PRsv "::" PRsv " instrumented, key: %d", PRsvArg(className), PRsvArg(functionName), hash);
+        ELOG_DEBUG(log, PRsv "::" PRsv " instrumented, key: 0x%X", PRsvArg(className), PRsvArg(functionName), hash);
     }
-
 
     return true;
 }
@@ -247,7 +207,7 @@ bool instrumentFunction(LoggerInterface *log, std::string_view className, std::s
 
 
 void elasticObserverFcallBeginHandler(zend_execute_data *execute_data) {
-    auto hash = getHashFromExecuteData(execute_data);
+    auto hash = getClassAndFunctionHashFromExecuteData(execute_data);
     ELOG_TRACE(EAPM_GL(logger_), "elasticObserverFcallBeginHandler hash 0x%X", hash);
 
     auto callbacks = reinterpret_cast<InstrumentedFunctionHooksStorage_t *>(EAPM_GL(hooksStorage_).get())->find(hash);
@@ -259,11 +219,10 @@ void elasticObserverFcallBeginHandler(zend_execute_data *execute_data) {
 
     for (auto &callback : *callbacks) {
         try {
-            auto exceptionState = saveExceptionState();
+            AutomaticExceptionStateRestorer restorer;
             callPreHook(callback.first);
 
             handleAndReleaseHookException(EG(exception));
-            restoreExceptionState(std::move(exceptionState));
         } catch (std::exception const &e) {
             auto [cls, func] = getClassAndFunctionName(execute_data);
             ELOG_CRITICAL(EAPM_GL(logger_), "elasticObserverFcallBeginHandler. Unable to call prehook for 0x%X " PRsv "::" PRsv, hash, PRsvArg(cls), PRsvArg(func));
@@ -272,7 +231,7 @@ void elasticObserverFcallBeginHandler(zend_execute_data *execute_data) {
 }
 
 void elasticObserverFcallEndHandler(zend_execute_data *execute_data, zval *retval) {
-    auto hash = getHashFromExecuteData(execute_data);
+    auto hash = getClassAndFunctionHashFromExecuteData(execute_data);
     ELOG_TRACE(EAPM_GL(logger_), "elasticObserverFcallEndHandler hash 0x%X", hash);
 
     auto callbacks = reinterpret_cast<InstrumentedFunctionHooksStorage_t *>(EAPM_GL(hooksStorage_).get())->find(hash);
@@ -284,10 +243,9 @@ void elasticObserverFcallEndHandler(zend_execute_data *execute_data, zval *retva
 
     for (auto &callback : *callbacks) {
         try {
-            auto exceptionState = saveExceptionState();
-            callPostHook(callback.second, retval, exceptionState.exception);
+            AutomaticExceptionStateRestorer restorer;
+            callPostHook(callback.second, retval, restorer.getException());
             handleAndReleaseHookException(EG(exception));
-            restoreExceptionState(std::move(exceptionState));
         } catch (std::exception const &e) {
             auto [cls, func] = getClassAndFunctionName(execute_data);
             ELOG_CRITICAL(EAPM_GL(logger_), "elasticObserverFcallBeginHandler. Unable to call posthook for 0x%X " PRsv "::" PRsv, hash, PRsvArg(cls), PRsvArg(func));
@@ -300,7 +258,7 @@ zend_observer_fcall_handlers elasticRegisterObserver(zend_execute_data *execute_
         return {nullptr, nullptr};
     }
 
-    auto hash = getHashFromExecuteData(execute_data);
+    auto hash = getClassAndFunctionHashFromExecuteData(execute_data);
     if (hash == 0) {
         ELOG_TRACE(EAPM_GL(logger_), "elasticRegisterObserver main scope");
         return {nullptr, nullptr};

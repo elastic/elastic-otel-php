@@ -17,10 +17,28 @@ struct SavedException {
 SavedException saveExceptionState();
 void restoreExceptionState(SavedException savedException);
 
-std::string_view getExceptionMessage(zend_object *exception);
-std::string_view getExceptionFileName(zend_object *exception);
-long getExceptionLine(zend_object *exception);
-std::string_view getExceptionFunction(zend_object *exception);
-std::string_view getExceptionClass(zend_object *exception);
 
+class AutomaticExceptionStateRestorer {
+public:
+    AutomaticExceptionStateRestorer() : savedException(saveExceptionState()) {
+    }
+    ~AutomaticExceptionStateRestorer() {
+        restoreExceptionState(savedException);
+    }
+    auto getException() {
+        return savedException.exception;
+    }
+
+private:
+    SavedException savedException;
+};
+
+std::optional<std::string_view> getExceptionClass(zend_object *exception);
+std::optional<std::string_view> getExceptionFileName(zend_object *exception);
+std::optional<std::string_view> getExceptionFunction(zend_object *exception);
+std::optional<long> getExceptionLine(zend_object *exception);
+std::optional<std::string_view> getExceptionMessage(zend_object *exception);
+std::optional<std::string_view> getExceptionStringStackTrace(zend_object *exception);
+
+std::string exceptionToString(zend_object *exception);
 }
