@@ -2,6 +2,7 @@
 
 #include "LogLevel.h"
 #include <chrono>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -29,7 +30,7 @@ public:
 
     virtual std::string_view getPhpSapiName() const = 0;
 
-    virtual std::string getCurrentExceptionMessage() const = 0;
+    virtual std::optional<std::string_view> getCurrentExceptionMessage() const = 0;
 
     virtual void compileAndExecuteFile(std::string_view fileName) const = 0;
 

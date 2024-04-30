@@ -8,12 +8,16 @@
 #include <Zend/zend_alloc.h>
 #include <Zend/zend_exceptions.h>
 #include <Zend/zend_globals.h>
+#include <Zend/zend_stream.h>
 #include <Zend/zend_types.h>
 
 #include <main/SAPI.h>
+#include <main/php_main.h>
+#include <main/php_streams.h>
 
 #include <array>
 #include <chrono>
+#include <optional>
 #include <string_view>
 
 namespace elasticapm::php {
@@ -21,11 +25,11 @@ namespace elasticapm::php {
 using namespace std::string_view_literals;
 using namespace std::string_literals;
 
-std::string PhpBridge::getCurrentExceptionMessage() const {
+std::optional<std::string_view> PhpBridge::getCurrentExceptionMessage() const {
     if (!EG(exception)) {
-        return {};
+        return std::nullopt;
     }
-    return std::string{getExceptionMessage(EG(exception))};
+    return getExceptionMessage(EG(exception));
 }
 
 bool PhpBridge::callInferredSpans(std::chrono::milliseconds duration) const {
@@ -68,35 +72,67 @@ std::string_view PhpBridge::getPhpSapiName() const {
 void PhpBridge::compileAndExecuteFile(std::string_view fileName) const {
 
 #if PHP_VERSION_ID < 80100
-    AutoZval fn;
-    fn.setString(fileName);
+    AutoZval fn{fileName};
 #else
     AutoZendString fn(fileName);
 #endif
 
-    zend_error_handling zeh;
-    zend_replace_error_handling(EH_THROW, nullptr, &zeh);
-    utils::callOnScopeExit callOnExit([&zeh]() { zend_restore_error_handling(&zeh); });
+    // zend_error_handling zeh;
+    // zend_replace_error_handling(EH_THROW, nullptr, &zeh);
+    // utils::callOnScopeExit callOnExit([&zeh]() { zend_restore_error_handling(&zeh); });
 
-    utils::callOnScopeExit releaseException([]() {
-        if (EG(exception)) {
+    auto exceptionState = saveExceptionState();
+
+    utils::callOnScopeExit releaseException([exceptionState]() {
+        if (EG(exception) && EG(exception) != (zend_object *)-1) {
             zend_object_release(EG(exception));
             EG(exception) = nullptr;
         }
+        restoreExceptionState(exceptionState);
     });
 
-    //TODO verify if it works for PHP < 7.4 (opcache preload hack) or just ignore it if we will decide to drop support for older releases
-    // EG(exception) = (zend_object *)-1; // suppress even fatal errors
-    auto opArray = compile_filename(ZEND_REQUIRE, fn.get());
-    // EG(exception) = nullptr;
+	zend_op_array *opArray = nullptr;
+
+    {
+        zend_file_handle file_handle;
+#if PHP_VERSION_ID >= 80100
+        zend_stream_init_filename_ex(&file_handle, fn.get());
+        utils::callOnScopeExit releaseFileHandle([fh = &file_handle]() { zend_destroy_file_handle(fh); });
+        if (php_stream_open_for_zend_ex(&file_handle, USE_PATH|STREAM_OPEN_FOR_INCLUDE) == zend_result::FAILURE) {
+#else
+        if (php_stream_open_for_zend_ex(Z_STRVAL_P(fn.get()), &file_handle, USE_PATH|STREAM_OPEN_FOR_INCLUDE) == zend_result::FAILURE) {
+#endif
+            std::string msg = "Unable to open file for compilation '"s;
+            msg.append(fileName);
+            throw std::runtime_error(msg);
+        }
+
+        opArray = zend_compile_file(&file_handle, ZEND_INCLUDE);
+
+        if (opArray && file_handle.handle.stream.handle) {
+            zend_string *opened_path = nullptr;
+            if (!file_handle.opened_path) {
+#if PHP_VERSION_ID >= 80100
+                file_handle.opened_path = opened_path = zend_string_copy(fn.get());
+#else
+                file_handle.opened_path = opened_path = zend_string_copy(Z_STR_P(fn.get()));
+#endif
+            }
+            zend_hash_add_empty_element(&EG(included_files), file_handle.opened_path);
+            if (opened_path) {
+                zend_string_release_ex(opened_path, 0);
+            }
+        }
+#if PHP_VERSION_ID < 80100
+    zend_destroy_file_handle(&file_handle);
+#endif
+    }
 
     if (!opArray) {
         std::string msg = "Error during compilation of file '"s;
         msg.append(fileName);
-
-        msg.append("': ");
-        // it is compilation stage - it will may contain error
-        msg.append(getCurrentExceptionMessage());
+        msg.append("' ");
+        msg.append(exceptionToString(EG(exception)));
 
         throw std::runtime_error(msg);
     }
@@ -108,19 +144,10 @@ void PhpBridge::compileAndExecuteFile(std::string_view fileName) const {
     efree(opArray);
 
     if (EG(exception) && EG(exception) != (zend_object *)-1) {
-        std::string msg = "Exception ";
-        msg.append(getExceptionName(EG(exception)));
-
-        msg.append(zvalToStringView(getClassPropertyValue(zend_ce_throwable, EG(exception), "message"sv)));
-        msg.append(zvalToStringView(getClassPropertyValue(zend_ce_throwable, EG(exception), "string"sv)));
-        msg.append(zvalToStringView(getClassPropertyValue(zend_ce_throwable, EG(exception), "code"sv)));
-        msg.append(zvalToStringView(getClassPropertyValue(zend_ce_throwable, EG(exception), "file"sv)));
-
-
-        msg.append("| was thrown during execution of file "s);
+        std::string msg = "Error during execution of file '"s;
         msg.append(fileName);
-        msg.append(". ");
-        msg.append(getCurrentExceptionMessage());
+        msg.append("'. ");
+        msg.append(exceptionToString(EG(exception)));
 
         throw std::runtime_error(msg);
     }
