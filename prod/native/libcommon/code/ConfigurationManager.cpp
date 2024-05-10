@@ -73,8 +73,7 @@ void ConfigurationManager::update() {
             }
 
         } catch (std::invalid_argument const &e) {
-            // fprintf(stderr, "\n\n=============== ERROR %s\n", e.what());
-            // TODO log
+            ELOG_ERROR(logger_, "ConfigurationManager::update exception: '%s'", e.what());
         }
     }
 

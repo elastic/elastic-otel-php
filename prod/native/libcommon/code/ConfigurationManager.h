@@ -2,6 +2,7 @@
 #pragma once
 
 #include "ConfigurationSnapshot.h"
+#include "LoggerInterface.h"
 #include "basic_macros.h"
 
 #include <atomic>
@@ -16,14 +17,6 @@
 namespace elasticapm::php {
 
 using namespace std::string_literals;
-
-//TODO Draft
-// wrzucic do globalnego obiektu zarzadcy - tam dac, komunikacja, configstorage, etc
-// czytanie konfigu  z pliku, z env, z ini, default
-// możliwość zmiany priorytetu, by default
-// 1 env, 2 ini, 3 plik, 4 default, 5 - remote
-// czy to ma byc globalne czy globalne na workerze - jak globalna - mutexy
-// jezeli tak to worker do globalsow bedzie mogl po prostu zaciagac snapshot na starcie requestu - kazdy worker na innym configu moze isc przez moment
 
 //TODO default unit?
 //TODO sign
@@ -45,6 +38,12 @@ public:
 
     ConfigurationManager(readIniValue_t readIniValue) : readIniValue_(readIniValue) {
         current_.revision = getNextRevision();
+    }
+
+
+    //TODO class might be used in different threads, right now it is pretty safe as log is attached on globals init (for zts it should be in minit)
+    void attachLogger(std::shared_ptr<LoggerInterface> logger) {
+        logger_ = std::move(logger);
     }
 
 //TODO lock
@@ -74,6 +73,7 @@ private:
     readIniValue_t readIniValue_;
     std::atomic_uint64_t upcomingConfigRevision_ = 0;
     ConfigurationSnapshot current_;
+    std::shared_ptr<LoggerInterface> logger_;
 
     #define BUILD_METADATA(optname, type, secret) { EL_STRINGIFY(optname), {type, offsetof(ConfigurationSnapshot, optname), secret}}
 

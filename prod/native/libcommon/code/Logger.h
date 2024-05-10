@@ -3,7 +3,6 @@
 #include "LoggerInterface.h"
 #include "LoggerSinkInterface.h"
 #include "CommonUtils.h"
-#include "ForkableInterface.h"
 #include "SpinLock.h"
 
 #include <atomic>
@@ -46,7 +45,7 @@ private:
     std::atomic<LogLevel> level_ = LogLevel::logLevel_warning;
 };
 
-class Logger : public LoggerInterface, public ForkableInterface {
+class Logger : public LoggerInterface {
 public:
     Logger(std::vector<std::shared_ptr<LoggerSinkInterface>> sinks) : sinks_(std::move(sinks)) {
     }
@@ -55,12 +54,6 @@ public:
     bool doesMeetsLevelCondition(LogLevel level) const override;
 
     void attachSink(std::shared_ptr<LoggerSinkInterface> sink);
-
-    // TODO implement forkable  in sink only? logger is not keeping state, so there is no need to sync, maybe we can put mutex here...
-    void prefork() override {
-    };
-    void postfork([[maybe_unused]] bool child) override {
-    }
 
 private:
     std::string getFormattedTime() const;
