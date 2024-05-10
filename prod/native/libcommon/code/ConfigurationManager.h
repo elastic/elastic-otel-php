@@ -9,8 +9,10 @@
 #include <chrono>
 #include <functional>
 #include <map>
+#include <memory>
 #include <optional>
 #include <string>
+#include <variant>
 
 
 
@@ -35,6 +37,7 @@ public:
         bool secret = false;
     };
 
+    using optionValue_t = std::variant<std::chrono::milliseconds, LogLevel, bool, std::string, std::nullopt_t>;
 
     ConfigurationManager(readIniValue_t readIniValue) : readIniValue_(readIniValue) {
         current_.revision = getNextRevision();
@@ -62,6 +65,9 @@ public:
         return options_;
     }
 
+    optionValue_t getOptionValue(std::string_view optionName, ConfigurationSnapshot const &snapshot) const;
+
+//TODO test
     static std::string accessOptionStringValueByMetadata(OptionMetadata const &metadata, ConfigurationSnapshot const &snapshot);
 
 private:
