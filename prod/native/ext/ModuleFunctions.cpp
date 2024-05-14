@@ -114,8 +114,7 @@ PHP_FUNCTION(elastic_apm_log) {
     Z_PARAM_STRING(message, messageLength)
     ZEND_PARSE_PARAMETERS_END();
 
-    // TODO fix/avoid double sv creation
-    ELASTICAPM_G(globals)->logger_->printf(static_cast<LogLevel>(level), PRsv " " PRsv " %d " PRsv " " PRsv, PRsvArg(std::string_view(category, categoryLength)), PRsvArg(std::string_view(file, fileLength)), line, PRsvArg(std::string_view(func, funcLength)), PRsvArg(std::string_view(message, messageLength)));
+    ELASTICAPM_G(globals)->logger_->printf(static_cast<LogLevel>(level), PRsv " " PRsv " %d " PRsv " " PRsv, PRcsvArg(category, categoryLength), PRcsvArg(file, fileLength), line, PRcsvArg(func, funcLength), PRcsvArg(message, messageLength));
 }
 /* }}} */
 

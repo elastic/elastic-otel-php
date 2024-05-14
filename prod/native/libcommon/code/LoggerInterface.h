@@ -18,9 +18,9 @@ public:
 
 #define PRsv "%.*s"
 #define PRsvArg(strv) static_cast<int>(strv.length()), strv.data()
+#define PRcsvArg(str, len) str, len
 
 
-//TODO check if loggable, then enter printf
 #define ELOG_CRITICAL(logger, format, ...) do { if (!logger || !logger->doesMeetsLevelCondition(LogLevel::logLevel_critical)) break; logger->printf(LogLevel::logLevel_critical, format, ##__VA_ARGS__); } while(false);
 #define ELOG_ERROR(logger, format, ...) do { if (!logger || !logger->doesMeetsLevelCondition(LogLevel::logLevel_error)) break; logger->printf(LogLevel::logLevel_error, format, ##__VA_ARGS__); } while(false);
 #define ELOG_WARNING(logger, format, ...) do { if (!logger || !logger->doesMeetsLevelCondition(LogLevel::logLevel_warning)) break; logger->printf(LogLevel::logLevel_warning, format, ##__VA_ARGS__); } while(false);

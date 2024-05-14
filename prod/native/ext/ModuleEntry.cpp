@@ -92,6 +92,8 @@ static PHP_GINIT_FUNCTION(elastic_apm) {
 
     auto logger = std::make_shared<elasticapm::php::Logger>(std::vector<std::shared_ptr<elasticapm::php::LoggerSinkInterface>>{logSinkStdErr, logSinkSysLog, logSinkFile});
 
+    configManager.attachLogger(logger);
+
     ELOG_DEBUG(logger, "%s: GINIT called; parent PID: %d", __FUNCTION__, static_cast<int>(elasticapm::osutils::getParentProcessId()));
     elastic_apm_globals->globals = nullptr;
 
