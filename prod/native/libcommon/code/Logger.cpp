@@ -142,6 +142,7 @@ void LoggerSinkFile::writeLog(std::string const &formattedOutput, std::string_vi
     [[maybe_unused]] auto rv = ::write(fd_, formattedOutput.c_str(), formattedOutput.length());
 }
 
+//TODO note, in case of fork each worker can have different fd (and different log name) opened. Consided shm sync.
 bool LoggerSinkFile::reopen(std::string fileName) {
     std::lock_guard<SpinLock> lock(spinLock_);
 

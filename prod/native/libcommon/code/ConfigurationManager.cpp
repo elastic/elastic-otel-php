@@ -35,6 +35,35 @@ std::string ConfigurationManager::accessOptionStringValueByMetadata(OptionMetada
     }
 }
 
+ConfigurationManager::optionValue_t ConfigurationManager::getOptionValue(std::string_view optionName, ConfigurationSnapshot const &snapshot) const {
+    auto option = options_.find(std::string(optionName));
+    if (option == std::end(options_)) {
+        return std::nullopt;
+    }
+
+    auto const &metadata = option->second;
+    switch (metadata.type) {
+        case elasticapm::php::ConfigurationManager::OptionMetadata::type::string: {
+            std::string *value = reinterpret_cast<std::string *>((std::byte *)&snapshot + metadata.offset);
+            return std::string(value->data(), value->length());
+        }
+        case elasticapm::php::ConfigurationManager::OptionMetadata::type::boolean: {
+            bool *value = reinterpret_cast<bool *>((std::byte *)&snapshot + metadata.offset);
+            return *value;
+        }
+        case elasticapm::php::ConfigurationManager::OptionMetadata::type::duration: {
+            auto value = reinterpret_cast<std::chrono::milliseconds *>((std::byte *)&snapshot + metadata.offset);
+            return *value;
+        }
+        case elasticapm::php::ConfigurationManager::OptionMetadata::type::loglevel: {
+            LogLevel *value = reinterpret_cast<LogLevel *>((std::byte *)&snapshot + metadata.offset);
+            return *value;
+        }
+        default:
+            return std::nullopt;
+    }
+}
+
 void ConfigurationManager::update() {
     ConfigurationSnapshot newConfig;
     newConfig.revision = getNextRevision();
@@ -73,8 +102,7 @@ void ConfigurationManager::update() {
             }
 
         } catch (std::invalid_argument const &e) {
-            // fprintf(stderr, "\n\n=============== ERROR %s\n", e.what());
-            // TODO log
+            ELOG_ERROR(logger_, "ConfigurationManager::update exception: '%s'", e.what());
         }
     }
 

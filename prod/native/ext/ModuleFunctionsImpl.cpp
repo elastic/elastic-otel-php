@@ -26,47 +26,29 @@
 
 extern elasticapm::php::ConfigurationManager configManager;
 
-//TODO move to internals? test with phpt? nonsense
-//TODO implement in ConfigManager to return variant and then visitor to zval here
-void convertOptionToZval(elasticapm::php::ConfigurationManager::OptionMetadata const &metadata, elasticapm::php::ConfigurationSnapshot const &snapshot, zval *outputZval) {
-    switch (metadata.type) {
-        case elasticapm::php::ConfigurationManager::OptionMetadata::type::string: {
-            std::string *value = reinterpret_cast<std::string *>((std::byte *)&snapshot + metadata.offset);
-            ZVAL_STRINGL(outputZval, value->c_str(), value->length());
-            break;
-        }
-        case elasticapm::php::ConfigurationManager::OptionMetadata::type::boolean: {
-            bool *value = reinterpret_cast<bool *>((std::byte *)&snapshot + metadata.offset);
-            if (*value) {
-                ZVAL_TRUE(outputZval);
-            } else {
-                ZVAL_FALSE(outputZval);
-            }
-            break;
-        }
-        case elasticapm::php::ConfigurationManager::OptionMetadata::type::duration: {
-            auto value = reinterpret_cast<std::chrono::milliseconds *>((std::byte *)&snapshot + metadata.offset);
-            ZVAL_DOUBLE(outputZval, value->count());
-            break;
-        }
-        case elasticapm::php::ConfigurationManager::OptionMetadata::type::loglevel: {
-            LogLevel *value = reinterpret_cast<LogLevel *>((std::byte *)&snapshot + metadata.offset);
-            ZVAL_LONG(outputZval, *value);
-            break;
-        }
-        default:
-            ZVAL_NULL(outputZval);
-            break;
-    }
-}
-
 void elasticApmGetConfigOption(std::string_view optionName, zval *return_value) {
-    auto const &options = configManager.getOptionMetadata();
+    auto value = configManager.getOptionValue(optionName, EAPM_GL(config_)->get());
 
-    auto option = options.find(std::string(optionName));
-    if (option == std::end(options)) {
-        ZVAL_NULL(return_value);
-        return;
-    }
-    convertOptionToZval(option->second, EAPM_GL(config_)->get(), return_value);
+    std::visit([return_value](auto &&arg) {
+        using T = std::decay_t<decltype(arg)>;
+        if constexpr (std::is_same_v<T, std::chrono::milliseconds>) {
+            ZVAL_DOUBLE(return_value, arg.count());
+            return;
+        } else if constexpr (std::is_same_v<T, LogLevel>) {
+            ZVAL_LONG(return_value, arg);
+            return;
+        } else if constexpr (std::is_same_v<T, bool>) {
+            if (arg) {
+                ZVAL_TRUE(return_value);
+            } else {
+                ZVAL_FALSE(return_value);
+            }
+            return;
+        } else if constexpr (std::is_same_v<T, std::string>) {
+            ZVAL_STRINGL(return_value, arg.c_str(), arg.length());
+            return;
+        } else {
+            ZVAL_NULL(return_value);
+        }
+    }, value);
 }

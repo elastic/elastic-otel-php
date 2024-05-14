@@ -201,7 +201,6 @@ zval *getClassStaticPropertyValue(zend_class_entry *ce, std::string_view propert
 
 zval *getClassPropertyValue(zend_class_entry *ce, zval *object, std::string_view propertyName) {
     AutoZval rv;
-    // TODO check with allocated on stack
 
     if (Z_TYPE_P(object) != IS_OBJECT) {
         return nullptr;
