@@ -30,11 +30,11 @@ jobs:
           MATRIX=''
           if [ "${SELECTED_ARCH}" == "x86_64" ] ||  [ "${SELECTED_ARCH}" == "all" ]; then
             echo "${SELECTED_ARCH} selected. Adding x86_64"
-            MATRIX+='{"arch": "linux-x86-64", "goarch": "amd64", "packages": "-p deb -p rpm"}, {"arch": "linuxmusl-x86-64", "goarch": "amd64", "packages": "-p apk"},'
+            MATRIX+='{"arch": "linux-x86-64", "goarch": "amd64", "packages": "deb rpm"}, {"arch": "linuxmusl-x86-64", "goarch": "amd64", "packages": "apk"},'
           fi
           if [ "${SELECTED_ARCH}" == "arm64" ] ||  [ "${SELECTED_ARCH}" == "all" ]; then
             echo "${SELECTED_ARCH} selected. Adding arm64"
-            MATRIX+='{"arch": "linux-arm64", "run_qemu": 1, "goarch": "arm64", "packages": "-p deb -p rpm"},{"arch": "linuxmusl-arm64", "run_qemu": 1, "goarch": "arm64", "packages": "-p apk"},'
+            MATRIX+='{"arch": "linux-arm64", "run_qemu": 1, "goarch": "arm64", "packages": "deb rpm"},{"arch": "linuxmusl-arm64", "run_qemu": 1, "goarch": "arm64", "packages": "apk"},'
           fi
           echo "matrix-combinations={\"include\":[$MATRIX]}"
 
