@@ -45,6 +45,7 @@ jobs:
           path: prod/native/_build/${{ matrix.arch }}-release/
       - name: Build packages
         run: |
+          mkdir -p "${PWD}/build/packages"
           packages=( ${{ matrix.packages }} )
           for pkg in "${packages[@]}"
           do
@@ -53,14 +54,10 @@ jobs:
              -e ELASTIC_OTEL_PHP_PLATFORM="${{ matrix.arch }}" \
              -e ELASTIC_OTEL_PHP_ARCH="${{ matrix.goarch }}" \
              -v ${PWD}:/source \
-             -w /source/packaging goreleaser/nfpm package -f nfpm.yaml -p ${pkg}
+             -w /source/packaging goreleaser/nfpm package -f nfpm.yaml -t "${PWD}/build/packages" -p ${pkg}
           done
-
-      # - uses: actions/upload-artifact@v3
-      #   with:
-      #     name: package-parts-${{ matrix.arch }}
-      #     path: |
-      #       prod/native/_build/${{ matrix.arch }}-release/ext/elastic_apm*.so
-      #       prod/native/_build/${{ matrix.arch }}-release/ext/elastic_apm*.debug
-      #       prod/native/_build/${{ matrix.arch }}-release/loader/code/elastic_apm_loader.so
-      #       prod/native/_build/${{ matrix.arch }}-release/loader/code/elastic_apm_loader.debug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: package
+          path: |
+            build/packages/*
