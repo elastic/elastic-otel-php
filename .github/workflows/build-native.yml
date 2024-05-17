@@ -9,7 +9,7 @@ on:
       build_arch:
         required: false
         type: string
-        default: 'all'
+        default: 'x86_64'
   workflow_dispatch:
     inputs:
       build_arch:

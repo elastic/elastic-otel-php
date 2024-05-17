@@ -39,6 +39,12 @@ jobs:
     with:
       build_arch: ${{ inputs.build_arch }}
 
+  build-packages:
+    needs:
+      - build-native
+    uses: ./.github/workflows/build-packages.yml
+
+
 
   # The very last job to report whether the Workflow passed.
   # This will act as the Branch Protection gatekeeper
