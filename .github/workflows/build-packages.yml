@@ -45,7 +45,7 @@ jobs:
           path: prod/native/_build/${{ matrix.arch }}-release/
       - name: Build packages
         run: |
-          packages="${{ matrix.packages }}"
+          packages=( ${{ matrix.packages }} )
           for pkg in "${packages[@]}"
           do
             docker run --rm \
