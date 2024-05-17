@@ -54,9 +54,9 @@ jobs:
              -e ELASTIC_OTEL_PHP_PLATFORM="${{ matrix.arch }}" \
              -e ELASTIC_OTEL_PHP_ARCH="${{ matrix.goarch }}" \
              -v ${PWD}:/source \
-             -w /source/packaging goreleaser/nfpm package -f nfpm.yaml -t "${PWD}/build/packages" -p ${pkg}
+             -w /source/packaging goreleaser/nfpm package -f nfpm.yaml -t "/source/build/packages" -p ${pkg}
           done
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v3
         with:
           name: package
           path: |
