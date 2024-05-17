@@ -19,6 +19,7 @@ on:
       - "**/*.asciidoc"
       - "**/*.md"
       - "**/*.png"
+  workflow_dispatch: ~
 
 permissions:
   contents: read
