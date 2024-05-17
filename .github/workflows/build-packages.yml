@@ -42,7 +42,7 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: package-parts-linux-x86-64
-          path: agent/native/_build/${{ matrix.arch }}-release/
+          path: prod/native/_build/${{ matrix.arch }}-release/
       - name: Build packages
         run: |
           docker run --rm \
