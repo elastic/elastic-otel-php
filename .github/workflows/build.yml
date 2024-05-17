@@ -13,8 +13,8 @@ on:
       - "**/*.md"
       - "**/*.png"
   push:
-    branches:
-      - main
+#    branches:
+#      - main
     paths-ignore:
       - "**/*.asciidoc"
       - "**/*.md"
