@@ -63,6 +63,13 @@ jobs:
             md5sum "${PKG_FILENAME}" >"${PKG_FILENAME}".sha512
             popd
           done
+
+          echo "Creating debug symbols artifacts"
+          DBGSYM="${PWD}/build/packages/elastic-otel-php-debugsymbols-${{ matrix.arch }}.tar.gz"
+          tar -czf ${DBGSYM} prod/native/_build/${{ matrix.arch }}-release/loader/code/elastic_apm_loader.debug prod/native/_build/${{ matrix.arch }}-release/ext/*.debug
+          pushd "${PWD}/build/packages"
+          md5sum ${DBGSYM} >${DBGSYM}.sha512
+          popd
       - uses: actions/upload-artifact@v3
         with:
           name: package
