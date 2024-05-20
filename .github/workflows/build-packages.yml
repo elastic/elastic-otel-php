@@ -39,7 +39,7 @@ jobs:
       BUILD_ARCHITECTURE: ${{ matrix.arch }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: package-parts-linux-x86-64
           path: prod/native/_build/${{ matrix.arch }}-release/
@@ -70,7 +70,7 @@ jobs:
           pushd "${PWD}/build/packages"
           md5sum ${DBGSYM} >${DBGSYM}.sha512
           popd
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: package
           path: |
