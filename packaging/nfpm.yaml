@@ -1,0 +1,41 @@
+name: "elastic-otel-php"
+arch: "${ELASTIC_OTEL_PHP_ARCH}"
+platform: "linux"
+
+version: ${ELASTIC_OTEL_PHP_VERSION}
+version_schema: semver
+
+section: "default"
+priority: "extra"
+
+replaces:
+- elastic-otel-php
+provides:
+- elastic-otel-php
+maintainer: "APM Team <info@elastic.co>"
+description: |
+  Elastic OpenTelemetry PHP distribution
+  Git Commit: ${ELASTIC_OTEL_PHP_GIT_SHA}
+vendor: "Elasticsearch, Inc."
+homepage: "https://github.com/elastic/elastic-otel-php"
+license: "ASL 2.0"
+#changelog: "changelog.yaml"
+contents:
+- src: /source/prod/native/_build/${ELASTIC_OTEL_PHP_PLATFORM}-release/loader/code/elastic_apm_loader.so
+  dst: /opt/elastic/elastic-otel-php/
+  expand: true
+- src: /source/prod/native/_build/${ELASTIC_OTEL_PHP_PLATFORM}-release/ext/elastic_apm-*.so
+  dst: /opt/elastic/elastic-otel-php/
+  expand: true
+- src: /source/prod/php
+  dst: /opt/elastic/elastic-otel-php/php
+  expand: true
+- src: /source/packaging/elastic-apm-custom-template.ini
+  dst: /opt/elastic/elastic-otel-php/etc/elastic-apm-custom.ini
+  type: config
+- src: /source/README.md
+  dst: /opt/elastic/elastic-otel-php/docs/README.md
+
+scripts:
+  postinstall: /source/packaging/post-install.sh
+  preremove: /source/packaging/before-uninstall.sh
