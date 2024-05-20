@@ -41,7 +41,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          name: package-parts-linux-x86-64
+          name: build-native-${{ matrix.arch }}
           path: prod/native/_build/${{ matrix.arch }}-release/
       - name: Build packages
         run: |
@@ -72,6 +72,6 @@ jobs:
           popd
       - uses: actions/upload-artifact@v4
         with:
-          name: package
+          name: packages-${{ matrix.arch }}
           path: |
             build/packages/*

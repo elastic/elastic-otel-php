@@ -54,7 +54,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: package-parts-${{ matrix.arch }}
+          name: build-native-${{ matrix.arch }}
           path: |
             prod/native/_build/${{ matrix.arch }}-release/ext/elastic_apm*.so
             prod/native/_build/${{ matrix.arch }}-release/ext/elastic_apm*.debug
