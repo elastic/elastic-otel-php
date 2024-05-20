@@ -1,0 +1,62 @@
+---
+
+# Runs the build based on the provided files in test.yml
+name: build
+
+on:
+  workflow_call:
+    inputs:
+      build_arch:
+        required: false
+        type: string
+        default: 'x86_64'
+  workflow_dispatch:
+    inputs:
+      build_arch:
+        type: choice
+        description: Build architecture
+        default: 'x86_64'
+        options:
+          - all
+          - x86_64
+          - arm64
+
+jobs:
+  setup-build-matrix:
+    uses: ./.github/workflows/build-arch-matrix-generator.yml
+    with:
+      build_arch: ${{ inputs.build_arch }}
+
+  build-native:
+    name: build-agent-library
+    runs-on: ubuntu-latest
+    needs: setup-build-matrix
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.setup-build-matrix.outputs.matrix-combinations) }}
+    env:
+      BUILD_ARCHITECTURE: ${{ matrix.arch }}
+    steps:
+      - uses: actions/checkout@v4
+      - if: ${{ matrix.run_qemu }}
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+      - name: Build
+        run: |
+          uname -a
+          echo "Detected CPUs: $(nproc)"
+          echo "User: ${CURRENT_UID}:${CURRENT_GID}"
+          echo "PWD: ${PWD}"
+          echo "Arch: ${BUILD_ARCHITECTURE}"
+          docker run --rm -t -u ${CURRENT_UID}:${CURRENT_GID} -v ${PWD}:/source -w /source/prod/native elasticobservability/apm-agent-php-dev:native-build-gcc-12.2.0-${BUILD_ARCHITECTURE}-0.0.2 sh -c "cmake --preset ${BUILD_ARCHITECTURE}-release  && cmake --build --preset ${BUILD_ARCHITECTURE}-release && ctest --preset ${BUILD_ARCHITECTURE}-release --verbose"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-native-${{ matrix.arch }}
+          path: |
+            prod/native/_build/${{ matrix.arch }}-release/ext/elastic_apm*.so
+            prod/native/_build/${{ matrix.arch }}-release/ext/elastic_apm*.debug
+            prod/native/_build/${{ matrix.arch }}-release/loader/code/elastic_apm_loader.so
+            prod/native/_build/${{ matrix.arch }}-release/loader/code/elastic_apm_loader.debug
