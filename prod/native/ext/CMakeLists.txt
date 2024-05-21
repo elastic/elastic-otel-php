@@ -37,7 +37,7 @@ foreach(_php_version ${_supported_php_versions})
     )
 
     set_target_properties(${_Target}
-        PROPERTIES OUTPUT_NAME elastic_otel_php-${_php_version}
+        PROPERTIES OUTPUT_NAME elastic_otel_php_${_php_version}
         PREFIX ""
     )
 
