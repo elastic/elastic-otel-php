@@ -56,7 +56,7 @@ jobs:
         with:
           name: build-native-${{ matrix.arch }}
           path: |
-            prod/native/_build/${{ matrix.arch }}-release/ext/elastic_apm*.so
-            prod/native/_build/${{ matrix.arch }}-release/ext/elastic_apm*.debug
-            prod/native/_build/${{ matrix.arch }}-release/loader/code/elastic_apm_loader.so
-            prod/native/_build/${{ matrix.arch }}-release/loader/code/elastic_apm_loader.debug
+            prod/native/_build/${{ matrix.arch }}-release/ext/elastic_otel_php*.so
+            prod/native/_build/${{ matrix.arch }}-release/ext/elastic_otel_php*.debug
+            prod/native/_build/${{ matrix.arch }}-release/loader/code/elastic_otel_php_loader.so
+            prod/native/_build/${{ matrix.arch }}-release/loader/code/elastic_otel_php_loader.debug

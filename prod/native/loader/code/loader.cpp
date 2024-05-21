@@ -84,7 +84,7 @@ elasticapm::loader::phpdata::zend_module_entry elastic_apm_loader_module_entry =
     0, // USING_ZTS
     nullptr,
     nullptr,
-    "elastic_apm_loader",           /* Extension name */
+    "elastic_otel_apm_loader",      /* Extension name */
     nullptr,                        /* zend_function_entry */
     nullptr,                        /* PHP_MINIT - Module initialization */
     nullptr,                        /* PHP_MSHUTDOWN - Module shutdown */
@@ -116,7 +116,7 @@ __attribute__ ((visibility("default"))) elasticapm::loader::phpdata::zend_module
         return &elastic_apm_loader_module_entry;
     }
 
-    auto [zendEngineVersion, zendModuleApiVersion, isVersionSupported] = elasticapm::loader::getZendModuleApiVersion(zendVersion);
+    auto [zendEngineVersion, phpVersion, zendModuleApiVersion, isVersionSupported] = elasticapm::loader::getZendModuleApiVersion(zendVersion);
 
     bool isThreadSafe = elasticapm::loader::isThreadSafe();
 
@@ -142,14 +142,14 @@ __attribute__ ((visibility("default"))) elasticapm::loader::phpdata::zend_module
     Dl_info dl_info;
     dladdr((void *)get_module, &dl_info);
     if (!dl_info.dli_fname) {
-        LOG_TO_SYSLOG_AND_STDERR( "Unable to resolve path to Elastic PHP Agent libraries\n");
+        LOG_TO_SYSLOG_AND_STDERR( "Unable to resolve path to Elastic OpenTelemetry PHP libraries\n");
         return &elastic_apm_loader_module_entry;
     }
 
     auto elasticAgentPath = std::filesystem::path(dl_info.dli_fname).parent_path();
 
-    auto agentLibrary = (elasticAgentPath/"elastic_apm-"sv);
-    agentLibrary += std::to_string(zendModuleApiVersion);
+    auto agentLibrary = (elasticAgentPath/"elastic_otel_php_"sv);
+    agentLibrary += std::to_string(phpVersion);
     agentLibrary += ".so"sv;
 
     void *agentHandle = dlopen(agentLibrary.c_str(), RTLD_LAZY | RTLD_GLOBAL);
