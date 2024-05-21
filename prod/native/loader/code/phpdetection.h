@@ -9,7 +9,7 @@
 namespace elasticapm::loader {
 
 std::string_view getMajorMinorZendVersion();
-std::tuple<std::string_view, int, bool> getZendModuleApiVersion(std::string_view zendVersion);
+std::tuple<std::string_view, int, int, bool> getZendModuleApiVersion(std::string_view zendVersion);
 bool isThreadSafe();
 
 }
