@@ -67,7 +67,7 @@ jobs:
           echo "Creating debug symbols artifacts"
           DBGSYM="${PWD}/build/packages/elastic-otel-php-debugsymbols-${{ matrix.arch }}.tar.gz"
           pushd prod/native/_build/${{ matrix.arch }}-release
-          tar --transform 's/.*\///g' -zcvf ${DBGSYM} ext/*.debug loader/code/*.debug
+          tar --transform 's/.*\///g' -zcvf ${DBGSYM} extension/code/*.debug loader/code/*.debug
           popd
 
           pushd "${PWD}/build/packages"

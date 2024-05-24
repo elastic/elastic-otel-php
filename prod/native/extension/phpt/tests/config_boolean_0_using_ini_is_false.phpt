@@ -1,0 +1,21 @@
+--TEST--
+Boolean configuration option value 0 (in this case using ini file) should be interpreted as false
+--ENV--
+ELASTIC_APM_LOG_LEVEL_STDERR=CRITICAL
+--INI--
+elastic_apm.enabled=0
+extension=/elastic/elastic_otel_php.so
+elastic_apm.bootstrap_php_part_file=/elastic/php/bootstrap_php_part.php
+--FILE--
+<?php
+declare(strict_types=1);
+require __DIR__ . '/includes/tests_util.inc';
+
+elasticApmAssertSame("ini_get('elastic_apm.enabled')", ini_get('elastic_apm.enabled'), '0');
+
+elasticApmAssertSame("elastic_apm_is_enabled()", elastic_apm_is_enabled(), false);
+
+echo 'Test completed'
+?>
+--EXPECT--
+Test completed
