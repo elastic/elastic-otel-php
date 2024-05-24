@@ -84,7 +84,7 @@ if [ -s ${LOCAL_LOG_FAILED_TESTS} ]; then
     echo "Test failed"
 
     pushd ${LOCAL_TMP_DIR}
-    tar -czvf ${TESTS_FAILURES_ARCHIVE}  .
+    tar -czf ${TESTS_FAILURES_ARCHIVE}  .
     popd
     rm -rf ${LOCAL_TMP_DIR}
 

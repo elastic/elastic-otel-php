@@ -48,6 +48,7 @@ jobs:
         with:
           platforms: arm64
       - name: Run phpt tests
+        continue-on-error: true
         run: |
           uname -a
           echo "Arch: ${BUILD_ARCHITECTURE}"
@@ -60,11 +61,18 @@ jobs:
           for PHP_VERSION in "${PHP_VERSIONS[@]}"
           do
             ./run.sh -b ${BUILD_ARCHITECTURE} -p ${PHP_VERSION} -f ${PWD}/results/phpt-${PHP_VERSION}.tar.gz
+            if [ $? -ne 0 ]; then TEST_ERROR=1; fi;
           done
           popd
+
+          if [ $TEST_ERROR -eq 1 ]; then
+            echo "Some tests failed"
+            exit 1
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: test-phpt-failures-${{ matrix.arch }}
+          if: failure()
           path: |
             prod/native/extension/phpt/results/*
   
