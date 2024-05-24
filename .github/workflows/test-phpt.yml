@@ -48,7 +48,6 @@ jobs:
         with:
           platforms: arm64
       - name: Run phpt tests
-        continue-on-error: true
         run: |
           uname -a
           echo "Arch: ${BUILD_ARCHITECTURE}"
