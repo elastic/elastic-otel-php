@@ -3,7 +3,8 @@ Which configuration options are dynamic
 --ENV--
 ELASTIC_APM_LOG_LEVEL_STDERR=CRITICAL
 --INI--
-elastic_apm.bootstrap_php_part_file=../../php/bootstrap_php_part.php
+extension=/elastic/elastic_otel_php.so
+elastic_apm.bootstrap_php_part_file=/elastic/php/bootstrap_php_part.php
 --FILE--
 <?php
 declare(strict_types=1);

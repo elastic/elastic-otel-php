@@ -12,7 +12,8 @@ ELASTIC_APM_SECRET_TOKEN=
 ELASTIC_APM_SERVER_URL=
 ELASTIC_APM_SERVICE_NAME=
 --INI--
-elastic_apm.bootstrap_php_part_file=../../php/bootstrap_php_part.php
+extension=/elastic/elastic_otel_php.so
+elastic_apm.bootstrap_php_part_file=/elastic/php/bootstrap_php_part.php
 --FILE--
 <?php
 declare(strict_types=1);

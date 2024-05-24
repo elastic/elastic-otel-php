@@ -9,13 +9,14 @@ ELASTIC_APM_LOG_LEVEL_STDERR=DEBUG
 ELASTIC_APM_ENABLED=true
 --INI--
 elastic_apm.enabled = 1
-elastic_apm.bootstrap_php_part_file=../../php/bootstrap_php_part.php
-zend_extension=/tmp/extensions/opcache.so
+zend_extension=opcache.so
 opcache.enable=1
 opcache.enable_cli=1
 opcache.optimization_level=-1
 opcache.preload={PWD}/opcache_preload_detection.inc
 opcache.preload_user=root
+extension=/elastic/elastic_otel_php.so
+elastic_apm.bootstrap_php_part_file=/elastic/php/bootstrap_php_part.php
 --SKIPIF--
 <?php
 if (PHP_VERSION_ID < 70400) die("skip ElasticApmSkipTest Unsupported PHP version");

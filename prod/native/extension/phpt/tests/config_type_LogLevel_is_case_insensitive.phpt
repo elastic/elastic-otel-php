@@ -7,7 +7,8 @@ ELASTIC_APM_LOG_LEVEL_WIN_SYS_DEBUG=TRaCe
 --INI--
 elastic_apm.log_level_syslog=INFO
 elastic_apm.log_level_file=dEbUg
-elastic_apm.bootstrap_php_part_file=../../php/bootstrap_php_part.php
+extension=/elastic/elastic_otel_php.so
+elastic_apm.bootstrap_php_part_file=/elastic/php/bootstrap_php_part.php
 --FILE--
 <?php
 declare(strict_types=1);

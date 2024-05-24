@@ -8,7 +8,8 @@ elastic_apm.assert_level=|:/:\:|
 elastic_apm.secret_token=\|<>|/
 elastic_apm.server_url=<\/\/>
 elastic_apm.service_name=/\><\/
-elastic_apm.bootstrap_php_part_file=../../php/bootstrap_php_part.php
+extension=/elastic/elastic_otel_php.so
+elastic_apm.bootstrap_php_part_file=/elastic/php/bootstrap_php_part.php
 --FILE--
 <?php
 declare(strict_types=1);

@@ -4,7 +4,8 @@ Boolean configuration option value 'yes' (in this case using environment variabl
 ELASTIC_APM_LOG_LEVEL_STDERR=CRITICAL
 ELASTIC_APM_ENABLED=yEs
 --INI--
-elastic_apm.bootstrap_php_part_file=../../php/bootstrap_php_part.php
+extension=/elastic/elastic_otel_php.so
+elastic_apm.bootstrap_php_part_file=/elastic/php/bootstrap_php_part.php
 --FILE--
 <?php
 declare(strict_types=1);

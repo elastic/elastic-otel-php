@@ -4,9 +4,10 @@ Detection of opcache preload feature
 ELASTIC_APM_LOG_LEVEL_STDERR=DEBUG
 ELASTIC_APM_ENABLED=true
 --INI--
+extension=/elastic/elastic_otel_php.so
+elastic_apm.bootstrap_php_part_file=/elastic/php/bootstrap_php_part.php
 elastic_apm.enabled = 1
-elastic_apm.bootstrap_php_part_file=../../php/bootstrap_php_part.php
-zend_extension=/tmp/extensions/opcache.so
+zend_extension=opcache.so
 opcache.enable=1
 opcache.enable_cli=1
 opcache.optimization_level=-1
