@@ -53,13 +53,13 @@ jobs:
           echo "Arch: ${BUILD_ARCHITECTURE}"
           pushd prod/native/extension/phpt
 
-          mkdir results
+          mkdir ${PWD}/results
 
           PHP_VERSIONS=( 80 81 82 83 )
 
           for PHP_VERSION in "${PHP_VERSIONS[@]}"
           do
-            ./run.sh -b ${BUILD_ARCHITECTURE} -p ${PHP_VERSION} -f results/phpt-test-failures-${BUILD_ARCHITECTURE}-php-${PHP_VERSION}.tar.gz
+            ./run.sh -b ${BUILD_ARCHITECTURE} -p ${PHP_VERSION} -f ${PWD}/results/phpt-${PHP_VERSION}.tar.gz
           done
           popd
       - uses: actions/upload-artifact@v4
