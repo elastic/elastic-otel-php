@@ -13,7 +13,7 @@ elastic_apm.bootstrap_php_part_file=/elastic/php/bootstrap_php_part.php
 --FILE--
 <?php
 declare(strict_types=1);
-require __DIR__ . '/../tests_util/tests_util.php';
+require __DIR__ . '/includes/tests_util.php';
 
 // assert_level is not set in ini so it falls back on env vars
 elasticApmAssertSame("elastic_apm_get_config_option_by_name('assert_level')", elastic_apm_get_config_option_by_name('assert_level'), ELASTIC_APM_ASSERT_LEVEL_O_N);

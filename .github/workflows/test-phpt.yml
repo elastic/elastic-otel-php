@@ -50,17 +50,21 @@ jobs:
       - name: Run phpt tests
         run: |
           uname -a
-          echo "Detected CPUs: $(nproc)"
-          echo "User: ${CURRENT_UID}:${CURRENT_GID}"
-          echo "PWD: ${PWD}"
           echo "Arch: ${BUILD_ARCHITECTURE}"
           pushd prod/native/extension/phpt
 
+          mkdir results
+
           PHP_VERSIONS=( 80 81 82 83 )
-          
+
           for PHP_VERSION in "${PHP_VERSIONS[@]}"
           do
-            ./run.sh -b ${BUILD_ARCHITECTURE} -p ${PHP_VERSION}
+            ./run.sh -b ${BUILD_ARCHITECTURE} -p ${PHP_VERSION} -f results/phpt-test-failures-${BUILD_ARCHITECTURE}-php-${PHP_VERSION}.tar.gz
           done
           popd
-#TODO upload artifact on failure
+      - uses: actions/upload-artifact@v4
+        with:
+          name: test-phpt-failures-${{ matrix.arch }}
+          path: |
+            prod/native/extension/phpt/results/*
+  

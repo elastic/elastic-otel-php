@@ -8,13 +8,14 @@ Arguments description:
     -b build_architecture   required, architecture of agent so library, f.ex. linux-x86-64
     -p php_version          PHP version f.ex. 80 or 83 
     -t tests                Tests to run, folder or particular test file name. Default: tests
+    -f path                 Generate test failures archive and save it in path
     -h                      print this help
 "
 }
 
 TESTS_TO_RUN=tests
 
-while getopts "b:p:t:h" opt; do
+while getopts "b:p:t:f:h" opt; do
     case "$opt" in
     h|\?)
         show_help
@@ -25,7 +26,9 @@ while getopts "b:p:t:h" opt; do
     p)  PHP_VERSION="${OPTARG}"
         ;;
     t)  TESTS_TO_RUN="${OPTARG}"
-        ;;        
+        ;;
+    f)  TESTS_FAILURES_ARCHIVE="${OPTARG}"
+        ;;
     esac
 done
 
@@ -49,18 +52,29 @@ fi
 
 ELASTIC_AGENT_PHP_PATH=${PWD}/../../../php
 
-LOG_TEST_RUN=/phpt-tests/test-run.log
 
+LOCAL_TMP_DIR=$(mktemp -d)
 
-LOCAL_LOG_FAILED_TESTS=$(mktemp)
+LOCAL_LOG_FAILED_TESTS=${LOCAL_TMP_DIR}/test-run-failures.log
+touch ${LOCAL_LOG_FAILED_TESTS}
+
+LOCAL_LOG_TEST_RUN=${LOCAL_TMP_DIR}/test-run.log
+touch ${LOCAL_LOG_TEST_RUN}
+
 LOG_FAILED_TESTS=/phpt-tests/test-run-failures.log
+LOG_TEST_RUN=/phpt-tests/test-run.log
 
 RUN_TESTS=/usr/local/lib/php/build/run-tests.php
 
+# copy test folder or test file into temp folder
+mkdir -p ${LOCAL_TMP_DIR}/$(dirname ${TESTS_TO_RUN})
+cp  -R ${TESTS_TO_RUN} ${LOCAL_TMP_DIR}/${TESTS_TO_RUN}
+
 docker run --rm \
-    -v ./tests:/phpt-tests/tests \
+    -v ${LOCAL_TMP_DIR}/tests:/phpt-tests/tests \
     -v ./tests_util:/phpt-tests/tests_util \
     -v ${LOCAL_LOG_FAILED_TESTS}:${LOG_FAILED_TESTS} \
+    -v ${LOCAL_LOG_TEST_RUN}:${LOG_TEST_RUN} \
     -v ${ELASTIC_AGENT_PHP_PATH}:/elastic/php \
     -v ${ELASTIC_AGENT_SO_PATH}:/elastic/elastic_otel_php.so \
     -w /phpt-tests \
@@ -68,8 +82,13 @@ docker run --rm \
 
 if [ -s ${LOCAL_LOG_FAILED_TESTS} ]; then
     echo "Test failed"
-    rm ${LOCAL_LOG_FAILED_TESTS}
+
+    pushd ${LOCAL_TMP_DIR}
+    tar -czvf ${TESTS_FAILURES_ARCHIVE}  .
+    popd
+    rm -rf ${LOCAL_TMP_DIR}
+
     exit 1
 fi
 
-rm ${LOCAL_LOG_FAILED_TESTS}
+rm -rf ${LOCAL_TMP_DIR}

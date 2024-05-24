@@ -8,7 +8,7 @@ elastic_apm.bootstrap_php_part_file=/elastic/php/bootstrap_php_part.php
 --FILE--
 <?php
 declare(strict_types=1);
-require __DIR__ . '/../tests_util/tests_util.php';
+require __DIR__ . '/includes/tests_util.php';
 
 $dynamicConfigOptNames = [ 'log_level' ];
 
