@@ -68,9 +68,9 @@ jobs:
             exit 1
           fi
       - uses: actions/upload-artifact@v4
+        if: failure()
         with:
           name: test-phpt-failures-${{ matrix.arch }}
-          if: failure()
           path: |
             prod/native/extension/phpt/results/*
   
