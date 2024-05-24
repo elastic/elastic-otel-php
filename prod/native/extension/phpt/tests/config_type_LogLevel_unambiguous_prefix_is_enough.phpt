@@ -12,7 +12,7 @@ elastic_apm.bootstrap_php_part_file=/elastic/php/bootstrap_php_part.php
 --FILE--
 <?php
 declare(strict_types=1);
-require __DIR__ . '/includes/tests_util.php';
+require __DIR__ . '/includes/tests_util.inc';
 
 if ( ! extension_loaded( 'elastic_apm' ) ) die( 'Extension elastic_apm must be installed' );
 

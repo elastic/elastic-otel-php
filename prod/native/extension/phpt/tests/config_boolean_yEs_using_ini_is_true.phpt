@@ -9,7 +9,7 @@ elastic_apm.enabled=yEs
 --FILE--
 <?php
 declare(strict_types=1);
-require __DIR__ . '/includes/tests_util.php';
+require __DIR__ . '/includes/tests_util.inc';
 
 elasticApmAssertEqual("ini_get('elastic_apm.enabled')", ini_get('elastic_apm.enabled'), true);
 

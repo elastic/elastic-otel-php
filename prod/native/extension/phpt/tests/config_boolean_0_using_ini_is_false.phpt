@@ -9,7 +9,7 @@ elastic_apm.bootstrap_php_part_file=/elastic/php/bootstrap_php_part.php
 --FILE--
 <?php
 declare(strict_types=1);
-require __DIR__ . '/includes/tests_util.php';
+require __DIR__ . '/includes/tests_util.inc';
 
 elasticApmAssertSame("ini_get('elastic_apm.enabled')", ini_get('elastic_apm.enabled'), '0');
 

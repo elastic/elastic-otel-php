@@ -60,8 +60,7 @@ jobs:
 
           for PHP_VERSION in "${PHP_VERSIONS[@]}"
           do
-            ./run.sh -b ${BUILD_ARCHITECTURE} -p ${PHP_VERSION} -f ${PWD}/results/phpt-${PHP_VERSION}.tar.gz
-            if [ $? -ne 0 ]; then TEST_ERROR=1; fi;
+            ./run.sh -b ${BUILD_ARCHITECTURE} -p ${PHP_VERSION} -f ${PWD}/results/phpt-${PHP_VERSION}.tar.gz || TEST_ERROR=1
           done
           popd
 
