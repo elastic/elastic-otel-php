@@ -73,12 +73,13 @@ public:
     void onRequestShutdown() {
         ELOG_DEBUG(log_, __FUNCTION__);
 
-        if (!bootstrapSuccessfull_) {
+        if (preloadDetected_) {
+            ELOG_DEBUG(log_, "opcache.preload request detected on shutdown");
             return;
         }
 
-        if (preloadDetected_) {
-            ELOG_DEBUG(log_, "opcache.preload request detected on shutdown");
+        if (!bootstrapSuccessfull_) {
+            ELOG_DEBUG(log_, "onRequestShutdown bootstrap not successfull");
             return;
         }
 

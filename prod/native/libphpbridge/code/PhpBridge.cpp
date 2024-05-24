@@ -154,28 +154,28 @@ void PhpBridge::compileAndExecuteFile(std::string_view fileName) const {
 }
 
 bool PhpBridge::callPHPSideEntryPoint(LogLevel logLevel, std::chrono::time_point<std::chrono::system_clock> requestInitStart) const {
-    auto phpPartFacadeClass = findClassEntry("elastic\\apm\\impl\\autoinstrument\\phppartfacade"sv);
+    auto phpPartFacadeClass = findClassEntry("elastic\\otel\\autoinstrument\\phppartfacade"sv);
     if (!phpPartFacadeClass) {
         return false;
     }
 
     std::array<AutoZval, 2> arguments{logLevel, (double)std::chrono::duration_cast<std::chrono::microseconds>(requestInitStart.time_since_epoch()).count()};
     AutoZval rv;
-    return callMethod(nullptr, "\\Elastic\\Apm\\Impl\\AutoInstrument\\PhpPartFacade::bootstrap"sv, arguments.data()->get(), arguments.size(), rv.get());
+    return callMethod(nullptr, "\\Elastic\\OTel\\AutoInstrument\\PhpPartFacade::bootstrap"sv, arguments.data()->get(), arguments.size(), rv.get());
 }
 
 bool PhpBridge::callPHPSideExitPoint() const {
-    auto phpPartFacadeClass = findClassEntry("elastic\\apm\\impl\\autoinstrument\\phppartfacade"sv);
+    auto phpPartFacadeClass = findClassEntry("elastic\\otel\\autoinstrument\\phppartfacade"sv);
     if (!phpPartFacadeClass) {
         return false;
     }
 
     AutoZval rv;
-    return callMethod(nullptr, "\\Elastic\\Apm\\Impl\\AutoInstrument\\PhpPartFacade::shutdown"sv, nullptr, 0, rv.get());
+    return callMethod(nullptr, "Elastic\\OTel\\AutoInstrument\\PhpPartFacade::shutdown"sv, nullptr, 0, rv.get());
 }
 
 bool PhpBridge::callPHPSideErrorHandler(int type, std::string_view errorFilename, uint32_t errorLineno, std::string_view message) const {
-    auto phpPartFacadeClass = findClassEntry("elastic\\apm\\impl\\autoinstrument\\phppartfacade"sv);
+    auto phpPartFacadeClass = findClassEntry("elastic\\otel\\autoinstrument\\phppartfacade"sv);
     if (!phpPartFacadeClass) {
         return false;
     }
@@ -183,7 +183,7 @@ bool PhpBridge::callPHPSideErrorHandler(int type, std::string_view errorFilename
     std::array<AutoZval, 4> arguments{type, errorFilename, errorLineno, message};
 
     AutoZval rv;
-    return callMethod(nullptr, "\\Elastic\\Apm\\Impl\\AutoInstrument\\PhpPartFacade::handle_error"sv, arguments.data()->get(), arguments.size(), rv.get());
+    return callMethod(nullptr, "\\Elastic\\OTel\\AutoInstrument\\PhpPartFacade::handle_error"sv, arguments.data()->get(), arguments.size(), rv.get());
 }
 
 

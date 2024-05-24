@@ -119,5 +119,4 @@ enable_testing()
 add_subdirectory(libcommon)
 add_subdirectory(libphpbridge)
 add_subdirectory(loader)
-
-add_subdirectory(ext)
+add_subdirectory(extension)

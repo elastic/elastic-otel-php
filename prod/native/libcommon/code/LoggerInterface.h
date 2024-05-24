@@ -18,7 +18,7 @@ public:
 
 #define PRsv "%.*s"
 #define PRsvArg(strv) static_cast<int>(strv.length()), strv.data()
-#define PRcsvArg(str, len) str, len
+#define PRcsvArg(str, len) len, str
 
 
 #define ELOG_CRITICAL(logger, format, ...) do { if (!logger || !logger->doesMeetsLevelCondition(LogLevel::logLevel_critical)) break; logger->printf(LogLevel::logLevel_critical, format, ##__VA_ARGS__); } while(false);
