@@ -66,7 +66,10 @@ jobs:
 
           echo "Creating debug symbols artifacts"
           DBGSYM="${PWD}/build/packages/elastic-otel-php-debugsymbols-${{ matrix.arch }}.tar.gz"
-          tar -czf ${DBGSYM} prod/native/_build/${{ matrix.arch }}-release/loader/code/elastic_apm_loader.debug prod/native/_build/${{ matrix.arch }}-release/ext/*.debug
+          pushd prod/native/_build/${{ matrix.arch }}-release
+          tar --transform 's/.*\///g' -zcvf ${DBGSYM} extension/code/*.debug loader/code/*.debug
+          popd
+
           pushd "${PWD}/build/packages"
           md5sum ${DBGSYM} >${DBGSYM}.sha512
           popd

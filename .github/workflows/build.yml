@@ -43,8 +43,12 @@ jobs:
     needs:
       - build-native
     uses: ./.github/workflows/build-packages.yml
-
-
+  
+  tests-phpt:
+    needs:
+      - build-native
+    uses: ./.github/workflows/test-phpt.yml
+    
 
   # The very last job to report whether the Workflow passed.
   # This will act as the Branch Protection gatekeeper
