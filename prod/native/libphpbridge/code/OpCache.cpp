@@ -19,11 +19,6 @@ bool PhpBridge::isOpcacheEnabled() const {
 
 
 bool PhpBridge::detectOpcachePreload() const {
-
-    if (PHP_VERSION_ID < 70400) {
-        return false;
-    }
-
     if (!isOpcacheEnabled()) {
         return false;
     }
@@ -33,24 +28,7 @@ bool PhpBridge::detectOpcachePreload() const {
         return false;
     }
 
-    return sapi_module.activate == nullptr && sapi_module.deactivate == nullptr && sapi_module.register_server_variables == nullptr && sapi_module.getenv == nullptr && EG(error_reporting) == 0;
-
-    // // lookup for opcache_get_status
-    // if (EG(function_table) && !zend_hash_str_find_ptr(EG(function_table), ZEND_STRL("opcache_get_status"))) {
-    //     return false;
-    // }
-
-    // zval *server = zend_hash_str_find(&EG(symbol_table), ZEND_STRL("_SERVER"));
-    // if (!server || Z_TYPE_P(server) != IS_ARRAY) {
-    //     return true; // actually should be available in preload
-    // }
-
-    // // not available in preload request
-    // zval *script = zend_hash_str_find(Z_ARRVAL_P(server), ZEND_STRL("SCRIPT_NAME"));
-    // if (!script) {
-    //     return true;
-    // }
-    return false;
+    return sapi_module.activate == nullptr && sapi_module.deactivate == nullptr && sapi_module.register_server_variables == nullptr && sapi_module.getenv == nullptr; // EG(error_reporting) == 0 is null only in request init scope
 }
 
 

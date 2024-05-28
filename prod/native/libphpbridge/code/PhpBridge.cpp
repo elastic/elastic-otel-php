@@ -187,6 +187,7 @@ bool PhpBridge::callPHPSideErrorHandler(int type, std::string_view errorFilename
 }
 
 
+//NOTE: argument must be lower case
 zend_class_entry *findClassEntry(std::string_view className) {
     return static_cast<zend_class_entry *>(zend_hash_str_find_ptr(EG(class_table), className.data(), className.length()));
 }

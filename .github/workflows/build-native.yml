@@ -60,3 +60,5 @@ jobs:
             prod/native/_build/${{ matrix.arch }}-release/extension/code/elastic_otel_php*.debug
             prod/native/_build/${{ matrix.arch }}-release/loader/code/elastic_otel_php_loader.so
             prod/native/_build/${{ matrix.arch }}-release/loader/code/elastic_otel_php_loader.debug
+            prod/native/_build/${{ matrix.arch }}-release/phpbridge_extension/code/phpbridge_*.so
+            prod/native/_build/${{ matrix.arch }}-release/phpbridge_extension/code/phpbridge_*.debug
