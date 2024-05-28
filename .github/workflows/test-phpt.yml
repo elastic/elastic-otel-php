@@ -63,6 +63,14 @@ jobs:
           done
           popd
 
+          pushd prod/native/phpbridge_extension/phpt
+
+          for PHP_VERSION in "${PHP_VERSIONS[@]}"
+          do
+            ./run.sh -b ${BUILD_ARCHITECTURE} -p ${PHP_VERSION} -f ${PWD}/results/phpt-bridge-${PHP_VERSION}.tar.gz || TEST_ERROR=1
+          done
+          popd
+
           if [ $TEST_ERROR -eq 1 ]; then
             echo "Some tests failed"
             exit 1
