@@ -11,7 +11,10 @@
     "require": {
         "php": "8.0.*||8.1.*||8.2.*",
         "nyholm/psr7": "^1.8",
-        "open-telemetry/sdk": "1.0.7",
+        "open-telemetry/exporter-otlp": "^1.0",
+        "open-telemetry/opentelemetry-auto-laravel": "^0.0.2",
+        "open-telemetry/sdk": "^1.0",
+        "php-http/guzzle7-adapter": "^1.0",
         "symfony/http-client": "^7.0"
     },
     "require-dev": {
@@ -38,7 +41,7 @@
         "sort-packages": true,
         "allow-plugins": {
             "dealerdirect/phpcodesniffer-composer-installer": true,
-            "php-http/discovery": true
+            "php-http/discovery": false
         }
     },
     "scripts": {
