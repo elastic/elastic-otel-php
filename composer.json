@@ -9,7 +9,7 @@
         { "name": "Sergey Kleyman" }
     ],
     "require": {
-        "php": "8.0.*||8.1.*||8.2.*",
+        "php": "8.0.*||8.1.*||8.2.*||8.3.*",
         "nyholm/psr7": "^1.8",
         "open-telemetry/exporter-otlp": "1.0.4",
         "open-telemetry/opentelemetry-auto-laravel": "0.0.25",
