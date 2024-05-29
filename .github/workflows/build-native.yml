@@ -1,7 +1,7 @@
 ---
 
 # Runs the build based on the provided files in test.yml
-name: build
+name: build-native
 
 on:
   workflow_call:
