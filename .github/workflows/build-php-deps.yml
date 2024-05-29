@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
     env:
-      - COMPOSER_ALLOW_SUPERUSER=1
+      COMPOSER_ALLOW_SUPERUSER: 1
     steps:
       - uses: actions/checkout@v4
       - name: Build PHP dependencies
