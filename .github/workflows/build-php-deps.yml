@@ -27,7 +27,7 @@ jobs:
 
             docker run --rm \
               -v ${PWD}:/sources \
-              -v ${PWD}/prod/php/vendor_${PHP_VERSION}:/sources/vendor
+              -v ${PWD}/prod/php/vendor_${PHP_VERSION}:/sources/vendor \
               -w /sources \
               php:${PHP_VERSION:0:1}.${PHP_VERSION:1:1}-cli sh -c "composer --ignore-platform-req=ext-opentelemetry --ignore-platform-req=ext-otel_instrumentation --no-dev install"
 
