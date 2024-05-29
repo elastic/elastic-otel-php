@@ -43,6 +43,10 @@ jobs:
         with:
           name: build-native-${{ matrix.arch }}
           path: prod/native/_build/${{ matrix.arch }}-release/
+      - uses: actions/download-artifact@v4
+        with:
+            name: php-dependencies
+            path: prod/php/
       - name: Build packages
         run: |
           mkdir -p "${PWD}/build/packages"
