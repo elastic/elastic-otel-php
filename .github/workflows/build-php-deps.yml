@@ -31,7 +31,7 @@ jobs:
               -v ${PWD}:/sources \
               -v ${PWD}/prod/php/vendor_${PHP_VERSION}:/sources/vendor \
               -w /sources \
-              php:${PHP_VERSION:0:1}.${PHP_VERSION:1:1}-cli sh -c "curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin && composer --ignore-platform-req=ext-opentelemetry --ignore-platform-req=ext-otel_instrumentation --no-dev install"
+              php:${PHP_VERSION:0:1}.${PHP_VERSION:1:1}-cli sh -c "apt-get update && apt-get install -y unzip && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin && composer --ignore-platform-req=ext-opentelemetry --ignore-platform-req=ext-otel_instrumentation --no-dev install"
 
               #TODO get licences from dependencies
               rm composer.lock
