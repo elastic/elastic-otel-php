@@ -34,14 +34,18 @@ jobs:
   build-native:
     uses: ./.github/workflows/build-native.yml
 
-  setup-build-matrix:
-    uses: ./.github/workflows/build-arch-matrix-generator.yml
-    with:
-      build_arch: ${{ inputs.build_arch }}
+  # setup-build-matrix:
+  #   uses: ./.github/workflows/build-arch-matrix-generator.yml
+  #   with:
+  #     build_arch: ${{ inputs.build_arch }}
+
+  build-php-deps:
+    uses: ./.github/workflows/build-php-deps.yml
 
   build-packages:
     needs:
       - build-native
+      - build-php-deps
     uses: ./.github/workflows/build-packages.yml
   
   tests-phpt:
