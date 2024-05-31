@@ -30,7 +30,7 @@ foreach ($packages as $package) {
     $sourceUrl = $package['support']['source'] ?? $url;
 
     // Generate URLs for NOTICE.txt and LICENSE using new method and fallback to old method
-    $noticeContent = fetchFileContent(generateRawFileUrl($package), 'NOTICE.txt') ?: fetchFileContent(filterUrl($sourceUrl), 'NOTICE.txt');
+    $noticeContent = fetchFileContent(generateRawFileUrl($package), 'NOTICE') ?: fetchFileContent(filterUrl($sourceUrl), 'NOTICE');
     $licenseContent = fetchFileContent(generateRawFileUrl($package), 'LICENSE') ?: fetchFileContent(filterUrl($sourceUrl), 'LICENSE');
 
 
@@ -42,9 +42,9 @@ foreach ($packages as $package) {
     echo "URL: $url\n";
     echo "\n";
     if ($noticeContent) {
-        echo "NOTICE.txt content:\n$noticeContent\n";
+        echo "NOTICE content:\n$noticeContent\n";
     } else {
-        echo "No NOTICE.txt file found\n";
+        echo "No NOTICE file found\n";
     }
 
     if ($licenseContent) {
