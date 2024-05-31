@@ -27,7 +27,7 @@ jobs:
           do
             mkdir -p "prod/php/vendor_${PHP_VERSION}"
 
-            echo "This project depends on folliwng packages for PHP ${PHP_VERSION}" >>NOTICE
+            echo "This project depends on folliwng packages for PHP ${PHP_VERSION:0:1}.${PHP_VERSION:1:1}" >>NOTICE
 
             docker run --rm \
               -v ${PWD}:/sources \
