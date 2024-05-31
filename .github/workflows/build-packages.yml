@@ -46,7 +46,9 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
             name: php-dependencies
-            path: prod/php/
+            path: |
+              prod/php/
+              NOTICE
       - name: Build packages
         run: |
           mkdir -p "${PWD}/build/packages"

@@ -1,0 +1,8 @@
+Elastic OpenTelemetry PHP Distribution
+Copyright 2023-2024 Elasticsearch B.V.
+
+This project is licensed under the Apache License, Version 2.0 - https://www.apache.org/licenses/LICENSE-2.0
+A copy of the Apache License, Version 2.0 is provided in the 'LICENSE' file.
+
+This project depends on folliwng packages:
+
