@@ -27,13 +27,14 @@ jobs:
           do
             mkdir -p "prod/php/vendor_${PHP_VERSION}"
 
+            echo "This project depends on folliwng packages for PHP ${PHP_VERSION:0:1}.${PHP_VERSION:1:1}" >>NOTICE
+
             docker run --rm \
               -v ${PWD}:/sources \
               -v ${PWD}/prod/php/vendor_${PHP_VERSION}:/sources/vendor \
               -w /sources \
-              php:${PHP_VERSION:0:1}.${PHP_VERSION:1:1}-cli sh -c "apt-get update && apt-get install -y unzip && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin && composer --ignore-platform-req=ext-opentelemetry --ignore-platform-req=ext-otel_instrumentation --no-dev install"
+              php:${PHP_VERSION:0:1}.${PHP_VERSION:1:1}-cli sh -c "apt-get update && apt-get install -y unzip && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin && composer --ignore-platform-req=ext-opentelemetry --ignore-platform-req=ext-otel_instrumentation --no-dev install && php /sources/packaging/notice_generator.php >>/sources/NOTICE"
 
-              #TODO get licences from dependencies
               rm composer.lock
 
           done
@@ -43,3 +44,4 @@ jobs:
           name: php-dependencies
           path: |
             prod/php/vendor_*
+            NOTICE

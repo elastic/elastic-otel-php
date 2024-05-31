@@ -35,6 +35,10 @@ contents:
   type: config
 - src: /source/README.md
   dst: /opt/elastic/elastic-otel-php/docs/README.md
+- src: /source/NOTICE
+  dst: /opt/elastic/elastic-otel-php/NOTICE
+- src: /source/LICENSE
+  dst: /opt/elastic/elastic-otel-php/LICENSE
 
 scripts:
   postinstall: /source/packaging/post-install.sh
