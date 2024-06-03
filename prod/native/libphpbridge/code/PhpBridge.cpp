@@ -104,6 +104,7 @@ void PhpBridge::compileAndExecuteFile(std::string_view fileName) const {
 #endif
             std::string msg = "Unable to open file for compilation '"s;
             msg.append(fileName);
+            msg.append("'"s);
             throw std::runtime_error(msg);
         }
 
@@ -367,7 +368,7 @@ void getFunctionReturnValue(zval *zv, zval *retval) {
 void getCurrentException(zval *zv, zend_object *exception) {
     if (exception && zend_is_unwind_exit(exception)) {
         ZVAL_NULL(zv);
-    } else if (UNEXPECTED(exception)) {
+    } else if (UNEXPECTED(exception) && instanceof_function(exception->ce, zend_ce_throwable)) {
         ZVAL_OBJ_COPY(zv, exception);
     } else {
         ZVAL_NULL(zv);
