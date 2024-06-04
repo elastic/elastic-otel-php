@@ -42,6 +42,9 @@ jobs:
   build-php-deps:
     uses: ./.github/workflows/build-php-deps.yml
 
+  test-sources-license:
+    uses: ./.github/workflows/test-sources-license.yml
+  
   build-packages:
     needs:
       - build-native
@@ -52,7 +55,6 @@ jobs:
     needs:
       - build-native
     uses: ./.github/workflows/test-phpt.yml
-    
 
   # The very last job to report whether the Workflow passed.
   # This will act as the Branch Protection gatekeeper

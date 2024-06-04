@@ -1,0 +1,19 @@
+---
+
+name: test-sources-license
+
+on:
+  workflow_call: ~
+  workflow_dispatch: ~
+
+jobs:
+  test-sources-license:
+    name: test-sources-license
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verification whether the source files contain a header with the license
+        run: ./tools/build/test_sources_license.sh

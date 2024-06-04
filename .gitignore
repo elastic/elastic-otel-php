@@ -28,7 +28,7 @@ phpunit.xml
 html_docs
 
 # Packaging artifacts and generated unit test reports
-build/
+build/*
 
 # Backup files when using sed
 .bck
