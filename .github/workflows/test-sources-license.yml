@@ -1,0 +1,19 @@
+---
+
+name: test-sources-license
+
+on:
+  workflow_call: ~
+  workflow_dispatch: ~
+
+jobs:
+  test-sources-license:
+    name: build-php-dependencies
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build PHP dependencies
+        run: ./tools/build/license_check.sh

@@ -60,7 +60,7 @@ check_header_for_php() {
     if [ "${FILE_HEADER}" == "${HEADER}" ]; then
         exit 0
     else
-        echo "File ${FILENAME} does NOT contain the specified header at the first comment block."
+        echo "${FILENAME} does NOT contain the specified header at the first comment block."
         exit 1
     fi
 }

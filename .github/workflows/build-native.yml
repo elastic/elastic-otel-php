@@ -50,8 +50,7 @@ jobs:
           echo "User: $(id -u):$(id -g)}"
           echo "PWD: ${PWD}"
           echo "Arch: ${BUILD_ARCHITECTURE}"
-          docker run --rm -t -u : -v ${PWD}:/source -w /source/prod/native elasticobservability/apm-agent-php-dev:native-build-gcc-12.2.0-${BUILD_ARCHITECTURE}-0.0.2 sh -c "cmake --preset ${BUILD_ARCHITECTURE}-release  && cmake --build --preset ${BUILD_ARCHITECTURE}-release && ctest --preset ${BUILD_ARCHITECTURE}-release --verbose"
-
+          ./tools/build/build_native.sh --build_architecture ${BUILD_ARCHITECTURE}
       - uses: actions/upload-artifact@v4
         with:
           name: build-native-${{ matrix.arch }}
