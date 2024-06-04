@@ -62,8 +62,8 @@ if [[ -n "$REPLACE_CONAN_USER_HOME" ]]; then
     # due safety not mounting user home folder but only .conan
     mkdir -p ${REPLACE_CONAN_USER_HOME}/.conan
     CONAN_USER_HOME_MP="-e CONAN_USER_HOME="${REPLACE_CONAN_USER_HOME}" -v "${REPLACE_CONAN_USER_HOME}/.conan:${REPLACE_CONAN_USER_HOME}/.conan""
-    USERID=" -u $(id -u):$(id -g)"
 fi
+USERID=" -u $(id -u):$(id -g)"
 
 echo "BUILD_ARCHITECTURE: $BUILD_ARCHITECTURE"
 echo "NCPU: $NCPU"
