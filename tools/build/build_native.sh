@@ -74,8 +74,8 @@ else
     CONFIGURE="cmake --preset ${BUILD_ARCHITECTURE}-release  && "
 fi
 
-docker run --rm -t -u : -v ${PWD}:/source \
+docker run --rm -t -u $(id -u) -v ${PWD}:/source \
     ${CONAN_USER_HOME_MP} \
     -w /source/prod/native \
     elasticobservability/apm-agent-php-dev:native-build-gcc-12.2.0-${BUILD_ARCHITECTURE}-0.0.2 \
-    sh -c "${CONFIGURE} cmake --build --preset ${BUILD_ARCHITECTURE}-release -j${NCPU} && ctest --preset ${BUILD_ARCHITECTURE}-release --verbose"
+    sh -c "id && echo CONAN_USER_HOME=\$CONAN_USER_HOME && ${CONFIGURE} cmake --build --preset ${BUILD_ARCHITECTURE}-release -j${NCPU} && ctest --preset ${BUILD_ARCHITECTURE}-release --verbose"
