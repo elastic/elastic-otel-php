@@ -48,34 +48,7 @@ jobs:
             name: php-dependencies
       - name: Build packages
         run: |
-          mkdir -p "${PWD}/build/packages"
-          packages=( ${{ matrix.packages }} )
-          for pkg in "${packages[@]}"
-          do
-            docker run --rm \
-               -e ELASTIC_OTEL_PHP_VERSION=1.0.0 \
-               -e ELASTIC_OTEL_PHP_PLATFORM="${{ matrix.arch }}" \
-               -e ELASTIC_OTEL_PHP_ARCH="${{ matrix.goarch }}" \
-               -e ELASTIC_OTEL_PHP_GIT_SHA=$( git rev-parse HEAD || echo "unknown") \
-               -v ${PWD}:/source \
-               -w /source/packaging goreleaser/nfpm package -f nfpm.yaml -t "/source/build/packages" -p ${pkg} | tee /tmp/nfpm_output.txt
-
-            PKG_FILENAME=$(grep "created package: " /tmp/nfpm_output.txt | sed 's/^.*: \/source\/build\/packages\///')
-            # create sha512 file
-            pushd "${PWD}/build/packages"
-            md5sum "${PKG_FILENAME}" >"${PKG_FILENAME}".sha512
-            popd
-          done
-
-          echo "Creating debug symbols artifacts"
-          DBGSYM="${PWD}/build/packages/elastic-otel-php-debugsymbols-${{ matrix.arch }}.tar.gz"
-          pushd prod/native/_build/${{ matrix.arch }}-release
-          tar --transform 's/.*\///g' -zcvf ${DBGSYM} extension/code/*.debug loader/code/*.debug
-          popd
-
-          pushd "${PWD}/build/packages"
-          md5sum ${DBGSYM} >${DBGSYM}.sha512
-          popd
+          ./tools/build/build_packages.sh --package_version 1.0.0 --build_architecture ${{ matrix.arch }} --package_goarchitecture ${{ matrix.goarch }} --package_types '${{ matrix.packages }}' --package_sha '${{ github.sha }}'
       - uses: actions/upload-artifact@v4
         with:
           name: packages-${{ matrix.arch }}
