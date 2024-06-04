@@ -11,6 +11,7 @@ show_help() {
     echo "  --ncpu                   Optional. Number of CPUs to use for building. Default is one less than the installed CPUs."
     echo "  --conan_user_home        Optional. Path to local user cache for Conan."
     echo "  --skip_configure         Optional. Skip the configuration step."
+    echo "  --interactive            Optional. Run container in interactive mode."
     echo
     echo "Example:"
     echo "  $0 --build_architecture linux-x86-64 --ncpu 4 --conan_user_home ~/ --skip_configure"
@@ -33,6 +34,9 @@ parse_args() {
                 ;;
             --skip_configure)
                 SKIP_CONFIGURE=true
+                ;;
+            --interactive)
+                INTERACTIVE=" -i "
                 ;;
             --help)
                 show_help
@@ -63,7 +67,12 @@ if [[ -n "$REPLACE_CONAN_USER_HOME" ]]; then
     mkdir -p ${REPLACE_CONAN_USER_HOME}/.conan
     CONAN_USER_HOME_MP="-e CONAN_USER_HOME="${REPLACE_CONAN_USER_HOME}" -v "${REPLACE_CONAN_USER_HOME}/.conan:${REPLACE_CONAN_USER_HOME}/.conan""
 fi
-USERID=" -u $(id -u):$(id -g)"
+
+if [ "$GITHUB_ACTIONS" = true ]; then
+    USERID=" -u : "
+else
+    USERID=" -u $(id -u):$(id -g) "
+fi
 
 echo "BUILD_ARCHITECTURE: $BUILD_ARCHITECTURE"
 echo "NCPU: $NCPU"
@@ -75,9 +84,9 @@ else
     CONFIGURE="cmake --preset ${BUILD_ARCHITECTURE}-release  && "
 fi
 
-docker run --rm -t $USERID -v ${PWD}:/source \
+docker run --rm -t ${INTERACTIVE} ${USERID} -v ${PWD}:/source \
     ${CONAN_USER_HOME_MP} \
     -w /source/prod/native \
     elasticobservability/apm-agent-php-dev:native-build-gcc-12.2.0-${BUILD_ARCHITECTURE}-0.0.2 \
-    sh -c "sudo usermod -u $(id -u) build && id && echo CONAN_USER_HOME=\$CONAN_USER_HOME && ${CONFIGURE} cmake --build --preset ${BUILD_ARCHITECTURE}-release -j${NCPU} && ctest --preset ${BUILD_ARCHITECTURE}-release --verbose"
+    sh -c "id && echo CONAN_USER_HOME=\$CONAN_USER_HOME && ${CONFIGURE} cmake --build --preset ${BUILD_ARCHITECTURE}-release -j${NCPU} && ctest --preset ${BUILD_ARCHITECTURE}-release --verbose"
 
