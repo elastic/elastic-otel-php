@@ -51,34 +51,11 @@ jobs:
         run: |
           uname -a
           echo "Arch: ${BUILD_ARCHITECTURE}"
-          pushd prod/native/extension/phpt
-
-          mkdir ${PWD}/results
-
-          PHP_VERSIONS=( 80 81 82 83 )
-
-          for PHP_VERSION in "${PHP_VERSIONS[@]}"
-          do
-            ./run.sh -b ${BUILD_ARCHITECTURE} -p ${PHP_VERSION} -f ${PWD}/results/phpt-${PHP_VERSION}.tar.gz || TEST_ERROR=1
-          done
-          popd
-
-          pushd prod/native/phpbridge_extension/phpt
-
-          for PHP_VERSION in "${PHP_VERSIONS[@]}"
-          do
-            ./run.sh -b ${BUILD_ARCHITECTURE} -p ${PHP_VERSION} -f ${PWD}/results/phpt-bridge-${PHP_VERSION}.tar.gz || TEST_ERROR=1
-          done
-          popd
-
-          if [ $TEST_ERROR -eq 1 ]; then
-            echo "Some tests failed"
-            exit 1
-          fi
+          ./tools/build/test_phpt.sh --build_architecture ${BUILD_ARCHITECTURE} --php_versions '80 81 82 83'
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: test-phpt-failures-${{ matrix.arch }}
           path: |
             prod/native/extension/phpt/results/*
-  
+            prod/native/phpbridge_extension/phpt/results/*
