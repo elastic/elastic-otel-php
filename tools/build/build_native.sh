@@ -62,6 +62,7 @@ if [[ -n "$REPLACE_CONAN_USER_HOME" ]]; then
     # due safety not mounting user home folder but only .conan
     mkdir -p ${REPLACE_CONAN_USER_HOME}/.conan
     CONAN_USER_HOME_MP="-e CONAN_USER_HOME="${REPLACE_CONAN_USER_HOME}" -v "${REPLACE_CONAN_USER_HOME}/.conan:${REPLACE_CONAN_USER_HOME}/.conan""
+    USERID=" -u $(id -u):$(id -g)"
 fi
 
 echo "BUILD_ARCHITECTURE: $BUILD_ARCHITECTURE"
@@ -74,7 +75,7 @@ else
     CONFIGURE="cmake --preset ${BUILD_ARCHITECTURE}-release  && "
 fi
 
-docker run --rm -t -u $(id -u) -v ${PWD}:/source \
+docker run --rm -t $USERID -v ${PWD}:/source \
     ${CONAN_USER_HOME_MP} \
     -w /source/prod/native \
     elasticobservability/apm-agent-php-dev:native-build-gcc-12.2.0-${BUILD_ARCHITECTURE}-0.0.2 \
