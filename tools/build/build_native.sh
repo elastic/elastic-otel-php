@@ -1,16 +1,15 @@
 #!/bin/bash
 
 NCPU=$(($(nproc) - 1))
-REPLACE_CONAN_USER_HOME=""
 SKIP_CONFIGURE=false
 
 show_help() {
-    echo "Usage: $0 --build_architecture <architecture> [--ncpu <num_cpus>] [--CONAN_USER_HOME <cache_path>] [--skip_configure]"
+    echo "Usage: $0 --build_architecture <architecture> [--ncpu <num_cpus>] [--conan_user_home <cache_path>] [--skip_configure]"
     echo
     echo "Arguments:"
     echo "  --build_architecture     Required. Build architecture (e.g., 'linux-x86-64')."
     echo "  --ncpu                   Optional. Number of CPUs to use for building. Default is one less than the installed CPUs."
-    echo "  --conan_user_home        Optional. Path to local user cache for Conan. Default is empty."
+    echo "  --conan_user_home        Optional. Path to local user cache for Conan."
     echo "  --skip_configure         Optional. Skip the configuration step."
     echo
     echo "Example:"
@@ -58,11 +57,11 @@ if [[ -z "$BUILD_ARCHITECTURE" ]]; then
 fi
 
 # Building mount point and environment if $REPLACE_CONAN_USER_HOME not empty
-if [[ -n "${REPLACE_CONAN_USER_HOME}" ]]; then
+if [[ -n "$REPLACE_CONAN_USER_HOME" ]]; then
     echo "CONAN_USER_HOME: ${REPLACE_CONAN_USER_HOME}"
     # due safety not mounting user home folder but only .conan
     mkdir -p ${REPLACE_CONAN_USER_HOME}/.conan
-    CONAN_USER_HOME_MP="-e CONAN_USER_HOME=${REPLACE_CONAN_USER_HOME} -v "${REPLACE_CONAN_USER_HOME}/.conan:${REPLACE_CONAN_USER_HOME}/.conan""
+    CONAN_USER_HOME_MP="-e CONAN_USER_HOME="${REPLACE_CONAN_USER_HOME}" -v "${REPLACE_CONAN_USER_HOME}/.conan:${REPLACE_CONAN_USER_HOME}/.conan""
 fi
 
 echo "BUILD_ARCHITECTURE: $BUILD_ARCHITECTURE"
