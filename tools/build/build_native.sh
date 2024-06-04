@@ -1,7 +1,7 @@
 #!/bin/bash
 
 NCPU=$(($(nproc) - 1))
-CONAN_USER_HOME=""
+REPLACE_CONAN_USER_HOME=""
 SKIP_CONFIGURE=false
 
 show_help() {
@@ -29,7 +29,7 @@ parse_args() {
                 shift
                 ;;
             --conan_user_home)
-                CONAN_USER_HOME="$2"
+                REPLACE_CONAN_USER_HOME="$2"
                 shift
                 ;;
             --skip_configure)
@@ -57,12 +57,12 @@ if [[ -z "$BUILD_ARCHITECTURE" ]]; then
     exit 1
 fi
 
-# Building mount point and environment if $CONAN_USER_HOME not empty
-if [[ -n "$CONAN_USER_HOME" ]]; then
-    echo "CONAN_USER_HOME: $CONAN_USER_HOME"
+# Building mount point and environment if $REPLACE_CONAN_USER_HOME not empty
+if [[ -n "${REPLACE_CONAN_USER_HOME}" ]]; then
+    echo "CONAN_USER_HOME: ${REPLACE_CONAN_USER_HOME}"
     # due safety not mounting user home folder but only .conan
-    mkdir -p ${CONAN_USER_HOME}/.conan
-    CONAN_USER_HOME_MP="-e CONAN_USER_HOME=$CONAN_USER_HOME -v "${CONAN_USER_HOME}/.conan:${CONAN_USER_HOME}/.conan""
+    mkdir -p ${REPLACE_CONAN_USER_HOME}/.conan
+    CONAN_USER_HOME_MP="-e CONAN_USER_HOME=${REPLACE_CONAN_USER_HOME} -v "${REPLACE_CONAN_USER_HOME}/.conan:${REPLACE_CONAN_USER_HOME}/.conan""
 fi
 
 echo "BUILD_ARCHITECTURE: $BUILD_ARCHITECTURE"
