@@ -75,7 +75,7 @@ else
     CONFIGURE="cmake --preset ${BUILD_ARCHITECTURE}-release  && "
 fi
 
-docker run --rm -t -u 1000:1000 -v ${PWD}:/source \
+docker run --rm -t -u $(id -u):$(id -g) -v ${PWD}:/source \
     ${CONAN_USER_HOME_MP} \
     -w /source/prod/native \
     elasticobservability/apm-agent-php-dev:native-build-gcc-12.2.0-${BUILD_ARCHITECTURE}-0.0.2 \

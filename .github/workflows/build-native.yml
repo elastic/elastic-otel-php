@@ -47,7 +47,7 @@ jobs:
         run: |
           uname -a
           echo "Detected CPUs: $(nproc)"
-          echo "User: $(id -u):$(id -g)}"
+          echo "User: $(id -u):$(id -g)"
           echo "PWD: ${PWD}"
           echo "Arch: ${BUILD_ARCHITECTURE}"
           ./tools/build/build_native.sh --build_architecture ${BUILD_ARCHITECTURE}
