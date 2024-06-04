@@ -76,10 +76,10 @@ do
     echo "Building package type: ${PKG}"
 
     docker run --rm \
-        -e ELASTIC_OTEL_PHP_VERSION=${PACKAGE_VERSION} \
+        -e ELASTIC_OTEL_PHP_VERSION="${PACKAGE_VERSION}" \
         -e ELASTIC_OTEL_PHP_PLATFORM="${BUILD_ARCHITECUTRE}" \
         -e ELASTIC_OTEL_PHP_ARCH="${PACKAGE_GOARCHITECTURE}" \
-        -e ELASTIC_OTEL_PHP_GIT_SHA=${PACKAGE_SHA} \
+        -e ELASTIC_OTEL_PHP_GIT_SHA="${PACKAGE_SHA}" \
         -v ${PWD}:/source \
         -w /source/packaging goreleaser/nfpm package -f nfpm.yaml -t "/source/build/packages" -p ${pkg} | tee /tmp/nfpm_output.txt
 

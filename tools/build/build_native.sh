@@ -1,6 +1,5 @@
 #!/bin/bash
 
-NCPU=$(($(nproc) - 1))
 SKIP_CONFIGURE=false
 
 show_help() {
@@ -25,7 +24,7 @@ parse_args() {
                 shift
                 ;;
             --ncpu)
-                NCPU="$2"
+                NCPU=" -j$2 "
                 shift
                 ;;
             --conan_user_home)
@@ -68,12 +67,6 @@ if [[ -n "$REPLACE_CONAN_USER_HOME" ]]; then
     CONAN_USER_HOME_MP="-e CONAN_USER_HOME="${REPLACE_CONAN_USER_HOME}" -v "${REPLACE_CONAN_USER_HOME}/.conan:${REPLACE_CONAN_USER_HOME}/.conan""
 fi
 
-if [ "$GITHUB_ACTIONS" = true ]; then
-    USERID=" -u : "
-else
-    USERID=" -u $(id -u):$(id -g) "
-fi
-
 echo "BUILD_ARCHITECTURE: $BUILD_ARCHITECTURE"
 echo "NCPU: $NCPU"
 echo "SKIP_CONFIGURE: $SKIP_CONFIGURE"
@@ -84,9 +77,15 @@ else
     CONFIGURE="cmake --preset ${BUILD_ARCHITECTURE}-release  && "
 fi
 
+if [ "$GITHUB_ACTIONS" = true ]; then
+    USERID=" -u : "
+else
+    USERID=" -u $(id -u):$(id -g) "
+fi
+
 docker run --rm -t ${INTERACTIVE} ${USERID} -v ${PWD}:/source \
     ${CONAN_USER_HOME_MP} \
     -w /source/prod/native \
     elasticobservability/apm-agent-php-dev:native-build-gcc-12.2.0-${BUILD_ARCHITECTURE}-0.0.2 \
-    sh -c "id && echo CONAN_USER_HOME=\$CONAN_USER_HOME && ${CONFIGURE} cmake --build --preset ${BUILD_ARCHITECTURE}-release -j${NCPU} && ctest --preset ${BUILD_ARCHITECTURE}-release --verbose"
+    sh -c "id && echo CONAN_USER_HOME=\$CONAN_USER_HOME && ${CONFIGURE} cmake --build --preset ${BUILD_ARCHITECTURE}-release ${NCPU} && ctest --preset ${BUILD_ARCHITECTURE}-release --verbose"
 
