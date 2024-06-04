@@ -49,7 +49,6 @@ jobs:
     needs:
       - build-native
       - build-php-deps
-      - test-sources-license
     uses: ./.github/workflows/build-packages.yml
   
   tests-phpt:
