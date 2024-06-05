@@ -39,7 +39,7 @@ std::string_view zvalToStringView(zval *zv) {
 }
 
 zend_ulong getClassAndFunctionHashFromExecuteData(zend_execute_data *execute_data) {
-    if (!execute_data || !execute_data->func->common.function_name) {
+    if (!execute_data || !execute_data->func || !execute_data->func->common.function_name) {
         return 0;
     }
 
