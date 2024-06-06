@@ -35,6 +35,7 @@
 #include "InstrumentedFunctionHooksStorage.h"
 
 #include <array>
+#include <algorithm>
 
 namespace elasticapm::php {
 
@@ -49,6 +50,96 @@ void handleAndReleaseHookException(zend_object *exception) {
 
     ELOG_ERROR(EAPM_GL(logger_), "Instrumentation hook error: %s", exceptionToString(exception).c_str());
     OBJ_RELEASE(exception);
+}
+
+uint32_t getFunctionArgumentIndex(zend_string *name, zend_function *function) {
+	uint32_t numArgs = function->common.num_args;
+	if (function->type == ZEND_USER_FUNCTION || (function->common.fn_flags & ZEND_ACC_USER_ARG_INFO)) {
+		for (uint32_t i = 0; i < numArgs; i++) {
+			if (zend_string_equals(name, function->op_array.arg_info[i].name)) {
+				return i;
+			}
+		}
+	} else {
+        std::string_view nameSv(ZSTR_VAL(name), ZSTR_LEN(name));
+		for (uint32_t i = 0; i < numArgs; i++) {
+            std::string_view argName(function->internal_function.arg_info[i].name);
+            if (nameSv == argName) {
+                return i;
+            }
+		}
+	}
+    throw std::runtime_error("argument not found");
+}
+
+void argsPostProcessing(AutoZval &functionArgs, AutoZval &returnValue) {
+    if (!returnValue.isArray()) {
+        return;
+    }
+    if (zend_is_identical(returnValue.get(), functionArgs.get())) {
+        return;
+    }
+
+    zend_ulong argIndex = 0;
+    zend_string *argStrKey = nullptr;
+    zval *argValue = nullptr;
+
+    zend_execute_data *execute_data = EG(current_execute_data);
+
+    uint32_t requiredArgsCount = execute_data->func->type == ZEND_INTERNAL_FUNCTION ? ZEND_CALL_NUM_ARGS(execute_data) : execute_data->func->op_array.last_var;
+    uint32_t initalCallNumArgs = ZEND_CALL_NUM_ARGS(execute_data);
+
+    ELOG_DEBUG(EAPM_GL(logger_), "argsPostProcessing requiredArgsCount: %d initialCallNumArgs: %d", requiredArgsCount, initalCallNumArgs);
+
+    uint32_t highestArgIdx = 0;
+    ZEND_HASH_FOREACH_KEY_VAL(Z_ARR_P(returnValue.get()), argIndex, argStrKey, argValue) {
+        if (!argStrKey) {
+            highestArgIdx = std::max(highestArgIdx, (uint32_t)argIndex);
+        }
+    } ZEND_HASH_FOREACH_END();
+
+    ELOG_DEBUG(EAPM_GL(logger_), "argsPostProcessing highestArgIdx: %d vm_stack free: %d", highestArgIdx, EG(vm_stack_end) - EG(vm_stack_top));
+
+    // extending stack and undefining potential gaps
+    if (highestArgIdx + 1 > initalCallNumArgs) {
+        uint32_t howManyArgsToAdd = highestArgIdx + 1 - initalCallNumArgs;
+        ELOG_DEBUG(EAPM_GL(logger_), "postProcessing trying extend stack frame with %d arguments", howManyArgsToAdd);
+
+        zend_vm_stack_extend_call_frame(&execute_data, initalCallNumArgs, howManyArgsToAdd);
+
+        for (uint32_t idx = 0; idx < howManyArgsToAdd; ++idx) {
+            zval *target = ZEND_CALL_ARG(execute_data, execute_data->func->type == ZEND_INTERNAL_FUNCTION ? initalCallNumArgs + idx + 1 :  initalCallNumArgs + idx + 1 + execute_data->func->op_array.T);
+            ZVAL_UNDEF(target);
+        }
+        ZEND_CALL_NUM_ARGS(execute_data) += howManyArgsToAdd;
+        ZEND_ADD_CALL_FLAG(execute_data, ZEND_CALL_FREE_EXTRA_ARGS);
+        ZEND_ADD_CALL_FLAG(execute_data, ZEND_CALL_MAY_HAVE_UNDEF);
+    }
+
+    ZEND_HASH_FOREACH_KEY_VAL(Z_ARR_P(returnValue.get()), argIndex, argStrKey, argValue) {
+        if (argStrKey) {
+            ELOG_DEBUG(EAPM_GL(logger_), "argsPostProcessing str: %s", ZSTR_VAL(argStrKey));
+
+            try {
+                argIndex = getFunctionArgumentIndex(argStrKey, execute_data->func);
+            } catch (std::exception const &e) {
+                ELOG_WARNING(EAPM_GL(logger_), "postProcessing argument index not found for: '%s'", ZSTR_VAL(argStrKey));
+                continue;
+            }
+        }
+        ELOG_DEBUG(EAPM_GL(logger_), "argsPostProcessing idx: %d", argIndex);
+
+        zval *target = nullptr;
+        if (argIndex < requiredArgsCount) {
+            target = ZEND_CALL_ARG(execute_data, argIndex + 1);
+        } else {
+            target = ZEND_CALL_ARG(execute_data, execute_data->func->type == ZEND_INTERNAL_FUNCTION ? argIndex + 1 : argIndex + 1 + execute_data->func->op_array.T);
+
+        }
+        //TODO consider refs
+        zval_ptr_dtor(target);
+        ZVAL_COPY(target, argValue);
+    } ZEND_HASH_FOREACH_END();
 }
 
 void callPreHook(AutoZval &prehook) {
@@ -75,10 +166,11 @@ void callPreHook(AutoZval &prehook) {
     if (zend_call_function(&fci, &fcc) != SUCCESS) {
         throw std::runtime_error("Unable to call prehook function");
     }
-}
-//TODO arguments post processing
 
-void callPostHook(AutoZval &hook, zval *return_value, zend_object *exception) {
+    argsPostProcessing(parameters[1], ret);
+}
+
+void callPostHook(AutoZval &hook, zval *return_value, zend_object *exception, zend_execute_data *execute_data) {
     zend_fcall_info fci = empty_fcall_info;
     zend_fcall_info_cache fcc = empty_fcall_info_cache;
 
@@ -96,14 +188,42 @@ void callPostHook(AutoZval &hook, zval *return_value, zend_object *exception) {
     getFunctionDeclarationFileName(parameters[6].get(), EG(current_execute_data));
     getFunctionDeclarationLineNo(parameters[7].get(), EG(current_execute_data));
 
-    AutoZval ret;
+    AutoZval hookRv;
     fci.param_count = parameters.size();
     fci.params = parameters[0].get();
     fci.named_params = nullptr;
-    fci.retval = ret.get();
+    fci.retval = hookRv.get();
+
     if (zend_call_function(&fci, &fcc) != SUCCESS) {
         throw std::runtime_error("Unable to call posthook function");
     }
+
+    if (Z_TYPE_P(hookRv.get()) == IS_UNDEF) {
+        return;
+    }
+
+    if (!return_value) {
+        return;
+    }
+
+    // thre is no way to distinguish if posthook returned NULL, becuase in PHP functions are always returning NULL, even if there is no return keyword
+    // in that case we can only try to overwrite return value for posthooks with return value type specified explicitly
+    if (!(fcc.function_handler->op_array.fn_flags & ZEND_ACC_HAS_RETURN_TYPE) || (ZEND_TYPE_PURE_MASK(fcc.function_handler->common.arg_info[-1].type) & MAY_BE_VOID)) {
+        ELOG_DEBUG(EAPM_GL(logger_), "callPostHook hook doesn't explicitly specify return type other than void");
+        return;
+    }
+
+    if (execute_data->func->op_array.fn_flags & ZEND_ACC_HAS_RETURN_TYPE) {
+        // uncomment if want to block possibility of adding rv to instrumented void-rv function
+        // if ((ZEND_TYPE_PURE_MASK(execute_data->func->common.arg_info[-1].type) & MAY_BE_VOID)) {
+        //     return;
+        // }
+        bool sameType = ZEND_TYPE_CONTAINS_CODE(execute_data->func->common.arg_info[-1].type, Z_TYPE_P(hookRv.get()));
+        ELOG_DEBUG(EAPM_GL(logger_), "callPostHook hasRvType: %d, isVoid: %d sameType: %d, hookRvType: %d", execute_data->func->op_array.fn_flags & ZEND_ACC_HAS_RETURN_TYPE, static_cast<bool>(ZEND_TYPE_PURE_MASK(execute_data->func->common.arg_info[-1].type) & MAY_BE_VOID), sameType, hookRv.getType());
+    }
+
+    zval_ptr_dtor(return_value);
+    ZVAL_COPY(return_value, hookRv.get());
 }
 
 inline void callOriginalHandler(zif_handler handler, INTERNAL_FUNCTION_PARAMETERS) {
@@ -157,7 +277,7 @@ void ZEND_FASTCALL internal_function_handler(INTERNAL_FUNCTION_PARAMETERS) {
     for (auto &callback : *callbacks) {
         try {
             AutomaticExceptionStateRestorer restorer;
-            callPostHook(callback.second, return_value, restorer.getException());
+            callPostHook(callback.second, return_value, restorer.getException(), execute_data);
 
             handleAndReleaseHookException(EG(exception));
         } catch (std::exception const &e) {
@@ -169,9 +289,15 @@ void ZEND_FASTCALL internal_function_handler(INTERNAL_FUNCTION_PARAMETERS) {
 }
 
 
-bool instrumentFunction(LoggerInterface *log, std::string_view className, std::string_view functionName, zval *callableOnEntry, zval *callableOnExit) {
+bool instrumentFunction(LoggerInterface *log, std::string_view cName, std::string_view fName, zval *callableOnEntry, zval *callableOnExit) {
     //TODO if called from other place that MINIT - make it thread safe in ZTS
     //TODO use hash struct instead of combined to prevent collisions
+
+    std::string className{cName.data(), cName.length()};
+    std::string functionName{fName.data(), fName.length()};
+
+    std::transform(className.begin(), className.end(), className.begin(), [](unsigned char c){ return std::tolower(c); });
+    std::transform(functionName.begin(), functionName.end(), functionName.begin(), [](unsigned char c){ return std::tolower(c); });
 
     HashTable *table = nullptr;
     zend_ulong classHash = 0;
@@ -244,7 +370,7 @@ void elasticObserverFcallBeginHandler(zend_execute_data *execute_data) {
             handleAndReleaseHookException(EG(exception));
         } catch (std::exception const &e) {
             auto [cls, func] = getClassAndFunctionName(execute_data);
-            ELOG_CRITICAL(EAPM_GL(logger_), "elasticObserverFcallBeginHandler. Unable to call prehook for 0x%X " PRsv "::" PRsv, hash, PRsvArg(cls), PRsvArg(func));
+            ELOG_CRITICAL(EAPM_GL(logger_), "elasticObserverFcallBeginHandler. Unable to call prehook for 0x%X " PRsv "::" PRsv ": '%s'", hash, PRsvArg(cls), PRsvArg(func), e.what());
         }
     }
 }
@@ -263,11 +389,11 @@ void elasticObserverFcallEndHandler(zend_execute_data *execute_data, zval *retva
     for (auto &callback : *callbacks) {
         try {
             AutomaticExceptionStateRestorer restorer;
-            callPostHook(callback.second, retval, restorer.getException());
+            callPostHook(callback.second, retval, restorer.getException(), execute_data);
             handleAndReleaseHookException(EG(exception));
         } catch (std::exception const &e) {
             auto [cls, func] = getClassAndFunctionName(execute_data);
-            ELOG_CRITICAL(EAPM_GL(logger_), "elasticObserverFcallBeginHandler. Unable to call posthook for 0x%X " PRsv "::" PRsv, hash, PRsvArg(cls), PRsvArg(func));
+            ELOG_CRITICAL(EAPM_GL(logger_), "elasticObserverFcallEndHandler. Unable to call posthook for 0x%X " PRsv "::" PRsv ": '%s'", hash, PRsvArg(cls), PRsvArg(func), e.what());
         }
     }
 }

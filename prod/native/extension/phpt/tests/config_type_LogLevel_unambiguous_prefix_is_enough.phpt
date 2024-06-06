@@ -8,7 +8,7 @@ ELASTIC_APM_LOG_LEVEL_WIN_SYS_DEBUG=TRa
 elastic_apm.log_level_syslog=Er
 elastic_apm.log_level_file=dEb
 extension=/elastic/elastic_otel_php.so
-elastic_apm.bootstrap_php_part_file=/elastic/php/bootstrap_php_part.php
+elastic_apm.bootstrap_php_part_file={PWD}/includes/bootstrap_mock.inc
 --FILE--
 <?php
 declare(strict_types=1);
