@@ -16,7 +16,7 @@ opcache.optimization_level=-1
 opcache.preload={PWD}/opcache_preload_detection.inc
 opcache.preload_user=root
 extension=/elastic/elastic_otel_php.so
-elastic_apm.bootstrap_php_part_file=/elastic/php/bootstrap_php_part.php
+elastic_apm.bootstrap_php_part_file={PWD}/includes/bootstrap_mock.inc
 --SKIPIF--
 <?php
 if (PHP_VERSION_ID < 70400) die("skip ElasticApmSkipTest Unsupported PHP version");

@@ -4,7 +4,7 @@ Check that elastic_apm.enabled cannot be set with ini_set()
 ELASTIC_APM_LOG_LEVEL_STDERR=CRITICAL
 --INI--
 extension=/elastic/elastic_otel_php.so
-elastic_apm.bootstrap_php_part_file=/elastic/php/bootstrap_php_part.php
+elastic_apm.bootstrap_php_part_file={PWD}/includes/bootstrap_mock.inc
 --FILE--
 <?php
 declare(strict_types=1);

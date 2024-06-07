@@ -13,7 +13,7 @@ ELASTIC_APM_SERVER_URL=
 ELASTIC_APM_SERVICE_NAME=
 --INI--
 extension=/elastic/elastic_otel_php.so
-elastic_apm.bootstrap_php_part_file=/elastic/php/bootstrap_php_part.php
+elastic_apm.bootstrap_php_part_file={PWD}/includes/bootstrap_mock.inc
 --FILE--
 <?php
 declare(strict_types=1);
