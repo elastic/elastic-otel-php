@@ -9,7 +9,7 @@ ELASTIC_APM_VERIFY_SERVER_CERT=false
 elastic_apm.memory_tracking_level=not a valid memory tracking level
 elastic_apm.verify_server_cert=not a valid bool
 extension=/elastic/elastic_otel_php.so
-elastic_apm.bootstrap_php_part_file=/elastic/php/bootstrap_php_part.php
+elastic_apm.bootstrap_php_part_file={PWD}/includes/bootstrap_mock.inc
 --FILE--
 <?php
 declare(strict_types=1);
