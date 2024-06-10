@@ -48,13 +48,13 @@ static void getProcessDiags(std::ostream &out, std::string_view name) {
         out << maps.rdbuf();
         maps.close();
     } catch (std::exception const &e) {
-        out << "Unable to get process " << name << ": " << e.what() << std::endl; 
+        out << "Unable to get process " << name << ": " << e.what() << std::endl;
     }
 }
 
 static void getDiagnosticInformation(std::ostream &out, elasticapm::php::PhpBridgeInterface const &bridge) {
     out << std::setfill(detail::separator) << std::setw(detail::separatorWidth) << detail::separator << std::endl;
-    out << "Elastic APM PHP agent diagnostics:" << std::endl;
+    out << "Elastic OpenTelemetry PHP diagnostics:" << std::endl;
     out << std::setfill(detail::separator) << std::setw(detail::separatorWidth) << detail::separator << std::endl;
     std::time_t time = std::time({});
     char timeString[std::size("yyyy-mm-ddThh:mm:ssZ")];

@@ -33,7 +33,7 @@
 #define LOG_TO_SYSLOG_AND_STDERR(fmt, ... ) \
     do { \
         fprintf(stderr, \
-            "[elastic_apm_loader][PID: %d]" \
+            "[elastic_otel_loader][PID: %d]" \
             "[TID: %d] " \
             fmt \
             ,(int)getpid() \
@@ -41,7 +41,7 @@
             , ##__VA_ARGS__ ); \
         syslog( \
             LOG_WARNING, \
-            "[elastic_apm_loader][PID: %d]" \
+            "[elastic_otel_loader][PID: %d]" \
             "[TID: %d] " \
             fmt \
             , (int)(getpid()) \
@@ -96,7 +96,7 @@ struct zend_module_entry {
 
 }
 
-elasticapm::loader::phpdata::zend_module_entry elastic_apm_loader_module_entry = {
+elasticapm::loader::phpdata::zend_module_entry elastic_otel_loader_module_entry = {
     sizeof(elasticapm::loader::phpdata::zend_module_entry),
     0, // API, f.ex.20220829
     0, // DEBUG
@@ -110,7 +110,7 @@ elasticapm::loader::phpdata::zend_module_entry elastic_apm_loader_module_entry =
     nullptr,                        /* PHP_RINIT - Request initialization */
     nullptr,                        /* PHP_RSHUTDOWN - Request shutdown */
     nullptr,                        /* PHP_MINFO - Module info */
-    PHP_ELASTIC_APM_VERSION,        /* Version */
+    ELASTIC_OTEL_VERSION,        /* Version */
     0,                              /* globals_size */
     nullptr,                        /* globals ptr */
     nullptr,                        /* PHP_GINIT */
@@ -132,7 +132,7 @@ __attribute__ ((visibility("default"))) elasticapm::loader::phpdata::zend_module
     auto zendVersion = elasticapm::loader::getMajorMinorZendVersion();
     if (zendVersion.empty()) {
         LOG_TO_SYSLOG_AND_STDERR( "Can't find Zend/PHP Engine version\n");
-        return &elastic_apm_loader_module_entry;
+        return &elastic_otel_loader_module_entry;
     }
 
     auto [zendEngineVersion, phpVersion, zendModuleApiVersion, isVersionSupported] = elasticapm::loader::getZendModuleApiVersion(zendVersion);
@@ -143,18 +143,18 @@ __attribute__ ((visibility("default"))) elasticapm::loader::phpdata::zend_module
     zendBuildId.append(std::to_string(zendModuleApiVersion));
     zendBuildId.append(isThreadSafe ? ",TS"sv : ",NTS"sv);
 
-    elastic_apm_loader_module_entry.zend_api = zendModuleApiVersion;
-    elastic_apm_loader_module_entry.build_id = zendBuildId.c_str();
-    elastic_apm_loader_module_entry.zts = isThreadSafe;
+    elastic_otel_loader_module_entry.zend_api = zendModuleApiVersion;
+    elastic_otel_loader_module_entry.build_id = zendBuildId.c_str();
+    elastic_otel_loader_module_entry.zts = isThreadSafe;
 
     if (!isVersionSupported) {
         LOG_TO_SYSLOG_AND_STDERR( "Zend Engine version %s is not supported by Elastic OpenTelemetry distro\n", std::string(zendVersion).c_str());
-        return &elastic_apm_loader_module_entry;
+        return &elastic_otel_loader_module_entry;
     }
 
     if (isThreadSafe) {
         LOG_TO_SYSLOG_AND_STDERR( "Thread Safe mode (ZTS) is not supported by Elastic OpenTelemetry distro\n");
-        return &elastic_apm_loader_module_entry; // unsupported thread safe mode
+        return &elastic_otel_loader_module_entry; // unsupported thread safe mode
     }
 
     // get path to libraries
@@ -162,7 +162,7 @@ __attribute__ ((visibility("default"))) elasticapm::loader::phpdata::zend_module
     dladdr((void *)get_module, &dl_info);
     if (!dl_info.dli_fname) {
         LOG_TO_SYSLOG_AND_STDERR( "Unable to resolve path to Elastic OpenTelemetry PHP libraries\n");
-        return &elastic_apm_loader_module_entry;
+        return &elastic_otel_loader_module_entry;
     }
 
     auto elasticAgentPath = std::filesystem::path(dl_info.dli_fname).parent_path();
@@ -174,13 +174,13 @@ __attribute__ ((visibility("default"))) elasticapm::loader::phpdata::zend_module
     void *agentHandle = dlopen(agentLibrary.c_str(), RTLD_LAZY | RTLD_GLOBAL);
     if (!agentHandle) {
         LOG_TO_SYSLOG_AND_STDERR( "Unable to load agent library from path: %s\n", agentLibrary.c_str());
-        return &elastic_apm_loader_module_entry;
+        return &elastic_otel_loader_module_entry;
     }
 
     auto agentGetModule = reinterpret_cast<elasticapm::loader::phpdata::zend_module_entry *(*)(void)>(dlsym(agentHandle, "get_module"));
     if (!agentGetModule) {
         LOG_TO_SYSLOG_AND_STDERR( "Unable to resolve agent entry point from library: %s\n", agentLibrary.c_str());
-        return &elastic_apm_loader_module_entry;
+        return &elastic_otel_loader_module_entry;
     }
 
     return agentGetModule(); // or we can call zend_register_module_ex(agentGetModule())) and have both fully loaded

@@ -173,12 +173,12 @@ std::string stringVPrintf(const char *format, va_list args) {
 }
 
 std::string getIniName(std::string_view optionName) {
-    auto name = "elastic_apm."s;
+    auto name = "elastic_otel."s;
     return name.append(optionName);
 }
 
 std::string getEnvName(std::string_view optionName) {
-    std::string envName = "ELASTIC_APM_"s;
+    std::string envName = "ELASTIC_OTEL_"s;
     std::transform(optionName.begin(), optionName.end(), std::back_inserter(envName), ::toupper);
     return envName;
 }

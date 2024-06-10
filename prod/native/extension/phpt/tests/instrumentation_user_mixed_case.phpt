@@ -1,10 +1,10 @@
 --TEST--
 instrumentation - user method - placing hook with mixed case class and method name
 --ENV--
-ELASTIC_APM_LOG_LEVEL_STDERR=INFO
+ELASTIC_OTEL_LOG_LEVEL_STDERR=INFO
 --INI--
 extension=/elastic/elastic_otel_php.so
-elastic_apm.bootstrap_php_part_file={PWD}/includes/bootstrap_mock.inc
+elastic_otel.bootstrap_php_part_file={PWD}/includes/bootstrap_mock.inc
 --FILE--
 <?php
 declare(strict_types=1);
@@ -18,7 +18,7 @@ class TestClass {
   }
 }
 
-elastic_apm_hook("tEstcLass", "userSpace", function () {
+elastic_otel_hook("tEstcLass", "userSpace", function () {
 	echo "*** prehook userspace()\n";
  }, function () {
 	echo "*** posthook userspace()\n";

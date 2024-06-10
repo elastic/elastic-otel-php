@@ -61,9 +61,9 @@ TEST_F(ConfigurationManagerTest, update) {
 
 TEST_F(ConfigurationManagerTest, updateSomeOption) {
     EXPECT_CALL(iniMock_, getIniValue(::testing::_)).Times(::testing::AnyNumber()).WillRepeatedly(::testing::Return(std::nullopt));
-    EXPECT_CALL(iniMock_, getIniValue("elastic_apm.api_key")).Times(1).WillOnce(::testing::Return("secret_api_key"s)).RetiresOnSaturation();
-    EXPECT_CALL(iniMock_, getIniValue("elastic_apm.server_timeout")).Times(1).WillOnce(::testing::Return("10s"s)).RetiresOnSaturation();
-    EXPECT_CALL(iniMock_, getIniValue("elastic_apm.enabled")).Times(1).WillOnce(::testing::Return("off")).RetiresOnSaturation();
+    EXPECT_CALL(iniMock_, getIniValue("elastic_otel.api_key")).Times(1).WillOnce(::testing::Return("secret_api_key"s)).RetiresOnSaturation();
+    EXPECT_CALL(iniMock_, getIniValue("elastic_otel.server_timeout")).Times(1).WillOnce(::testing::Return("10s"s)).RetiresOnSaturation();
+    EXPECT_CALL(iniMock_, getIniValue("elastic_otel.enabled")).Times(1).WillOnce(::testing::Return("off")).RetiresOnSaturation();
 
     ConfigurationSnapshot snapshot;
     ASSERT_EQ(snapshot.revision, 0);
@@ -85,16 +85,16 @@ TEST_F(ConfigurationManagerTest, updateSomeOption) {
     ASSERT_NE(snapshot.enabled, ConfigurationSnapshot().enabled); // default value
     ASSERT_FALSE(snapshot.enabled);
 
-    EXPECT_CALL(iniMock_, getIniValue("elastic_apm.enabled")).Times(1).WillOnce(::testing::Return("on")).RetiresOnSaturation();
+    EXPECT_CALL(iniMock_, getIniValue("elastic_otel.enabled")).Times(1).WillOnce(::testing::Return("on")).RetiresOnSaturation();
     cfg_.update();
     cfg_.updateIfChanged(snapshot);
 }
 
 TEST_F(ConfigurationManagerTest, getOptionValue) {
     EXPECT_CALL(iniMock_, getIniValue(::testing::_)).Times(::testing::AnyNumber()).WillRepeatedly(::testing::Return(std::nullopt));
-    EXPECT_CALL(iniMock_, getIniValue("elastic_apm.api_key")).Times(1).WillOnce(::testing::Return("secret_api_key"s)).RetiresOnSaturation();
-    EXPECT_CALL(iniMock_, getIniValue("elastic_apm.server_timeout")).Times(1).WillOnce(::testing::Return("10s"s)).RetiresOnSaturation();
-    EXPECT_CALL(iniMock_, getIniValue("elastic_apm.enabled")).Times(1).WillOnce(::testing::Return("off")).RetiresOnSaturation();
+    EXPECT_CALL(iniMock_, getIniValue("elastic_otel.api_key")).Times(1).WillOnce(::testing::Return("secret_api_key"s)).RetiresOnSaturation();
+    EXPECT_CALL(iniMock_, getIniValue("elastic_otel.server_timeout")).Times(1).WillOnce(::testing::Return("10s"s)).RetiresOnSaturation();
+    EXPECT_CALL(iniMock_, getIniValue("elastic_otel.enabled")).Times(1).WillOnce(::testing::Return("off")).RetiresOnSaturation();
 
     ConfigurationSnapshot snapshot;
     ASSERT_EQ(snapshot.revision, 0);

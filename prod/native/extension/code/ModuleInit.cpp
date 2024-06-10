@@ -55,9 +55,9 @@ void logStartupPreamble(elasticapm::php::LoggerInterface *logger) {
 
     using namespace std::literals;
     ELOG(logger, level, "Elastic APM agent for PHP");
-    ELOG(logger, level, "%*s%s", -colWidth, "Native part version:", PHP_ELASTIC_APM_VERSION);
-    ELOG(logger, level, "%*s%s", -colWidth, "Process command line:", elasticapm::utils::sanitizeKeyValueString(elasticapm::utils::getEnvName(EL_STRINGIFY(ELASTIC_APM_CFG_OPT_NAME_API_KEY)), elasticapm::osutils::getCommandLine()).c_str());
-    ELOG(logger, level, "%*s%s", -colWidth, "Process environment:", elasticapm::utils::sanitizeKeyValueString(elasticapm::utils::getEnvName(EL_STRINGIFY(ELASTIC_APM_CFG_OPT_NAME_API_KEY)), elasticapm::osutils::getProcessEnvironment()).c_str());
+    ELOG(logger, level, "%*s%s", -colWidth, "Native part version:", ELASTIC_OTEL_VERSION);
+    ELOG(logger, level, "%*s%s", -colWidth, "Process command line:", elasticapm::utils::sanitizeKeyValueString(elasticapm::utils::getEnvName(EL_STRINGIFY(ELASTIC_OTEL_CFG_OPT_NAME_API_KEY)), elasticapm::osutils::getCommandLine()).c_str());
+    ELOG(logger, level, "%*s%s", -colWidth, "Process environment:", elasticapm::utils::sanitizeKeyValueString(elasticapm::utils::getEnvName(EL_STRINGIFY(ELASTIC_OTEL_CFG_OPT_NAME_API_KEY)), elasticapm::osutils::getProcessEnvironment()).c_str());
 }
 
 

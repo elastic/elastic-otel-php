@@ -1,12 +1,12 @@
 --TEST--
 Detection of opcache preload feature
 --ENV--
-ELASTIC_APM_LOG_LEVEL_STDERR=DEBUG
-ELASTIC_APM_ENABLED=true
+ELASTIC_OTEL_LOG_LEVEL_STDERR=DEBUG
+ELASTIC_OTEL_ENABLED=true
 --INI--
 extension=/elastic/elastic_otel_php.so
-elastic_apm.bootstrap_php_part_file={PWD}/includes/bootstrap_mock.inc
-elastic_apm.enabled = 1
+elastic_otel.bootstrap_php_part_file={PWD}/includes/bootstrap_mock.inc
+elastic_otel.enabled = 1
 zend_extension=opcache.so
 opcache.enable=1
 opcache.enable_cli=1

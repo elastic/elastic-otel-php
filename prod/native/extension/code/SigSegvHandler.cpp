@@ -40,7 +40,7 @@ void SigSegvHandler(int signalId) {
 
     if (ELASTICAPM_G(globals) && ELASTICAPM_G(globals)->logger_) {
         auto output = elasticapm::osutils::getStackTrace(0);
-        ELOG_CRITICAL(ELASTICAPM_G(globals)->logger_.get(), "Received signal %d. Agent version: " PHP_ELASTIC_APM_VERSION " " LIBC_IMPL "\n%s", signalId, output.c_str());
+        ELOG_CRITICAL(ELASTICAPM_G(globals)->logger_.get(), "Received signal %d. Agent version: " ELASTIC_OTEL_VERSION " " LIBC_IMPL "\n%s", signalId, output.c_str());
 
         /* Call the default signal handler to have core dump generated... */
         if (signalHandlerData::oldSigSegvHandler) {

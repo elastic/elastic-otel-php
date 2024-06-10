@@ -30,20 +30,20 @@
 #include <Zend/zend_API.h>
 #include <Zend/zend_closures.h>
 
-// bool elastic_apm_is_enabled()
-PHP_FUNCTION(elastic_apm_is_enabled) {
+// bool elastic_otel_is_enabled()
+PHP_FUNCTION(elastic_otel_is_enabled) {
     RETVAL_BOOL(false);
     ZEND_PARSE_PARAMETERS_NONE();
 
     RETVAL_BOOL(EAPM_CFG(enabled));
 }
 
-ZEND_BEGIN_ARG_INFO_EX(elastic_apm_get_config_option_by_name_arginfo, 0, 0, 1)
+ZEND_BEGIN_ARG_INFO_EX(elastic_otel_get_config_option_by_name_arginfo, 0, 0, 1)
 ZEND_ARG_TYPE_INFO(/* pass_by_ref: */ 0, optionName, IS_STRING, /* allow_null: */ 0)
 ZEND_END_ARG_INFO()
 
-/* elastic_apm_get_config_option_by_name( string $optionName ): mixed */
-PHP_FUNCTION(elastic_apm_get_config_option_by_name) {
+/* elastic_otel_get_config_option_by_name( string $optionName ): mixed */
+PHP_FUNCTION(elastic_otel_get_config_option_by_name) {
     ZVAL_NULL(return_value);
     char *optionName = nullptr;
     size_t optionNameLength = 0;
@@ -55,23 +55,23 @@ PHP_FUNCTION(elastic_apm_get_config_option_by_name) {
     elasticApmGetConfigOption({optionName, optionNameLength}, /* out */ return_value);
 }
 
-/* elastic_apm_get_number_of_dynamic_config_options(): int */
-PHP_FUNCTION(elastic_apm_get_number_of_dynamic_config_options) {
+/* elastic_otel_get_number_of_dynamic_config_options(): int */
+PHP_FUNCTION(elastic_otel_get_number_of_dynamic_config_options) {
     ZEND_PARSE_PARAMETERS_NONE();
     //TODO implement dynamic tag in config manager
     RETURN_LONG(0);
 }
 
-ZEND_BEGIN_ARG_INFO_EX(elastic_apm_send_to_server_arginfo, /* _unused: */ 0, /* return_reference: */ 0, /* required_num_args: */ 2)
+ZEND_BEGIN_ARG_INFO_EX(elastic_otel_send_to_server_arginfo, /* _unused: */ 0, /* return_reference: */ 0, /* required_num_args: */ 2)
 ZEND_ARG_TYPE_INFO(/* pass_by_ref: */ 0, userAgentHttpHeader, IS_STRING, /* allow_null: */ 0)
 ZEND_ARG_TYPE_INFO(/* pass_by_ref: */ 0, serializedEvents, IS_STRING, /* allow_null: */ 0)
 ZEND_END_ARG_INFO()
 
-/* {{{ elastic_apm_send_to_server(
+/* {{{ elastic_otel_send_to_server(
  *          string userAgentHttpHeader,
  *          string $serializedEvents ): bool
  */
-PHP_FUNCTION(elastic_apm_send_to_server) {
+PHP_FUNCTION(elastic_otel_send_to_server) {
     char *userAgentHttpHeader = nullptr;
     size_t userAgentHttpHeaderLength = 0;
     char *serializedEvents = nullptr;
@@ -90,7 +90,7 @@ PHP_FUNCTION(elastic_apm_send_to_server) {
 }
 /* }}} */
 
-ZEND_BEGIN_ARG_INFO_EX(elastic_apm_log_arginfo, /* _unused: */ 0, /* return_reference: */ 0, /* required_num_args: */ 7)
+ZEND_BEGIN_ARG_INFO_EX(elastic_otel_log_arginfo, /* _unused: */ 0, /* return_reference: */ 0, /* required_num_args: */ 7)
 ZEND_ARG_TYPE_INFO(/* pass_by_ref: */ 0, isForced, IS_LONG, /* allow_null: */ 0)
 ZEND_ARG_TYPE_INFO(/* pass_by_ref: */ 0, level, IS_LONG, /* allow_null: */ 0)
 ZEND_ARG_TYPE_INFO(/* pass_by_ref: */ 0, category, IS_STRING, /* allow_null: */ 0)
@@ -100,7 +100,7 @@ ZEND_ARG_TYPE_INFO(/* pass_by_ref: */ 0, func, IS_STRING, /* allow_null: */ 0)
 ZEND_ARG_TYPE_INFO(/* pass_by_ref: */ 0, message, IS_STRING, /* allow_null: */ 0)
 ZEND_END_ARG_INFO()
 
-/* {{{ elastic_apm_log(
+/* {{{ elastic_otel_log(
  *      int $isForced,
  *      int $level,
  *      string $category,
@@ -110,7 +110,7 @@ ZEND_END_ARG_INFO()
  *      string $message
  *  ): void
  */
-PHP_FUNCTION(elastic_apm_log) {
+PHP_FUNCTION(elastic_otel_log) {
     zend_long isForced = 0;
     zend_long level = 0;
     char *file = nullptr;
@@ -137,38 +137,38 @@ PHP_FUNCTION(elastic_apm_log) {
 }
 /* }}} */
 
-ZEND_BEGIN_ARG_INFO_EX(elastic_apm_get_last_thrown_arginfo, /* _unused */ 0, /* return_reference: */ 0, /* required_num_args: */ 0)
+ZEND_BEGIN_ARG_INFO_EX(elastic_otel_get_last_thrown_arginfo, /* _unused */ 0, /* return_reference: */ 0, /* required_num_args: */ 0)
 ZEND_END_ARG_INFO()
-/* {{{ elastic_apm_get_last_thrown(): mixed
+/* {{{ elastic_otel_get_last_thrown(): mixed
  */
-PHP_FUNCTION(elastic_apm_get_last_thrown) {
+PHP_FUNCTION(elastic_otel_get_last_thrown) {
     ZVAL_NULL(/* out */ return_value);
     //TODO elasticApmGetLastThrown(/* out */ return_value);
 }
 /* }}} */
 
-ZEND_BEGIN_ARG_INFO_EX(elastic_apm_get_last_php_error_arginfo, /* _unused */ 0, /* return_reference: */ 0, /* required_num_args: */ 0)
+ZEND_BEGIN_ARG_INFO_EX(elastic_otel_get_last_php_error_arginfo, /* _unused */ 0, /* return_reference: */ 0, /* required_num_args: */ 0)
 ZEND_END_ARG_INFO()
-/* {{{ elastic_apm_get_last_error(): array
+/* {{{ elastic_otel_get_last_error(): array
  */
-PHP_FUNCTION(elastic_apm_get_last_php_error) {
+PHP_FUNCTION(elastic_otel_get_last_php_error) {
     ZVAL_NULL(/* out */ return_value);
 
     //TODO elasticApmGetLastPhpError(/* out */ return_value);
 }
 /* }}} */
 
-ZEND_BEGIN_ARG_INFO(elastic_apm_no_paramters_arginfo, 0)
+ZEND_BEGIN_ARG_INFO(elastic_otel_no_paramters_arginfo, 0)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(elastic_apm_hook_arginfo, 0, 2, _IS_BOOL, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(elastic_otel_hook_arginfo, 0, 2, _IS_BOOL, 0)
 ZEND_ARG_TYPE_INFO(0, class, IS_STRING, 1)
 ZEND_ARG_TYPE_INFO(0, function, IS_STRING, 0)
 ZEND_ARG_OBJ_INFO_WITH_DEFAULT_VALUE(0, pre, Closure, 1, "null")
 ZEND_ARG_OBJ_INFO_WITH_DEFAULT_VALUE(0, post, Closure, 1, "null")
 ZEND_END_ARG_INFO()
 
-PHP_FUNCTION(elastic_apm_hook) {
+PHP_FUNCTION(elastic_otel_hook) {
     zend_string *class_name = nullptr;
     zend_string *function_name = nullptr;
     zval *pre = NULL;
@@ -186,7 +186,7 @@ PHP_FUNCTION(elastic_apm_hook) {
     std::string_view functionName = function_name ? std::string_view{ZSTR_VAL(function_name), ZSTR_LEN(function_name)} : std::string_view{};
 
     if (!EAPM_GL(requestScope_)->isFunctional()) {
-        ELOG_DEBUG(EAPM_GL(logger_), "elastic_apm_hook. Can't instrument " PRsv "::" PRsv " beacuse agent is not functional.", PRsvArg(className), PRsvArg(functionName));
+        ELOG_DEBUG(EAPM_GL(logger_), "elastic_otel_hook. Can't instrument " PRsv "::" PRsv " beacuse agent is not functional.", PRsvArg(className), PRsvArg(functionName));
         return;
     }
 
@@ -194,15 +194,15 @@ PHP_FUNCTION(elastic_apm_hook) {
 }
 
 // clang-format off
-const zend_function_entry elastic_apm_functions[] = {
-    PHP_FE( elastic_apm_is_enabled, elastic_apm_no_paramters_arginfo )
-    PHP_FE( elastic_apm_get_config_option_by_name, elastic_apm_get_config_option_by_name_arginfo )
-    PHP_FE( elastic_apm_get_number_of_dynamic_config_options, elastic_apm_no_paramters_arginfo )
-    PHP_FE( elastic_apm_send_to_server, elastic_apm_send_to_server_arginfo )
-    PHP_FE( elastic_apm_log, elastic_apm_log_arginfo )
-    PHP_FE( elastic_apm_get_last_thrown, elastic_apm_get_last_thrown_arginfo )
-    PHP_FE( elastic_apm_get_last_php_error, elastic_apm_get_last_php_error_arginfo )
-    PHP_FE( elastic_apm_hook, elastic_apm_hook_arginfo )
+const zend_function_entry elastic_otel_functions[] = {
+    PHP_FE( elastic_otel_is_enabled, elastic_otel_no_paramters_arginfo )
+    PHP_FE( elastic_otel_get_config_option_by_name, elastic_otel_get_config_option_by_name_arginfo )
+    PHP_FE( elastic_otel_get_number_of_dynamic_config_options, elastic_otel_no_paramters_arginfo )
+    PHP_FE( elastic_otel_send_to_server, elastic_otel_send_to_server_arginfo )
+    PHP_FE( elastic_otel_log, elastic_otel_log_arginfo )
+    PHP_FE( elastic_otel_get_last_thrown, elastic_otel_get_last_thrown_arginfo )
+    PHP_FE( elastic_otel_get_last_php_error, elastic_otel_get_last_php_error_arginfo )
+    PHP_FE( elastic_otel_hook, elastic_otel_hook_arginfo )
     // ZEND_NS_FE("OpenTelemetry\\Instrumentation", hook, arginfo_OpenTelemetry_Instrumentation_hook) ZEND_FE_END,
 
     PHP_FE_END

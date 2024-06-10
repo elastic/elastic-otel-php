@@ -1,10 +1,10 @@
 --TEST--
 instrumentation - user func - return value replacement with type change
 --ENV--
-ELASTIC_APM_LOG_LEVEL_STDERR=INFO
+ELASTIC_OTEL_LOG_LEVEL_STDERR=INFO
 --INI--
 extension=/elastic/elastic_otel_php.so
-elastic_apm.bootstrap_php_part_file={PWD}/includes/bootstrap_mock.inc
+elastic_otel.bootstrap_php_part_file={PWD}/includes/bootstrap_mock.inc
 --FILE--
 <?php
 declare(strict_types=1);
@@ -14,7 +14,7 @@ function userspace($arg1, $arg2, $arg3) {
 	return "userspace_rv";
 }
 
-elastic_apm_hook(NULL, "userspace", NULL, function () : int {
+elastic_otel_hook(NULL, "userspace", NULL, function () : int {
 	echo "*** posthook userspace()\n";
 	return 1234;
 });

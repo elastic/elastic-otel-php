@@ -45,7 +45,7 @@
 
 
 
-ZEND_DECLARE_MODULE_GLOBALS( elastic_apm )
+ZEND_DECLARE_MODULE_GLOBALS( elastic_otel )
 
 elasticapm::php::ConfigurationManager configManager([](std::string_view iniName) -> std::optional<std::string> {
     zend_bool exists = false;
@@ -62,12 +62,12 @@ elasticapm::php::ConfigurationManager configManager([](std::string_view iniName)
         ZEND_PARSE_PARAMETERS_END()
 #endif
 
-PHP_RINIT_FUNCTION(elastic_apm) {
+PHP_RINIT_FUNCTION(elastic_otel) {
     ELASTICAPM_G(globals)->requestScope_->onRequestInit();
     return SUCCESS;
 }
 
-PHP_RSHUTDOWN_FUNCTION(elastic_apm) {
+PHP_RSHUTDOWN_FUNCTION(elastic_otel) {
     ELASTICAPM_G(globals)->requestScope_->onRequestShutdown();
     return SUCCESS;
 }
@@ -77,12 +77,12 @@ ZEND_RESULT_CODE  elasticApmRequestPostDeactivate(void) {
     return ZEND_RESULT_CODE::SUCCESS;
 }
 
-PHP_MINFO_FUNCTION(elastic_apm) {
+PHP_MINFO_FUNCTION(elastic_otel) {
     printPhpInfo(zend_module);
 }
 
 
-static PHP_GINIT_FUNCTION(elastic_apm) {
+static PHP_GINIT_FUNCTION(elastic_otel) {
     //TODO for ZTS logger must be initialized in MINIT! (share fd between threads) - different lifecycle
 
     //TODO store in globals and allow watch for config change (change of level)
@@ -95,67 +95,67 @@ static PHP_GINIT_FUNCTION(elastic_apm) {
     configManager.attachLogger(logger);
 
     ELOG_DEBUG(logger, "%s: GINIT called; parent PID: %d", __FUNCTION__, static_cast<int>(elasticapm::osutils::getParentProcessId()));
-    elastic_apm_globals->globals = nullptr;
+    elastic_otel_globals->globals = nullptr;
 
     auto phpBridge = std::make_shared<elasticapm::php::PhpBridge>(logger);
 
     auto hooksStorage = std::make_shared<elasticapm::php::InstrumentedFunctionHooksStorage_t>();
 
     try {
-        elastic_apm_globals->globals = new elasticapm::php::AgentGlobals(logger, std::move(logSinkStdErr), std::move(logSinkSysLog), std::move(logSinkFile), std::move(phpBridge), std::move(hooksStorage), [](elasticapm::php::ConfigurationSnapshot &cfg) { return configManager.updateIfChanged(cfg); });
+        elastic_otel_globals->globals = new elasticapm::php::AgentGlobals(logger, std::move(logSinkStdErr), std::move(logSinkSysLog), std::move(logSinkFile), std::move(phpBridge), std::move(hooksStorage), [](elasticapm::php::ConfigurationSnapshot &cfg) { return configManager.updateIfChanged(cfg); });
     } catch (std::exception const &e) {
         ELOG_CRITICAL(logger, "Unable to allocate AgentGlobals. '%s'", e.what());
     }
 
-    ZVAL_UNDEF(&elastic_apm_globals->lastException);
-    new (&elastic_apm_globals->lastErrorData) std::unique_ptr<elasticapm::php::PhpErrorData>;
-    elastic_apm_globals->captureErrors = false;
+    ZVAL_UNDEF(&elastic_otel_globals->lastException);
+    new (&elastic_otel_globals->lastErrorData) std::unique_ptr<elasticapm::php::PhpErrorData>;
+    elastic_otel_globals->captureErrors = false;
 }
 
-PHP_GSHUTDOWN_FUNCTION(elastic_apm) {
-    if (elastic_apm_globals->globals) {
-        ELOG_DEBUG(elastic_apm_globals->globals->logger_, "%s: GSHUTDOWN called; parent PID: %d", __FUNCTION__, static_cast<int>(elasticapm::osutils::getParentProcessId()) );
-        delete elastic_apm_globals->globals;
+PHP_GSHUTDOWN_FUNCTION(elastic_otel) {
+    if (elastic_otel_globals->globals) {
+        ELOG_DEBUG(elastic_otel_globals->globals->logger_, "%s: GSHUTDOWN called; parent PID: %d", __FUNCTION__, static_cast<int>(elasticapm::osutils::getParentProcessId()) );
+        delete elastic_otel_globals->globals;
     }
 
-    if (elastic_apm_globals->lastErrorData) {
-        // ELASTIC_APM_LOG_DIRECT_WARNING( "%s: still holding error", __FUNCTION__);
+    if (elastic_otel_globals->lastErrorData) {
+        // elastic_otel_LOG_DIRECT_WARNING( "%s: still holding error", __FUNCTION__);
         // we need to relese any dangling php error data beacause it is already freed (it was allocated in request pool)
-        elastic_apm_globals->lastErrorData.release();
+        elastic_otel_globals->lastErrorData.release();
     }
 }
 
-PHP_MINIT_FUNCTION(elastic_apm) {
-    REGISTER_LONG_CONSTANT("ELASTIC_APM_LOG_LEVEL_OFF", logLevel_off, CONST_CS | CONST_PERSISTENT);
-    REGISTER_LONG_CONSTANT("ELASTIC_APM_LOG_LEVEL_CRITICAL", logLevel_critical, CONST_CS | CONST_PERSISTENT);
-    REGISTER_LONG_CONSTANT("ELASTIC_APM_LOG_LEVEL_ERROR", logLevel_error, CONST_CS | CONST_PERSISTENT);
-    REGISTER_LONG_CONSTANT("ELASTIC_APM_LOG_LEVEL_WARNING", logLevel_warning, CONST_CS | CONST_PERSISTENT);
-    REGISTER_LONG_CONSTANT("ELASTIC_APM_LOG_LEVEL_INFO", logLevel_info, CONST_CS | CONST_PERSISTENT);
-    REGISTER_LONG_CONSTANT("ELASTIC_APM_LOG_LEVEL_DEBUG", logLevel_debug, CONST_CS | CONST_PERSISTENT);
-    REGISTER_LONG_CONSTANT("ELASTIC_APM_LOG_LEVEL_TRACE", logLevel_trace, CONST_CS | CONST_PERSISTENT);
+PHP_MINIT_FUNCTION(elastic_otel) {
+    REGISTER_LONG_CONSTANT("ELASTIC_OTEL_LOG_LEVEL_OFF", logLevel_off, CONST_CS | CONST_PERSISTENT);
+    REGISTER_LONG_CONSTANT("ELASTIC_OTEL_LOG_LEVEL_CRITICAL", logLevel_critical, CONST_CS | CONST_PERSISTENT);
+    REGISTER_LONG_CONSTANT("ELASTIC_OTEL_LOG_LEVEL_ERROR", logLevel_error, CONST_CS | CONST_PERSISTENT);
+    REGISTER_LONG_CONSTANT("ELASTIC_OTEL_LOG_LEVEL_WARNING", logLevel_warning, CONST_CS | CONST_PERSISTENT);
+    REGISTER_LONG_CONSTANT("ELASTIC_OTEL_LOG_LEVEL_INFO", logLevel_info, CONST_CS | CONST_PERSISTENT);
+    REGISTER_LONG_CONSTANT("ELASTIC_OTEL_LOG_LEVEL_DEBUG", logLevel_debug, CONST_CS | CONST_PERSISTENT);
+    REGISTER_LONG_CONSTANT("ELASTIC_OTEL_LOG_LEVEL_TRACE", logLevel_trace, CONST_CS | CONST_PERSISTENT);
 
     elasticApmModuleInit(type, module_number);
     return SUCCESS;
 }
 
-PHP_MSHUTDOWN_FUNCTION(elastic_apm) {
+PHP_MSHUTDOWN_FUNCTION(elastic_otel) {
     elasticApmModuleShutdown(type, module_number);
     return SUCCESS;
 }
 
-zend_module_entry elastic_apm_module_entry = {
+zend_module_entry elastic_otel_module_entry = {
 	STANDARD_MODULE_HEADER,
-	"elastic_apm",					 /* Extension name */
-	elastic_apm_functions,			 /* zend_function_entry */
-	PHP_MINIT(elastic_apm),		     /* PHP_MINIT - Module initialization */
-	PHP_MSHUTDOWN(elastic_apm),		 /* PHP_MSHUTDOWN - Module shutdown */
-	PHP_RINIT(elastic_apm),			 /* PHP_RINIT - Request initialization */
-	PHP_RSHUTDOWN(elastic_apm),		 /* PHP_RSHUTDOWN - Request shutdown */
-	PHP_MINFO(elastic_apm),			 /* PHP_MINFO - Module info */
-	PHP_ELASTIC_APM_VERSION,		 /* Version */
-	PHP_MODULE_GLOBALS(elastic_apm), /* PHP_MODULE_GLOBALS */
-    PHP_GINIT(elastic_apm), 	     /* PHP_GINIT */
-    PHP_GSHUTDOWN(elastic_apm),		 /* PHP_GSHUTDOWN */
+	"elastic_otel",					 /* Extension name */
+	elastic_otel_functions,			 /* zend_function_entry */
+	PHP_MINIT(elastic_otel),		     /* PHP_MINIT - Module initialization */
+	PHP_MSHUTDOWN(elastic_otel),		 /* PHP_MSHUTDOWN - Module shutdown */
+	PHP_RINIT(elastic_otel),			 /* PHP_RINIT - Request initialization */
+	PHP_RSHUTDOWN(elastic_otel),		 /* PHP_RSHUTDOWN - Request shutdown */
+	PHP_MINFO(elastic_otel),			 /* PHP_MINFO - Module info */
+	ELASTIC_OTEL_VERSION,		     /* Version */
+	PHP_MODULE_GLOBALS(elastic_otel), /* PHP_MODULE_GLOBALS */
+    PHP_GINIT(elastic_otel), 	     /* PHP_GINIT */
+    PHP_GSHUTDOWN(elastic_otel),		 /* PHP_GSHUTDOWN */
 	elasticApmRequestPostDeactivate, /* post deactivate */
 	STANDARD_MODULE_PROPERTIES_EX
 };
@@ -163,4 +163,4 @@ zend_module_entry elastic_apm_module_entry = {
 #   ifdef ZTS
 ZEND_TSRMLS_CACHE_DEFINE()
 #   endif
-extern "C" ZEND_GET_MODULE(elastic_apm)
+extern "C" ZEND_GET_MODULE(elastic_otel)
