@@ -16,12 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 #pragma once
 
-#include <zend_types.h>
-
-bool tracerPhpPartInternalFuncCallPreHook( uint32_t interceptRegistrationId, zend_execute_data* execute_data );
-void tracerPhpPartInternalFuncCallPostHook( uint32_t dbgInterceptRegistrationId, zval* interceptedCallRetValOrThrown );
-
-void tracerPhpPartInterceptedCallEmptyMethod();
+#define ELASTIC_OTEL_VERSION "0.1"

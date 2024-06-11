@@ -103,9 +103,7 @@ void ConfigurationManager::update() {
                 }
                 case OptionMetadata::type::boolean: {
                     bool *value = (bool *)((std::byte *)&newConfig + entry.second.offset);
-                    if (!optionValue.empty()) {
-                        *value = utils::parseBoolean(optionValue);
-                    }
+                    *value = utils::parseBoolean(optionValue);
                     break;
                 }
                 case OptionMetadata::type::duration: {

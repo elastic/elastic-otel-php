@@ -19,17 +19,10 @@
 
 #pragma once
 
-#include <stdbool.h>
-#include <php.h>
-#include <zend.h>
-#include "basic_macros.h"
-#include <string_view>
 
-bool callPhpFunctionRetBool( std::string_view phpFunctionName, uint32_t argsCount, zval args[], bool* retVal );
-bool callPhpFunctionRetVoid( std::string_view phpFunctionName, uint32_t argsCount, zval args[] );
-bool callPhpFunctionRetZval( std::string_view phpFunctionName, uint32_t argsCount, zval args[], zval* retVal );
 
-void getArgsFromZendExecuteData( zend_execute_data *execute_data, size_t dstArraySize, zval dstArray[], uint32_t* argsCount );
+#define ELASTIC_APM_PP_CONCAT_IMPL( token1, token2 ) token1##token2
+#define ELASTIC_APM_PP_CONCAT( token1, token2 ) ELASTIC_APM_PP_CONCAT_IMPL( token1, token2 )
 
 #define ELASTIC_APM_ZEND_ADD_ASSOC( map, key, valueType, value ) ELASTIC_APM_PP_CONCAT( ELASTIC_APM_PP_CONCAT( add_assoc_, valueType ), _ex)( (map), (key), sizeof( key ) - 1, (value) )
 

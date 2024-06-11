@@ -76,9 +76,9 @@ docker run --rm \
     -v ${LOCAL_LOG_TEST_RUN}:${LOG_TEST_RUN} \
     -v ${ELASTIC_AGENT_SO_PATH}:/elastic/phpbridge.so \
     -w /phpt-tests \
-    php:${PHP_VERSION:0:1}.${PHP_VERSION:1:1}-cli${ALPINE_IMAGE} sh -c "php -n ${RUN_TESTS} -w ${LOG_FAILED_TESTS} ${TESTS_TO_RUN} 2>&1 | tee ${LOG_TEST_RUN}"
+    php:${PHP_VERSION:0:1}.${PHP_VERSION:1:1}-cli${ALPINE_IMAGE} sh -c "php -n ${RUN_TESTS} -s ${LOG_TEST_RUN} -w ${LOG_FAILED_TESTS} ${TESTS_TO_RUN}"
 
-if [ -s ${LOCAL_LOG_FAILED_TESTS} ]; then
+if [ $? -ne 0 ]; then
     echo "Test failed"
 
     pushd ${LOCAL_TMP_DIR}

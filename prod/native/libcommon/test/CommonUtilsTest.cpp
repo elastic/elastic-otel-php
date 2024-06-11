@@ -76,8 +76,8 @@ TEST(CommunUtilsTest, parseBoolean) {
     ASSERT_FALSE(parseBoolean("unknown"));
     ASSERT_FALSE(parseBoolean("0"));
 
-    EXPECT_ANY_THROW(parseBoolean(""));
-    EXPECT_ANY_THROW(parseBoolean(" "));
+    ASSERT_FALSE(parseBoolean(""));
+    ASSERT_FALSE(parseBoolean(" "));
 }
 
 TEST(CommunUtilsTest, parseLogLevel) {
@@ -123,10 +123,10 @@ TEST(CommunUtilsTest, trim) {
 TEST(CommunUtilsTest, sanitizeKeyValueString) {
     using namespace std::literals;
 
-    ASSERT_EQ(sanitizeKeyValueString("ELASTIC_APM_API_KEY"s, "ELASTIC_APM_API_KEY=supersecret"s), "ELASTIC_APM_API_KEY=***"s);
-    ASSERT_EQ(sanitizeKeyValueString("ELASTIC_APM_API_KEY"s, "ELASTIC_APM_API_KEY=\"aaa\""s), "ELASTIC_APM_API_KEY=***"s);
-    ASSERT_EQ(sanitizeKeyValueString("ELASTIC_APM_API_KEY"s, "THIS IS A TEXT ELASTIC_APM_API_KEY=\"aaa\" EXAMPLE"s), "THIS IS A TEXT ELASTIC_APM_API_KEY=*** EXAMPLE"s);
-    ASSERT_EQ(sanitizeKeyValueString("ELASTIC_APM_API_KEY"s, "THIS IS A TEXT ELASTIC_APM_API_KEY=\"aaa with spaces\" EXAMPLE"s), "THIS IS A TEXT ELASTIC_APM_API_KEY=*** EXAMPLE"s);
+    ASSERT_EQ(sanitizeKeyValueString("ELASTIC_OTEL_API_KEY"s, "ELASTIC_OTEL_API_KEY=supersecret"s), "ELASTIC_OTEL_API_KEY=***"s);
+    ASSERT_EQ(sanitizeKeyValueString("ELASTIC_OTEL_API_KEY"s, "ELASTIC_OTEL_API_KEY=\"aaa\""s), "ELASTIC_OTEL_API_KEY=***"s);
+    ASSERT_EQ(sanitizeKeyValueString("ELASTIC_OTEL_API_KEY"s, "THIS IS A TEXT ELASTIC_OTEL_API_KEY=\"aaa\" EXAMPLE"s), "THIS IS A TEXT ELASTIC_OTEL_API_KEY=*** EXAMPLE"s);
+    ASSERT_EQ(sanitizeKeyValueString("ELASTIC_OTEL_API_KEY"s, "THIS IS A TEXT ELASTIC_OTEL_API_KEY=\"aaa with spaces\" EXAMPLE"s), "THIS IS A TEXT ELASTIC_OTEL_API_KEY=*** EXAMPLE"s);
 }
 
 TEST(CommunUtilsTest, stringPrintf) {
@@ -134,13 +134,13 @@ TEST(CommunUtilsTest, stringPrintf) {
 }
 
 TEST(CommunUtilsTest, getIniName) {
-    ASSERT_EQ(getIniName("basic_option"), "elastic_apm.basic_option"s);
-    ASSERT_EQ(getIniName("OtherOption"), "elastic_apm.OtherOption"s);
+    ASSERT_EQ(getIniName("basic_option"), "elastic_otel.basic_option"s);
+    ASSERT_EQ(getIniName("OtherOption"), "elastic_otel.OtherOption"s);
 }
 
 TEST(CommunUtilsTest, getEnvName) {
-    ASSERT_EQ(getEnvName("basic_option"), "ELASTIC_APM_BASIC_OPTION"s);
-    ASSERT_EQ(getEnvName("OtherOption"), "ELASTIC_APM_OTHEROPTION"s);
+    ASSERT_EQ(getEnvName("basic_option"), "ELASTIC_OTEL_BASIC_OPTION"s);
+    ASSERT_EQ(getEnvName("OtherOption"), "ELASTIC_OTEL_OTHEROPTION"s);
 }
 
 }

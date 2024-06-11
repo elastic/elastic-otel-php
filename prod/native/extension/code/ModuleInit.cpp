@@ -54,22 +54,11 @@ void logStartupPreamble(elasticapm::php::LoggerInterface *logger) {
     constexpr int colWidth = 40;
 
     using namespace std::literals;
-    ELOG(logger, level, "Elastic APM agent for PHP");
-    ELOG(logger, level, "%*s%s", -colWidth, "Native part version:", PHP_ELASTIC_APM_VERSION);
-    ELOG(logger, level, "%*s%s", -colWidth, "Process command line:", elasticapm::utils::sanitizeKeyValueString(elasticapm::utils::getEnvName(EL_STRINGIFY(ELASTIC_APM_CFG_OPT_NAME_API_KEY)), elasticapm::osutils::getCommandLine()).c_str());
-    ELOG(logger, level, "%*s%s", -colWidth, "Process environment:", elasticapm::utils::sanitizeKeyValueString(elasticapm::utils::getEnvName(EL_STRINGIFY(ELASTIC_APM_CFG_OPT_NAME_API_KEY)), elasticapm::osutils::getProcessEnvironment()).c_str());
+    ELOG(logger, level, "Elastic OpenTelemetry PHP");
+    ELOG(logger, level, "%*s%s", -colWidth, "Native part version:", ELASTIC_OTEL_VERSION);
+    ELOG(logger, level, "%*s%s", -colWidth, "Process command line:", elasticapm::utils::sanitizeKeyValueString(elasticapm::utils::getEnvName(EL_STRINGIFY(ELASTIC_OTEL_CFG_OPT_NAME_API_KEY)), elasticapm::osutils::getCommandLine()).c_str());
+    ELOG(logger, level, "%*s%s", -colWidth, "Process environment:", elasticapm::utils::sanitizeKeyValueString(elasticapm::utils::getEnvName(EL_STRINGIFY(ELASTIC_OTEL_CFG_OPT_NAME_API_KEY)), elasticapm::osutils::getProcessEnvironment()).c_str());
 }
-
-
-void elasticApmGetLastThrown(zval *return_value) {
-    if (Z_TYPE(ELASTICAPM_G(lastException)) == IS_UNDEF) {
-        RETURN_NULL();
-    }
-
-    RETURN_ZVAL(&ELASTICAPM_G(lastException), /* copy */ true, /* dtor */ false );
-}
-
-
 
 void elasticApmModuleInit(int moduleType, int moduleNumber) {
     auto const &sapi = *ELASTICAPM_G(globals)->sapi_;
@@ -133,16 +122,24 @@ void elasticApmModuleShutdown( int moduleType, int moduleNumber ) {
     unregisterSigSegvHandler();
 }
 
-void elasticApmGetLastPhpError(zval* return_value) {
-    if (!ELASTICAPM_G(lastErrorData)) {
-        RETURN_NULL();
-    }
+// void elasticApmGetLastPhpError(zval* return_value) {
+//     if (!ELASTICAPM_G(lastErrorData)) {
+//         RETURN_NULL();
+//     }
 
-    array_init( return_value );
-    ELASTIC_APM_ZEND_ADD_ASSOC(return_value, "type", long, static_cast<zend_long>(ELASTICAPM_G(lastErrorData)->getType()));
-    ELASTIC_APM_ZEND_ADD_ASSOC_NULLABLE_STRING( return_value, "fileName", ELASTICAPM_G(lastErrorData)->getFileName().data() );
-    ELASTIC_APM_ZEND_ADD_ASSOC(return_value, "lineNumber", long, static_cast<zend_long>(ELASTICAPM_G(lastErrorData)->getLineNumber()));
-    ELASTIC_APM_ZEND_ADD_ASSOC_NULLABLE_STRING( return_value, "message", ELASTICAPM_G(lastErrorData)->getMessage().data());
-    Z_TRY_ADDREF_P((ELASTICAPM_G(lastErrorData)->getStackTrace()));
-    ELASTIC_APM_ZEND_ADD_ASSOC(return_value, "stackTrace", zval, (ELASTICAPM_G(lastErrorData)->getStackTrace()));
-}
+//     array_init( return_value );
+//     ELASTIC_APM_ZEND_ADD_ASSOC(return_value, "type", long, static_cast<zend_long>(ELASTICAPM_G(lastErrorData)->getType()));
+//     ELASTIC_APM_ZEND_ADD_ASSOC_NULLABLE_STRING( return_value, "fileName", ELASTICAPM_G(lastErrorData)->getFileName().data() );
+//     ELASTIC_APM_ZEND_ADD_ASSOC(return_value, "lineNumber", long, static_cast<zend_long>(ELASTICAPM_G(lastErrorData)->getLineNumber()));
+//     ELASTIC_APM_ZEND_ADD_ASSOC_NULLABLE_STRING( return_value, "message", ELASTICAPM_G(lastErrorData)->getMessage().data());
+//     Z_TRY_ADDREF_P((ELASTICAPM_G(lastErrorData)->getStackTrace()));
+//     ELASTIC_APM_ZEND_ADD_ASSOC(return_value, "stackTrace", zval, (ELASTICAPM_G(lastErrorData)->getStackTrace()));
+// }
+//
+// void elasticApmGetLastThrown(zval *return_value) {
+//     if (Z_TYPE(ELASTICAPM_G(lastException)) == IS_UNDEF) {
+//         RETURN_NULL();
+//     }
+
+//     RETURN_ZVAL(&ELASTICAPM_G(lastException), /* copy */ true, /* dtor */ false );
+// }

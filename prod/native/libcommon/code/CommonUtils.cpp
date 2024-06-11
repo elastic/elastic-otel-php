@@ -81,12 +81,12 @@ std::chrono::milliseconds convertDurationWithUnit(std::string timeWithUnit) {
 }
 
 
-bool parseBoolean(std::string_view val) { // throws std::invalid_argument and others
+bool parseBoolean(std::string_view val) {
     constexpr std::array<istring_view, 3> trueValues = {"true"_cisv, "yes"_cisv, "on"_cisv}; // same in zend_ini_parse_bool
 
     auto value = traits_cast<CiCharTraits>(utils::trim(val));
     if (!value.length()) {
-        throw std::invalid_argument("Unable to parse boolean from empty string");
+        return false;
     }
 
     auto res = std::find(std::begin(trueValues), std::end(trueValues), value);
@@ -173,12 +173,12 @@ std::string stringVPrintf(const char *format, va_list args) {
 }
 
 std::string getIniName(std::string_view optionName) {
-    auto name = "elastic_apm."s;
+    auto name = "elastic_otel."s;
     return name.append(optionName);
 }
 
 std::string getEnvName(std::string_view optionName) {
-    std::string envName = "ELASTIC_APM_"s;
+    std::string envName = "ELASTIC_OTEL_"s;
     std::transform(optionName.begin(), optionName.end(), std::back_inserter(envName), ::toupper);
     return envName;
 }

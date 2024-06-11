@@ -30,8 +30,8 @@ contents:
 - src: /source/prod/php
   dst: /opt/elastic/elastic-otel-php/php
   expand: true
-- src: /source/packaging/elastic-apm-custom-template.ini
-  dst: /opt/elastic/elastic-otel-php/etc/elastic-apm-custom.ini
+- src: /source/packaging/elastic-otel-custom-template.ini.ini
+  dst: /opt/elastic/elastic-otel-php/etc/elastic-otel-custom.ini
   type: config
 - src: /source/README.md
   dst: /opt/elastic/elastic-otel-php/docs/README.md

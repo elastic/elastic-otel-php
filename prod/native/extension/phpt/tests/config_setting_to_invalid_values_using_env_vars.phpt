@@ -1,15 +1,15 @@
 --TEST--
 Setting configuration option to invalid value via environment variables
 --ENV--
-ELASTIC_APM_LOG_LEVEL_STDERR=CRITICAL
-ELASTIC_APM_ENABLED=not_valid_boolean_value
-ELASTIC_APM_ASSERT_LEVEL=|:/:\:|
-ELASTIC_APM_SECRET_TOKEN=\|<>|/
-ELASTIC_APM_SERVER_URL=<\/\/>
-ELASTIC_APM_SERVICE_NAME=/\><\/
+ELASTIC_OTEL_LOG_LEVEL_STDERR=CRITICAL
+ELASTIC_OTEL_ENABLED=not_valid_boolean_value
+ELASTIC_OTEL_ASSERT_LEVEL=|:/:\:|
+ELASTIC_OTEL_SECRET_TOKEN=\|<>|/
+ELASTIC_OTEL_SERVER_URL=<\/\/>
+ELASTIC_OTEL_SERVICE_NAME=/\><\/
 --INI--
 extension=/elastic/elastic_otel_php.so
-elastic_apm.bootstrap_php_part_file={PWD}/includes/bootstrap_mock.inc
+elastic_otel.bootstrap_php_part_file={PWD}/includes/bootstrap_mock.inc
 --FILE--
 <?php
 declare(strict_types=1);
@@ -18,41 +18,37 @@ require __DIR__ . '/includes/tests_util.inc';
 //////////////////////////////////////////////
 ///////////////  enabled
 
-elasticApmAssertSame("getenv('ELASTIC_APM_ENABLED')", getenv('ELASTIC_APM_ENABLED'), 'not_valid_boolean_value');
+echo "enabled\n";
+var_dump(getenv('ELASTIC_OTEL_ENABLED'));
+var_dump(elastic_otel_is_enabled());
+var_dump(elastic_otel_get_config_option_by_name('enabled'));
 
-elasticApmAssertSame("elastic_apm_is_enabled()", elastic_apm_is_enabled(), true);
+echo "secret_token\n";
+var_dump(getenv('ELASTIC_OTEL_SECRET_TOKEN'));
+var_dump(elastic_otel_get_config_option_by_name('secret_token'));
 
-elasticApmAssertSame("elastic_apm_get_config_option_by_name('enabled')", elastic_apm_get_config_option_by_name('enabled'), true);
+echo "server_url\n";
+var_dump(getenv('ELASTIC_OTEL_SERVER_URL'));
+var_dump(elastic_otel_get_config_option_by_name('server_url'));
 
-//////////////////////////////////////////////
-///////////////  assert_level
-
-elasticApmAssertSame("getenv('ELASTIC_APM_ASSERT_LEVEL')", getenv('ELASTIC_APM_ASSERT_LEVEL'), '|:/:\:|');
-
-elasticApmAssertSame("elastic_apm_get_config_option_by_name('assert_level')", elastic_apm_get_config_option_by_name('assert_level'), ELASTIC_APM_ASSERT_LEVEL_NOT_SET);
-
-//////////////////////////////////////////////
-///////////////  secret_token
-
-elasticApmAssertSame("getenv('ELASTIC_APM_SECRET_TOKEN')", getenv('ELASTIC_APM_SECRET_TOKEN'), '\|<>|/');
-
-elasticApmAssertSame("elastic_apm_get_config_option_by_name('secret_token')", elastic_apm_get_config_option_by_name('secret_token'), '\|<>|/');
-
-//////////////////////////////////////////////
-///////////////  server_url
-
-elasticApmAssertSame("getenv('ELASTIC_APM_SERVER_URL')", getenv('ELASTIC_APM_SERVER_URL'), '<\/\/>');
-
-elasticApmAssertSame("elastic_apm_get_config_option_by_name('server_url')", elastic_apm_get_config_option_by_name('server_url'), '<\/\/>');
-
-//////////////////////////////////////////////
-///////////////  service_name
-
-elasticApmAssertSame("getenv('ELASTIC_APM_SERVICE_NAME')", getenv('ELASTIC_APM_SERVICE_NAME'), '/\><\/');
-
-elasticApmAssertSame("elastic_apm_get_config_option_by_name('service_name')", elastic_apm_get_config_option_by_name('service_name'), '/\><\/');
+echo "service_name\n";
+var_dump(getenv('ELASTIC_OTEL_SERVICE_NAME'));
+var_dump(elastic_otel_get_config_option_by_name('service_name'));
 
 echo 'Test completed'
 ?>
 --EXPECT--
+enabled
+string(23) "not_valid_boolean_value"
+bool(false)
+bool(false)
+secret_token
+string(6) "\|<>|/"
+string(6) "\|<>|/"
+server_url
+string(6) "<\/\/>"
+string(6) "<\/\/>"
+service_name
+string(6) "/\><\/"
+string(6) "/\><\/"
 Test completed
