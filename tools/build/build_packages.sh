@@ -84,6 +84,12 @@ do
         -w /source/packaging goreleaser/nfpm package -f nfpm.yaml -t "/source/build/packages" -p ${pkg} | tee /tmp/nfpm_output.txt
 
     PKG_FILENAME=$(grep "created package: " /tmp/nfpm_output.txt | sed 's/^.*: \/source\/build\/packages\///')
+
+    if [ -z "${PKG_FILENAME}" ]; then
+        echo "Error creating package"
+        exit 1
+    fi
+
     # create sha512 file
     pushd "${PWD}/build/packages"
     md5sum "${PKG_FILENAME}" >"${PKG_FILENAME}".sha512
