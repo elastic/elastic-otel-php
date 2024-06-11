@@ -25,4 +25,8 @@ final class PhpPartFacade
     public static function shutdown(): void {
         self::$singletonInstance = null;
     }
+
+    public static function handle_error(): void {
+    }
+
 }

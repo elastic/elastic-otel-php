@@ -23,7 +23,7 @@
 #include "BridgeModuleGlobals.h"
 #include "BridgeModuleFunctions.h"
 
-#include "elastic_apm_version.h"
+#include "elastic_otel_version.h"
 
 
 #include <main/php.h>

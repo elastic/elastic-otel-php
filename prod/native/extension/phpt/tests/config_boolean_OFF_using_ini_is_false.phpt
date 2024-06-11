@@ -9,13 +9,12 @@ elastic_otel.enabled=OFF
 --FILE--
 <?php
 declare(strict_types=1);
-require __DIR__ . '/includes/tests_util.inc';
-
-elasticApmAssertEqual("ini_get('elastic_otel.enabled')", ini_get('elastic_otel.enabled'), false);
-
-elasticApmAssertSame("elastic_otel_is_enabled()", elastic_otel_is_enabled(), false);
+var_dump(ini_get('elastic_otel.enabled'));
+var_dump(elastic_otel_is_enabled());
 
 echo 'Test completed'
 ?>
 --EXPECT--
+string(0) ""
+bool(false)
 Test completed

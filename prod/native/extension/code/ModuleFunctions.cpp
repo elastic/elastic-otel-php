@@ -55,13 +55,6 @@ PHP_FUNCTION(elastic_otel_get_config_option_by_name) {
     elasticApmGetConfigOption({optionName, optionNameLength}, /* out */ return_value);
 }
 
-/* elastic_otel_get_number_of_dynamic_config_options(): int */
-PHP_FUNCTION(elastic_otel_get_number_of_dynamic_config_options) {
-    ZEND_PARSE_PARAMETERS_NONE();
-    //TODO implement dynamic tag in config manager
-    RETURN_LONG(0);
-}
-
 ZEND_BEGIN_ARG_INFO_EX(elastic_otel_send_to_server_arginfo, /* _unused: */ 0, /* return_reference: */ 0, /* required_num_args: */ 2)
 ZEND_ARG_TYPE_INFO(/* pass_by_ref: */ 0, userAgentHttpHeader, IS_STRING, /* allow_null: */ 0)
 ZEND_ARG_TYPE_INFO(/* pass_by_ref: */ 0, serializedEvents, IS_STRING, /* allow_null: */ 0)
@@ -197,8 +190,7 @@ PHP_FUNCTION(elastic_otel_hook) {
 const zend_function_entry elastic_otel_functions[] = {
     PHP_FE( elastic_otel_is_enabled, elastic_otel_no_paramters_arginfo )
     PHP_FE( elastic_otel_get_config_option_by_name, elastic_otel_get_config_option_by_name_arginfo )
-    PHP_FE( elastic_otel_get_number_of_dynamic_config_options, elastic_otel_no_paramters_arginfo )
-    PHP_FE( elastic_otel_send_to_server, elastic_otel_send_to_server_arginfo )
+    // PHP_FE( elastic_otel_send_to_server, elastic_otel_send_to_server_arginfo )
     PHP_FE( elastic_otel_log, elastic_otel_log_arginfo )
     PHP_FE( elastic_otel_get_last_thrown, elastic_otel_get_last_thrown_arginfo )
     PHP_FE( elastic_otel_get_last_php_error, elastic_otel_get_last_php_error_arginfo )

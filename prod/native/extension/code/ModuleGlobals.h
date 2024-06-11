@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "elastic_apm_version.h"
+#include "elastic_otel_version.h"
 
 #include "AgentGlobals.h"
 #include "PhpErrorData.h"
@@ -31,17 +31,10 @@
 
 #include <memory>
 
-
-//extern zend_module_entry elastic_otel_module_entry;
-
-#if defined(ZTS) && defined(COMPILE_DL_ELASTIC_APM)
-ZEND_TSRMLS_CACHE_EXTERN()
-#endif
-
 ZEND_BEGIN_MODULE_GLOBALS(elastic_otel)
     elasticapm::php::AgentGlobals *globals;
-    zval lastException;
-    std::unique_ptr<elasticapm::php::PhpErrorData> lastErrorData;
+    // zval lastException;
+    // std::unique_ptr<elasticapm::php::PhpErrorData> lastErrorData;
     bool captureErrors;
 ZEND_END_MODULE_GLOBALS(elastic_otel)
 

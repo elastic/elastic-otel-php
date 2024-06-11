@@ -76,8 +76,8 @@ TEST(CommunUtilsTest, parseBoolean) {
     ASSERT_FALSE(parseBoolean("unknown"));
     ASSERT_FALSE(parseBoolean("0"));
 
-    EXPECT_ANY_THROW(parseBoolean(""));
-    EXPECT_ANY_THROW(parseBoolean(" "));
+    ASSERT_FALSE(parseBoolean(""));
+    ASSERT_FALSE(parseBoolean(" "));
 }
 
 TEST(CommunUtilsTest, parseLogLevel) {

@@ -107,8 +107,8 @@ static PHP_GINIT_FUNCTION(elastic_otel) {
         ELOG_CRITICAL(logger, "Unable to allocate AgentGlobals. '%s'", e.what());
     }
 
-    ZVAL_UNDEF(&elastic_otel_globals->lastException);
-    new (&elastic_otel_globals->lastErrorData) std::unique_ptr<elasticapm::php::PhpErrorData>;
+    // ZVAL_UNDEF(&elastic_otel_globals->lastException);
+    // new (&elastic_otel_globals->lastErrorData) std::unique_ptr<elasticapm::php::PhpErrorData>;
     elastic_otel_globals->captureErrors = false;
 }
 
@@ -118,11 +118,11 @@ PHP_GSHUTDOWN_FUNCTION(elastic_otel) {
         delete elastic_otel_globals->globals;
     }
 
-    if (elastic_otel_globals->lastErrorData) {
-        // elastic_otel_LOG_DIRECT_WARNING( "%s: still holding error", __FUNCTION__);
-        // we need to relese any dangling php error data beacause it is already freed (it was allocated in request pool)
-        elastic_otel_globals->lastErrorData.release();
-    }
+    // if (elastic_otel_globals->lastErrorData) {
+    //     // elastic_otel_LOG_DIRECT_WARNING( "%s: still holding error", __FUNCTION__);
+    //     // we need to relese any dangling php error data beacause it is already freed (it was allocated in request pool)
+    //     elastic_otel_globals->lastErrorData.release();
+    // }
 }
 
 PHP_MINIT_FUNCTION(elastic_otel) {

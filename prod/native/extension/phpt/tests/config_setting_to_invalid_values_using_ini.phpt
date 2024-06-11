@@ -4,7 +4,6 @@ Setting configuration option to invalid value via ini file
 ELASTIC_OTEL_LOG_LEVEL_STDERR=CRITICAL
 --INI--
 elastic_otel.enabled=not valid boolean value
-elastic_otel.assert_level=|:/:\:|
 elastic_otel.secret_token=\|<>|/
 elastic_otel.server_url=<\/\/>
 elastic_otel.service_name=/\><\/
@@ -13,46 +12,44 @@ elastic_otel.bootstrap_php_part_file={PWD}/includes/bootstrap_mock.inc
 --FILE--
 <?php
 declare(strict_types=1);
-require __DIR__ . '/includes/tests_util.inc';
 
 //////////////////////////////////////////////
 ///////////////  enabled
 
-elasticApmAssertEqual("ini_get('elastic_otel.enabled')", ini_get('elastic_otel.enabled'), 'not valid boolean value');
+echo "enabled\n";
+var_dump(ini_get('elastic_otel.enabled'));
+var_dump(elastic_otel_get_config_option_by_name('enabled'));
+var_dump(elastic_otel_is_enabled());
 
-elasticApmAssertSame("elastic_otel_get_config_option_by_name('enabled')", elastic_otel_get_config_option_by_name('enabled'), true);
 
-elasticApmAssertSame("elastic_otel_is_enabled()", elastic_otel_is_enabled(), true);
+echo "secret_token\n";
+var_dump(ini_get('elastic_otel.secret_token'));
+var_dump(elastic_otel_get_config_option_by_name('secret_token'));
 
-//////////////////////////////////////////////
-///////////////  assert_level
+echo "server_url\n";
 
-elasticApmAssertSame("ini_get('elastic_otel.assert_level')", ini_get('elastic_otel.assert_level'), '|:/:\:|');
+var_dump(ini_get('elastic_otel.server_url'));
+var_dump(elastic_otel_get_config_option_by_name('server_url'));
 
-elasticApmAssertSame("elastic_otel_get_config_option_by_name('assert_level')", elastic_otel_get_config_option_by_name('assert_level'), ELASTIC_OTEL_ASSERT_LEVEL_NOT_SET);
+echo "service_name\n";
 
-//////////////////////////////////////////////
-///////////////  secret_token
-
-elasticApmAssertSame("ini_get('elastic_otel.secret_token')", ini_get('elastic_otel.secret_token'), '\|<>|/');
-
-elasticApmAssertSame("elastic_otel_get_config_option_by_name('secret_token')", elastic_otel_get_config_option_by_name('secret_token'), '\|<>|/');
-
-//////////////////////////////////////////////
-///////////////  server_url
-
-elasticApmAssertSame("ini_get('elastic_otel.server_url')", ini_get('elastic_otel.server_url'), '<\/\/>');
-
-elasticApmAssertSame("elastic_otel_get_config_option_by_name('server_url')", elastic_otel_get_config_option_by_name('server_url'), '<\/\/>');
-
-//////////////////////////////////////////////
-///////////////  service_name
-
-elasticApmAssertSame("ini_get('elastic_otel.service_name')", ini_get('elastic_otel.service_name'), '/\><\/');
-
-elasticApmAssertSame("elastic_otel_get_config_option_by_name('service_name')", elastic_otel_get_config_option_by_name('service_name'), '/\><\/');
+var_dump(ini_get('elastic_otel.service_name'));
+var_dump(elastic_otel_get_config_option_by_name('service_name'));
 
 echo 'Test completed'
 ?>
 --EXPECT--
+enabled
+string(23) "not valid boolean value"
+bool(false)
+bool(false)
+secret_token
+string(6) "\|<>|/"
+string(6) "\|<>|/"
+server_url
+string(6) "<\/\/>"
+string(6) "<\/\/>"
+service_name
+string(6) "/\><\/"
+string(6) "/\><\/"
 Test completed

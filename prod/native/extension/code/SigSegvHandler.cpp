@@ -22,7 +22,7 @@
 #include "CommonUtils.h"
 #include "os/StackTraceCapture.h"
 
-#include "elastic_apm_version.h"
+#include "elastic_otel_version.h"
 
 #include <signal.h>
 

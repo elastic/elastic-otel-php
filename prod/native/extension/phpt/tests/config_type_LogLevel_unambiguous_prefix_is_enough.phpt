@@ -4,6 +4,8 @@ Configuration values of type LogLevel: it is enough to provide unambiguous prefi
 ELASTIC_OTEL_LOG_LEVEL_STDERR=CRITICAL
 ELASTIC_OTEL_LOG_LEVEL=warn
 ELASTIC_OTEL_LOG_LEVEL_WIN_SYS_DEBUG=TRa
+--XFAIL--
+Expected to fail - this is a strange feature - a path to abuse and ambiguity - NOT IMPLEMENTED
 --INI--
 elastic_otel.log_level_syslog=Er
 elastic_otel.log_level_file=dEb
@@ -13,8 +15,6 @@ elastic_otel.bootstrap_php_part_file={PWD}/includes/bootstrap_mock.inc
 <?php
 declare(strict_types=1);
 require __DIR__ . '/includes/tests_util.inc';
-
-if ( ! extension_loaded( 'elastic_apm' ) ) die( 'Extension elastic_apm must be installed' );
 
 elasticApmAssertSame("elastic_otel_get_config_option_by_name('log_level')", elastic_otel_get_config_option_by_name('log_level'), ELASTIC_OTEL_LOG_LEVEL_WARNING);
 

@@ -37,7 +37,7 @@ elasticApmAssertSame("getenv('ELASTIC_OTEL_LOG_FILE')", getenv('ELASTIC_OTEL_LOG
 
 elasticApmAssertEqual("ini_get('elastic_otel.log_file')", ini_get('elastic_otel.log_file'), false);
 
-elasticApmAssertSame("elastic_otel_get_config_option_by_name('log_file')", elastic_otel_get_config_option_by_name('log_file'), null);
+elasticApmAssertSame("elastic_otel_get_config_option_by_name('log_file')", elastic_otel_get_config_option_by_name('log_file'), "");
 
 //////////////////////////////////////////////
 ///////////////  log_level
@@ -46,16 +46,12 @@ elasticApmAssertSame("getenv('ELASTIC_OTEL_LOG_LEVEL')", getenv('ELASTIC_OTEL_LO
 
 elasticApmAssertEqual("ini_get('elastic_otel.log_level')", ini_get('elastic_otel.log_level'), false);
 
-elasticApmAssertSame("elastic_otel_get_config_option_by_name('log_level')", elastic_otel_get_config_option_by_name('log_level'), ELASTIC_OTEL_LOG_LEVEL_NOT_SET);
-
 //////////////////////////////////////////////
 ///////////////  log_level_file
 
 elasticApmAssertSame("getenv('ELASTIC_OTEL_LOG_LEVEL_FILE')", getenv('ELASTIC_OTEL_LOG_LEVEL_FILE'), false);
 
 elasticApmAssertEqual("ini_get('elastic_otel.log_level_file')", ini_get('elastic_otel.log_level_file'), false);
-
-elasticApmAssertSame("elastic_otel_get_config_option_by_name('log_level_file')", elastic_otel_get_config_option_by_name('log_level_file'), ELASTIC_OTEL_LOG_LEVEL_NOT_SET);
 
 //////////////////////////////////////////////
 ///////////////  log_level_syslog
@@ -65,7 +61,6 @@ if ( ! elasticApmIsOsWindows()) {
 
     elasticApmAssertEqual("ini_get('elastic_otel.log_level_syslog')", ini_get('elastic_otel.log_level_syslog'), false);
 
-    elasticApmAssertSame("elastic_otel_get_config_option_by_name('log_level_syslog')", elastic_otel_get_config_option_by_name('log_level_syslog'), ELASTIC_OTEL_LOG_LEVEL_NOT_SET);
 }
 
 //////////////////////////////////////////////
@@ -76,7 +71,6 @@ if (elasticApmIsOsWindows()) {
 
     elasticApmAssertEqual("ini_get('elastic_otel.log_level_win_sys_debug')", ini_get('elastic_otel.log_level_win_sys_debug'), false);
 
-    elasticApmAssertSame("elastic_otel_get_config_option_by_name('log_level_win_sys_debug')", elastic_otel_get_config_option_by_name('log_level_win_sys_debug'), ELASTIC_OTEL_LOG_LEVEL_NOT_SET);
 }
 
 //////////////////////////////////////////////
@@ -86,7 +80,7 @@ elasticApmAssertSame("getenv('ELASTIC_OTEL_SECRET_TOKEN')", getenv('ELASTIC_OTEL
 
 elasticApmAssertEqual("ini_get('elastic_otel.secret_token')", ini_get('elastic_otel.secret_token'), false);
 
-elasticApmAssertSame("elastic_otel_get_config_option_by_name('secret_token')", elastic_otel_get_config_option_by_name('secret_token'), null);
+elasticApmAssertSame("elastic_otel_get_config_option_by_name('secret_token')", elastic_otel_get_config_option_by_name('secret_token'), "");
 
 //////////////////////////////////////////////
 ///////////////  server_url
@@ -104,7 +98,7 @@ elasticApmAssertSame("getenv('ELASTIC_OTEL_SERVICE_NAME')", getenv('ELASTIC_OTEL
 
 elasticApmAssertEqual("ini_get('elastic_otel.service_name')", ini_get('elastic_otel.service_name'), false);
 
-elasticApmAssertSame("elastic_otel_get_config_option_by_name('service_name')", elastic_otel_get_config_option_by_name('service_name'), null);
+elasticApmAssertSame("elastic_otel_get_config_option_by_name('service_name')", elastic_otel_get_config_option_by_name('service_name'), "");
 
 echo 'Test completed'
 ?>

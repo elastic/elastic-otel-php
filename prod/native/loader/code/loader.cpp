@@ -28,7 +28,7 @@
 #include <filesystem>
 
 
-#include "elastic_apm_version.h"
+#include "elastic_otel_version.h"
 
 #define LOG_TO_SYSLOG_AND_STDERR(fmt, ... ) \
     do { \
