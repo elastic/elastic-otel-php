@@ -23,7 +23,7 @@
 #include "BridgeModuleGlobals.h"
 #include "BridgeModuleFunctions.h"
 
-#include "elastic_apm_version.h"
+#include "elastic_otel_version.h"
 
 
 #include <main/php.h>
@@ -79,7 +79,7 @@ zend_module_entry phpbridge_module_entry = {
     PHP_RINIT(phpbridge),               /* PHP_RINIT - Request initialization */
     PHP_RSHUTDOWN(phpbridge),           /* PHP_RSHUTDOWN - Request shutdown */
     PHP_MINFO(phpbridge),               /* PHP_MINFO - Module info */
-    PHP_ELASTIC_APM_VERSION,            /* Version */
+    ELASTIC_OTEL_VERSION,            /* Version */
     PHP_MODULE_GLOBALS(phpbridge),      /* PHP_MODULE_GLOBALS */
     PHP_GINIT(phpbridge),               /* PHP_GINIT */
     PHP_GSHUTDOWN(phpbridge),           /* PHP_GSHUTDOWN */

@@ -32,7 +32,7 @@ use Elastic\OTel\Util\ArrayUtil;
  */
 final class IniRawSnapshotSource implements RawSnapshotSourceInterface
 {
-    public const DEFAULT_PREFIX = 'elastic_apm.';
+    public const DEFAULT_PREFIX = 'elastic_otel.';
 
     /** @var string */
     private $iniNamesPrefix;

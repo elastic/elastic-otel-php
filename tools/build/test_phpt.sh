@@ -47,6 +47,8 @@ fi
 echo "BUILD_ARCHITECTURE: $BUILD_ARCHITECTURE"
 echo "PHP_VERSIONS: ${PHP_VERSIONS[@]}"
 
+TEST_ERROR=0
+
 pushd prod/native/extension/phpt
     mkdir -p ${PWD}/results
 
@@ -65,7 +67,7 @@ pushd prod/native/phpbridge_extension/phpt
     done
 popd
 
-if [ $TEST_ERROR -eq 1 ]; then
+if [ $TEST_ERROR -ne 0 ]; then
     echo "Some tests failed"
     exit 1
 fi

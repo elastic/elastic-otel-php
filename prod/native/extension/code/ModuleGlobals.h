@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "elastic_apm_version.h"
+#include "elastic_otel_version.h"
 
 #include "AgentGlobals.h"
 #include "PhpErrorData.h"
@@ -31,27 +31,20 @@
 
 #include <memory>
 
-
-//extern zend_module_entry elastic_apm_module_entry;
-
-#if defined(ZTS) && defined(COMPILE_DL_ELASTIC_APM)
-ZEND_TSRMLS_CACHE_EXTERN()
-#endif
-
-ZEND_BEGIN_MODULE_GLOBALS(elastic_apm)
+ZEND_BEGIN_MODULE_GLOBALS(elastic_otel)
     elasticapm::php::AgentGlobals *globals;
-    zval lastException;
-    std::unique_ptr<elasticapm::php::PhpErrorData> lastErrorData;
+    // zval lastException;
+    // std::unique_ptr<elasticapm::php::PhpErrorData> lastErrorData;
     bool captureErrors;
-ZEND_END_MODULE_GLOBALS(elastic_apm)
+ZEND_END_MODULE_GLOBALS(elastic_otel)
 
-ZEND_EXTERN_MODULE_GLOBALS(elastic_apm)
+ZEND_EXTERN_MODULE_GLOBALS(elastic_otel)
 
 #ifdef ZTS
-#define ELASTICAPM_G(member) ZEND_MODULE_GLOBALS_ACCESSOR(elastic_apm, member)
-#define EAPM_GL(member) ZEND_MODULE_GLOBALS_ACCESSOR(elastic_apm, globals)->member
+#define ELASTICAPM_G(member) ZEND_MODULE_GLOBALS_ACCESSOR(elastic_otel, member)
+#define EAPM_GL(member) ZEND_MODULE_GLOBALS_ACCESSOR(elastic_otel, globals)->member
 #else
-#define ELASTICAPM_G(member) (elastic_apm_globals.member)
-#define EAPM_GL(member) (elastic_apm_globals.globals)->member
+#define ELASTICAPM_G(member) (elastic_otel_globals.member)
+#define EAPM_GL(member) (elastic_otel_globals.globals)->member
 #endif
 #define EAPM_CFG(option) (*EAPM_GL(config_))->option

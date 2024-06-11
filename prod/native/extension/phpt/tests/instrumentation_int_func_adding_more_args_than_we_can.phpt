@@ -1,15 +1,15 @@
 --TEST--
 instrumentation - internal func - adding more arguements than we can
 --ENV--
-ELASTIC_APM_LOG_LEVEL_STDERR=INFO
+ELASTIC_OTEL_LOG_LEVEL_STDERR=INFO
 --INI--
 extension=/elastic/elastic_otel_php.so
-elastic_apm.bootstrap_php_part_file={PWD}/includes/bootstrap_mock.inc
+elastic_otel.bootstrap_php_part_file={PWD}/includes/bootstrap_mock.inc
 --FILE--
 <?php
 declare(strict_types=1);
 
-elastic_apm_hook(NULL, "str_contains", function () {
+elastic_otel_hook(NULL, "str_contains", function () {
 	echo "*** prehook()\n";
  	echo "args:\n";
 	var_dump(func_get_args());

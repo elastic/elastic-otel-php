@@ -27,16 +27,6 @@
 
 namespace elasticapm::php {
 
-//TODO Windbg sink
-// #ifdef PHP_WIN32
-// void writeToWindowsSystemDebugger(const char *msg) {
-//     ELASTIC_APM_ASSERT_VALID_STRING(msg);
-
-//     OutputDebugStringA(msg);
-// }
-// #endif
-
-
 bool Logger::doesMeetsLevelCondition(LogLevel level) const {
     auto maxLevel = LogLevel::logLevel_off;
     for (auto const &sink : sinks_) {

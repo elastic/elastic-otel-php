@@ -29,10 +29,6 @@
 
 #include <memory>
 
-#if defined(ZTS) && defined(COMPILE_DL_ELASTIC_APM)
-ZEND_TSRMLS_CACHE_EXTERN()
-#endif
-
 struct BridgeGlobals {
     BridgeGlobals() {
         auto sink = std::make_shared<elasticapm::php::LoggerSinkStdErr>();

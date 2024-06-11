@@ -1,10 +1,10 @@
 --TEST--
 instrumentation - user method - args post processing and return value replacement
 --ENV--
-ELASTIC_APM_LOG_LEVEL_STDERR=INFO
+ELASTIC_OTEL_LOG_LEVEL_STDERR=INFO
 --INI--
 extension=/elastic/elastic_otel_php.so
-elastic_apm.bootstrap_php_part_file={PWD}/includes/bootstrap_mock.inc
+elastic_otel.bootstrap_php_part_file={PWD}/includes/bootstrap_mock.inc
 --FILE--
 <?php
 declare(strict_types=1);
@@ -20,7 +20,7 @@ class TestClass {
   }
 }
 
-elastic_apm_hook("testclass", "userspace", function () {
+elastic_otel_hook("testclass", "userspace", function () {
 	echo "*** prehook userspace()\n";
  	echo "args:\n";
 	var_dump(func_get_args());

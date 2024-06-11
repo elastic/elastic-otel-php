@@ -6,7 +6,7 @@ echo -e "$0 -b build_architecture -p php_version [-t tests]
 
 Arguments description:
     -b build_architecture   required, architecture of agent so library, f.ex. linux-x86-64
-    -p php_version          PHP version f.ex. 80 or 83 
+    -p php_version          PHP version f.ex. 80 or 83
     -t tests                Tests to run, folder or particular test file name. Default: tests
     -f path                 Generate test failures archive and save it in path
     -h                      print this help
@@ -78,9 +78,9 @@ docker run --rm \
     -v ${ELASTIC_AGENT_PHP_PATH}:/elastic/php \
     -v ${ELASTIC_AGENT_SO_PATH}:/elastic/elastic_otel_php.so \
     -w /phpt-tests \
-    php:${PHP_VERSION:0:1}.${PHP_VERSION:1:1}-cli${ALPINE_IMAGE} sh -c "php -n ${RUN_TESTS} -w ${LOG_FAILED_TESTS} ${TESTS_TO_RUN} 2>&1 | tee ${LOG_TEST_RUN}"
+    php:${PHP_VERSION:0:1}.${PHP_VERSION:1:1}-cli${ALPINE_IMAGE} sh -c "php -n ${RUN_TESTS} -s ${LOG_TEST_RUN} -w ${LOG_FAILED_TESTS} ${TESTS_TO_RUN}"
 
-if [ -s ${LOCAL_LOG_FAILED_TESTS} ]; then
+if [ $? -ne 0 ]; then
     echo "Test failed"
 
     pushd ${LOCAL_TMP_DIR}
