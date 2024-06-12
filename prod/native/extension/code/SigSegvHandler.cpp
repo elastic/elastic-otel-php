@@ -17,12 +17,12 @@
  * under the License.
  */
 
+#include "elastic_otel_version.h"
 #include "LoggerInterface.h"
 #include "ModuleGlobals.h"
 #include "CommonUtils.h"
 #include "os/StackTraceCapture.h"
 
-#include "elastic_otel_version.h"
 
 #include <signal.h>
 

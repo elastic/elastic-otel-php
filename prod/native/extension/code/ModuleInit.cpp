@@ -21,6 +21,7 @@
 #   define CURL_STATICLIB
 #endif
 
+#include "elastic_otel_version.h"
 #include "CommonUtils.h"
 #include "ConfigurationManager.h"
 #include "ConfigurationSnapshot.h"

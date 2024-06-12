@@ -67,8 +67,8 @@ LOG_TEST_RUN=/phpt-tests/test-run.log
 RUN_TESTS=/usr/local/lib/php/build/run-tests.php
 
 # copy test folder or test file into temp folder
-mkdir -p ${LOCAL_TMP_DIR}/$(dirname ${TESTS_TO_RUN})
-cp  -R ${TESTS_TO_RUN} ${LOCAL_TMP_DIR}/${TESTS_TO_RUN}
+mkdir -p "${LOCAL_TMP_DIR}/$(dirname ${TESTS_TO_RUN})"
+cp  -R "${TESTS_TO_RUN}" "${LOCAL_TMP_DIR}/${TESTS_TO_RUN}"
 
 docker run --rm \
     -v ${LOCAL_TMP_DIR}/tests:/phpt-tests/tests \

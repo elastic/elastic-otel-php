@@ -3,15 +3,26 @@ cmake_minimum_required(VERSION 3.26.0)
 # set path for our local includes
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/building/cmake")
 
-#include(elastic_get_git_version)
-#elastic_get_git_version(_ELASTIC_PROJECT_VERSION _ELASTIC_SIMPLE_VERSION _ELASTIC_PROJECT_REVISION)
 
-#message(STATUS "Project version: ${_ELASTIC_PROJECT_VERSION} (${_ELASTIC_SIMPLE_VERSION}) / ${_ELASTIC_PROJECT_REVISION}")
+include(elastic_read_properties)
+elastic_read_properties("../../elastic-otel-php.properties" "_PROJECT_PROPERTIES_")
+
+set(_PROJECT_PROPERTIES_VERSION_SHORT ${_PROJECT_PROPERTIES_VERSION})
+
+if(DEFINED ENV{GITHUB_SHA})
+    set(GITHUB_SHA $ENV{GITHUB_SHA})
+    message(STATUS "GITHUB_SHA: ${GITHUB_SHA}")
+else()
+    message(STATUS "GITHUB_SHA is not defined in the environment. Trying to get hash from source tree")
+    include(elastic_get_git_version)
+    elastic_git_get_hash(_COMMIT_HASH_REV)
+    set(_PROJECT_PROPERTIES_VERSION "${_PROJECT_PROPERTIES_VERSION}~${_COMMIT_HASH_REV}")
+endif()
+
+message(STATUS "Project version: ${_PROJECT_PROPERTIES_VERSION}")
 
 project("elastic-otel-php"
-#TODO need to handle versioning somehow and generate C++ and PHP version automatically
- #   VERSION "${_ELASTIC_PROJECT_VERSION}"
-    VERSION "1.0"
+    VERSION ${_PROJECT_PROPERTIES_VERSION_SHORT}
     LANGUAGES C CXX
 )
 

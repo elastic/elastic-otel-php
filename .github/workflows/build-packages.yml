@@ -48,7 +48,10 @@ jobs:
             name: php-dependencies
       - name: Build packages
         run: |
-          ./tools/build/build_packages.sh --package_version 1.0.0 --build_architecture ${{ matrix.arch }} --package_goarchitecture ${{ matrix.goarch }} --package_types '${{ matrix.packages }}' --package_sha '${{ github.sha }}'
+          source "./tools/read_properties.sh"
+          read_properties elastic-otel-php.properties ELASTIC_OTEL_PHP
+
+          ./tools/build/build_packages.sh --package_version ${ELASTIC_OTEL_PHP_VERSION} --build_architecture ${{ matrix.arch }} --package_goarchitecture ${{ matrix.goarch }} --package_types '${{ matrix.packages }}' --package_sha '${{ github.sha }}'
       - uses: actions/upload-artifact@v4
         with:
           name: packages-${{ matrix.arch }}
