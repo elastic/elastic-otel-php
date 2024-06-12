@@ -19,8 +19,6 @@
 
 #pragma once
 
-#include "elastic_otel_version.h"
-
 #include "AgentGlobals.h"
 #include "PhpErrorData.h"
 
