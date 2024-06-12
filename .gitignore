@@ -14,6 +14,7 @@
 composer.lock
 composer.phar
 vendor/
+prod/php/vendor_*/
 
 # PHP_CodeSniffer
 .php_cs.cache
@@ -23,6 +24,13 @@ vendor/
 # This allows a developer to use a custom configuration without running the risk of accidentally checking it into version control.
 phpunit.xml
 .phpunit.result.cache
+
+#phpt results folder
+prod/native/extension/phpt/results/
+prod/native/phpbridge_extension/phpt/results/
+
+#native build folder
+prod/native/_build/
 
 # Built documentation
 html_docs
