@@ -51,11 +51,10 @@ jobs:
         run: |
           uname -a
           echo "Arch: ${BUILD_ARCHITECTURE}"
-          ./tools/build/test_phpt.sh --build_architecture ${BUILD_ARCHITECTURE} --php_versions '80 81 82 83'
+          ./tools/build/test_phpt.sh --build_architecture ${BUILD_ARCHITECTURE} --results_path ${PWD}/build/test_phpt_results --php_versions '80 81 82 83'
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: test-phpt-failures-${{ matrix.arch }}
           path: |
-            prod/native/extension/phpt/results/*
-            prod/native/phpbridge_extension/phpt/results/*
+            build/test_phpt_results/*

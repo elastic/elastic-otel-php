@@ -20,11 +20,12 @@
 #ifdef HAVE_CONFIG_H
 # include "config.h"
 #endif
+#include "elastic_otel_version.h"
+
 #include "ModuleGlobals.h"
 // external libraries
 #include <main/php.h>
 #include <Zend/zend_types.h>
-
 
 #include "ModuleInit.h"
 

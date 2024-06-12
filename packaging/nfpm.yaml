@@ -1,8 +1,8 @@
 name: "elastic-otel-php"
-arch: "${ELASTIC_OTEL_PHP_ARCH}"
+arch: "${PACKAGE_GOARCHITECTURE}"
 platform: "linux"
 
-version: ${ELASTIC_OTEL_PHP_VERSION}
+version: ${PACKAGE_VERSION}
 version_schema: semver
 
 section: "default"
@@ -15,22 +15,22 @@ provides:
 maintainer: "APM Team <info@elastic.co>"
 description: |
   Elastic OpenTelemetry PHP distribution
-  Git Commit: ${ELASTIC_OTEL_PHP_GIT_SHA}
+  Git Commit: ${PACKAGE_SHA}
 vendor: "Elasticsearch, Inc."
 homepage: "https://github.com/elastic/elastic-otel-php"
 license: "ASL 2.0"
 #changelog: "changelog.yaml"
 contents:
-- src: /source/prod/native/_build/${ELASTIC_OTEL_PHP_PLATFORM}-release/loader/code/elastic_otel_php_loader.so
+- src: /source/prod/native/_build/${BUILD_ARCHITECUTRE}-release/loader/code/elastic_otel_php_loader.so
   dst: /opt/elastic/elastic-otel-php/
   expand: true
-- src: /source/prod/native/_build/${ELASTIC_OTEL_PHP_PLATFORM}-release/extension/code/elastic_otel_php_*.so
+- src: /source/prod/native/_build/${BUILD_ARCHITECUTRE}-release/extension/code/elastic_otel_php_*.so
   dst: /opt/elastic/elastic-otel-php/
   expand: true
 - src: /source/prod/php
   dst: /opt/elastic/elastic-otel-php/php
   expand: true
-- src: /source/packaging/elastic-otel-custom-template.ini
+- src: /source/packaging/configs/elastic-otel-custom-template.ini
   dst: /opt/elastic/elastic-otel-php/etc/elastic-otel-custom.ini
   type: config
 - src: /source/README.md
@@ -41,5 +41,5 @@ contents:
   dst: /opt/elastic/elastic-otel-php/LICENSE
 
 scripts:
-  postinstall: /source/packaging/post-install.sh
-  preremove: /source/packaging/before-uninstall.sh
+  postinstall: /source/packaging/scripts/post-install.sh
+  preremove: /source/packaging/scripts/before-uninstall.sh

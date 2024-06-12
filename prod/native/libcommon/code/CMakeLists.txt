@@ -17,9 +17,11 @@ target_link_libraries(${_Target}
     PRIVATE CONAN_PKG::libunwind
 )
 
+configure_file("elastic_otel_version.h.in" "${CMAKE_CURRENT_BINARY_DIR}/generated/elastic_otel_version.h")
+
 target_include_directories(${_Target} PUBLIC "./"
                                             "${CONAN_INCLUDE_DIRS_BOOST}"
                                             "${CONAN_INCLUDE_DIRS_LIBUNWIND}"
-
+                                            "${CMAKE_CURRENT_BINARY_DIR}/generated/"
                                             )
 
