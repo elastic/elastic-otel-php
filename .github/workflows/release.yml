@@ -1,0 +1,213 @@
+---
+name: release
+
+permissions:
+  contents: read
+
+on:
+  push:
+    tags: [ "v[0-9]+*" ]
+    branches:
+      - main
+      - root_span_for_PHP_lifecycle_request
+
+env:
+  BUILD_PACKAGES: build/packages
+
+jobs:
+
+  release-started:
+    name: Send release started notification
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags')
+    steps:
+      - uses: elastic/oblt-actions/slack/send@v1.8.0
+        with:
+          bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
+          channel-id: "#apm-agent-php"
+          message: |
+            :runner: [${{ github.repository }}] Release *${{ github.ref_name }}* has been triggered : (<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|here> for further details)
+
+  build:
+    uses: ./.github/workflows/build.yml
+
+  # build-packages:
+  #   permissions:
+  #     contents: read
+  #     packages: read
+  #   needs:
+  #     - build
+  #   uses: ./.github/workflows/build-packages.yml
+
+  sign:
+    runs-on: ubuntu-latest
+    needs:
+      - build
+    env:
+      BUCKET_NAME: "elastic-otel-php"
+    permissions:
+      attestations: write
+      id-token: write
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: package
+          path: ${{ env.BUILD_PACKAGES }}
+
+      - name: generate build provenance
+        uses: actions/attest-build-provenance@49df96e17e918a15956db358890b08e61c704919  # v1.2.0
+        with:
+          subject-path: "${{ github.workspace }}/${{ env.BUILD_PACKAGES }}/*"
+
+      ## NOTE: The name of the zip should match the name of the folder to be zipped.
+      - name: Prepare packages to be signed
+        run: zip -r packages.zip packages/
+        working-directory: build
+
+      - name: 'Get service account'
+        uses: hashicorp/vault-action@v3.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_SECRET_ID }}
+          method: approle
+          secrets: |
+            secret/observability-team/ci/apm-agent-php-bucket service-account | SERVICE_ACCOUNT ;
+
+      - name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          credentials_json: '${{ env.SERVICE_ACCOUNT }}'
+
+      - id: 'upload-file'
+        uses: 'google-github-actions/upload-cloud-storage@v2'
+        with:
+          path: "${{ env.BUILD_PACKAGES }}.zip"
+          destination: "${{ env.BUCKET_NAME }}/${{ github.run_id }}"
+          predefinedAcl: "publicRead"
+
+      - id: buildkite-run
+        uses: elastic/oblt-actions/buildkite/run@v1.8.0
+        with:
+          token: ${{ secrets.BUILDKITE_TOKEN }}
+          pipeline: observability-robots-php-release
+          wait-for: true
+          env-vars: |
+            BUNDLE_URL=https://storage.googleapis.com/${{ env.BUCKET_NAME }}/${{ steps.upload-file.outputs.uploaded }}
+
+      - uses: elastic/oblt-actions/buildkite/download-artifact@v1.8.0
+        with:
+          build-number: ${{ steps.buildkite-run.outputs.number }}
+          path: signed-artifacts.zip
+          pipeline: ${{ steps.buildkite-run.outputs.pipeline }}
+          token: ${{ secrets.BUILDKITE_TOKEN }}
+
+      # this artifact name is used also in some other places,
+      # such as ./.github/workflows/test-packages.yml.
+      # Therefore v4 cannot be used at the moment.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: signed-artifacts
+          path: signed-artifacts.zip
+
+  # generate-test-packages-matrix:
+  #   if: startsWith(github.ref, 'refs/tags')
+  #   uses: ./.github/workflows/generate-matrix.yml
+
+  # test-packages:
+  #   if: startsWith(github.ref, 'refs/tags')
+  #   needs:
+  #     - sign
+  #     - generate-test-packages-matrix
+  #   permissions:
+  #     contents: read
+  #     packages: read
+  #   uses: ./.github/workflows/test-packages.yml
+  #   with:
+  #     include: ${{ needs.generate-test-packages-matrix.outputs.include }}
+  #     max-parallel: 40
+  #     package-name: 'signed-artifacts'
+
+  #TODO verify if tag match version from properties files
+
+  release:
+    # needs:
+    #   - test-packages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      TAG_NAME: ${{ github.ref_name }}
+    steps:
+      - name: Validate Github token
+        run: |
+          if [ -z "${GITHUB_TOKEN}" ]; then
+            echo "Please set GITHUB_TOKEN in the environment to perform a release"
+            exit 1
+          fi
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: signed-artifacts
+          path: ${{ env.BUILD_PACKAGES }}
+      - name: Unzip signed packages
+        run: unzip ${PACKAGE_FILE} && rm ${PACKAGE_FILE}
+        working-directory: ${{ env.BUILD_PACKAGES }}
+        env:
+          PACKAGE_FILE: "signed-artifacts.zip"
+
+      - name: Create draft release
+        if: startsWith(github.ref, 'refs/tags')
+        run: |
+          gh release create "${TAG_NAME}" --draft --title "${TAG_NAME}" --repo elastic/elastic-otel-php \
+          --notes "For more information, please see the [changelog](https://www.elastic.co/guide/en/apm/agent/php/current/release-notes.html)." \
+          build/packages/*.*
+      - name: Verify sha512 sums
+        if: startsWith(github.ref, 'refs/tags')
+        run: |
+          mkdir -p packages_downloaded_from_github
+          pushd packages_downloaded_from_github
+            gh release download "${TAG_NAME}"
+            ls -l .
+            echo "Verifying that downloaded artifacts pass the downloaded checksums..."
+            sha512sum --check ./*.sha512
+          popd
+
+          sort "${BUILD_PACKAGES}/"*.sha512 > original_artifacts.sha512
+          sort "packages_downloaded_from_github/"*.sha512 > downloaded_artifacts.sha512
+
+          cat original_artifacts.sha512
+          cat downloaded_artifacts.sha512
+
+          echo "Verifying that original and downloaded artifacts have the same checksums..."
+          diff original_artifacts.sha512 downloaded_artifacts.sha512 || exit 1
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags')
+        run: gh release edit "${TAG_NAME}" --draft=false
+
+
+  notify:
+    if: always()
+    needs:
+      - build
+      # - build-packages
+      # - generate-test-packages-matrix
+      - release
+      - sign
+      # - test-packages
+    runs-on: ubuntu-latest
+    steps:
+      - id: check
+        uses: elastic/apm-pipeline-library/.github/actions/check-dependent-jobs@current
+        with:
+          needs: ${{ toJSON(needs) }}
+      - if: startsWith(github.ref, 'refs/tags')
+        uses: elastic/oblt-actions/slack/notify-result@v1.8.0
+        with:
+          bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
+          channel-id: "#apm-agent-php"
+          status: ${{ steps.check.outputs.status }}
+          message: "[${{ github.repository }}] Release (<${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ github.ref_name }}|${{ github.ref_name }}>)"
