@@ -33,14 +33,6 @@ jobs:
     with:
       build_arch: 'x86_64'
 
-  # build-packages:
-  #   permissions:
-  #     contents: read
-  #     packages: read
-  #   needs:
-  #     - build
-  #   uses: ./.github/workflows/build-packages.yml
-
   sign:
     runs-on: ubuntu-latest
     needs:
@@ -53,11 +45,12 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - name: Download package artifacts
+        uses: actions/download-artifact@v4
         with:
-          name: package
+          pattern: packages-*
           path: ${{ env.BUILD_PACKAGES }}
-
+      - run: ls -R ${{ env.BUILD_PACKAGES }}
       - name: generate build provenance
         uses: actions/attest-build-provenance@49df96e17e918a15956db358890b08e61c704919  # v1.2.0
         with:
@@ -135,8 +128,9 @@ jobs:
   #TODO verify if tag match version from properties files
 
   release:
-    # needs:
-    #   - test-packages
+    needs:
+      - build
+      - sign
     runs-on: ubuntu-latest
     permissions:
       contents: write
