@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags')
     steps:
-      - uses: elastic/oblt-actions/slack/send@v1.8.0
+      - uses: elastic/oblt-actions/slack/send@v1
         with:
           bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
           channel-id: "#apm-agent-php"
@@ -38,7 +38,7 @@ jobs:
     needs:
       - build
     env:
-      BUCKET_NAME: "apm-agent-php"
+      BUCKET_NAME: "elastic-otel-php"
     permissions:
       attestations: write
       id-token: write
@@ -61,30 +61,18 @@ jobs:
         run: zip -r packages.zip packages/
         working-directory: build
 
-      - name: 'Get service account'
-        uses: hashicorp/vault-action@v3.0.0
+      - uses: elastic/oblt-actions/google/auth@v1.9.3
         with:
-          url: ${{ secrets.VAULT_ADDR }}
-          roleId: ${{ secrets.VAULT_ROLE_ID }}
-          secretId: ${{ secrets.VAULT_SECRET_ID }}
-          method: approle
-          secrets: |
-            secret/observability-team/ci/apm-agent-php-bucket service-account | SERVICE_ACCOUNT ;
-
-      - name: 'Authenticate to Google Cloud'
-        uses: 'google-github-actions/auth@v2'
-        with:
-          credentials_json: '${{ env.SERVICE_ACCOUNT }}'
+          project-number: '911195782929'
 
       - id: 'upload-file'
         uses: 'google-github-actions/upload-cloud-storage@v2'
         with:
           path: "${{ env.BUILD_PACKAGES }}.zip"
           destination: "${{ env.BUCKET_NAME }}/${{ github.run_id }}"
-          predefinedAcl: "publicRead"
 
       - id: buildkite-run
-        uses: elastic/oblt-actions/buildkite/run@v1.8.0
+        uses: elastic/oblt-actions/buildkite/run@v1.9.3
         with:
           token: ${{ secrets.BUILDKITE_TOKEN }}
           pipeline: observability-robots-php-release
@@ -201,7 +189,7 @@ jobs:
         with:
           needs: ${{ toJSON(needs) }}
       - if: startsWith(github.ref, 'refs/tags')
-        uses: elastic/oblt-actions/slack/notify-result@v1.8.0
+        uses: elastic/oblt-actions/slack/notify-result@v1
         with:
           bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
           channel-id: "#apm-agent-php"
