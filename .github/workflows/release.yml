@@ -50,7 +50,13 @@ jobs:
         with:
           pattern: packages-*
           path: ${{ env.BUILD_PACKAGES }}
-      - run: ls -R ${{ env.BUILD_PACKAGES }}
+      - name: Moving packages out of folders
+        run: |
+          pushd ${{ env.BUILD_PACKAGES }}
+          find . -mindepth 2 -type f -exec mv -t . {} +
+          find . -mindepth 1 -maxdepth 1 -type d -exec rm -r {} +
+          popd
+          ls -R ${{ env.BUILD_PACKAGES }}
       - name: generate build provenance
         uses: actions/attest-build-provenance@49df96e17e918a15956db358890b08e61c704919  # v1.2.0
         with:
