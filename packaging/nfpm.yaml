@@ -9,9 +9,18 @@ section: "default"
 priority: "extra"
 
 replaces:
-- elastic-otel-php
-provides:
-- elastic-otel-php
+- apm-agent-php
+
+overrides:
+  rpm:
+    provides:
+    - elastic-otel-php
+  deb:
+    provides:
+    - elastic-otel-php
+
+depends:
+- bash
 maintainer: "APM Team <info@elastic.co>"
 description: |
   Elastic OpenTelemetry PHP distribution
@@ -29,7 +38,14 @@ contents:
   expand: true
 - src: /source/prod/php
   dst: /opt/elastic/elastic-otel-php/php
-  expand: true
+  type: tree
+  packager: rpm
+- src: /source/prod/php
+  dst: /opt/elastic/elastic-otel-php/php
+  packager: deb
+- src: /source/prod/php
+  dst: /opt/elastic/elastic-otel-php/php
+  packager: apk
 - src: /source/packaging/configs/elastic-otel-custom-template.ini
   dst: /opt/elastic/elastic-otel-php/etc/elastic-otel-custom.ini
   type: config

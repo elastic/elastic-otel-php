@@ -62,6 +62,56 @@ if [[ -z "$PACKAGE_VERSION" ]] || [[ -z "$BUILD_ARCHITECUTRE" ]] || [[ -z "$PACK
     exit 1
 fi
 
+test_package() {
+    local PHP_VERSION=8.3
+    local PKG_TYPE=$1
+    local PKG_FILENAME=$2
+
+    echo ${PKG_FILENAME}
+
+    echo "Starting ${PKG_FILENAME} smoke test"
+
+    local TEST_LICENSE_FILES="echo -n 'Checking for \"copyright\" files existence: ' && test -f /opt/elastic/elastic-otel-php/LICENSE && test -f /opt/elastic/elastic-otel-php/NOTICE && echo -e '\033[0;32mOK\033[0;39m'"
+
+    case "${PKG_TYPE}" in
+        "apk")
+            local INSTALL_SMOKE="apk add --allow-untrusted --verbose --no-cache  /source/build/packages/${PKG_FILENAME} && php /source/packaging/test/smokeTest.php"
+            local UNINSTALL_SMOKE="apk del --verbose --no-cache elastic-otel-php && php /source/packaging/test/smokeTestUninstalled.php"
+            docker run --rm \
+                -v ${PWD}:/source \
+                -e ELASTIC_OTEL_LOG_LEVEL_STDERR=error \
+                php:${PHP_VERSION}-alpine sh -c "ls /source/build/packages && ${INSTALL_SMOKE} && ${TEST_LICENSE_FILES} && ${UNINSTALL_SMOKE} && ls -alR /opt/elastic"
+        ;;
+        "deb")
+            local INSTALL_SMOKE="dpkg -i  /source/build/packages/${PKG_FILENAME} && php /source/packaging/test/smokeTest.php"
+            local UNINSTALL_SMOKE="dpkg --purge elastic-otel-php && php /source/packaging/test/smokeTestUninstalled.php"
+            docker run --rm \
+                -v ${PWD}:/source \
+                -e ELASTIC_OTEL_LOG_LEVEL_STDERR=error \
+                php:${PHP_VERSION} sh -c "ls /source/build/packages && ${INSTALL_SMOKE} && ${TEST_LICENSE_FILES} && ${UNINSTALL_SMOKE} && ls -alR /opt/elastic"
+        ;;
+        "rpm")
+            local INSTALL_PHP="cat /etc/redhat-release && dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-\$(grep -oP '(?<=release )\d+' /etc/redhat-release).noarch.rpm -y && dnf install https://rpms.remirepo.net/enterprise/remi-release-\$(grep -oP '(?<=release )\d+\.\d+' /etc/redhat-release).rpm -y && dnf install --setopt=install_weak_deps=False -y php${PHP_VERSION//./} php${PHP_VERSION//./}-syspaths"
+            local INSTALL_SMOKE="rpm -ivh /source/build/packages/${PKG_FILENAME} && php /source/packaging/test/smokeTest.php"
+            local UNINSTALL_SMOKE="rpm -ve elastic-otel-php && php /source/packaging/test/smokeTestUninstalled.php"
+
+            docker run --rm \
+                -v ${PWD}:/source \
+                -e ELASTIC_OTEL_LOG_LEVEL_STDERR=error \
+                redhat/ubi9 sh -c "ls /source/build/packages && ${INSTALL_PHP} && ${INSTALL_SMOKE} && ${TEST_LICENSE_FILES} && ${UNINSTALL_SMOKE} && ls -alR /opt/elastic"
+        ;;
+        *)
+            echo -e "\033[0;33mPackage ${PKG_FILENAME} can't be tested because smoke test is not implemented\033[0;39m"
+        ;;
+    esac
+
+    if [ $? -ne 0 ]; then
+        echo -e "\033[0;31mPackage ${PKG_FILENAME} smoke test FAILED\033[0;39m"
+        exit 1
+    fi
+
+}
+
 if [ "${PACKAGE_SHA}" == "unknown" ]; then
     GITCMD=$(command -v git)
     if [ $? -eq 0 ]; then
@@ -106,6 +156,9 @@ do
     pushd "${PWD}/build/packages"
     md5sum "${PKG_FILENAME}" >"${PKG_FILENAME}".sha512
     popd
+
+    test_package ${pkg} "${PKG_FILENAME}"
+
 done
 
 rm ${PWD}/build/packages/nfpm.yaml
