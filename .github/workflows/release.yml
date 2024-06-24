@@ -160,7 +160,9 @@ jobs:
         run: |
           mkdir -p packages_downloaded_from_github
           pushd packages_downloaded_from_github
-            gh release download "${TAG_NAME}"
+            for attempt in $(seq 1 3); do
+              gh release download "${TAG_NAME}" && break || (echo "Download draft release assets attempt ${attempt}/3 failed. Waiting 60s." && sleep 60)
+            done
             ls -l .
             echo "Verifying that downloaded artifacts pass the downloaded checksums..."
             sha512sum --check ./*.sha512
