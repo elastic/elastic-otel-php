@@ -48,11 +48,11 @@ final class BootstrapStageLogger
         /** @noinspection PhpUndefinedConstantInspection */
         self::logWithLevel(
         /**
-         * ELASTIC_APM_* constants are provided by the elastic_apm extension
+         * ELASTIC_OTEL_* constants are provided by the elastic_otel_php extension
          *
          * @phpstan-ignore-next-line
          */
-            ELASTIC_APM_LOG_LEVEL_TRACE,
+            ELASTIC_OTEL_LOG_LEVEL_TRACE,
             $message,
             $srcCodeLine,
             $srcCodeFunc
@@ -67,11 +67,11 @@ final class BootstrapStageLogger
         /** @noinspection PhpUndefinedConstantInspection */
         self::logWithLevel(
         /**
-         * ELASTIC_APM_* constants are provided by the elastic_apm extension
+         * ELASTIC_OTEL_* constants are provided by the elastic_otel_php extension
          *
          * @phpstan-ignore-next-line
          */
-            ELASTIC_APM_LOG_LEVEL_DEBUG,
+            ELASTIC_OTEL_LOG_LEVEL_DEBUG,
             $message,
             $srcCodeLine,
             $srcCodeFunc
@@ -86,11 +86,11 @@ final class BootstrapStageLogger
         /** @noinspection PhpUndefinedConstantInspection */
         self::logWithLevel(
         /**
-         * ELASTIC_APM_* constants are provided by the elastic_apm extension
+         * ELASTIC_OTEL_* constants are provided by the elastic_otel_php extension
          *
          * @phpstan-ignore-next-line
          */
-            ELASTIC_APM_LOG_LEVEL_WARNING,
+            ELASTIC_OTEL_LOG_LEVEL_WARNING,
             $message,
             $srcCodeLine,
             $srcCodeFunc
@@ -105,11 +105,11 @@ final class BootstrapStageLogger
         /** @noinspection PhpUndefinedConstantInspection */
         self::logWithLevel(
         /**
-         * ELASTIC_APM_* constants are provided by the elastic_apm extension
+         * ELASTIC_OTEL_* constants are provided by the elastic_otel_php extension
          *
          * @phpstan-ignore-next-line
          */
-            ELASTIC_APM_LOG_LEVEL_CRITICAL,
+            ELASTIC_OTEL_LOG_LEVEL_CRITICAL,
             $message,
             $srcCodeLine,
             $srcCodeFunc
@@ -142,12 +142,12 @@ final class BootstrapStageLogger
         }
 
         /**
-         * elastic_apm_* functions are provided by the elastic_apm extension
+         * elastic_otel_php_* functions are provided by the elastic_otel_php extension
          *
          * @noinspection PhpFullyQualifiedNameUsageInspection, PhpUndefinedFunctionInspection
          * @phpstan-ignore-next-line
          */
-        \elastic_apm_log(
+        \elastic_otel_log(
             0 /* $isForced */,
             $statementLevel,
             'Bootstrap' /* category */,

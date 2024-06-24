@@ -38,7 +38,7 @@ use Throwable;
  *
  * @internal
  *
- * Called by elastic_apm extension
+ * Called by elastic_otel extension
  *
  * @noinspection PhpUnused
  */
@@ -57,25 +57,25 @@ final class PhpPartFacade
 
     private function __construct(float $requestInitStartTime)
     {
-        if (!ElasticApmExtensionUtil::isLoaded()) {
-            throw new RuntimeException(ElasticApmExtensionUtil::EXTENSION_NAME . ' extension is not loaded');
-        }
+        // if (!ElasticApmExtensionUtil::isLoaded()) {
+        //     throw new RuntimeException(ElasticApmExtensionUtil::EXTENSION_NAME . ' extension is not loaded');
+        // }
 
-        $tracer = self::buildTracer();
-        if ($tracer === null) {
-            BootstrapStageLogger::logDebug(
-                'Cutting bootstrap sequence short - tracing is disabled',
-                __LINE__,
-                __FUNCTION__
-            );
-            return;
-        }
+        // $tracer = self::buildTracer();
+        // if ($tracer === null) {
+        //     BootstrapStageLogger::logDebug(
+        //         'Cutting bootstrap sequence short - tracing is disabled',
+        //         __LINE__,
+        //         __FUNCTION__
+        //     );
+        //     return;
+        // }
 
-        $this->transactionForExtensionRequest = new TransactionForExtensionRequest($requestInitStartTime);
+        // $this->transactionForExtensionRequest = new TransactionForExtensionRequest($requestInitStartTime);
     }
 
     /**
-     * Called by elastic_apm extension
+     * Called by elastic_otel extension
      *
      * @noinspection PhpUnused
      *
@@ -233,14 +233,14 @@ final class PhpPartFacade
     private static function ensureHaveLastThrown(TransactionForExtensionRequest $transactionForExtensionRequest): void
     {
         /**
-         * elastic_apm_* functions are provided by the elastic_apm extension
+         * elastic_otel_* functions are provided by the elastic_otel extension
          *
          * @var mixed $lastThrown
          *
          * @noinspection PhpFullyQualifiedNameUsageInspection, PhpUndefinedFunctionInspection
          * @phpstan-ignore-next-line
          */
-        $lastThrown = \elastic_apm_get_last_thrown();
+        $lastThrown = \elastic_otel_get_last_thrown();
         if ($lastThrown === null) {
             return;
         }
@@ -376,25 +376,25 @@ final class PhpPartFacade
     private static function ensureHaveLastPhpError(TransactionForExtensionRequest $transactionForExtensionRequest): void
     {
         /**
-         * elastic_apm_* functions are provided by the elastic_apm extension
+         * elastic_otel_* functions are provided by the elastic_otel extension
          *
          * @noinspection PhpFullyQualifiedNameUsageInspection, PhpUndefinedFunctionInspection
          * @phpstan-ignore-next-line
          */
-        $lastPhpErrorData = \elastic_apm_get_last_php_error();
+        $lastPhpErrorData = \elastic_otel_get_last_php_error();
         if ($lastPhpErrorData === null) {
             return;
         }
 
         if (is_array($lastPhpErrorData)) {
             BootstrapStageLogger::logDebug(
-                'Type of value returned by elastic_apm_get_last_php_error(): ' . DbgUtil::getType($lastPhpErrorData),
+                'Type of value returned by elastic_otel_get_last_php_error(): ' . DbgUtil::getType($lastPhpErrorData),
                 __LINE__,
                 __FUNCTION__
             );
         } else {
             BootstrapStageLogger::logCritical(
-                'Value returned by elastic_apm_get_last_php_error() is not an array'
+                'Value returned by elastic_otel_get_last_php_error() is not an array'
                 . ', ' . 'returned value type: ' . DbgUtil::getType($lastPhpErrorData)
                 . ', ' . 'returned value: ' . $lastPhpErrorData,
                 __LINE__,
@@ -408,7 +408,7 @@ final class PhpPartFacade
     }
 
     /**
-     * Called by elastic_apm extension
+     * Called by elastic_otel extension
      *
      * @noinspection PhpUnused
      */
@@ -423,4 +423,20 @@ final class PhpPartFacade
 
         self::$singletonInstance = null;
     }
+
+    /**
+     * Called by elastic_otel extension
+     *
+     * @noinspection PhpUnused
+     *
+     * @param int   $maxEnabledLogLevel
+     * @param float $requestInitStartTime
+     *
+     * @return bool
+     */
+    public static function handle_error()
+    {
+        var_dump(func_get_args());
+    }
+
 }
