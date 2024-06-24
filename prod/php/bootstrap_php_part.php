@@ -24,6 +24,8 @@ declare(strict_types=1);
 use Elastic\OTel\SrcRootDir;
 
 require __DIR__ . '/ElasticOTel/SrcRootDir.php';
+require __DIR__ . '/ElasticOTel/Util/HiddenConstructorTrait.php';
+
 SrcRootDir::$fullPath = __DIR__;
 
 require __DIR__ . '/ElasticOTel/AutoInstrument/bootstrap_php_part.php';
