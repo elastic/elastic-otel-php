@@ -6,7 +6,7 @@ on:
       build_arch:
         required: true
         type: string
-        default: 'x86_64'
+        default: 'all'
   pull_request:
     paths-ignore:
       - "**/*.asciidoc"
@@ -33,6 +33,8 @@ concurrency:
 jobs:
   build-native:
     uses: ./.github/workflows/build-native.yml
+    with:
+      build_arch: all
 
   build-php-deps:
     uses: ./.github/workflows/build-php-deps.yml
@@ -45,11 +47,15 @@ jobs:
       - build-native
       - build-php-deps
     uses: ./.github/workflows/build-packages.yml
+    with:
+      build_arch: all
 
   tests-phpt:
     needs:
       - build-native
     uses: ./.github/workflows/test-phpt.yml
+    with:
+      build_arch: all
 
   # The very last job to report whether the Workflow passed.
   # This will act as the Branch Protection gatekeeper

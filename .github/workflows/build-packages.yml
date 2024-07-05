@@ -39,6 +39,10 @@ jobs:
       BUILD_ARCHITECTURE: ${{ matrix.arch }}
     steps:
       - uses: actions/checkout@v4
+      - if: ${{ matrix.run_qemu }}
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
       - uses: actions/download-artifact@v4
         with:
           name: build-native-${{ matrix.arch }}
