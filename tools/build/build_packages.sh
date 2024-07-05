@@ -139,6 +139,7 @@ DOCKER_PLATFORM="linux/x86_64"
 if [[ "${BUILD_ARCHITECTURE}" =~ arm64$ ]]; then
      DOCKER_PLATFORM="linux/arm64"
 fi
+echo "Running on platform ${DOCKER_PLATFORM}";
 
 mkdir -p "${PWD}/build/packages"
 envsubst <packaging/nfpm.yaml >${PWD}/build/packages/nfpm.yaml
@@ -148,6 +149,7 @@ do
     echo "Building package type: ${PKG}"
 
     docker run --rm \
+        --platform ${DOCKER_PLATFORM} \
         -e PACKAGE_VERSION="${PACKAGE_VERSION}" \
         -e BUILD_ARCHITECUTRE="${BUILD_ARCHITECUTRE}" \
         -e PACKAGE_GOARCHITECTURE="${PACKAGE_GOARCHITECTURE}" \
