@@ -66,10 +66,12 @@ test_package() {
     local PHP_VERSION=8.3
     local PKG_TYPE=$1
     local PKG_FILENAME=$2
+    local DOCKER_PLATFORM=$3
 
     echo ${PKG_FILENAME}
 
     echo "Starting ${PKG_FILENAME} smoke test"
+    echo "Running on platform ${DOCKER_PLATFORM}";
 
     local TEST_LICENSE_FILES="echo -n 'Checking for \"copyright\" files existence: ' && test -f /opt/elastic/elastic-otel-php/LICENSE && test -f /opt/elastic/elastic-otel-php/NOTICE && echo -e '\033[0;32mOK\033[0;39m'"
 
@@ -78,6 +80,7 @@ test_package() {
             local INSTALL_SMOKE="apk add --allow-untrusted --verbose --no-cache  /source/build/packages/${PKG_FILENAME} && php /source/packaging/test/smokeTest.php"
             local UNINSTALL_SMOKE="apk del --verbose --no-cache elastic-otel-php && php /source/packaging/test/smokeTestUninstalled.php"
             docker run --rm \
+                --platform ${DOCKER_PLATFORM} \
                 -v ${PWD}:/source \
                 -e ELASTIC_OTEL_LOG_LEVEL_STDERR=error \
                 php:${PHP_VERSION}-alpine sh -c "ls /source/build/packages && ${INSTALL_SMOKE} && ${TEST_LICENSE_FILES} && ${UNINSTALL_SMOKE} && ls -alR /opt/elastic"
@@ -86,6 +89,7 @@ test_package() {
             local INSTALL_SMOKE="dpkg -i  /source/build/packages/${PKG_FILENAME} && php /source/packaging/test/smokeTest.php"
             local UNINSTALL_SMOKE="dpkg --purge elastic-otel-php && php /source/packaging/test/smokeTestUninstalled.php"
             docker run --rm \
+                --platform ${DOCKER_PLATFORM} \
                 -v ${PWD}:/source \
                 -e ELASTIC_OTEL_LOG_LEVEL_STDERR=error \
                 php:${PHP_VERSION} sh -c "ls /source/build/packages && ${INSTALL_SMOKE} && ${TEST_LICENSE_FILES} && ${UNINSTALL_SMOKE} && ls -alR /opt/elastic"
@@ -96,6 +100,7 @@ test_package() {
             local UNINSTALL_SMOKE="rpm -ve elastic-otel-php && php /source/packaging/test/smokeTestUninstalled.php"
 
             docker run --rm \
+                --platform ${DOCKER_PLATFORM} \
                 -v ${PWD}:/source \
                 -e ELASTIC_OTEL_LOG_LEVEL_STDERR=error \
                 redhat/ubi9 sh -c "ls /source/build/packages && ${INSTALL_PHP} && ${INSTALL_SMOKE} && ${TEST_LICENSE_FILES} && ${UNINSTALL_SMOKE} && ls -alR /opt/elastic"
@@ -130,6 +135,11 @@ export BUILD_ARCHITECUTRE="${BUILD_ARCHITECUTRE}"
 export PACKAGE_GOARCHITECTURE="${PACKAGE_GOARCHITECTURE}"
 export PACKAGE_SHA="${PACKAGE_SHA}"
 
+DOCKER_PLATFORM="linux/x86_64"
+if [[ "${BUILD_ARCHITECTURE}" =~ arm64$ ]]; then
+     DOCKER_PLATFORM="linux/arm64"
+fi
+
 mkdir -p "${PWD}/build/packages"
 envsubst <packaging/nfpm.yaml >${PWD}/build/packages/nfpm.yaml
 
@@ -157,7 +167,7 @@ do
     md5sum "${PKG_FILENAME}" >"${PKG_FILENAME}".sha512
     popd
 
-    test_package ${pkg} "${PKG_FILENAME}"
+    test_package ${pkg} "${PKG_FILENAME}" "${DOCKER_PLATFORM}"
 
 done
 

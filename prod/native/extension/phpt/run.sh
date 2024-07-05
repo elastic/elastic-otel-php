@@ -50,8 +50,13 @@ else
     ALPINE_IMAGE=-alpine
 fi
 
-ELASTIC_AGENT_PHP_PATH=${PWD}/../../../php
+DOCKER_PLATFORM="linux/x86_64"
+if [[ "${BUILD_ARCHITECTURE}" =~ arm64$ ]]; then
+     DOCKER_PLATFORM="linux/arm64"
+fi
+echo "Running on platform ${DOCKER_PLATFORM}";
 
+ELASTIC_AGENT_PHP_PATH=${PWD}/../../../php
 
 LOCAL_TMP_DIR=$(mktemp -d)
 
@@ -71,6 +76,7 @@ mkdir -p "${LOCAL_TMP_DIR}/$(dirname ${TESTS_TO_RUN})"
 cp  -R "${TESTS_TO_RUN}" "${LOCAL_TMP_DIR}/${TESTS_TO_RUN}"
 
 docker run --rm \
+    --platform ${DOCKER_PLATFORM} \
     -v ${LOCAL_TMP_DIR}/tests:/phpt-tests/tests \
     -v ./tests_util:/phpt-tests/tests_util \
     -v ${LOCAL_LOG_FAILED_TESTS}:${LOG_FAILED_TESTS} \
