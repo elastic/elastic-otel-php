@@ -11,7 +11,7 @@ This project depends on folliwng packages:
 Package name: Boost C++ Libraries
 Version: 1.83.0
 Authors: Boost contributors (https://github.com/boostorg/boost/graphs/contributors)
-Licenses: BSL-1.0 license 
+Licenses: BSL-1.0 license
 URL: https://github.com/boostorg/boost/tree/boost-1.83.0
 
 
@@ -45,7 +45,7 @@ DEALINGS IN THE SOFTWARE.
 Package name: libcurl
 Version: 8.0.1
 Authors: Daniel Stenberg, <daniel@haxx.se>, and many contributors
-Licenses: Custom (https://github.com/curl/curl/blob/curl-8_0_1/COPYING)
+Licenses: curl (https://github.com/curl/curl/blob/curl-8_0_1/COPYING)
 URL: https://github.com/curl/curl/blob/curl-8_0_1/
 
 curl/COPYING content:
@@ -78,7 +78,7 @@ in this Software without prior written authorization of the copyright holder.
 Package name: libunwind
 Version: 1.6.2
 Authors: David Mosberger <dmosberger@gmail.org>
-Licenses: MIT licenses
+Licenses: MIT
 URL: https://github.com/libunwind/libunwind/tree/b3ca1b59a795a617877c01fe5d299ab7a07ff29d
 
 No NOTICE file found
@@ -129,7 +129,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 Package name: zlib
 Version: 1.3
 Authors: Jean-loup Gailly <jloup@gzip.org> and Mark Adler <madler@alumni.caltech.edu>
-Licenses: Custom zlib license (https://github.com/madler/zlib/blob/09155eaa2f9270dc4ed1fa13e2b4b2613e6e4851/LICENSE)
+Licenses: Zlib (https://github.com/madler/zlib/blob/09155eaa2f9270dc4ed1fa13e2b4b2613e6e4851/LICENSE)
 URL: https://github.com/madler/zlib/tree/09155eaa2f9270dc4ed1fa13e2b4b2613e6e4851
 
 No NOTICE file found
