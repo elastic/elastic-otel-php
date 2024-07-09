@@ -23,7 +23,7 @@ depends:
 - bash
 maintainer: "APM Team <info@elastic.co>"
 description: |
-  Elastic OpenTelemetry PHP distribution
+  Elastic Distribution for OpenTelemetry PHP
   Git Commit: ${PACKAGE_SHA}
 vendor: "Elasticsearch, Inc."
 homepage: "https://github.com/elastic/elastic-otel-php"
