@@ -49,7 +49,7 @@
 
 // #endif /* INFO_H */
 
-#define ELASTIC_PRODUCT_NAME "Elastic OpenTelemetry distribution"
+#define ELASTIC_PRODUCT_NAME "Elastic Distribution for OpenTelemetry PHP"
 
 extern elasticapm::php::ConfigurationManager configManager;
 

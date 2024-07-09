@@ -8,14 +8,14 @@ echo CGREEN."Starting package uninstalled smoke test\n".CDEF;
 
 echo "Checking if extension is loaded: ";
 if (array_search("elastic_otel", get_loaded_extensions()) !== false) {
-    echo CRED."FAILED. Elastic OpenTelemetry extension found\n".CDEF;
+    echo CRED."FAILED. Elastic Distribution for OpenTelemetry PHP extension found\n".CDEF;
     exit(1);
 }
 echo CGREEN."OK\n".CDEF;
 
 echo "Looking for internal function 'elastic_otel_is_enabled': ";
 if (array_search("elastic_otel_is_enabled", get_defined_functions()["internal"]) !== false) {
-    echo CRED."FAILED. Elastic OpenTelemetry extension function 'elastic_otel_is_enabled' found\n".CDEF;
+    echo CRED."FAILED. Elastic Distribution for OpenTelemetry PHP extension function 'elastic_otel_is_enabled' found\n".CDEF;
     exit(1);
 }
 echo CGREEN."OK\n".CDEF;
