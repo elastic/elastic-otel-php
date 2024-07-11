@@ -91,8 +91,13 @@ cd elastic-otel-php
 # Updating docker images used for building and testing
 ## Building and updating docker images used to build the agent extension
 
-If you want to update images used to build native extension, you need to go into `prod/native/building/dockerized` folder and modify Dockerfile stored in images folder. In this moment, there are two Dockerfiles:
-`Dockerfile_musl` for Linux x86_64 with musl libc implementation and `Dockerfile_glibc` for all other x86_64 distros with glibc implementation.
+If you want to update images used to build native extension, you need to go into `prod/native/building/dockerized` folder and modify Dockerfile stored in images folder. In this moment, there are four Dockerfiles:
+
+`Dockerfile_musl` for Linux x86_64 with musl libc implementation\
+`Dockerfile_glibc` for all other x86_64 distros with glibc implementation\
+`Dockerfile_arm64` for all ARM64 linux distros with glibc implementation\
+`Dockerfile_arm64_musl` for ARM64 Linux with musl libc implementation
+
 Then you need to increment image version in `docker-compose.yml`. Remember to update Dockerfiles for all architectures, if needed. To build new images, you just need to call:
 ```bash
 docker compose build
@@ -103,13 +108,14 @@ Successfully tagged elasticobservability/apm-agent-php-dev:native-build-gcc-12.2
 Successfully tagged elasticobservability/apm-agent-php-dev:native-build-gcc-12.2.0-linuxmusl-x86-64-0.0.2
 ```
 
+Be aware that if you want to build images for ARM64 you must run it on ARM64 hardware or inside emulator. The same applies to x86-64.
+
 To test freshly built images, you need to udate image version in ```./tools/build/build_native.sh``` script and run build task described in [Build/package](#build-and-package)
-)
 
 \
 If everything works as you expected, you just need to push new image to dockerhub by calling:
 ```bash
-docker push elasticobservability/apm-agent-php-dev:native-build-gcc-12.2.0-linux-x86-64-0.0.1
+docker push elasticobservability/apm-agent-php-dev:native-build-gcc-12.2.0-linux-x86-64-0.0.2
 ```
 
 ## Building and publishing conan artifacts
