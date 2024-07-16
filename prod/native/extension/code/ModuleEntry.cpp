@@ -120,7 +120,7 @@ PHP_GSHUTDOWN_FUNCTION(elastic_otel) {
     }
 
     // if (elastic_otel_globals->lastErrorData) {
-    //     // elastic_otel_LOG_DIRECT_WARNING( "%s: still holding error", __FUNCTION__);
+    //     // ELASTIC_OTEL_LOG_DIRECT_WARNING( "%s: still holding error", __FUNCTION__);
     //     // we need to relese any dangling php error data beacause it is already freed (it was allocated in request pool)
     //     elastic_otel_globals->lastErrorData.release();
     // }

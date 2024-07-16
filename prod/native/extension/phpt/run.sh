@@ -78,7 +78,6 @@ cp  -R "${TESTS_TO_RUN}" "${LOCAL_TMP_DIR}/${TESTS_TO_RUN}"
 docker run --rm \
     --platform ${DOCKER_PLATFORM} \
     -v ${LOCAL_TMP_DIR}/tests:/phpt-tests/tests \
-    -v ./tests_util:/phpt-tests/tests_util \
     -v ${LOCAL_LOG_FAILED_TESTS}:${LOG_FAILED_TESTS} \
     -v ${LOCAL_LOG_TEST_RUN}:${LOG_TEST_RUN} \
     -v ${ELASTIC_AGENT_PHP_PATH}:/elastic/php \

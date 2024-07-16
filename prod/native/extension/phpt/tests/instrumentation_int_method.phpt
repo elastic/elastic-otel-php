@@ -33,7 +33,7 @@ echo "Test completed\n";
 args:
 array(6) {
   [0]=>
-  object(DateTime)#4 (3) {
+  object(DateTime)#%d (3) {
     ["date"]=>
     string(26) "2010-01-01 00:00:00.000000"
     ["timezone_type"]=>
@@ -59,7 +59,7 @@ array(6) {
 args:
 array(8) {
   [0]=>
-  object(DateTime)#4 (3) {
+  object(DateTime)#%d (3) {
     ["date"]=>
     string(26) "2010-01-01 00:00:00.000000"
     ["timezone_type"]=>

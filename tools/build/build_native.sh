@@ -1,9 +1,11 @@
 #!/bin/bash
 
+set -x
+
 SKIP_CONFIGURE=false
 
 show_help() {
-    echo "Usage: $0 --build_architecture <architecture> [--ncpu <num_cpus>] [--conan_user_home <cache_path>] [--skip_configure]"
+    echo "Usage: $0 --build_architecture <architecture> [--ncpu <num_cpus>] [--conan_user_home <cache_path>] [--skip_configure] [--skip_unit_tests]"
     echo
     echo "Arguments:"
     echo "  --build_architecture     Required. Build architecture (e.g., 'linux-x86-64')."
@@ -11,6 +13,7 @@ show_help() {
     echo "  --conan_user_home        Optional. Path to local user cache for Conan."
     echo "  --skip_configure         Optional. Skip the configuration step."
     echo "  --interactive            Optional. Run container in interactive mode."
+    echo "  --skip_unit_tests        Optional. Skip unit tests. Default is to run unit tests."
     echo
     echo "Example:"
     echo "  $0 --build_architecture linux-x86-64 --ncpu 4 --conan_user_home ~/ --skip_configure"
@@ -36,6 +39,9 @@ parse_args() {
                 ;;
             --interactive)
                 INTERACTIVE=" -i "
+                ;;
+            --skip_unit_tests)
+                SKIP_UNIT_TESTS=true
                 ;;
             --help)
                 show_help
@@ -83,10 +89,18 @@ else
     USERID=" -u $(id -u):$(id -g) "
 fi
 
+if [ "$SKIP_UNIT_TESTS" = true ]; then
+    UNIT_TESTS="echo \"Skipped unit tests (SKIP_UNIT_TESTS: $SKIP_UNIT_TESTS).\""
+else
+    UNIT_TESTS="ctest --preset ${BUILD_ARCHITECTURE}-release --verbose"
+fi
+
+ls -al "${PWD}"
+
 docker run --rm -t ${INTERACTIVE} ${USERID} -v ${PWD}:/source \
     ${CONAN_USER_HOME_MP} \
     -w /source/prod/native \
     -e GITHUB_SHA=${GITHUB_SHA} \
     elasticobservability/apm-agent-php-dev:native-build-gcc-12.2.0-${BUILD_ARCHITECTURE}-0.0.2 \
-    sh -c "id && echo CONAN_USER_HOME=\$CONAN_USER_HOME && ${CONFIGURE} cmake --build --preset ${BUILD_ARCHITECTURE}-release ${NCPU} && ctest --preset ${BUILD_ARCHITECTURE}-release --verbose"
+    sh -c "id && echo CONAN_USER_HOME=\$CONAN_USER_HOME && ${CONFIGURE} cmake --build --preset ${BUILD_ARCHITECTURE}-release ${NCPU} && ${UNIT_TESTS}"
 

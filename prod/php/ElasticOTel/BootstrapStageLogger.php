@@ -1,15 +1,15 @@
 <?php
 
 /*
- * Copyright Elasticsearch B.V. and/or licensed to Elasticsearch B.V. under one
- * or more contributor license agreements. See the NOTICE file distributed with
+ * Licensed to Elasticsearch B.V. under one or more contributor
+ * license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
  * ownership. Elasticsearch B.V. licenses this file to you under
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *  http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -21,42 +21,22 @@
 
 declare(strict_types=1);
 
-namespace Elastic\OTel\AutoInstrument;
+namespace Elastic\OTel;
 
 use Throwable;
 
 /**
- * Code in this file is part of implementation internals and thus it is not covered by the backward compatibility.
+ * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
  *
  * @internal
  */
 final class BootstrapStageLogger
 {
-    /** @var int */
-    private static $maxEnabledLevel;
+    private static int $maxEnabledLevel;
 
     public static function configure(int $maxEnabledLevel): void
     {
         self::$maxEnabledLevel = $maxEnabledLevel;
-    }
-
-    public static function logTrace(
-        string $message,
-        int $srcCodeLine,
-        string $srcCodeFunc
-    ): void {
-        /** @noinspection PhpUndefinedConstantInspection */
-        self::logWithLevel(
-        /**
-         * ELASTIC_OTEL_* constants are provided by the elastic_otel_php extension
-         *
-         * @phpstan-ignore-next-line
-         */
-            ELASTIC_OTEL_LOG_LEVEL_TRACE,
-            $message,
-            $srcCodeLine,
-            $srcCodeFunc
-        );
     }
 
     public static function logDebug(
@@ -64,14 +44,14 @@ final class BootstrapStageLogger
         int $srcCodeLine,
         string $srcCodeFunc
     ): void {
-        /** @noinspection PhpUndefinedConstantInspection */
+        /** @noinspection PhpUndefinedConstantInspection, PhpFullyQualifiedNameUsageInspection */
         self::logWithLevel(
         /**
-         * ELASTIC_OTEL_* constants are provided by the elastic_otel_php extension
+         * ELASTIC_OTEL_* constants are provided by the extension
          *
          * @phpstan-ignore-next-line
          */
-            ELASTIC_OTEL_LOG_LEVEL_DEBUG,
+            \ELASTIC_OTEL_LOG_LEVEL_DEBUG,
             $message,
             $srcCodeLine,
             $srcCodeFunc
@@ -83,14 +63,14 @@ final class BootstrapStageLogger
         int $srcCodeLine,
         string $srcCodeFunc
     ): void {
-        /** @noinspection PhpUndefinedConstantInspection */
+        /** @noinspection PhpUndefinedConstantInspection, PhpFullyQualifiedNameUsageInspection */
         self::logWithLevel(
         /**
-         * ELASTIC_OTEL_* constants are provided by the elastic_otel_php extension
+         * ELASTIC_OTEL_* constants are provided by the extension
          *
          * @phpstan-ignore-next-line
          */
-            ELASTIC_OTEL_LOG_LEVEL_WARNING,
+            \ELASTIC_OTEL_LOG_LEVEL_WARNING,
             $message,
             $srcCodeLine,
             $srcCodeFunc
@@ -102,14 +82,14 @@ final class BootstrapStageLogger
         int $srcCodeLine,
         string $srcCodeFunc
     ): void {
-        /** @noinspection PhpUndefinedConstantInspection */
+        /** @noinspection PhpUndefinedConstantInspection, PhpFullyQualifiedNameUsageInspection */
         self::logWithLevel(
         /**
-         * ELASTIC_OTEL_* constants are provided by the elastic_otel_php extension
+         * ELASTIC_OTEL_* constants are provided by the extension
          *
          * @phpstan-ignore-next-line
          */
-            ELASTIC_OTEL_LOG_LEVEL_CRITICAL,
+            \ELASTIC_OTEL_LOG_LEVEL_CRITICAL,
             $message,
             $srcCodeLine,
             $srcCodeFunc
@@ -142,7 +122,7 @@ final class BootstrapStageLogger
         }
 
         /**
-         * elastic_otel_php_* functions are provided by the elastic_otel_php extension
+         * elastic_otel_* functions are provided by the extension
          *
          * @noinspection PhpFullyQualifiedNameUsageInspection, PhpUndefinedFunctionInspection
          * @phpstan-ignore-next-line
