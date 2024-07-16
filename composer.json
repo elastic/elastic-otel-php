@@ -1,6 +1,6 @@
 {
     "name": "elastic/otel-distro",
-    "description": "Elastic distribution of OpenTelemetry for PHP",
+    "description": "Elastic Distribution for OpenTelemetry PHP",
     "keywords": [ "elastic", "open telemetry", "OTel", "apm", "tracing", "apm-agent" ],
     "type": "project",
     "license": "Apache-2.0",

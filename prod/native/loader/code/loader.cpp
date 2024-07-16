@@ -148,12 +148,12 @@ __attribute__ ((visibility("default"))) elasticapm::loader::phpdata::zend_module
     elastic_otel_loader_module_entry.zts = isThreadSafe;
 
     if (!isVersionSupported) {
-        LOG_TO_SYSLOG_AND_STDERR( "Zend Engine version %s is not supported by Elastic OpenTelemetry distro\n", std::string(zendVersion).c_str());
+        LOG_TO_SYSLOG_AND_STDERR("Zend Engine version %s is not supported by Elastic Distribution for OpenTelemetry PHP\n", std::string(zendVersion).c_str());
         return &elastic_otel_loader_module_entry;
     }
 
     if (isThreadSafe) {
-        LOG_TO_SYSLOG_AND_STDERR( "Thread Safe mode (ZTS) is not supported by Elastic OpenTelemetry distro\n");
+        LOG_TO_SYSLOG_AND_STDERR("Thread Safe mode (ZTS) is not supported by Elastic Distribution for OpenTelemetry PHP\n");
         return &elastic_otel_loader_module_entry; // unsupported thread safe mode
     }
 
@@ -161,7 +161,7 @@ __attribute__ ((visibility("default"))) elasticapm::loader::phpdata::zend_module
     Dl_info dl_info;
     dladdr((void *)get_module, &dl_info);
     if (!dl_info.dli_fname) {
-        LOG_TO_SYSLOG_AND_STDERR( "Unable to resolve path to Elastic OpenTelemetry PHP libraries\n");
+        LOG_TO_SYSLOG_AND_STDERR("Unable to resolve path to Elastic Distribution for OpenTelemetry PHP libraries\n");
         return &elastic_otel_loader_module_entry;
     }
 
