@@ -25,7 +25,7 @@ namespace Elastic\OTel\Log;
 
 use Elastic\OTel\Util\ClassNameUtil;
 use Elastic\OTel\Util\DbgUtil;
-use Elastic\OTel\Util\ElasticApmExtensionUtil;
+use Elastic\OTel\Util\ElasticOTelExtensionUtil;
 
 /**
  * Code in this file is part of implementation internals and thus it is not covered by the backward compatibility.
@@ -47,7 +47,7 @@ final class Backend implements LoggableInterface
     {
         $this->maxEnabledLevel = $maxEnabledLevel;
         $this->logSink = $logSink ??
-                         (ElasticApmExtensionUtil::isLoaded()
+                         (ElasticOTelExtensionUtil::isLoaded()
                              ? new SinkToCExt()
                              : NoopLogSink::singletonInstance());
     }

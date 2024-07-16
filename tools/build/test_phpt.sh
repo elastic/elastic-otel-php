@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -x
+
 show_help() {
     echo "Usage: $0 --build_architecture <architecture> --php_versions <versions> --results_path <path>"
     echo
