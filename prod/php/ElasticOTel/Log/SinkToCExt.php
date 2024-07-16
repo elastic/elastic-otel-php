@@ -39,12 +39,12 @@ final class SinkToCExt extends SinkBase
         string $messageWithContext
     ): void {
         /**
-         * elastic_apm_* functions are provided by the elastic_apm extension
+         * elastic_otel_* functions are provided by the elastic_apm extension
          *
          * @noinspection PhpFullyQualifiedNameUsageInspection, PhpUndefinedFunctionInspection
          * @phpstan-ignore-next-line
          */
-        \elastic_apm_log(
+        \elastic_otel_log(
             0 /* $isForced */,
             $statementLevel,
             $category,

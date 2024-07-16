@@ -21,8 +21,8 @@ if (array_search("elastic_otel_is_enabled", get_defined_functions()["internal"])
 echo CGREEN."OK\n".CDEF;
 
 echo "Looking for PhpPartFacade class: ";
-if (array_search("Elastic\OTel\AutoInstrument\PhpPartFacade", get_declared_classes()) !== false) {
-    echo CRED."FAILED. Elastic\OTel\AutoInstrument\PhpPartFacade class not found. Bootstrap failed\n".CDEF;
+if (array_search("Elastic\OTel\PhpPartFacade", get_declared_classes()) !== false) {
+    echo CRED."FAILED. Elastic\OTel\PhpPartFacade class not found. Bootstrap failed\n".CDEF;
     exit(1);
 }
 echo CGREEN."OK\n".CDEF;

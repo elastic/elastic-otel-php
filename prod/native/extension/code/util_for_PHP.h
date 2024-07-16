@@ -21,18 +21,18 @@
 
 
 
-#define ELASTIC_APM_PP_CONCAT_IMPL( token1, token2 ) token1##token2
-#define ELASTIC_APM_PP_CONCAT( token1, token2 ) ELASTIC_APM_PP_CONCAT_IMPL( token1, token2 )
+#define ELASTIC_OTEL_PP_CONCAT_IMPL( token1, token2 ) token1##token2
+#define ELASTIC_OTEL_PP_CONCAT( token1, token2 ) ELASTIC_OTEL_PP_CONCAT_IMPL( token1, token2 )
 
-#define ELASTIC_APM_ZEND_ADD_ASSOC( map, key, valueType, value ) ELASTIC_APM_PP_CONCAT( ELASTIC_APM_PP_CONCAT( add_assoc_, valueType ), _ex)( (map), (key), sizeof( key ) - 1, (value) )
+#define ELASTIC_OTEL_ZEND_ADD_ASSOC( map, key, valueType, value ) ELASTIC_OTEL_PP_CONCAT( ELASTIC_OTEL_PP_CONCAT( add_assoc_, valueType ), _ex)( (map), (key), sizeof( key ) - 1, (value) )
 
-#define ELASTIC_APM_ZEND_ADD_ASSOC_NULLABLE_STRING( map, key, value ) \
+#define ELASTIC_OTEL_ZEND_ADD_ASSOC_NULLABLE_STRING( map, key, value ) \
     do { \
         if ( (value) == NULL ) \
         { \
-            zval elastic_apm_zend_add_assoc_nullable_string_aux_zval; \
-            ZVAL_NULL( &elastic_apm_zend_add_assoc_nullable_string_aux_zval ); \
-            add_assoc_zval_ex( (map), (key), sizeof( key ) - 1, &elastic_apm_zend_add_assoc_nullable_string_aux_zval ); \
+            zval elastic_otel_zend_add_assoc_nullable_string_aux_zval; \
+            ZVAL_NULL( &elastic_otel_zend_add_assoc_nullable_string_aux_zval ); \
+            add_assoc_zval_ex( (map), (key), sizeof( key ) - 1, &elastic_otel_zend_add_assoc_nullable_string_aux_zval ); \
         } \
         else \
         { \

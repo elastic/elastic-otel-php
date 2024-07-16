@@ -50,8 +50,8 @@ final class StackTraceUtil
     public const FILE_NAME_NOT_AVAILABLE_SUBSTITUTE = 'FILE NAME N/A';
     public const LINE_NUMBER_NOT_AVAILABLE_SUBSTITUTE = 0;
 
-    private const ELASTIC_APM_FQ_NAME_PREFIX = 'Elastic\\Apm\\';
-    private const ELASTIC_APM_INTERNAL_FUNCTION_NAME_PREFIX = 'elastic_apm_';
+    private const ELASTIC_OTEL_FQ_NAME_PREFIX = 'ElasticOTel\\';
+    private const ELASTIC_OTEL_INTERNAL_FUNCTION_NAME_PREFIX = 'elastic_otel_';
 
 
     /** @var LoggerFactory */
@@ -68,8 +68,8 @@ final class StackTraceUtil
 
     public function __construct(
         LoggerFactory $loggerFactory,
-        string $namePrefixForFramesToHide = self::ELASTIC_APM_FQ_NAME_PREFIX,
-        string $namePrefixForInternalFramesToHide = self::ELASTIC_APM_INTERNAL_FUNCTION_NAME_PREFIX
+        string $namePrefixForFramesToHide = self::ELASTIC_OTEL_FQ_NAME_PREFIX,
+        string $namePrefixForInternalFramesToHide = self::ELASTIC_OTEL_INTERNAL_FUNCTION_NAME_PREFIX
     ) {
         $this->loggerFactory = $loggerFactory;
         $this->logger = $this->loggerFactory->loggerForClass(LogCategory::INFRASTRUCTURE, __NAMESPACE__, __CLASS__, __FILE__);

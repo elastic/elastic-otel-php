@@ -85,12 +85,12 @@ function sharedChecks(): void
     //     die('Extension elastic_apm must be installed');
     // }
 
-    // elasticApmAssertSame("getenv('ELASTIC_APM_LOG_LEVEL_STDERR')", getenv('ELASTIC_APM_LOG_LEVEL_STDERR'), 'CRITICAL');
+    // elasticApmAssertSame("getenv('ELASTIC_OTEL_LOG_LEVEL_STDERR')", getenv('ELASTIC_OTEL_LOG_LEVEL_STDERR'), 'CRITICAL');
     // /** @noinspection PhpUndefinedFunctionInspection, PhpUndefinedConstantInspection */
     // elasticApmAssertSame(
-    //     "elastic_apm_get_config_option_by_name('log_level_stderr')",
-    //     elastic_apm_get_config_option_by_name('log_level_stderr'),
-    //     ELASTIC_APM_LOG_LEVEL_CRITICAL
+    //     "elastic_otel_get_config_option_by_name('log_level_stderr')",
+    //     elastic_otel_get_config_option_by_name('log_level_stderr'),
+    //     ELASTIC_OTEL_LOG_LEVEL_CRITICAL
     // );
 
     // $expected_bootstrap_php_part_file = '../../php/bootstrap_php_part.php';
@@ -101,8 +101,8 @@ function sharedChecks(): void
     // );
     // /** @noinspection PhpUndefinedFunctionInspection, PhpUndefinedConstantInspection */
     // elasticApmAssertSame(
-    //     "elastic_apm_get_config_option_by_name('bootstrap_php_part_file')",
-    //     elastic_apm_get_config_option_by_name('bootstrap_php_part_file'),
+    //     "elastic_otel_get_config_option_by_name('bootstrap_php_part_file')",
+    //     elastic_otel_get_config_option_by_name('bootstrap_php_part_file'),
     //     $expected_bootstrap_php_part_file
     // );
 }

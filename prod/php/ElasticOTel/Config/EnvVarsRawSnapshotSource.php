@@ -30,7 +30,7 @@ namespace Elastic\OTel\Config;
  */
 final class EnvVarsRawSnapshotSource implements RawSnapshotSourceInterface
 {
-    public const DEFAULT_NAME_PREFIX = 'ELASTIC_APM_';
+    public const DEFAULT_NAME_PREFIX = 'ELASTIC_OTEL_';
 
     /** @var string */
     private $envVarNamesPrefix;

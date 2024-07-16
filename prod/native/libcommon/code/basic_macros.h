@@ -17,5 +17,5 @@
  * under the License.
  */
 
-#define ELASTIC_APM_PP_STRINGIZE_IMPL( token ) #token
-#define EL_STRINGIFY( token ) ELASTIC_APM_PP_STRINGIZE_IMPL( token )
+#define ELASTIC_OTEL_PP_STRINGIZE_IMPL( token ) #token
+#define EL_STRINGIFY( token ) ELASTIC_OTEL_PP_STRINGIZE_IMPL( token )

@@ -21,10 +21,10 @@
 
 declare(strict_types=1);
 
-use Elastic\OTel\AutoInstrument\Autoloader;
+namespace Elastic\OTel;
 
-require __DIR__ . DIRECTORY_SEPARATOR . 'BootstrapStageLogger.php';
-require __DIR__ . DIRECTORY_SEPARATOR . 'Autoloader.php';
-Autoloader::register();
-
-require __DIR__ . DIRECTORY_SEPARATOR . 'PhpPartFacade.php';
+final class ProdPhpDir
+{
+    /** @var string */
+    public static $fullPath;
+}
