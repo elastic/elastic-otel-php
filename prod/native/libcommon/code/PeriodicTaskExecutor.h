@@ -126,8 +126,8 @@ private:
     std::chrono::milliseconds sleepInterval_ = std::chrono::milliseconds(20);
     std::vector<task_t> periodicTasks_;
     worker_init_t workerInit_;
-    std::thread thread_;
     std::mutex mutex_;
+    std::thread thread_;
     std::condition_variable pauseCondition_;
     bool working_ = true;
     bool resumed_ = false;
