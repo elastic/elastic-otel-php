@@ -48,16 +48,18 @@ def find_php_tag(lines):
 
 
 def replace_header(content, php_file):
-    lines = content.splitlines()
+    lines = content.splitlines(True)
     header_end_index = find_header_end(lines)
     header_start_index = find_header_start(lines)
 
     if header_start_index != -1:
-        content = "\n".join(lines[0:header_start_index]) 
-        content += "\n" + new_header
+        content = "".join(lines[0:header_start_index])
+        # if len(content) > 0:
+        #     content += "\n"
+        content += new_header
 
     if header_end_index != -1:
-        content += "\n".join(lines[header_end_index + 1:])
+        content += "".join(lines[header_end_index + 1:])
     return content
 
 
@@ -99,7 +101,7 @@ def add_header_to_files(directory, extensions):
                     content = file.read()
 
                 php_file = filepath.endswith(".php")
-                
+
                 if file_contains_license(filepath):
                     content = replace_header(content, php_file)
                 else:
