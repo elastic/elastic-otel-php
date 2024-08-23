@@ -57,7 +57,7 @@ jobs:
           popd
           ls -R ${{ env.BUILD_PACKAGES }}
       - name: generate build provenance
-        uses: actions/attest-build-provenance@49df96e17e918a15956db358890b08e61c704919  # v1.2.0
+        uses: actions/attest-build-provenance@6149ea5740be74af77f260b9db67e633f6b0a9a1  # v1.4.2
         with:
           subject-path: "${{ github.workspace }}/${{ env.BUILD_PACKAGES }}/*"
 
