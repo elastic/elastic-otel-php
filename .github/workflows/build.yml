@@ -61,7 +61,9 @@ jobs:
   # This will act as the Branch Protection gatekeeper
   ci:
     needs:
-      - build-native
+      - build-packages
+      - tests-phpt
+      - test-sources-license
     runs-on: ubuntu-latest
     steps:
       - name: report
