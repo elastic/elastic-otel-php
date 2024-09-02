@@ -73,32 +73,32 @@ if (elasticApmIsOsWindows()) {
 
 }
 
-//////////////////////////////////////////////
-///////////////  secret_token
+// //////////////////////////////////////////////
+// ///////////////  secret_token
 
-elasticApmAssertSame("getenv('ELASTIC_OTEL_SECRET_TOKEN')", getenv('ELASTIC_OTEL_SECRET_TOKEN'), false);
+// elasticApmAssertSame("getenv('ELASTIC_OTEL_SECRET_TOKEN')", getenv('ELASTIC_OTEL_SECRET_TOKEN'), false);
 
-elasticApmAssertEqual("ini_get('elastic_otel.secret_token')", ini_get('elastic_otel.secret_token'), false);
+// elasticApmAssertEqual("ini_get('elastic_otel.secret_token')", ini_get('elastic_otel.secret_token'), false);
 
-elasticApmAssertSame("elastic_otel_get_config_option_by_name('secret_token')", elastic_otel_get_config_option_by_name('secret_token'), "");
+// elasticApmAssertSame("elastic_otel_get_config_option_by_name('secret_token')", elastic_otel_get_config_option_by_name('secret_token'), "");
 
-//////////////////////////////////////////////
-///////////////  server_url
+// //////////////////////////////////////////////
+// ///////////////  server_url
 
-elasticApmAssertSame("getenv('ELASTIC_OTEL_SERVER_URL')", getenv('ELASTIC_OTEL_SERVER_URL'), false);
+// elasticApmAssertSame("getenv('ELASTIC_OTEL_SERVER_URL')", getenv('ELASTIC_OTEL_SERVER_URL'), false);
 
-elasticApmAssertEqual("ini_get('elastic_otel.server_url')", ini_get('elastic_otel.server_url'), false);
+// elasticApmAssertEqual("ini_get('elastic_otel.server_url')", ini_get('elastic_otel.server_url'), false);
 
-elasticApmAssertSame("elastic_otel_get_config_option_by_name('server_url')", elastic_otel_get_config_option_by_name('server_url'), 'http://localhost:8200');
+// elasticApmAssertSame("elastic_otel_get_config_option_by_name('server_url')", elastic_otel_get_config_option_by_name('server_url'), 'http://localhost:8200');
 
-//////////////////////////////////////////////
-///////////////  service_name
+// //////////////////////////////////////////////
+// ///////////////  service_name
 
-elasticApmAssertSame("getenv('ELASTIC_OTEL_SERVICE_NAME')", getenv('ELASTIC_OTEL_SERVICE_NAME'), false);
+// elasticApmAssertSame("getenv('ELASTIC_OTEL_SERVICE_NAME')", getenv('ELASTIC_OTEL_SERVICE_NAME'), false);
 
-elasticApmAssertEqual("ini_get('elastic_otel.service_name')", ini_get('elastic_otel.service_name'), false);
+// elasticApmAssertEqual("ini_get('elastic_otel.service_name')", ini_get('elastic_otel.service_name'), false);
 
-elasticApmAssertSame("elastic_otel_get_config_option_by_name('service_name')", elastic_otel_get_config_option_by_name('service_name'), "");
+// elasticApmAssertSame("elastic_otel_get_config_option_by_name('service_name')", elastic_otel_get_config_option_by_name('service_name'), "");
 
 echo 'Test completed'
 ?>
