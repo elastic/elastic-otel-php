@@ -27,10 +27,6 @@ Feel free to delete or edit these items or add new items to this list.
 
 **Ready to try out EDOT PHP?** Follow the step-by-step instructions in [Get started](./docs/get-started.md).
 
-## Install
-
-<!-- How do you install it? -->
-
 ## Read the docs
 
 * [Get started](./docs/get-started.md)

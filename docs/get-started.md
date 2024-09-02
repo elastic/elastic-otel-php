@@ -32,7 +32,34 @@ To create your first Elastic Observability deployment:
 <!-- How to install EDOT PHP -->
 ## Install
 
-<!-- How do you install it? -->
+### Prerequisites
+
+#### Operating system
+
+Currently only Linux operating system is supported.
+
+#### PHP
+
+Supported PHP versions are 8.0-8.3.
+
+### Other limitations
+See [limitations](./docs/get-limitations.md) about other limitations of EDOT PHP.
+
+### Packages to install
+
+To install EDOT PHP use one of the [packages for supported platforms](https://github.com/elastic/elastic-otel-php/releases/latest).
+
+#### Install RPM package (RHEL/CentOS, Fedora)
+
+    rpm -ivh <package-file>.rpm    
+
+#### Install DEB package (Debian, Ubuntu 18+)
+
+    dpkg -i <package-file>.deb    
+
+#### Install APK package (Alpine)
+
+    dpkg -i <package-file>.deb    
 
 <!-- Start-to-finish operation -->
 ## Send data to Elastic
