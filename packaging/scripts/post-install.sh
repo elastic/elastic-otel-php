@@ -184,11 +184,6 @@ function agent_extension_not_supported() {
 ################################################################################
 #### Function get_extension_file ###############################################
 function get_extension_file() {
-    PHP_API=$(php_api)
-    ## If alpine then add another suffix
-#    if grep -q -i alpine /etc/os-release; then
-#        SUFFIX=-alpine
-#    fi
     echo "${EXTENSION_DIR}/elastic_otel_php_loader.so"
 }
 

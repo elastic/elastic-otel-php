@@ -66,27 +66,6 @@ if (elasticApmIsOsWindows()) {
     elasticApmAssertSame("elastic_otel_get_config_option_by_name('log_level_win_sys_debug')", elastic_otel_get_config_option_by_name('log_level_win_sys_debug'), ELASTIC_OTEL_LOG_LEVEL_CRITICAL);
 }
 
-//////////////////////////////////////////////
-///////////////  secret_token
-
-elasticApmAssertSame("ini_get('elastic_otel.secret_token')", ini_get('elastic_otel.secret_token'), 'non-default_secret_token_123');
-
-elasticApmAssertSame("elastic_otel_get_config_option_by_name('secret_token')", elastic_otel_get_config_option_by_name('secret_token'), 'non-default_secret_token_123');
-
-//////////////////////////////////////////////
-///////////////  server_url
-
-elasticApmAssertSame("ini_get('elastic_otel.server_url')", ini_get('elastic_otel.server_url'), 'https://non-default_server_url:4321/some/path');
-
-elasticApmAssertSame("elastic_otel_get_config_option_by_name('server_url')", elastic_otel_get_config_option_by_name('server_url'), 'https://non-default_server_url:4321/some/path');
-
-//////////////////////////////////////////////
-///////////////  service_name
-
-elasticApmAssertSame("ini_get('elastic_otel.service_name')", ini_get('elastic_otel.service_name'), 'Non-default Service Name');
-
-elasticApmAssertSame("elastic_otel_get_config_option_by_name('service_name')", elastic_otel_get_config_option_by_name('service_name'), 'Non-default Service Name');
-
 echo 'Test completed'
 ?>
 --EXPECT--
