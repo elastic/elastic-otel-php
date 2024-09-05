@@ -51,15 +51,15 @@ To install EDOT PHP use one of the [packages for supported platforms](https://gi
 
 #### Install RPM package (RHEL/CentOS, Fedora)
 
-    rpm -ivh <package-file>.rpm    
+    rpm -ivh <package-file>.rpm
 
 #### Install DEB package (Debian, Ubuntu 18+)
 
-    dpkg -i <package-file>.deb    
+    dpkg -i <package-file>.deb
 
 #### Install APK package (Alpine)
 
-    dpkg -i <package-file>.deb    
+    apk add --allow-untrusted <package-file>.apk
 
 <!-- Start-to-finish operation -->
 ## Send data to Elastic
