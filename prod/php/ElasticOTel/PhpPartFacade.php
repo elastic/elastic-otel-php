@@ -110,8 +110,8 @@ final class PhpPartFacade
 
     private static function registerAutoloader(): bool
     {
-        $vendorDir = ProdPhpDir::$fullPath . __DIR__ . 'vendor' . (self::isInDevMode() ? '' : '_' . PHP_MAJOR_VERSION . PHP_MINOR_VERSION);
-        $vendorAutoloadPhp = $vendorDir . __DIR__ . 'autoload.php';
+        $vendorDir = ProdPhpDir::$fullPath . '/vendor' . (self::isInDevMode() ? '' : '_' . PHP_MAJOR_VERSION . PHP_MINOR_VERSION);
+        $vendorAutoloadPhp = $vendorDir . '/autoload.php';
         if (!file_exists($vendorAutoloadPhp)) {
             BootstrapStageLogger::logCritical("File $vendorAutoloadPhp does not exist", __LINE__, __FUNCTION__);
             return false;
