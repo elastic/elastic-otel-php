@@ -184,9 +184,7 @@ PHP_FUNCTION(elastic_otel_hook) {
     //     return;
     // }
 
-    elasticapm::php::instrumentFunction(EAPM_GL(logger_).get(), className, functionName, pre, post);
-
-    RETURN_BOOL(true);
+    RETURN_BOOL(elasticapm::php::instrumentFunction(EAPM_GL(logger_).get(), className, functionName, pre, post));
 }
 
 // clang-format off
@@ -199,7 +197,7 @@ const zend_function_entry elastic_otel_functions[] = {
     PHP_FE( elastic_otel_get_last_php_error, elastic_otel_get_last_php_error_arginfo )
     PHP_FE( elastic_otel_hook, elastic_otel_hook_arginfo )
 
-    ZEND_NS_FALIAS("OpenTelemetry\\Instrumentation", hook, elastic_otel_hook, elastic_otel_hook_arginfo) ZEND_FE_END,
+//    ZEND_NS_FALIAS("OpenTelemetry\\Instrumentation", hook, elastic_otel_hook, elastic_otel_hook_arginfo) ZEND_FE_END,
 
     PHP_FE_END
 };
