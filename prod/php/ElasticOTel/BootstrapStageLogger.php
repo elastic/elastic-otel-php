@@ -58,6 +58,25 @@ final class BootstrapStageLogger
         );
     }
 
+    public static function logTrace(
+        string $message,
+        int $srcCodeLine,
+        string $srcCodeFunc
+    ): void {
+        /** @noinspection PhpUndefinedConstantInspection, PhpFullyQualifiedNameUsageInspection */
+        self::logWithLevel(
+        /**
+         * ELASTIC_OTEL_* constants are provided by the extension
+         *
+         * @phpstan-ignore-next-line
+         */
+            \ELASTIC_OTEL_LOG_LEVEL_TRACE,
+            $message,
+            $srcCodeLine,
+            $srcCodeFunc
+        );
+    }
+
     public static function logWarning(
         string $message,
         int $srcCodeLine,
@@ -90,6 +109,25 @@ final class BootstrapStageLogger
          * @phpstan-ignore-next-line
          */
             \ELASTIC_OTEL_LOG_LEVEL_CRITICAL,
+            $message,
+            $srcCodeLine,
+            $srcCodeFunc
+        );
+    }
+
+    public static function logError(
+        string $message,
+        int $srcCodeLine,
+        string $srcCodeFunc
+    ): void {
+        /** @noinspection PhpUndefinedConstantInspection, PhpFullyQualifiedNameUsageInspection */
+        self::logWithLevel(
+        /**
+         * ELASTIC_OTEL_* constants are provided by the extension
+         *
+         * @phpstan-ignore-next-line
+         */
+            \ELASTIC_OTEL_LOG_LEVEL_ERROR,
             $message,
             $srcCodeLine,
             $srcCodeFunc

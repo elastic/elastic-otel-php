@@ -34,6 +34,7 @@ use Throwable;
  * Called by the extension
  *
  * @noinspection PhpUnused
+ * @noinspection PhpMultipleClassDeclarationsInspection
  */
 final class PhpPartFacade
 {
@@ -76,6 +77,9 @@ final class PhpPartFacade
         }
 
         try {
+            if (!InstrumentationBridge::singletonInstance()->bootstrap()){
+                return false;
+            }
             if (!self::registerAutoloader()) {
                 return false;
             }

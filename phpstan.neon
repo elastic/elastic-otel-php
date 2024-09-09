@@ -1,0 +1,15 @@
+includes:
+    - vendor/phpstan/phpstan-phpunit/extension.neon
+
+parameters:
+    bootstrapFiles:
+        - tests/bootstrap.php
+
+    reportUnmatchedIgnoredErrors: false
+
+    ignoreErrors:
+        #
+        # elastic_otel_* functions are provided by the extension
+        #
+        - '#^Function elastic_otel_[a-z_]* not found\.$#'
+
