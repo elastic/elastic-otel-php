@@ -313,6 +313,17 @@ bool instrumentFunction(LoggerInterface *log, std::string_view cName, std::strin
         auto ce = static_cast<zend_class_entry *>(zend_hash_str_find_ptr(EG(class_table), className.data(), className.length()));
         if (!ce) {
             ELOG_DEBUG(log, "instrumentFunction Class not found. Function " PRsv "::" PRsv " not found and cannot be instrumented.", PRsvArg(className), PRsvArg(functionName));
+
+            if (log->doesMeetsLevelCondition(logLevel_trace)) {
+                zend_string *argStrKey = nullptr;
+                ZEND_HASH_FOREACH_STR_KEY(EG(class_table), argStrKey) {
+                    if (argStrKey) {
+                        ELOG_DEBUG(log, "instrumentFunction Class not found. Function " PRsv "::" PRsv " not found and cannot be instrumented. %s", PRsvArg(className), PRsvArg(functionName), ZSTR_VAL(argStrKey));
+                    }
+                }
+                ZEND_HASH_FOREACH_END();
+            }
+
             return false;
         }
 
