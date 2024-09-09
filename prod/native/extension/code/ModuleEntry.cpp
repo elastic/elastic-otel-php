@@ -153,7 +153,9 @@ PHP_MINIT_FUNCTION(elastic_otel) {
 
     elasticApmModuleInit(type, module_number);
 
-    zend_register_internal_module(&elastic_otel_fake);
+    if (!zend_register_internal_module(&elastic_otel_fake)) {
+        ELOG_WARNING(ELASTICAPM_G(globals)->logger_, "Unable to create artificial opentelemetry extension. There might be stability issues.");
+    }
 
     return SUCCESS;
 }
