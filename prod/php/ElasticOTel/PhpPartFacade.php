@@ -24,6 +24,7 @@ declare(strict_types=1);
 namespace Elastic\OTel;
 
 use Elastic\OTel\Util\HiddenConstructorTrait;
+use Elastic\OTel\Util\SingletonInstanceTrait;
 use Throwable;
 
 /**
@@ -77,6 +78,9 @@ final class PhpPartFacade
         }
 
         try {
+            require __DIR__ . DIRECTORY_SEPARATOR . 'Util' . DIRECTORY_SEPARATOR . 'SingletonInstanceTrait.php';
+            require __DIR__ . DIRECTORY_SEPARATOR . 'InstrumentationBridge.php';
+
             if (!InstrumentationBridge::singletonInstance()->bootstrap()){
                 return false;
             }

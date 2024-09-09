@@ -34,6 +34,29 @@ final class BootstrapStageLogger
 {
     private static int $maxEnabledLevel;
 
+    private static ?bool $isStderrDefined = null;
+
+    private static function ensureStdErrIsDefined(): bool
+    {
+        if (self::$isStderrDefined === null) {
+            if (defined('STDERR')) {
+                self::$isStderrDefined = true;
+            } else {
+                define('STDERR', fopen('php://stderr', 'w'));
+                self::$isStderrDefined = defined('STDERR');
+            }
+        }
+
+        return self::$isStderrDefined;
+    }
+
+    private static function writeLineToStdErr(string $text): void
+    {
+        if (self::ensureStdErrIsDefined()) {
+            fwrite(STDERR, $text . PHP_EOL);
+        }
+    }
+
     public static function configure(int $maxEnabledLevel): void
     {
         self::$maxEnabledLevel = $maxEnabledLevel;
@@ -155,6 +178,8 @@ final class BootstrapStageLogger
         int $srcCodeLine,
         string $srcCodeFunc
     ): void {
+        self::writeLineToStdErr('level: ' . $statementLevel . ' | message: ' . $message);
+
         if (self::$maxEnabledLevel < $statementLevel) {
             return;
         }

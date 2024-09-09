@@ -52,22 +52,47 @@ final class InstrumentationBridge
          * @noinspection PhpFullyQualifiedNameUsageInspection, PhpUndefinedFunctionInspection
          * @phpstan-ignore-next-line
          */
-        $tryToHookRetVal = \elastic_otel_hook(
+        $hookSplAutoloadRegisterRetVal = \elastic_otel_hook(
             null /* <- $class */,
             'spl_autoload_register',
-            function (): array {
+            /**
+             * spl_autoload_register(?callable $callback = null, bool $throw = true, bool $prepend = false): bool
+             */
+            function () {
                 $argsToUse = func_get_args();
-                if (count($argsToUse) >= 1 && (is_callable($originalCallback = $argsToUse[0]))) {
-                    $argsToUse[0] = function () use ($originalCallback) {
-                        $argsPassedToCallback = func_get_args();
-                        $originalCallback($argsPassedToCallback);
-                        if (count($argsPassedToCallback) >= 1 && (is_string($class = $argsPassedToCallback[0]))) {
-                            if (class_exists($class)) {
-                                $this->onClassLoaded($class);
-                            }
-                        }
-                    };
+                BootstrapStageLogger::logTrace('Entered pre-hook for spl_autoload_register. count($argsToUse): ' . count($argsToUse), __LINE__, __FUNCTION__);
+                if (count($argsToUse) < 1 || (!is_callable($originalCallback = $argsToUse[0]))) {
+                    // TODO: Sergey Kleyman: Implement: InstrumentationBridge::
+                    // BootstrapStageLogger::logTrace(
+                    //     'xxxxxxxxxx: ' . count($argsPassedToCallback),
+                    //     __LINE__,
+                    //     __FUNCTION__
+                    // );
+                    /** @noinspection PhpInconsistentReturnPointsInspection */
+                    return;
                 }
+
+                $argsToUse[0] = function () use ($originalCallback) {
+                    $argsPassedToCallback = func_get_args();
+                    BootstrapStageLogger::logTrace(
+                        'Entered pre-hook for spl_autoload_register callback. count($argsPassedToCallback): ' . count($argsPassedToCallback),
+                        __LINE__,
+                        __FUNCTION__
+                    );
+                    // callback(string $class): void
+                    $originalCallback($argsPassedToCallback);
+                    if (count($argsPassedToCallback) >= 1 && (is_string($class = $argsPassedToCallback[0]))) {
+                        BootstrapStageLogger::logTrace('pre-hook for spl_autoload_register callback. $class: ' . $class, __LINE__, __FUNCTION__);
+                        // TODO: Sergey Kleyman: check if it might different case
+                        if (class_exists($class)) {
+                            $this->onClassLoaded($class);
+                        }
+                    }
+                    // else {
+                    //     // TODO: Sergey Kleyman: Implement: InstrumentationBridge::
+                    //     // BootstrapStageLogger::logTrace('pre-hook for spl_autoload_register callback. $argsPassedToCallback[0] type: ' . get_debug_type($class), __LINE__, __FUNCTION__);
+                    // }
+                };
                 return $argsToUse;
             },
             function (): void {
@@ -77,11 +102,12 @@ final class InstrumentationBridge
                 }
             }
         );
-        if ($tryToHookRetVal) {
-            return true;
+        if (!$hookSplAutoloadRegisterRetVal) {
+            BootstrapStageLogger::logError('elastic_otel_hook returned false. function: spl_autoload_register', __LINE__, __FUNCTION__);
+            return false;
         }
 
-        require ProdPhpDir::$fullPath . 'OpenTelemetry' . DIRECTORY_SEPARATOR . 'Instrumentation' . DIRECTORY_SEPARATOR . 'hook.php';
+        require ProdPhpDir::$fullPath . DIRECTORY_SEPARATOR . 'OpenTelemetry' . DIRECTORY_SEPARATOR . 'Instrumentation' . DIRECTORY_SEPARATOR . 'hook.php';
 
         return true;
     }
