@@ -178,12 +178,15 @@ PHP_FUNCTION(elastic_otel_hook) {
     std::string_view className = class_name ? std::string_view{ZSTR_VAL(class_name), ZSTR_LEN(class_name)} : std::string_view{};
     std::string_view functionName = function_name ? std::string_view{ZSTR_VAL(function_name), ZSTR_LEN(function_name)} : std::string_view{};
 
-    if (!EAPM_GL(requestScope_)->isFunctional()) {
-        ELOG_DEBUG(EAPM_GL(logger_), "elastic_otel_hook. Can't instrument " PRsv "::" PRsv " beacuse agent is not functional.", PRsvArg(className), PRsvArg(functionName));
-        return;
-    }
+    // if (!EAPM_GL(requestScope_)->isFunctional()) {
+    //     ELOG_DEBUG(EAPM_GL(logger_), "elastic_otel_hook. Can't instrument " PRsv "::" PRsv " beacuse agent is not functional.", PRsvArg(className), PRsvArg(functionName));
+    //     RETURN_BOOL(false);
+    //     return;
+    // }
 
     elasticapm::php::instrumentFunction(EAPM_GL(logger_).get(), className, functionName, pre, post);
+
+    RETURN_BOOL(true);
 }
 
 // clang-format off
@@ -195,7 +198,8 @@ const zend_function_entry elastic_otel_functions[] = {
     PHP_FE( elastic_otel_get_last_thrown, elastic_otel_get_last_thrown_arginfo )
     PHP_FE( elastic_otel_get_last_php_error, elastic_otel_get_last_php_error_arginfo )
     PHP_FE( elastic_otel_hook, elastic_otel_hook_arginfo )
-    // ZEND_NS_FE("OpenTelemetry\\Instrumentation", hook, arginfo_OpenTelemetry_Instrumentation_hook) ZEND_FE_END,
+
+    ZEND_NS_FALIAS("OpenTelemetry\\Instrumentation", hook, elastic_otel_hook, elastic_otel_hook_arginfo) ZEND_FE_END,
 
     PHP_FE_END
 };

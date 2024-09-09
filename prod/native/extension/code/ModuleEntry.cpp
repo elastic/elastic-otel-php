@@ -126,6 +126,22 @@ PHP_GSHUTDOWN_FUNCTION(elastic_otel) {
     // }
 }
 
+zend_module_entry elastic_otel_fake = {STANDARD_MODULE_HEADER,
+                                       "opentelemetry", /* Extension name */
+                                       nullptr,         /* zend_function_entry */
+                                       nullptr,         /* PHP_MINIT - Module initialization */
+                                       nullptr,         /* PHP_MSHUTDOWN - Module shutdown */
+                                       nullptr,         /* PHP_RINIT - Request initialization */
+                                       nullptr,         /* PHP_RSHUTDOWN - Request shutdown */
+                                       nullptr,         /* PHP_MINFO - Module info */
+                                       "2.0",           /* Version */
+                                       0,               /* globals size */
+                                       nullptr,         /* PHP_MODULE_GLOBALS */
+                                       nullptr,         /* PHP_GINIT */
+                                       nullptr,         /* PHP_GSHUTDOWN */
+                                       nullptr,         /* post deactivate */
+                                       STANDARD_MODULE_PROPERTIES_EX};
+
 PHP_MINIT_FUNCTION(elastic_otel) {
     REGISTER_LONG_CONSTANT("ELASTIC_OTEL_LOG_LEVEL_OFF", logLevel_off, CONST_CS | CONST_PERSISTENT);
     REGISTER_LONG_CONSTANT("ELASTIC_OTEL_LOG_LEVEL_CRITICAL", logLevel_critical, CONST_CS | CONST_PERSISTENT);
@@ -136,6 +152,9 @@ PHP_MINIT_FUNCTION(elastic_otel) {
     REGISTER_LONG_CONSTANT("ELASTIC_OTEL_LOG_LEVEL_TRACE", logLevel_trace, CONST_CS | CONST_PERSISTENT);
 
     elasticApmModuleInit(type, module_number);
+
+    zend_register_internal_module(&elastic_otel_fake);
+
     return SUCCESS;
 }
 
