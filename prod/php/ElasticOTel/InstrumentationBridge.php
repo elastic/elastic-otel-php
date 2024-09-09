@@ -100,12 +100,12 @@ final class InstrumentationBridge
         }
 
         if ($class === null) {
-            BootstrapStageLogger::logError('elastic_otel_hook return false. function: ' . $function, __LINE__, __FUNCTION__);
+            BootstrapStageLogger::logError('elastic_otel_hook returned false. function: ' . $function, __LINE__, __FUNCTION__);
             return false;
         }
 
         if (class_exists($class)) {
-            BootstrapStageLogger::logError('elastic_otel_hook return false. class: ' . $class . ' (class exists), function: ' . $function, __LINE__, __FUNCTION__);
+            BootstrapStageLogger::logError('elastic_otel_hook returned false. class: ' . $class . ' (class exists), function: ' . $function, __LINE__, __FUNCTION__);
             return false;
         }
 
@@ -140,7 +140,9 @@ final class InstrumentationBridge
              * @phpstan-ignore-next-line
              */
             if(\elastic_otel_hook($class, $function, $prePostPairArr[0], $prePostPairArr[1])) {
-                BootstrapStageLogger::logError('elastic_otel_hook return false. class: ' . $class . ' (class exists), function: ' . $function, __LINE__, __FUNCTION__);
+                BootstrapStageLogger::logTrace('Successfully added delayed hooks. class: ' . $class . ', function: ' . $function, __LINE__, __FUNCTION__);
+            } else {
+                BootstrapStageLogger::logError('elastic_otel_hook returned false trying to add delayed hooks.  class: ' . $class . ', function: ' . $function, __LINE__, __FUNCTION__);
             }
         }
     }
