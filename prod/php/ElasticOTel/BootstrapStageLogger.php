@@ -32,8 +32,6 @@ use Throwable;
  */
 final class BootstrapStageLogger
 {
-    public const LINE_PREFIX = 'Elastic OTel Distro';
-
     public const LOG_CATEGORY = 'Bootstrap';
 
     public const LEVEL_OFF = 0;
@@ -86,6 +84,7 @@ final class BootstrapStageLogger
         return self::$isStderrDefined;
     }
 
+    /** @noinspection PhpUnused */
     public static function writeLineToStdErr(string $text): void
     {
         if (self::ensureStdErrIsDefined()) {
@@ -222,35 +221,11 @@ final class BootstrapStageLogger
         return self::processClassNameForLog($class) . '::' . $func;
     }
 
-    private static function buildStatementLine(int $statementLevel, string $message, string $file, int $line, string $class, string $func): string
-    {
-        $statementLine = '';
-        $appendSquareBracketsDelimited = function (mixed $toAppend) use (&$statementLine): void {
-            if ($statementLine !== '') {
-                $statementLine .= ' ';
-            }
-            $statementLine .= '[' . $toAppend . ']';
-        };
-
-        $appendSquareBracketsDelimited(self::LINE_PREFIX);
-        if (self::$pid !== null) {
-            $appendSquareBracketsDelimited('PID: ' . self::$pid);
-        }
-        $appendSquareBracketsDelimited(self::levelToString($statementLevel));
-        $appendSquareBracketsDelimited(self::LOG_CATEGORY);
-        $appendSquareBracketsDelimited(self::processSourceCodeFilePathForLog($file) . ':' . $line);
-        $appendSquareBracketsDelimited(self::processClassFunctionNameForLog($class, $func));
-        $statementLine .= ' ' . $message;
-        return $statementLine;
-    }
-
     private static function logWithLevel(int $statementLevel, string $message, string $file, int $line, string $class, string $func): void
     {
         if (!self::isEnabledForLevel($statementLevel)) {
             return;
         }
-
-        self::writeLineToStdErr(self::buildStatementLine($statementLevel, $message, $file, $line, $class, $func));
 
         /**
          * elastic_otel_* functions are provided by the extension
@@ -261,7 +236,7 @@ final class BootstrapStageLogger
         \elastic_otel_log(
             0 /* $isForced */,
             $statementLevel,
-            'Bootstrap' /* category */,
+            self::LOG_CATEGORY,
             self::processSourceCodeFilePathForLog($file),
             $line,
             self::processClassFunctionNameForLog($class, $func),
