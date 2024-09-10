@@ -352,7 +352,7 @@ bool instrumentFunction(LoggerInterface *log, std::string_view cName, std::strin
     zend_ulong funcHash = ZSTR_HASH(func->common.function_name);
     zend_ulong hash = classHash ^ (funcHash << 1);
 
-    ELOG_DEBUG(log, "instrumentFunction 0x%X " PRsv "::" PRsv " type: %s is instrumented", hash, PRsvArg(className), PRsvArg(functionName), func->common.type == ZEND_INTERNAL_FUNCTION ? "internal" : "user");
+    ELOG_DEBUG(log, "instrumentFunction 0x%X " PRsv "::" PRsv " type: %s is marked to be instrumented", hash, PRsvArg(className), PRsvArg(functionName), func->common.type == ZEND_INTERNAL_FUNCTION ? "internal" : "user");
 
     reinterpret_cast<InstrumentedFunctionHooksStorage_t *>(EAPM_GL(hooksStorage_).get())->store(hash, AutoZval{callableOnEntry}, AutoZval{callableOnExit});
 
@@ -432,11 +432,38 @@ zend_observer_fcall_handlers elasticRegisterObserver(zend_execute_data *execute_
     if (!callbacks) {
         if (EAPM_GL(logger_)->doesMeetsLevelCondition(LogLevel::logLevel_trace)) {
             auto [cls, func] = getClassAndFunctionName(execute_data);
-            ELOG_TRACE(EAPM_GL(logger_), "elasticRegisterObserver hash: 0x%X " PRsv "::" PRsv ", not instrumented", hash, PRsvArg(cls), PRsvArg(func));
+            ELOG_TRACE(EAPM_GL(logger_), "elasticRegisterObserver hash: 0x%X " PRsv "::" PRsv ", not marked to be instrumented", hash, PRsvArg(cls), PRsvArg(func));
         }
+
+        auto ce = execute_data->func->common.scope;
+        if (!ce) {
+            return {nullptr, nullptr};
+        }
+
+        // lookup for class interfaces
+        for (uint32_t i = 0; i < ce->num_interfaces; ++i) {
+            auto classHash = ZSTR_HASH(ce->interfaces[i]->name);
+            zend_ulong funcHash = ZSTR_HASH(execute_data->func->common.function_name);
+            zend_ulong ifaceHash = classHash ^ (funcHash << 1);
+
+            callbacks = reinterpret_cast<InstrumentedFunctionHooksStorage_t *>(EAPM_GL(hooksStorage_).get())->find(ifaceHash);
+            if (callbacks) {
+                if (EAPM_GL(logger_)->doesMeetsLevelCondition(LogLevel::logLevel_trace)) {
+                    auto [cls, func] = getClassAndFunctionName(execute_data);
+                    ELOG_TRACE(EAPM_GL(logger_), "elasticRegisterObserver hash: 0x%X " PRsv "::" PRsv ", will be instrumented because interface 0x%X '" PRsv "' was marked to be instrumented", hash, PRsvArg(cls), PRsvArg(func), ifaceHash, PRzsArg(ce->interfaces[i]->name));
+                }
+                // copy callbacks from interface storage hash to implementation hash
+                for (auto &item : *callbacks) {
+                    reinterpret_cast<InstrumentedFunctionHooksStorage_t *>(EAPM_GL(hooksStorage_).get())->store(hash, AutoZval(item.first.get()), AutoZval(item.second.get()));
+                }
+                break;
+            }
+        }
+    }
+
+    if (!callbacks) {
         return {nullptr, nullptr};
     }
-    ELOG_TRACE(EAPM_GL(logger_), "elasticRegisterObserver hash: 0x%X", hash);
 
     bool havePreHook = false;
     bool havePostHook = false;
