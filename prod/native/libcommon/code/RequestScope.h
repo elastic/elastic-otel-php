@@ -42,6 +42,8 @@ public:
     void onRequestInit() {
         ELOG_DEBUG(log_, __FUNCTION__);
 
+        resetRequest();
+
         if (!sapi_->isSupported()) {
             ELOG_DEBUG(log_, "SAPI '%s' not supported", sapi_->getName().data());
             return;
@@ -54,7 +56,6 @@ public:
             return;
         }
 
-        resetRequest();
         requestCounter_++;
 
         auto requestStartTime = std::chrono::system_clock::now();
@@ -110,6 +111,8 @@ public:
     void onRequestPostDeactivate() {
         ELOG_DEBUG(log_, __FUNCTION__);
 
+        resetRequest();
+
         if (!bootstrapSuccessfull_) {
             return;
         }
@@ -132,7 +135,7 @@ protected:
         using namespace std::string_view_literals;
         try {
             bridge_->compileAndExecuteFile((*config_)->bootstrap_php_part_file);
-            bridge_->callPHPSideEntryPoint(LogLevel::logLevel_trace, requestStartTime);
+            bridge_->callPHPSideEntryPoint(log_->getMaxLogLevel(), requestStartTime);
         } catch (std::exception const &e) {
             ELOG_CRITICAL(log_, "Unable to bootstrap PHP-side instrumentation '%s'", e.what());
             return false;

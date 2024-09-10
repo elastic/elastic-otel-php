@@ -27,6 +27,14 @@
 
 namespace elasticapm::php {
 
+LogLevel Logger::getMaxLogLevel() const {
+    auto maxLevel = LogLevel::logLevel_off;
+    for (auto const &sink : sinks_) {
+        maxLevel = std::max(sink->getLevel(), maxLevel);
+    }
+    return maxLevel;
+}
+
 bool Logger::doesMeetsLevelCondition(LogLevel level) const {
     auto maxLevel = LogLevel::logLevel_off;
     for (auto const &sink : sinks_) {
