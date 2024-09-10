@@ -36,7 +36,7 @@ if (array_search("Elastic\OTel\PhpPartFacade", get_declared_classes()) === false
 echo CGREEN."OK\n".CDEF;
 
 echo "Trying to log something to stderr: ";
-Elastic\OTel\BootstrapStageLogger::logCritical("This is just a message to test logger", __LINE__, __FUNCTION__);
+Elastic\OTel\BootstrapStageLogger::logCritical("This is just a message to test logger", __FILE__, __LINE__, __CLASS__, __FUNCTION__);
 echo CGREEN."OK\n".CDEF;
 
 echo CGREEN."Smoke test passed\n".CDEF;

@@ -24,7 +24,7 @@ declare(strict_types=1);
 namespace Elastic\OTel\Util;
 
 /**
- * Code in this file is part of implementation internals and thus it is not covered by the backward compatibility.
+ * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
  *
  * @internal
  */
@@ -35,12 +35,8 @@ trait SingletonInstanceTrait
      */
     use HiddenConstructorTrait;
 
-    /** @var ?self */
-    private static $singletonInstance = null;
+    private static ?self $singletonInstance = null;
 
-    /**
-     * @return self
-     */
     public static function singletonInstance(): self
     {
         if (self::$singletonInstance === null) {
