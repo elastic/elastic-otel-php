@@ -118,7 +118,7 @@ final class InstrumentationBridge
         foreach ($this->delayedHooks as $delayedHookTuple) {
             $class = $delayedHookTuple[0];
             if (!self::classOrInterfaceExists($class)) {
-                BootstrapStageLogger::logTrace('Class/Interface for delayed hook still does not exist - keeping delayed hook. class: ' . $class, __FILE__, __LINE__, __CLASS__, __FUNCTION__);
+                BootstrapStageLogger::logTrace('Class/Interface still does not exist - keeping delayed hook. class: ' . $class, __FILE__, __LINE__, __CLASS__, __FUNCTION__);
                 $delayedHooksToKeep[] = $delayedHookTuple;
                 continue;
             }
