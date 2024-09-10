@@ -35,10 +35,9 @@ use Elastic\OTel\InstrumentationBridge;
  *
  * @internal
  *
- * Called by the OTel instrumentations
+ * Called by OTel instrumentations
  *
- * @noinspection PhpUnused
- * @noinspection PhpInternalEntityUsedInspection
+ * @noinspection PhpUnused, PhpInternalEntityUsedInspection
  */
 
 /**

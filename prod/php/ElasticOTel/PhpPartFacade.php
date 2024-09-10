@@ -24,7 +24,6 @@ declare(strict_types=1);
 namespace Elastic\OTel;
 
 use Elastic\OTel\Util\HiddenConstructorTrait;
-use Elastic\OTel\Util\SingletonInstanceTrait;
 use Throwable;
 
 /**
@@ -34,8 +33,7 @@ use Throwable;
  *
  * Called by the extension
  *
- * @noinspection PhpUnused
- * @noinspection PhpMultipleClassDeclarationsInspection
+ * @noinspection PhpUnused, PhpMultipleClassDeclarationsInspection
  */
 final class PhpPartFacade
 {
@@ -60,19 +58,17 @@ final class PhpPartFacade
     {
         require __DIR__ . DIRECTORY_SEPARATOR . 'BootstrapStageLogger.php';
 
-        BootstrapStageLogger::configure($maxEnabledLogLevel);
+        BootstrapStageLogger::configure($maxEnabledLogLevel, __DIR__, __NAMESPACE__);
         BootstrapStageLogger::logDebug(
             'Starting bootstrap sequence...' . "; maxEnabledLogLevel: $maxEnabledLogLevel" . "; requestInitStartTime: $requestInitStartTime",
-            __LINE__,
-            __FUNCTION__
+            __FILE__, __LINE__, __CLASS__, __FUNCTION__
         );
 
         if (self::$singletonInstance !== null) {
             BootstrapStageLogger::logCritical(
                 'bootstrap() is called even though singleton instance is already created'
                 . ' (probably bootstrap() is called more than once)',
-                __LINE__,
-                __FUNCTION__
+                __FILE__, __LINE__, __CLASS__, __FUNCTION__
             );
             return false;
         }
@@ -92,13 +88,12 @@ final class PhpPartFacade
             BootstrapStageLogger::logCriticalThrowable(
                 $throwable,
                 'One of the steps in bootstrap sequence let a throwable escape',
-                __LINE__,
-                __FUNCTION__
+                __FILE__, __LINE__, __CLASS__, __FUNCTION__
             );
             return false;
         }
 
-        BootstrapStageLogger::logDebug('Successfully completed bootstrap sequence', __LINE__, __FUNCTION__);
+        BootstrapStageLogger::logDebug('Successfully completed bootstrap sequence', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
         return true;
     }
 
@@ -121,10 +116,13 @@ final class PhpPartFacade
         $vendorDir = ProdPhpDir::$fullPath . '/vendor' . (self::isInDevMode() ? '' : '_' . PHP_MAJOR_VERSION . PHP_MINOR_VERSION);
         $vendorAutoloadPhp = $vendorDir . '/autoload.php';
         if (!file_exists($vendorAutoloadPhp)) {
-            BootstrapStageLogger::logCritical("File $vendorAutoloadPhp does not exist", __LINE__, __FUNCTION__);
+            BootstrapStageLogger::logCritical("File $vendorAutoloadPhp does not exist", __FILE__, __LINE__, __CLASS__, __FUNCTION__);
             return false;
         }
+        BootstrapStageLogger::logDebug('About to require ' . $vendorAutoloadPhp, __FILE__, __LINE__, __CLASS__, __FUNCTION__);
         require $vendorAutoloadPhp;
+
+        BootstrapStageLogger::logDebug('Finished successfully', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
         return true;
     }
 
@@ -133,9 +131,12 @@ final class PhpPartFacade
      *
      * @noinspection PhpUnused
      */
-    public static function handleError(int $type, string $errorFilename, int $errorLineno, string $message)
+    public static function handleError(int $type, string $errorFilename, int $errorLineno, string $message): void
     {
-        BootstrapStageLogger::logDebug("Called with arguments: type: $type, errorFilename: $errorFilename, errorLineno: $errorLineno, message: $message", __LINE__, __FUNCTION__);
+        BootstrapStageLogger::logDebug(
+            "Called with arguments: type: $type, errorFilename: $errorFilename, errorLineno: $errorLineno, message: $message",
+            __FILE__, __LINE__, __CLASS__, __FUNCTION__
+        );
     }
 
     /**

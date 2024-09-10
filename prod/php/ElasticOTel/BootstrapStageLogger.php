@@ -32,9 +32,45 @@ use Throwable;
  */
 final class BootstrapStageLogger
 {
-    private static int $maxEnabledLevel;
+    public const LINE_PREFIX = 'Elastic OTel Distro';
+
+    public const LOG_CATEGORY = 'Bootstrap';
+
+    public const LEVEL_OFF = 0;
+    public const LEVEL_CRITICAL = 1;
+    public const LEVEL_ERROR = 2;
+    public const LEVEL_WARNING = 3;
+    public const LEVEL_INFO = 4;
+    public const LEVEL_DEBUG = 5;
+    public const LEVEL_TRACE = 6;
+
+    private const LEVEL_AS_STRING = [
+        self::LEVEL_OFF => 'OFF',
+        self::LEVEL_CRITICAL => 'CRITICAL',
+        self::LEVEL_ERROR => 'ERROR',
+        self::LEVEL_WARNING => 'WARNING',
+        self::LEVEL_INFO => 'INFO',
+        self::LEVEL_DEBUG => 'DEBUG',
+        self::LEVEL_TRACE => 'TRACE',
+    ];
+
+    private static int $maxEnabledLevel = self::LEVEL_OFF;
+
+    private static string $phpSrcCodePathPrefixToRemove;
+    private static string $classNamePrefixToRemove;
+
+    private static ?int $pid = null;
 
     private static ?bool $isStderrDefined = null;
+
+    private static function levelToString(int $level): string
+    {
+        if (array_key_exists($level, self::LEVEL_AS_STRING)) {
+            return self::LEVEL_AS_STRING[$level];
+        }
+
+        return "LEVEL ($level)";
+    }
 
     private static function ensureStdErrIsDefined(): bool
     {
@@ -50,139 +86,171 @@ final class BootstrapStageLogger
         return self::$isStderrDefined;
     }
 
-    private static function writeLineToStdErr(string $text): void
+    public static function writeLineToStdErr(string $text): void
     {
         if (self::ensureStdErrIsDefined()) {
             fwrite(STDERR, $text . PHP_EOL);
         }
     }
 
-    public static function configure(int $maxEnabledLevel): void
+    public static function nullableToLog(mixed $str): mixed
+    {
+        return $str === null ? 'null' : $str;
+    }
+
+    public static function configure(int $maxEnabledLevel, string $phpSrcCodeRootDir, string $rootNamespace): void
     {
         self::$maxEnabledLevel = $maxEnabledLevel;
-    }
+        if(is_int($pid = getmypid())) {
+            self::$pid = $pid;
+        }
 
-    public static function logDebug(
-        string $message,
-        int $srcCodeLine,
-        string $srcCodeFunc
-    ): void {
-        /** @noinspection PhpUndefinedConstantInspection, PhpFullyQualifiedNameUsageInspection */
-        self::logWithLevel(
-        /**
-         * ELASTIC_OTEL_* constants are provided by the extension
-         *
-         * @phpstan-ignore-next-line
-         */
-            \ELASTIC_OTEL_LOG_LEVEL_DEBUG,
-            $message,
-            $srcCodeLine,
-            $srcCodeFunc
+        self::$phpSrcCodePathPrefixToRemove = $phpSrcCodeRootDir . DIRECTORY_SEPARATOR;
+        self::$classNamePrefixToRemove = $rootNamespace . '\\';
+
+        self::logDebug(
+            'Exiting...'
+            . '; maxEnabledLevel: ' . self::levelToString($maxEnabledLevel)
+            . '; phpSrcCodePathPrefixToRemove: ' . self::$phpSrcCodePathPrefixToRemove
+            . '; classNamePrefixToRemove: ' . self::$classNamePrefixToRemove
+            . '; maxEnabledLevel: ' . self::levelToString($maxEnabledLevel)
+            . '; pid: ' . self::nullableToLog(self::$pid),
+            __FILE__, __LINE__, __CLASS__, __FUNCTION__
         );
     }
 
-    public static function logTrace(
-        string $message,
-        int $srcCodeLine,
-        string $srcCodeFunc
-    ): void {
-        /** @noinspection PhpUndefinedConstantInspection, PhpFullyQualifiedNameUsageInspection */
-        self::logWithLevel(
-        /**
-         * ELASTIC_OTEL_* constants are provided by the extension
-         *
-         * @phpstan-ignore-next-line
-         */
-            \ELASTIC_OTEL_LOG_LEVEL_TRACE,
-            $message,
-            $srcCodeLine,
-            $srcCodeFunc
-        );
+    /**
+     * @noinspection PhpUnused
+     */
+    public static function logCritical(string $message, string $file, int $line, string $class, string $func): void
+    {
+        self::logWithLevel(self::LEVEL_CRITICAL, $message, $file, $line, $class, $func);
     }
 
-    public static function logWarning(
-        string $message,
-        int $srcCodeLine,
-        string $srcCodeFunc
-    ): void {
-        /** @noinspection PhpUndefinedConstantInspection, PhpFullyQualifiedNameUsageInspection */
-        self::logWithLevel(
-        /**
-         * ELASTIC_OTEL_* constants are provided by the extension
-         *
-         * @phpstan-ignore-next-line
-         */
-            \ELASTIC_OTEL_LOG_LEVEL_WARNING,
-            $message,
-            $srcCodeLine,
-            $srcCodeFunc
-        );
+    /**
+     * @noinspection PhpUnused
+     */
+    public static function logError(string $message, string $file, int $line, string $class, string $func): void
+    {
+        self::logWithLevel(self::LEVEL_ERROR, $message, $file, $line, $class, $func);
     }
 
-    public static function logCritical(
-        string $message,
-        int $srcCodeLine,
-        string $srcCodeFunc
-    ): void {
-        /** @noinspection PhpUndefinedConstantInspection, PhpFullyQualifiedNameUsageInspection */
-        self::logWithLevel(
-        /**
-         * ELASTIC_OTEL_* constants are provided by the extension
-         *
-         * @phpstan-ignore-next-line
-         */
-            \ELASTIC_OTEL_LOG_LEVEL_CRITICAL,
-            $message,
-            $srcCodeLine,
-            $srcCodeFunc
-        );
+    /**
+     * @noinspection PhpUnused
+     */
+    public static function logWarning(string $message, string $file, int $line, string $class, string $func): void
+    {
+        self::logWithLevel(self::LEVEL_WARNING, $message, $file, $line, $class, $func);
     }
 
-    public static function logError(
-        string $message,
-        int $srcCodeLine,
-        string $srcCodeFunc
-    ): void {
-        /** @noinspection PhpUndefinedConstantInspection, PhpFullyQualifiedNameUsageInspection */
-        self::logWithLevel(
-        /**
-         * ELASTIC_OTEL_* constants are provided by the extension
-         *
-         * @phpstan-ignore-next-line
-         */
-            \ELASTIC_OTEL_LOG_LEVEL_ERROR,
-            $message,
-            $srcCodeLine,
-            $srcCodeFunc
-        );
+    /**
+     * @noinspection PhpUnused
+     */
+    public static function logInfo(string $message, string $file, int $line, string $class, string $func): void
+    {
+        self::logWithLevel(self::LEVEL_INFO, $message, $file, $line, $class, $func);
     }
 
-    public static function logCriticalThrowable(
-        Throwable $throwable,
-        string $message,
-        int $srcCodeLine,
-        string $srcCodeFunc
-    ): void {
+    /**
+     * @noinspection PhpUnused
+     */
+    public static function logDebug(string $message, string $file, int $line, string $class, string $func): void
+    {
+        self::logWithLevel(self::LEVEL_DEBUG, $message, $file, $line, $class, $func);
+    }
+
+    /**
+     * @noinspection PhpUnused
+     */
+    public static function logTrace(string $message, string $file, int $line, string $class, string $func): void
+    {
+        self::logWithLevel(self::LEVEL_TRACE, $message, $file, $line, $class, $func);
+    }
+
+    public static function isEnabledForLevel(int $statementLevel): bool
+    {
+        return $statementLevel <= self::$maxEnabledLevel;
+    }
+
+    public static function logCriticalThrowable(Throwable $throwable, string $message, string $file, int $line, string $class, string $func): void
+    {
         self::logCritical(
             $message . '.'
             . ' ' . get_class($throwable) . ': ' . $throwable->getMessage()
             . PHP_EOL . 'Stack trace:' . PHP_EOL . $throwable->getTraceAsString(),
-            $srcCodeLine,
-            $srcCodeFunc
+            $file, $line, $class, $func
         );
     }
 
-    private static function logWithLevel(
-        int $statementLevel,
-        string $message,
-        int $srcCodeLine,
-        string $srcCodeFunc
-    ): void {
-        self::writeLineToStdErr('level: ' . $statementLevel . ' | message: ' . $message);
+    private static function isPrefixOf(string $prefix, string $text, bool $isCaseSensitive = true): bool
+    {
+        $prefixLen = strlen($prefix);
+        if ($prefixLen === 0) {
+            return true;
+        }
 
-        if (self::$maxEnabledLevel < $statementLevel) {
+        return substr_compare(
+                   $text /* <- haystack */,
+                   $prefix /* <- needle */,
+                   0 /* <- offset */,
+                   $prefixLen /* <- length */,
+                   !$isCaseSensitive /* <- case_insensitivity */
+               ) === 0;
+    }
+
+    private static function processSourceCodeFilePathForLog(string $file): string
+    {
+        return
+            self::isPrefixOf(self::$phpSrcCodePathPrefixToRemove, $file, /* isCaseSensitive: */ false)
+                ? substr($file, strlen(self::$phpSrcCodePathPrefixToRemove))
+                : $file;
+    }
+
+    private static function processClassNameForLog(string $class): string
+    {
+        return
+            self::isPrefixOf(self::$classNamePrefixToRemove, $class, /* isCaseSensitive: */ false)
+                ? substr($class, strlen(self::$classNamePrefixToRemove))
+                : $class;
+    }
+
+    private static function processClassFunctionNameForLog(string $class, string $func): string
+    {
+        if ($class === '') {
+            return $func;
+        }
+        return self::processClassNameForLog($class) . '::' . $func;
+    }
+
+    private static function buildStatementLine(int $statementLevel, string $message, string $file, int $line, string $class, string $func): string
+    {
+        $statementLine = '';
+        $appendSquareBracketsDelimited = function (mixed $toAppend) use (&$statementLine): void {
+            if ($statementLine !== '') {
+                $statementLine .= ' ';
+            }
+            $statementLine .= '[' . $toAppend . ']';
+        };
+
+        $appendSquareBracketsDelimited(self::LINE_PREFIX);
+        if (self::$pid !== null) {
+            $appendSquareBracketsDelimited('PID: ' . self::$pid);
+        }
+        $appendSquareBracketsDelimited(self::levelToString($statementLevel));
+        $appendSquareBracketsDelimited(self::LOG_CATEGORY);
+        $appendSquareBracketsDelimited(self::processSourceCodeFilePathForLog($file) . ':' . $line);
+        $appendSquareBracketsDelimited(self::processClassFunctionNameForLog($class, $func));
+        $statementLine .= ' ' . $message;
+        return $statementLine;
+    }
+
+    private static function logWithLevel(int $statementLevel, string $message, string $file, int $line, string $class, string $func): void
+    {
+        if (!self::isEnabledForLevel($statementLevel)) {
             return;
         }
+
+        self::writeLineToStdErr(self::buildStatementLine($statementLevel, $message, $file, $line, $class, $func));
 
         /**
          * elastic_otel_* functions are provided by the extension
@@ -194,10 +262,18 @@ final class BootstrapStageLogger
             0 /* $isForced */,
             $statementLevel,
             'Bootstrap' /* category */,
-            __FILE__,
-            $srcCodeLine,
-            $srcCodeFunc,
+            self::processSourceCodeFilePathForLog($file),
+            $line,
+            self::processClassFunctionNameForLog($class, $func),
             $message
         );
+    }
+
+    /**
+     * @noinspection PhpUnused
+     */
+    public static function possiblySecuritySensitive(mixed $value): mixed
+    {
+        return self::isEnabledForLevel(self::LEVEL_TRACE) ? $value : 'REDACTED (POSSIBLY SECURITY SENSITIVE) DATA';
     }
 }

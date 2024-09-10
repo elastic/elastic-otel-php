@@ -40,136 +40,98 @@ final class InstrumentationBridge
     use SingletonInstanceTrait;
 
     /**
-     * @var array<string, array<string, array{?Closure, ?Closure}>>
+     * @var array<array{string, string, ?Closure, ?Closure}>
      */
-    public array $delayedHooksMapPerClass;
+    public array $delayedHooks = [];
 
     public function bootstrap(): bool
     {
-        /**
-         * \elastic_otel_* functions are provided by the extension
-         *
-         * @noinspection PhpFullyQualifiedNameUsageInspection, PhpUndefinedFunctionInspection
-         * @phpstan-ignore-next-line
-         */
-        $hookSplAutoloadRegisterRetVal = \elastic_otel_hook(
-            null /* <- $class */,
-            'spl_autoload_register',
-            /**
-             * spl_autoload_register(?callable $callback = null, bool $throw = true, bool $prepend = false): bool
-             */
-            function () {
-                $argsToUse = func_get_args();
-                BootstrapStageLogger::logTrace('Entered pre-hook for spl_autoload_register. count($argsToUse): ' . count($argsToUse), __LINE__, __FUNCTION__);
-                if (count($argsToUse) < 1 || (!is_callable($originalCallback = $argsToUse[0]))) {
-                    // TODO: Sergey Kleyman: Implement: InstrumentationBridge::
-                    // BootstrapStageLogger::logTrace(
-                    //     'xxxxxxxxxx: ' . count($argsPassedToCallback),
-                    //     __LINE__,
-                    //     __FUNCTION__
-                    // );
-                    /** @noinspection PhpInconsistentReturnPointsInspection */
-                    return;
-                }
-
-                $argsToUse[0] = function () use ($originalCallback) {
-                    $argsPassedToCallback = func_get_args();
-                    BootstrapStageLogger::logTrace(
-                        'Entered pre-hook for spl_autoload_register callback. count($argsPassedToCallback): ' . count($argsPassedToCallback),
-                        __LINE__,
-                        __FUNCTION__
-                    );
-                    // callback(string $class): void
-                    $originalCallback($argsPassedToCallback);
-                    if (count($argsPassedToCallback) >= 1 && (is_string($class = $argsPassedToCallback[0]))) {
-                        BootstrapStageLogger::logTrace('pre-hook for spl_autoload_register callback. $class: ' . $class, __LINE__, __FUNCTION__);
-                        // TODO: Sergey Kleyman: check if it might different case
-                        if (class_exists($class)) {
-                            $this->onClassLoaded($class);
-                        }
-                    }
-                    // else {
-                    //     // TODO: Sergey Kleyman: Implement: InstrumentationBridge::
-                    //     // BootstrapStageLogger::logTrace('pre-hook for spl_autoload_register callback. $argsPassedToCallback[0] type: ' . get_debug_type($class), __LINE__, __FUNCTION__);
-                    // }
-                };
-                return $argsToUse;
-            },
-            function (): void {
-                $passedArgs = func_get_args();
-                if (count($passedArgs) >= 1 && $passedArgs[0] === false) {
-                    BootstrapStageLogger::logError('Call to spl_autoload_register return false', __LINE__, __FUNCTION__);
-                }
-            }
-        );
-        if (!$hookSplAutoloadRegisterRetVal) {
-            BootstrapStageLogger::logError('elastic_otel_hook returned false. function: spl_autoload_register', __LINE__, __FUNCTION__);
+        if (!$this->hookSplAutoloadRegister()) {
             return false;
         }
 
         require ProdPhpDir::$fullPath . DIRECTORY_SEPARATOR . 'OpenTelemetry' . DIRECTORY_SEPARATOR . 'Instrumentation' . DIRECTORY_SEPARATOR . 'hook.php';
 
+        BootstrapStageLogger::logDebug('Finished successfully', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
         return true;
     }
 
     public function hook(?string $class, string $function, ?Closure $pre = null, ?Closure $post = null): bool
     {
+        BootstrapStageLogger::logTrace('Entered. class: ' . $class .  ' function: ' . $function, __FILE__, __LINE__, __CLASS__, __FUNCTION__);
+
+        if ($class !== null && !self::classOrInterfaceExists($class)) {
+            $this->addToDelayedHooks($class, $function, $pre, $post);
+            return true;
+        }
+
+        return self::elasticOTelHook($class, $function, $pre, $post);
+    }
+
+    private function addToDelayedHooks(string $class, string $function, ?Closure $pre = null, ?Closure $post = null): void
+    {
+        BootstrapStageLogger::logTrace('Adding to delayed hooks. class: ' . $class . ', function: ' . $function, __FILE__, __LINE__, __CLASS__, __FUNCTION__);
+
+        $this->delayedHooks[] = [$class, $function, $pre, $post];
+    }
+
+    private static function elasticOTelHook(?string $class, string $function, ?Closure $pre = null, ?Closure $post = null): bool
+    {
+        $dbgClassAsString = BootstrapStageLogger::nullableToLog($class);
+        BootstrapStageLogger::logTrace('Entered. class: ' . $dbgClassAsString . ', function: ' . $function, __FILE__, __LINE__, __CLASS__, __FUNCTION__);
+
         /**
          * \elastic_otel_* functions are provided by the extension
          *
          * @noinspection PhpFullyQualifiedNameUsageInspection, PhpUndefinedFunctionInspection
          * @phpstan-ignore-next-line
          */
-        $tryToHookRetVal = \elastic_otel_hook($class, $function, $pre, $post);
-        if ($tryToHookRetVal) {
+        $retVal = \elastic_otel_hook($class, $function, $pre, $post);
+        if ($retVal) {
+            BootstrapStageLogger::logTrace('Successfully hooked. class: ' . $dbgClassAsString . ', function: ' . $function, __FILE__, __LINE__, __CLASS__, __FUNCTION__);
             return true;
         }
 
         if ($class === null) {
-            BootstrapStageLogger::logError('elastic_otel_hook returned false. function: ' . $function, __LINE__, __FUNCTION__);
-            return false;
+            BootstrapStageLogger::logError('elastic_otel_hook returned false. function: ' . $function, __FILE__, __LINE__, __CLASS__, __FUNCTION__);
+        } else {
+            BootstrapStageLogger::logError('elastic_otel_hook returned false. class: ' . $dbgClassAsString . ', function: ' . $function, __FILE__, __LINE__, __CLASS__, __FUNCTION__);
         }
-
-        if (class_exists($class)) {
-            BootstrapStageLogger::logError('elastic_otel_hook returned false. class: ' . $class . ' (class exists), function: ' . $function, __LINE__, __FUNCTION__);
-            return false;
-        }
-
-        $this->addToDelayedHooks($class, $function, $pre, $post);
-        return true;
+        return false;
     }
 
-    private function addToDelayedHooks(string $class, string $function, ?Closure $pre = null, ?Closure $post = null): void
+    private function hookSplAutoloadRegister(): bool
     {
-        BootstrapStageLogger::logDebug('Adding to delayed hooks. class: ' . $class . ', function: ' . $function, __LINE__, __FUNCTION__);
-
-        if (!array_key_exists($class, $this->delayedHooksMapPerClass)) {
-            $this->delayedHooksMapPerClass[$class] = [];
-        }
-        $this->delayedHooksMapPerClass[$class][$function] = [$pre, $post];
+        return self::elasticOTelHook(null, 'spl_autoload_register', null, Closure::fromCallable([$this, 'retryDelayedHooks']));
     }
 
-    private function onClassLoaded(string $class): void
+    private function retryDelayedHooks(): void
     {
-        BootstrapStageLogger::logTrace('Class loaded. class: ' . $class, __LINE__, __FUNCTION__);
+        $delayedHooksCount = count($this->delayedHooks);
+        BootstrapStageLogger::logTrace('Entered. delayedHooks count: ' . $delayedHooksCount, __FILE__, __LINE__, __CLASS__, __FUNCTION__);
 
-        if (!array_key_exists($class, $this->delayedHooksMapPerClass)) {
-            BootstrapStageLogger::logTrace('Class is not found in delayed hooks. class: ' . $class, __LINE__, __FUNCTION__);
+        if (count($this->delayedHooks) === 0) {
             return;
         }
 
-        foreach ($this->delayedHooksMapPerClass[$class] as $function => $prePostPairArr) {
-            /**
-             * \elastic_otel_* functions are provided by the extension
-             *
-             * @noinspection PhpFullyQualifiedNameUsageInspection, PhpUndefinedFunctionInspection
-             * @phpstan-ignore-next-line
-             */
-            if(\elastic_otel_hook($class, $function, $prePostPairArr[0], $prePostPairArr[1])) {
-                BootstrapStageLogger::logTrace('Successfully added delayed hooks. class: ' . $class . ', function: ' . $function, __LINE__, __FUNCTION__);
-            } else {
-                BootstrapStageLogger::logError('elastic_otel_hook returned false trying to add delayed hooks.  class: ' . $class . ', function: ' . $function, __LINE__, __FUNCTION__);
+        $delayedHooksToKeep = [];
+        foreach ($this->delayedHooks as $delayedHookTuple) {
+            $class = $delayedHookTuple[0];
+            if (!self::classOrInterfaceExists($class)) {
+                BootstrapStageLogger::logTrace('Class/Interface for delayed hook still does not exist - keeping delayed hook. class: ' . $class, __FILE__, __LINE__, __CLASS__, __FUNCTION__);
+                $delayedHooksToKeep[] = $delayedHookTuple;
+                continue;
             }
+
+            self::elasticOTelHook(...$delayedHookTuple);
         }
+
+        $this->delayedHooks = $delayedHooksToKeep;
+        BootstrapStageLogger::logTrace('Exiting... delayedHooks count: ' . count($this->delayedHooks), __FILE__, __LINE__, __CLASS__, __FUNCTION__);
+    }
+
+    private static function classOrInterfaceExists(string $classOrInterface): bool
+    {
+        return class_exists($classOrInterface) || interface_exists($classOrInterface);
     }
 }
