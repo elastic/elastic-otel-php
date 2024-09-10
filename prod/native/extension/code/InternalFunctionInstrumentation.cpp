@@ -262,6 +262,10 @@ void ZEND_FASTCALL internal_function_handler(INTERNAL_FUNCTION_PARAMETERS) {
     }
 
     for (auto &callback : *callbacks) {
+        if (callback.first.isNull() || callback.first.isUndef()) {
+            continue;
+        }
+
         try {
             AutomaticExceptionStateRestorer restorer;
             callPreHook(callback.first);
@@ -275,6 +279,10 @@ void ZEND_FASTCALL internal_function_handler(INTERNAL_FUNCTION_PARAMETERS) {
     callOriginalHandler(originalHandler, INTERNAL_FUNCTION_PARAM_PASSTHRU);
 
     for (auto &callback : *callbacks) {
+        if (callback.second.isNull() || callback.second.isUndef()) {
+            continue;
+        }
+
         try {
             AutomaticExceptionStateRestorer restorer;
             callPostHook(callback.second, return_value, restorer.getException(), execute_data);
@@ -422,7 +430,10 @@ zend_observer_fcall_handlers elasticRegisterObserver(zend_execute_data *execute_
 
     auto callbacks = reinterpret_cast<InstrumentedFunctionHooksStorage_t *>(EAPM_GL(hooksStorage_).get())->find(hash);
     if (!callbacks) {
-        ELOG_TRACE(EAPM_GL(logger_), "elasticRegisterObserver hash: 0x%X, not instrumented", hash);
+        if (EAPM_GL(logger_)->doesMeetsLevelCondition(LogLevel::logLevel_trace)) {
+            auto [cls, func] = getClassAndFunctionName(execute_data);
+            ELOG_TRACE(EAPM_GL(logger_), "elasticRegisterObserver hash: 0x%X " PRsv "::" PRsv ", not instrumented", hash, PRsvArg(cls), PRsvArg(func));
+        }
         return {nullptr, nullptr};
     }
     ELOG_TRACE(EAPM_GL(logger_), "elasticRegisterObserver hash: 0x%X", hash);
