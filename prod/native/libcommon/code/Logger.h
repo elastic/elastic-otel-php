@@ -74,6 +74,8 @@ public:
 
     void attachSink(std::shared_ptr<LoggerSinkInterface> sink);
 
+    LogLevel getMaxLogLevel() const;
+
 private:
     std::string getFormattedTime() const;
     std::string getFormattedProcessData() const;

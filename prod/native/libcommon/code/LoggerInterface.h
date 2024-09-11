@@ -32,6 +32,7 @@ public:
 
     virtual void printf(LogLevel level, const char *format, ...) const = 0;
     virtual bool doesMeetsLevelCondition(LogLevel level) const = 0;
+    virtual LogLevel getMaxLogLevel() const = 0;
 };
 
 
