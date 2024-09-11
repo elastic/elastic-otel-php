@@ -64,6 +64,8 @@ final class PhpPartFacade
             __FILE__, __LINE__, __CLASS__, __FUNCTION__
         );
 
+        putenv('OTEL_PHP_AUTOLOAD_ENABLED=true');
+
         if (self::$singletonInstance !== null) {
             BootstrapStageLogger::logCritical(
                 'bootstrap() is called even though singleton instance is already created'
