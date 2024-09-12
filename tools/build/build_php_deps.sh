@@ -55,7 +55,7 @@ do
         php:${PHP_VERSION:0:1}.${PHP_VERSION:1:1}-cli sh -c "\
         apt-get update && apt-get install -y unzip \
         && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
-        && composer --ignore-platform-req=ext-opentelemetry --ignore-platform-req=ext-otel_instrumentation --no-dev install \
+        && composer --ignore-platform-req=ext-opentelemetry --ignore-platform-req=ext-otel_instrumentation  --ignore-platform-req=php  --no-dev install \
         && php /sources/packaging/notice_generator.php >>/sources/NOTICE \
         && chmod 666 /sources/composer.lock"
 

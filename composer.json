@@ -18,7 +18,7 @@
         "open-telemetry/opentelemetry-auto-slim": "1.0.6",
         "open-telemetry/sdk": "1.0.8",
         "php-http/guzzle7-adapter": "^1.0",
-        "symfony/http-client": "6.*||7.*"
+        "symfony/http-client": "6.0.20"
     },
     "provide": {
         "laravel/framework": "*"
