@@ -209,7 +209,7 @@ void callPostHook(AutoZval &hook, zval *return_value, zend_object *exception, ze
     // thre is no way to distinguish if posthook returned NULL, becuase in PHP functions are always returning NULL, even if there is no return keyword
     // in that case we can only try to overwrite return value for posthooks with return value type specified explicitly
     if (!(fcc.function_handler->op_array.fn_flags & ZEND_ACC_HAS_RETURN_TYPE) || (ZEND_TYPE_PURE_MASK(fcc.function_handler->common.arg_info[-1].type) & MAY_BE_VOID)) {
-        ELOG_DEBUG(EAPM_GL(logger_), "callPostHook hook doesn't explicitly specify return type other than void");
+        ELOG_TRACE(EAPM_GL(logger_), "callPostHook hook doesn't explicitly specify return type other than void");
         return;
     }
 
