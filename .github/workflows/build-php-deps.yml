@@ -24,4 +24,5 @@ jobs:
           name: php-dependencies
           path: |
             prod/php/vendor_*
+            prod/php/ElasticOTel/PhpPartVersion.php
             NOTICE
