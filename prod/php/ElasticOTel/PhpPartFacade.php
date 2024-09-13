@@ -50,24 +50,24 @@ final class PhpPartFacade
     /**
      * Called by the extension
      *
-     * @param string $elasticOTelVersion
+     * @param string $elasticOTelNativePartVersion
      * @param int    $maxEnabledLogLevel
      * @param float  $requestInitStartTime
      *
      * @return bool
      */
-    public static function bootstrap(string $elasticOTelVersion, int $maxEnabledLogLevel, float $requestInitStartTime): bool
+    public static function bootstrap(string $elasticOTelNativePartVersion, int $maxEnabledLogLevel, float $requestInitStartTime): bool
     {
-        self::$elasticOTelVersion = $elasticOTelVersion;
-
         require __DIR__ . DIRECTORY_SEPARATOR . 'BootstrapStageLogger.php';
 
         BootstrapStageLogger::configure($maxEnabledLogLevel, __DIR__, __NAMESPACE__);
         BootstrapStageLogger::logDebug(
             'Starting bootstrap sequence...'
-            . "; elasticOTelVersion: $elasticOTelVersion" . "; maxEnabledLogLevel: $maxEnabledLogLevel" . "; requestInitStartTime: $requestInitStartTime",
+            . "; elasticOTelNativePartVersion: $elasticOTelNativePartVersion" . "; maxEnabledLogLevel: $maxEnabledLogLevel" . "; requestInitStartTime: $requestInitStartTime",
             __FILE__, __LINE__, __CLASS__, __FUNCTION__
         );
+
+        self::setElasticOTelVersion($elasticOTelNativePartVersion);
 
         if (self::$singletonInstance !== null) {
             BootstrapStageLogger::logCritical(
@@ -94,6 +94,32 @@ final class PhpPartFacade
 
         BootstrapStageLogger::logDebug('Successfully completed bootstrap sequence', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
         return true;
+    }
+
+    private static function setElasticOTelVersion(string $nativePartVersion): void
+    {
+        /** @noinspection PhpIncludeInspection */
+        require __DIR__ . DIRECTORY_SEPARATOR . 'PhpPartVersion.php';
+
+        /**
+         * Constant Elastic\OTel\ELASTIC_OTEL_PHP_VERSION is defined in the generated file prod/php/ElasticOTel/PhpPartVersion.php
+         *
+         * @noinspection PhpUnnecessaryFullyQualifiedNameInspection, PhpUndefinedConstantInspection
+         * @phpstan-ignore-next-line
+         *
+         * @var string $phpPartVersion
+         */
+        $phpPartVersion = \Elastic\OTel\ELASTIC_OTEL_PHP_VERSION;
+
+        if ($nativePartVersion === $phpPartVersion) {
+            self::$elasticOTelVersion = $nativePartVersion;
+        } else {
+            BootstrapStageLogger::logDebug(
+                'Native part and PHP part versions do not match' . "; nativePartVersion: $nativePartVersion" . "; phpPartVersion: $phpPartVersion",
+                __FILE__, __LINE__, __CLASS__, __FUNCTION__
+            );
+            self::$elasticOTelVersion = "$nativePartVersion/$phpPartVersion";
+        }
     }
 
     private static function isInDevMode(): bool
