@@ -51,9 +51,11 @@ do
     docker run --rm \
         -v ${PWD}:/sources \
         -v ${PWD}/prod/php/vendor_${PHP_VERSION}:/sources/vendor \
+        -e GITHUB_SHA=${GITHUB_SHA} \
         -w /sources \
         php:${PHP_VERSION:0:1}.${PHP_VERSION:1:1}-cli sh -c "\
-        apt-get update && apt-get install -y unzip \
+        apt-get update && apt-get install -y unzip git \
+        && git config --global --add safe.directory /sources \
         && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
         && composer --ignore-platform-req=ext-opentelemetry --ignore-platform-req=ext-otel_instrumentation  --ignore-platform-req=php  --no-dev install \
         && php /sources/packaging/notice_generator.php >>/sources/NOTICE \
