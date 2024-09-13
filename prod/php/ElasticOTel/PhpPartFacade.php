@@ -114,7 +114,7 @@ final class PhpPartFacade
         if ($nativePartVersion === $phpPartVersion) {
             self::$elasticOTelVersion = $nativePartVersion;
         } else {
-            BootstrapStageLogger::logDebug(
+            BootstrapStageLogger::logWarning(
                 'Native part and PHP part versions do not match' . "; nativePartVersion: $nativePartVersion" . "; phpPartVersion: $phpPartVersion",
                 __FILE__, __LINE__, __CLASS__, __FUNCTION__
             );
