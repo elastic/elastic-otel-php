@@ -1,13 +1,16 @@
 #!/bin/bash
 
+SKIP_NOTICE=false
+
 show_help() {
     echo "Usage: $0 --php_versions <versions>"
     echo
     echo "Arguments:"
     echo "  --php_versions           Required. List of PHP versions separated by spaces (e.g., '80 81 82 83')."
+    echo "  --skip_notice            Optional. Skip notice file generator."
     echo
     echo "Example:"
-    echo "  $0 --php_versions '80 81 82 83'"
+    echo "  $0 --php_versions '80 81 82 83' --skip_notice"
 }
 
 # Function to parse arguments
@@ -17,6 +20,9 @@ parse_args() {
             --php_versions)
                 PHP_VERSIONS=($2)
                 shift
+                ;;
+            --skip_notice)
+                SKIP_NOTICE=true
                 ;;
             --help)
                 show_help
@@ -42,11 +48,21 @@ if [[ -z "$PHP_VERSIONS" ]]; then
     exit 1
 fi
 
+GEN_NOTICE=""
+if [ "$SKIP_NOTICE" = true ]; then
+    echo "Skipping notice file generation..."
+else
+    GEN_NOTICE="&& echo 'Generating NOTICE file. This may take some time...' && php /sources/packaging/notice_generator.php >>/sources/NOTICE"
+fi
+
+
 for PHP_VERSION in "${PHP_VERSIONS[@]}"
 do
     mkdir -p "prod/php/vendor_${PHP_VERSION}"
 
-    echo "This project depends on following packages for PHP ${PHP_VERSION:0:1}.${PHP_VERSION:1:1}" >>NOTICE
+    if [ "$SKIP_NOTICE" = false ]; then
+        echo "This project depends on following packages for PHP ${PHP_VERSION:0:1}.${PHP_VERSION:1:1}" >>NOTICE
+    fi
 
     docker run --rm \
         -v ${PWD}:/sources \
@@ -58,7 +74,7 @@ do
         && git config --global --add safe.directory /sources \
         && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
         && composer --ignore-platform-req=ext-opentelemetry --ignore-platform-req=ext-otel_instrumentation --ignore-platform-req=php --no-dev install \
-        && php /sources/packaging/notice_generator.php >>/sources/NOTICE \
+        ${GEN_NOTICE} \
         && chmod 666 /sources/composer.lock"
 
     rm -f composer.lock
