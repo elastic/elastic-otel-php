@@ -181,7 +181,7 @@ bool PhpBridge::callPHPSideEntryPoint(LogLevel logLevel, std::chrono::time_point
         return false;
     }
 
-    std::array<AutoZval, 3> arguments{std::string_view(ELASTIC_OTEL_VERSION),logLevel,(double)std::chrono::duration_cast<std::chrono::microseconds>(requestInitStart.time_since_epoch()).count()};
+    std::array<AutoZval, 3> arguments{std::string_view(ELASTIC_OTEL_VERSION), logLevel, (double)std::chrono::duration_cast<std::chrono::microseconds>(requestInitStart.time_since_epoch()).count()};
     AutoZval rv;
     return callMethod(nullptr, "\\Elastic\\OTel\\PhpPartFacade::bootstrap"sv, arguments.data()->get(), arguments.size(), rv.get());
 }
