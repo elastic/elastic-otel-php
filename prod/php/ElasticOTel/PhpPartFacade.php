@@ -24,6 +24,7 @@ declare(strict_types=1);
 namespace Elastic\OTel;
 
 use Elastic\OTel\Util\HiddenConstructorTrait;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -44,27 +45,29 @@ final class PhpPartFacade
 
     private static ?self $singletonInstance = null;
 
+    private static string $elasticOTelVersion;
+
     /**
      * Called by the extension
      *
-     * @noinspection PhpUnused
-     *
-     * @param int   $maxEnabledLogLevel
-     * @param float $requestInitStartTime
+     * @param string $elasticOTelNativePartVersion
+     * @param int    $maxEnabledLogLevel
+     * @param float  $requestInitStartTime
      *
      * @return bool
      */
-    public static function bootstrap(int $maxEnabledLogLevel, float $requestInitStartTime): bool
+    public static function bootstrap(string $elasticOTelNativePartVersion, int $maxEnabledLogLevel, float $requestInitStartTime): bool
     {
         require __DIR__ . DIRECTORY_SEPARATOR . 'BootstrapStageLogger.php';
 
         BootstrapStageLogger::configure($maxEnabledLogLevel, __DIR__, __NAMESPACE__);
         BootstrapStageLogger::logDebug(
-            'Starting bootstrap sequence...' . "; maxEnabledLogLevel: $maxEnabledLogLevel" . "; requestInitStartTime: $requestInitStartTime",
+            'Starting bootstrap sequence...'
+            . "; elasticOTelNativePartVersion: $elasticOTelNativePartVersion" . "; maxEnabledLogLevel: $maxEnabledLogLevel" . "; requestInitStartTime: $requestInitStartTime",
             __FILE__, __LINE__, __CLASS__, __FUNCTION__
         );
 
-        putenv('OTEL_PHP_AUTOLOAD_ENABLED=true');
+        self::setElasticOTelVersion($elasticOTelNativePartVersion);
 
         if (self::$singletonInstance !== null) {
             BootstrapStageLogger::logCritical(
@@ -79,24 +82,44 @@ final class PhpPartFacade
             require __DIR__ . DIRECTORY_SEPARATOR . 'Util' . DIRECTORY_SEPARATOR . 'SingletonInstanceTrait.php';
             require __DIR__ . DIRECTORY_SEPARATOR . 'InstrumentationBridge.php';
 
-            if (!InstrumentationBridge::singletonInstance()->bootstrap()){
-                return false;
-            }
-            if (!self::registerAutoloader()) {
-                return false;
-            }
+            InstrumentationBridge::singletonInstance()->bootstrap();
+            self::prepareEnvForOTelSdk();
+            self::registerAutoloader();
+
             self::$singletonInstance = new self();
         } catch (Throwable $throwable) {
-            BootstrapStageLogger::logCriticalThrowable(
-                $throwable,
-                'One of the steps in bootstrap sequence let a throwable escape',
-                __FILE__, __LINE__, __CLASS__, __FUNCTION__
-            );
+            BootstrapStageLogger::logCriticalThrowable($throwable, 'One of the steps in bootstrap sequence has thrown', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
             return false;
         }
 
         BootstrapStageLogger::logDebug('Successfully completed bootstrap sequence', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
         return true;
+    }
+
+    private static function setElasticOTelVersion(string $nativePartVersion): void
+    {
+        /** @noinspection PhpIncludeInspection */
+        require __DIR__ . DIRECTORY_SEPARATOR . 'PhpPartVersion.php';
+
+        /**
+         * Constant Elastic\OTel\ELASTIC_OTEL_PHP_VERSION is defined in the generated file prod/php/ElasticOTel/PhpPartVersion.php
+         *
+         * @noinspection PhpUnnecessaryFullyQualifiedNameInspection, PhpUndefinedConstantInspection
+         * @phpstan-ignore-next-line
+         *
+         * @var string $phpPartVersion
+         */
+        $phpPartVersion = \Elastic\OTel\ELASTIC_OTEL_PHP_VERSION;
+
+        if ($nativePartVersion === $phpPartVersion) {
+            self::$elasticOTelVersion = $nativePartVersion;
+        } else {
+            BootstrapStageLogger::logWarning(
+                'Native part and PHP part versions do not match' . "; nativePartVersion: $nativePartVersion" . "; phpPartVersion: $phpPartVersion",
+                __FILE__, __LINE__, __CLASS__, __FUNCTION__
+            );
+            self::$elasticOTelVersion = "$nativePartVersion/$phpPartVersion";
+        }
     }
 
     private static function isInDevMode(): bool
@@ -113,19 +136,41 @@ final class PhpPartFacade
         return false;
     }
 
-    private static function registerAutoloader(): bool
+    private static function prepareEnvForOTelAttributes(): void
+    {
+        // https://opentelemetry.io/docs/specs/semconv/resource/#telemetry-distribution-experimental
+
+        $envVarName = 'OTEL_RESOURCE_ATTRIBUTES';
+        $envVarValueOnEntry = getenv($envVarName);
+        $envVarValue = (is_string($envVarValueOnEntry) && strlen($envVarValueOnEntry) !== 0) ? ($envVarValueOnEntry . ',') : '';
+        $envVarValue .= 'telemetry.distro.name=elastic,telemetry.distro.version=' . self::$elasticOTelVersion;
+        self::setEnvVar($envVarName, $envVarValue);
+    }
+
+    private static function setEnvVar(string $envVarName, string $envVarValue): void
+    {
+        if (!putenv($envVarName . '=' . $envVarValue)) {
+            throw new RuntimeException('putenv returned false; $envVarName: ' . $envVarName . '; envVarValue: ' . $envVarValue);
+        }
+    }
+
+    private static function prepareEnvForOTelSdk(): void
+    {
+        self::setEnvVar('OTEL_PHP_AUTOLOAD_ENABLED', 'true');
+        self::prepareEnvForOTelAttributes();
+    }
+
+    private static function registerAutoloader(): void
     {
         $vendorDir = ProdPhpDir::$fullPath . '/vendor' . (self::isInDevMode() ? '' : '_' . PHP_MAJOR_VERSION . PHP_MINOR_VERSION);
         $vendorAutoloadPhp = $vendorDir . '/autoload.php';
         if (!file_exists($vendorAutoloadPhp)) {
-            BootstrapStageLogger::logCritical("File $vendorAutoloadPhp does not exist", __FILE__, __LINE__, __CLASS__, __FUNCTION__);
-            return false;
+            throw new RuntimeException("File $vendorAutoloadPhp does not exist");
         }
         BootstrapStageLogger::logDebug('About to require ' . $vendorAutoloadPhp, __FILE__, __LINE__, __CLASS__, __FUNCTION__);
         require $vendorAutoloadPhp;
 
         BootstrapStageLogger::logDebug('Finished successfully', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
-        return true;
     }
 
     /**
