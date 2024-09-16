@@ -47,6 +47,9 @@ build/*
 # For local development
 z_local*
 
+# Per user PHPStan configuration
+phpstan.dist.neon
+
 # Prerequisites
 *.d
 
