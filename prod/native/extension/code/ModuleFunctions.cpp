@@ -187,13 +187,13 @@ PHP_FUNCTION(initialize) {
     HashTable *ht = Z_ARRVAL_P(headers);
 
     zval *value = nullptr;
-    zend_string *key = nullptr;
+    zend_string *arrkey = nullptr;
 
     std::vector<std::pair<std::string_view, std::string_view>> endpointHeaders;
 
-    ZEND_HASH_FOREACH_STR_KEY_VAL(ht, key, value) {
+    ZEND_HASH_FOREACH_STR_KEY_VAL(ht, arrkey, value) {
         if (value && Z_TYPE_P(value) == IS_STRING) {
-            endpointHeaders.emplace_back(std::make_pair(std::string_view(ZSTR_VAL(key), ZSTR_LEN(key)), std::string_view(Z_STRVAL_P(value), Z_STRLEN_P(value))));
+            endpointHeaders.emplace_back(std::make_pair(std::string_view(ZSTR_VAL(arrkey), ZSTR_LEN(arrkey)), std::string_view(Z_STRVAL_P(value), Z_STRLEN_P(value))));
         }
     }
     ZEND_HASH_FOREACH_END();
