@@ -25,6 +25,7 @@
 #include "ModuleGlobals.h"
 #include "ModuleFunctionsImpl.h"
 #include "InternalFunctionInstrumentation.h"
+#include "transport/HttpTransportAsync.h"
 
 #include <main/php.h>
 #include <Zend/zend_API.h>
@@ -54,34 +55,6 @@ PHP_FUNCTION(elastic_otel_get_config_option_by_name) {
 
     elasticApmGetConfigOption({optionName, optionNameLength}, /* out */ return_value);
 }
-
-ZEND_BEGIN_ARG_INFO_EX(elastic_otel_send_to_server_arginfo, /* _unused: */ 0, /* return_reference: */ 0, /* required_num_args: */ 2)
-ZEND_ARG_TYPE_INFO(/* pass_by_ref: */ 0, userAgentHttpHeader, IS_STRING, /* allow_null: */ 0)
-ZEND_ARG_TYPE_INFO(/* pass_by_ref: */ 0, serializedEvents, IS_STRING, /* allow_null: */ 0)
-ZEND_END_ARG_INFO()
-
-/* {{{ elastic_otel_send_to_server(
- *          string userAgentHttpHeader,
- *          string $serializedEvents ): bool
- */
-PHP_FUNCTION(elastic_otel_send_to_server) {
-    char *userAgentHttpHeader = nullptr;
-    size_t userAgentHttpHeaderLength = 0;
-    char *serializedEvents = nullptr;
-    size_t serializedEventsLength = 0;
-
-    ZEND_PARSE_PARAMETERS_START(/* min_num_args: */ 2, /* max_num_args: */ 2)
-    Z_PARAM_STRING(userAgentHttpHeader, userAgentHttpHeaderLength)
-    Z_PARAM_STRING(serializedEvents, serializedEventsLength)
-    ZEND_PARSE_PARAMETERS_END();
-
-    // if (elasticApmSendToServer({ userAgentHttpHeader, userAgentHttpHeaderLength } , { serializedEvents, serializedEventsLength }) != resultSuccess) {
-    RETURN_BOOL(false);
-    // }
-
-    // RETURN_BOOL(true);
-}
-/* }}} */
 
 ZEND_BEGIN_ARG_INFO_EX(elastic_otel_log_arginfo, /* _unused: */ 0, /* return_reference: */ 0, /* required_num_args: */ 7)
 ZEND_ARG_TYPE_INFO(/* pass_by_ref: */ 0, isForced, IS_LONG, /* allow_null: */ 0)
@@ -187,17 +160,74 @@ PHP_FUNCTION(elastic_otel_hook) {
     RETURN_BOOL(elasticapm::php::instrumentFunction(EAPM_GL(logger_).get(), className, functionName, pre, post));
 }
 
+ZEND_BEGIN_ARG_INFO_EX(ArgInfoInitialize, 0, 0, 3)
+ZEND_ARG_TYPE_INFO(0, endpoint, IS_STRING, 1)
+ZEND_ARG_TYPE_INFO(0, contentType, IS_STRING, 0)
+ZEND_ARG_TYPE_INFO(0, headers, IS_ARRAY, 0)
+ZEND_END_ARG_INFO()
+
+PHP_FUNCTION(initialize) {
+    zend_string *endpoint;
+    zend_string *contentType;
+    zval *headers;
+
+    double timeout = 0.0; // s
+    long retryDelay = 0;  // ms
+    long maxRetries = 0;
+
+    ZEND_PARSE_PARAMETERS_START(6, 6)
+    Z_PARAM_STR(endpoint)
+    Z_PARAM_STR(contentType)
+    Z_PARAM_ARRAY(headers)
+    Z_PARAM_DOUBLE(timeout)
+    Z_PARAM_LONG(retryDelay)
+    Z_PARAM_LONG(maxRetries)
+    ZEND_PARSE_PARAMETERS_END();
+
+    HashTable *ht = Z_ARRVAL_P(headers);
+
+    zval *value = nullptr;
+    zend_string *key = nullptr;
+
+    std::vector<std::pair<std::string_view, std::string_view>> endpointHeaders;
+
+    ZEND_HASH_FOREACH_STR_KEY_VAL(ht, key, value) {
+        if (value && Z_TYPE_P(value) == IS_STRING) {
+            endpointHeaders.emplace_back(std::make_pair(std::string_view(ZSTR_VAL(key), ZSTR_LEN(key)), std::string_view(Z_STRVAL_P(value), Z_STRLEN_P(value))));
+        }
+    }
+    ZEND_HASH_FOREACH_END();
+
+    EAPM_GL(httpTransportAsync_)->initializeConnection(std::string(ZSTR_VAL(endpoint), ZSTR_LEN(endpoint)), ZSTR_HASH(endpoint), std::string(ZSTR_VAL(contentType), ZSTR_LEN(contentType)), endpointHeaders, std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::duration<double>(timeout)), static_cast<std::size_t>(maxRetries), std::chrono::milliseconds(retryDelay));
+}
+
+ZEND_BEGIN_ARG_INFO_EX(ArgInfoSend, 0, 0, 2)
+ZEND_ARG_TYPE_INFO(0, endpoint, IS_STRING, 1)
+ZEND_ARG_TYPE_INFO(0, payload, IS_STRING, 1)
+ZEND_END_ARG_INFO()
+
+PHP_FUNCTION(enqueue) {
+    zend_string *payload = nullptr;
+    zend_string *endpoint = nullptr;
+    ZEND_PARSE_PARAMETERS_START(2, 2)
+    Z_PARAM_STR(endpoint)
+    Z_PARAM_STR(payload)
+    ZEND_PARSE_PARAMETERS_END();
+
+    EAPM_GL(httpTransportAsync_)->enqueue(ZSTR_HASH(endpoint), std::span<std::byte>(reinterpret_cast<std::byte *>(ZSTR_VAL(payload)), ZSTR_LEN(payload)));
+}
+
 // clang-format off
 const zend_function_entry elastic_otel_functions[] = {
     PHP_FE( elastic_otel_is_enabled, elastic_otel_no_paramters_arginfo )
     PHP_FE( elastic_otel_get_config_option_by_name, elastic_otel_get_config_option_by_name_arginfo )
-    // PHP_FE( elastic_otel_send_to_server, elastic_otel_send_to_server_arginfo )
     PHP_FE( elastic_otel_log, elastic_otel_log_arginfo )
     PHP_FE( elastic_otel_get_last_thrown, elastic_otel_get_last_thrown_arginfo )
     PHP_FE( elastic_otel_get_last_php_error, elastic_otel_get_last_php_error_arginfo )
     PHP_FE( elastic_otel_hook, elastic_otel_hook_arginfo )
 
-//    ZEND_NS_FALIAS("OpenTelemetry\\Instrumentation", hook, elastic_otel_hook, elastic_otel_hook_arginfo) ZEND_FE_END,
+    ZEND_NS_FE( "Elastic\\Otel\\HttpTransport", initialize, ArgInfoInitialize)
+    ZEND_NS_FE( "Elastic\\Otel\\HttpTransport", enqueue, elastic_otel_no_paramters_arginfo)
 
     PHP_FE_END
 };

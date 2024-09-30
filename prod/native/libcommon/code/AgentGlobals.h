@@ -36,6 +36,12 @@ class ConfigurationSnapshot;
 class LoggerSinkInterface;
 class LogSinkFile;
 class InstrumentedFunctionHooksStorageInterface;
+namespace transport {
+class CurlSender;
+template <typename Sender> class HttpTransportAsync;
+}
+
+// clang-format off
 
 class AgentGlobals {
 public:
@@ -55,6 +61,7 @@ public:
     std::shared_ptr<InstrumentedFunctionHooksStorageInterface> hooksStorage_;
     std::shared_ptr<PhpSapi> sapi_;
     std::unique_ptr<PeriodicTaskExecutor> periodicTaskExecutor_;
+    std::unique_ptr<transport::HttpTransportAsync<transport::CurlSender>> httpTransportAsync_;
     std::shared_ptr<SharedMemoryState> sharedMemory_;
     std::shared_ptr<RequestScope> requestScope_;
 

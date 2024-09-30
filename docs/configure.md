@@ -55,8 +55,15 @@ _Currently there are no additional `OTEL_` options waiting to be contributed ups
 
 `ELASTIC_OTEL_` options that are specific to Elastic and will always live in EDOT PHP (in other words, they will _not_ be added upstream):
 
-<!--
-| Option(s) | Default | Description |
-|---|---|---|
+
+| Option(s) | Default | Accepted values | Description |
+|---|---|---|---|
+|ELASTIC_OTEL_ENABLED|true|true or false|Enables the automatic bootstrapping of instrumentation code|
+|ELASTIC_OTEL_DISABLE_ASYNC_TRANSPORT|false| true or false | Disables asynchronous (background) transfer of traces, metrics and logs. Brings back original OpenTelemetry SDK transfer modes|
+|ELASTIC_OTEL_MAX_SEND_QUEUE_SIZE|2MB| integer number with optional units: B, MB or GB | Set the maximum buffer size for asynchronous (background) transfer. It is set per worker process.|
+|ELASTIC_OTEL_VERIFY_SERVER_CERT|true|true or false|Enables server certificate verification for asynchronous sending|
+|ELASTIC_OTEL_LOG_FILE||Filesystem path|Log file name. You can use the %p placeholder where the process ID will appear in the file name, and %t where the timestamp will appear. Please note that the PHP process must have write permissions for the specified path.|
+|ELASTIC_OTEL_LOG_LEVEL_FILE|OFF|OFF, CRITICAL, ERROR, WARNING, INFO, DEBUG, TRACE|Log level for file sink. Set to OFF if you don't want to log to file.
+|ELASTIC_OTEL_LOG_LEVEL_STDERR|OFF|OFF, CRITICAL, ERROR, WARNING, INFO, DEBUG, TRACE|Log level for the stderr sink. Set to OFF if you don't want to log to a file. This sink is recommended when running the application in a container.
+|ELASTIC_OTEL_LOG_LEVEL_SYSLOG|OFF|OFF, CRITICAL, ERROR, WARNING, INFO, DEBUG, TRACE|Log level for file sink. Set to OFF if you don't want to log to file. This sink is recommended when you don't have write access to file system.
 | <option> | <default value> | <description> |
--->

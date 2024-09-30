@@ -85,6 +85,7 @@ final class PhpPartFacade
             InstrumentationBridge::singletonInstance()->bootstrap();
             self::prepareEnvForOTelSdk();
             self::registerAutoloader();
+            self::registerAsyncTransportFactory();
 
             self::$singletonInstance = new self();
         } catch (Throwable $throwable) {
@@ -171,6 +172,18 @@ final class PhpPartFacade
         require $vendorAutoloadPhp;
 
         BootstrapStageLogger::logDebug('Finished successfully', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
+    }
+
+    private static function registerAsyncTransportFactory(): void
+    {
+        if (elastic_otel_get_config_option_by_name('disable_async_transport') === true) {
+            BootstrapStageLogger::logDebug('TRANSPORT_DISABLED', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
+            return;
+        }
+
+        require __DIR__ . DIRECTORY_SEPARATOR . 'HttpTransport' . DIRECTORY_SEPARATOR . 'ElasticHttpTransport.php';
+        require __DIR__ . DIRECTORY_SEPARATOR . 'HttpTransport' . DIRECTORY_SEPARATOR . 'ElasticHttpTransportFactory.php';
+        \OpenTelemetry\SDK\Registry::registerTransportFactory('http', \Elastic\Otel\HttpTransport\ElasticHttpTransportFactory::class, true);
     }
 
     /**

@@ -1,6 +1,9 @@
 
 #scan for source files
-AUX_SOURCE_DIRECTORY(. SrcFiles)
+#AUX_SOURCE_DIRECTORY(. SrcFiles)
+file(GLOB_RECURSE SrcFiles
+     "./*.cpp"
+)
 
 set(testLib libcommon)
 
@@ -10,7 +13,9 @@ add_executable(${targetName} ${SrcFiles})
 
 target_link_libraries(${targetName}
     PRIVATE ${testLib}
-    CONAN_PKG::gtest)
+    PRIVATE CONAN_PKG::libcurl
+   CONAN_PKG::gtest)
+
 
 target_include_directories(${targetName}
     PRIVATE "code"

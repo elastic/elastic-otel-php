@@ -47,6 +47,9 @@ void elasticApmGetConfigOption(std::string_view optionName, zval *return_value) 
         } else if constexpr (std::is_same_v<T, std::string>) {
             ZVAL_STRINGL(return_value, arg.c_str(), arg.length());
             return;
+        } else if constexpr (std::is_same_v<T, std::size_t>) {
+            ZVAL_LONG(return_value, arg);
+            return;
         } else {
             ZVAL_NULL(return_value);
         }

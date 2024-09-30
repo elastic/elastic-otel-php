@@ -32,7 +32,7 @@
 #include <stddef.h>
 #include <sys/types.h>
 #include <unistd.h>
-
+#include <boost/regex.hpp>
 
 namespace elasticapm::utils {
 
@@ -54,6 +54,43 @@ using namespace std::literals;
     return pthread_sigmask(SIG_BLOCK, &currentSigset, NULL) == 0;
 }
 
+void blockApacheAndPHPSignals() {
+    // block signals for this thread to be handled by main Apache/PHP thread
+    // list of signals from Apaches mpm handlers
+    elasticapm::utils::blockSignal(SIGTERM);
+    elasticapm::utils::blockSignal(SIGHUP);
+    elasticapm::utils::blockSignal(SIGINT);
+    elasticapm::utils::blockSignal(SIGWINCH);
+    elasticapm::utils::blockSignal(SIGUSR1);
+    elasticapm::utils::blockSignal(SIGPROF); // php timeout signal
+}
+
+std::size_t parseByteUnits(std::string bytesWithUnit) {
+    auto endWithoutSpaces = std::remove_if(bytesWithUnit.begin(), bytesWithUnit.end(), [](unsigned char c) { return std::isspace(c); });
+    bytesWithUnit.erase(endWithoutSpaces, bytesWithUnit.end());
+
+    std::size_t value = std::stoul(bytesWithUnit.data());
+    auto unitPos = bytesWithUnit.find_first_not_of("0123456789"sv);
+
+    if (unitPos == std::string_view::npos) {
+        return value;
+    }
+
+    auto unitBuf = bytesWithUnit.substr(unitPos);
+    istring_view unit{unitBuf.data(), unitBuf.length()};
+
+    if (unit == "b"_cisv) {
+        return value;
+    } else if (unit == "kb"_cisv) {
+        return value * 1024;
+    } else if (unit == "mb"_cisv) {
+        return value * 1024 * 1024;
+    } else if (unit == "gb"_cisv) {
+        return value * 1024 * 1024 * 1024;
+    }
+
+    throw std::invalid_argument("Invalid byte unit.");
+}
 
 //TODO handle other string types
 std::chrono::milliseconds convertDurationWithUnit(std::string timeWithUnit) {
@@ -188,5 +225,37 @@ std::string sanitizeKeyValueString(std::string const &tokenName, std::string con
     return std::regex_replace(text, regex, tokenName + "=***"s);
 }
 
+std::optional<ParsedURL> parseUrl(std::string const &url) {
+    std::regex url_regex(R"((http|https)://([\w.-]+)(?::(\d+))?(?:/(.*))?)");
+    std::smatch match;
 
+    if (std::regex_match(url, match, url_regex)) {
+        ParsedURL parsed_url;
+        parsed_url.protocol = match[1];
+        parsed_url.host = match[2];
+
+        if (match[3].matched) {
+            parsed_url.port = match[3];
+        }
+
+        if (match[4].matched) {
+            parsed_url.query = match[4];
+        }
+
+        return parsed_url;
+    }
+
+    return std::nullopt;
+}
+
+std::optional<std::string> getConnectionDetailsFromURL(std::string const &url) {
+    boost::regex urlPattern(R"(^((https?):\/\/([^\/:]+))(?::(\d+))?)");
+    boost::smatch match;
+
+    if (boost::regex_search(url, match, urlPattern)) {
+        return match[4].matched ? match[1].str() + ":" + match[4].str() : match[1].str();
+    }
+
+    return std::nullopt;
+}
 }
