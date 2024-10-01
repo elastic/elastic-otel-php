@@ -65,12 +65,12 @@
             "phpcbf ./tests/"
         ],
         "phpstan-junit-report-for-ci": [
-            "phpstan analyse --error-format=junit -c ./phpstan.neon ./prod/php/ --level max --memory-limit=1G | tee build/elastic-otel-phpstan-junit.xml",
-            "phpstan analyse --error-format=junit -c ./phpstan.neon ./tests/ --level max --memory-limit=1G --error-format=junit | tee build/tests-phpstan-junit.xml"
+            "phpstan analyse --error-format=junit ./prod/php/ --level max --memory-limit=1G | tee build/elastic-otel-phpstan-junit.xml",
+            "phpstan analyse --error-format=junit ./tests/ --level max --memory-limit=1G --error-format=junit | tee build/tests-phpstan-junit.xml"
         ],
         "phpstan": [
-            "phpstan analyse -c ./phpstan.neon ./prod/php/ --level max --memory-limit=1G",
-            "phpstan analyse -c ./phpstan.neon ./tests/ --level max --memory-limit=1G"
+            "phpstan analyse ./prod/php/ --level max --memory-limit=1G",
+            "phpstan analyse ./tests/ --level max --memory-limit=1G"
         ],
         "static_check": [
             "composer run-script -- parallel-lint",
