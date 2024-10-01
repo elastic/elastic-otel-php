@@ -56,6 +56,23 @@ TEST(CommunUtilsTest, convertDurationWithUnit) {
     ASSERT_EQ(convertDurationWithUnit("  1234  \t"), 1234ms);
 }
 
+TEST(CommunUtilsTest, parseByteUnits) {
+    EXPECT_THROW(parseByteUnits("1  s  s"), std::invalid_argument);
+    EXPECT_THROW(parseByteUnits("1xd"), std::invalid_argument);
+    EXPECT_THROW(parseByteUnits("1h"), std::invalid_argument);
+    EXPECT_THROW(parseByteUnits("-1"), std::invalid_argument);
+
+    ASSERT_EQ(parseByteUnits("1"), 1u);
+    ASSERT_EQ(parseByteUnits("1b"), 1u);
+    ASSERT_EQ(parseByteUnits(" 1kb "), 1024u);
+    ASSERT_EQ(parseByteUnits("   \t  10  k b \t\n "), 10240u);
+    ASSERT_EQ(parseByteUnits("1mb "), 1048576u);
+    ASSERT_EQ(parseByteUnits("1MB "), 1048576u);
+    ASSERT_EQ(parseByteUnits("20mb "), 20971520u);
+    ASSERT_EQ(parseByteUnits("1gb "), 1073741824u);
+    ASSERT_EQ(parseByteUnits("10 G B"), 10737418240u);
+    ASSERT_EQ(parseByteUnits("0"), 0u);
+}
 
 TEST(CommunUtilsTest, parseBoolean) {
     ASSERT_TRUE(parseBoolean("true"));
@@ -143,5 +160,16 @@ TEST(CommunUtilsTest, getEnvName) {
     ASSERT_EQ(getEnvName("OtherOption"), "ELASTIC_OTEL_OTHEROPTION"s);
 }
 
+TEST(CommonUtilsTest, getConnectionDetailsFromURL) {
+    ASSERT_EQ(getConnectionDetailsFromURL("https://localhost/?query=asdsad").value_or(""), "https://localhost"s);
+    ASSERT_EQ(getConnectionDetailsFromURL("http://localhost/?query=asdsad").value_or(""), "http://localhost"s);
+    ASSERT_EQ(getConnectionDetailsFromURL("http://localhost:8080/?query=asdsad").value_or(""), "http://localhost:8080"s);
+    ASSERT_EQ(getConnectionDetailsFromURL("http://localhost:8080/").value_or(""), "http://localhost:8080"s);
+    ASSERT_EQ(getConnectionDetailsFromURL("http://localhost:8080").value_or(""), "http://localhost:8080"s);
+
+    ASSERT_NE(getConnectionDetailsFromURL("https://localhost").value_or(""), "http://localhost"s);
+    ASSERT_EQ(getConnectionDetailsFromURL("localhost"), std::nullopt);
+    ASSERT_EQ(getConnectionDetailsFromURL("ftp:://localhost"), std::nullopt);
+}
 }
 

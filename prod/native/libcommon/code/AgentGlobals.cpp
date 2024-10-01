@@ -28,8 +28,10 @@
 #include "ConfigurationStorage.h"
 #include "InstrumentedFunctionHooksStorage.h"
 #include "CommonUtils.h"
+#include "transport/HttpTransportAsync.h"
 
 namespace elasticapm::php {
+// clang-format off
 
 AgentGlobals::AgentGlobals(std::shared_ptr<LoggerInterface> logger,
         std::shared_ptr<LoggerSinkInterface> logSinkStdErr,
@@ -44,6 +46,7 @@ AgentGlobals::AgentGlobals(std::shared_ptr<LoggerInterface> logger,
     hooksStorage_(std::move(hooksStorage)),
     sapi_(std::make_shared<elasticapm::php::PhpSapi>(bridge_->getPhpSapiName())),
     periodicTaskExecutor_(),
+    httpTransportAsync_(std::make_unique<elasticapm::php::transport::HttpTransportAsync<>>(logger_, config_)),
     sharedMemory_(std::make_shared<elasticapm::php::SharedMemoryState>()),
     requestScope_(std::make_shared<elasticapm::php::RequestScope>(logger_, bridge_, sapi_, sharedMemory_, config_, [hs = hooksStorage_]() { hs->clear(); })),
     logSinkStdErr_(std::move(logSinkStdErr)),

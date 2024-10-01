@@ -87,12 +87,6 @@ void elasticApmModuleInit(int moduleType, int moduleNumber) {
         return;
     }
 
-    // curlCode = curl_global_init(CURL_GLOBAL_ALL);
-    // if (curlCode != CURLE_OK) {
-    //     ELOG_ERROR(globals->logger_, "curl_global_init failed: %s (%d)", curl_easy_strerror(curlCode), (int)curlCode);
-    //     return;
-    // }
-
     ELOG_DEBUG(globals->logger_, "MINIT Replacing hooks");
     elasticapm::php::Hooking::getInstance().replaceHooks();
 

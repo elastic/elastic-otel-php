@@ -22,6 +22,7 @@
 
 #include "LogLevel.h"
 #include <chrono>
+#include <optional>
 #include <regex>
 #include <string>
 #include <string_view>
@@ -29,8 +30,11 @@
 namespace elasticapm::utils {
 
 [[maybe_unused]] bool blockSignal(int signo);
+void blockApacheAndPHPSignals();
 
 std::chrono::milliseconds convertDurationWithUnit(std::string timeWithUnit); // default unit - ms, handles ms, s, m, throws std::invalid_argument if unit is unknown
+std::size_t parseByteUnits(std::string bytesWithUnit);                       // default unit - b, handles b, kb, mb, gb , throws std::invalid_argument if unit is unknown
+
 bool parseBoolean(std::string_view val); // throws  std::invalid_argument
 LogLevel parseLogLevel(std::string_view val); // throws  std::invalid_argument
 
@@ -60,5 +64,14 @@ std::string getEnvName(std::string_view optionName);
 
 std::string sanitizeKeyValueString(std::string const &tokenName, std::string const &text);
 
+struct ParsedURL {
+    std::string protocol;
+    std::string host;
+    std::optional<std::string> port;
+    std::optional<std::string> query;
+};
 
+std::optional<ParsedURL> parseUrl(std::string const &url);
+
+std::optional<std::string> getConnectionDetailsFromURL(std::string const &url);
 }

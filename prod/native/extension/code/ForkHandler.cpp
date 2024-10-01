@@ -27,13 +27,16 @@
 #include "LoggerInterface.h"
 #include "ModuleGlobals.h"
 #include "PeriodicTaskExecutor.h"
-
+#include "transport/HttpTransportAsync.h"
 
 static void callbackToLogForkBeforeInParent() {
     ELOG_DEBUG(EAPM_GL(logger_), "Before process fork (i.e., in parent context); its parent (i.e., grandparent) PID: %d", static_cast<int>(elasticapm::osutils::getParentProcessId()));
     // TODO implement forkable registry
     if (ELASTICAPM_G(globals) && ELASTICAPM_G(globals)->periodicTaskExecutor_) {
         ELASTICAPM_G(globals)->periodicTaskExecutor_->prefork();
+    }
+    if (ELASTICAPM_G(globals) && ELASTICAPM_G(globals)->httpTransportAsync_) {
+        ELASTICAPM_G(globals)->httpTransportAsync_->prefork();
     }
 }
 
@@ -42,12 +45,18 @@ static void callbackToLogForkAfterInParent() {
     if (ELASTICAPM_G(globals) && ELASTICAPM_G(globals)->periodicTaskExecutor_) {
         ELASTICAPM_G(globals)->periodicTaskExecutor_->postfork(false);
     }
+    if (ELASTICAPM_G(globals) && ELASTICAPM_G(globals)->httpTransportAsync_) {
+        ELASTICAPM_G(globals)->httpTransportAsync_->postfork(false);
+    }
 }
 
 static void callbackToLogForkAfterInChild() {
     ELOG_DEBUG(EAPM_GL(logger_), "After process fork (in child context); parent PID: %d", static_cast<int>(elasticapm::osutils::getParentProcessId()));
     if (ELASTICAPM_G(globals) && ELASTICAPM_G(globals)->periodicTaskExecutor_) {
         ELASTICAPM_G(globals)->periodicTaskExecutor_->postfork(true);
+    }
+    if (ELASTICAPM_G(globals) && ELASTICAPM_G(globals)->httpTransportAsync_) {
+        ELASTICAPM_G(globals)->httpTransportAsync_->postfork(true);
     }
 }
 

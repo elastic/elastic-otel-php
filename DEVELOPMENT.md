@@ -28,6 +28,8 @@ linux-arm64
 linuxmusl-arm64
 ```
 
+If you want to enable debug logging in tested classes, you need to export environment variable `ELASTIC_OTEL_DEBUG_LOG_TESTS=1` before run.
+
 ### Testing the native library
 
 The following script will run the phpt tests for the native library, which should be built in the previous step - make sure to use the same architecture. You can run tests for multiple PHP versions simultaneously by providing several versions separated by a space to the `--php_versions` parameter.

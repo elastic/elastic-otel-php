@@ -49,6 +49,10 @@ std::string ConfigurationManager::accessOptionStringValueByMetadata(OptionMetada
            std::string_view level = utils::trim(getLogLevelName(*value));
            return {level.data(), level.length()};
         }
+        case OptionMetadata::type::bytes: {
+            std::size_t *value = reinterpret_cast<std::size_t *>((std::byte *)&snapshot + metadata.offset);
+            return std::to_string(*value);
+        }
         default:
             return {};
     }
@@ -76,6 +80,10 @@ ConfigurationManager::optionValue_t ConfigurationManager::getOptionValue(std::st
         }
         case elasticapm::php::ConfigurationManager::OptionMetadata::type::loglevel: {
             LogLevel *value = reinterpret_cast<LogLevel *>((std::byte *)&snapshot + metadata.offset);
+            return *value;
+        }
+        case elasticapm::php::ConfigurationManager::OptionMetadata::type::bytes: {
+            size_t *value = reinterpret_cast<size_t *>((std::byte *)&snapshot + metadata.offset);
             return *value;
         }
         default:
@@ -114,6 +122,11 @@ void ConfigurationManager::update() {
                 case OptionMetadata::type::loglevel: {
                     LogLevel *value = (LogLevel *)((std::byte *)&newConfig + entry.second.offset);
                     *value = utils::parseLogLevel(optionValue);
+                    break;
+                }
+                case OptionMetadata::type::bytes: {
+                    std::size_t *value = (std::size_t *)((std::byte *)&newConfig + entry.second.offset);
+                    *value = utils::parseByteUnits(optionValue);
                     break;
                 }
             }
