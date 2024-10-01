@@ -25,7 +25,7 @@ namespace elasticapm::php::transport {
 
 static int CurlDebugFunc(CURL *handle, curl_infotype type, char *data, size_t size, void *logger) {
     auto &log = *static_cast<std::shared_ptr<LoggerInterface> *>(logger);
-    if (log->doesMeetsLevelCondition(LogLevel::logLevel_info) && type < 3) {
+    if (logger && log->doesMeetsLevelCondition(LogLevel::logLevel_trace) && type < 3) {
         char prefix = type == CURLINFO_TEXT ? '*' : (type == CURLINFO_HEADER_IN ? '<' : '>');
         log->printf(LogLevel::logLevel_trace, "CurlSender %c %.*s", prefix, size - 1, data);
     }
@@ -50,10 +50,11 @@ CurlSender::CurlSender(std::shared_ptr<LoggerInterface> logger, std::chrono::mil
     curl_easy_setopt(handle_, CURLOPT_FOLLOWLOCATION, 1L);
     curl_easy_setopt(handle_, CURLOPT_FORBID_REUSE, 0L);
 
-    curl_easy_setopt(handle_, CURLOPT_DEBUGFUNCTION, CurlDebugFunc);
-    curl_easy_setopt(handle_, CURLOPT_DEBUGDATA, &log_);
-
-    curl_easy_setopt(handle_, CURLOPT_VERBOSE, 1L);
+    if (log_ && log_->doesMeetsLevelCondition(LogLevel::logLevel_trace)) {
+        curl_easy_setopt(handle_, CURLOPT_DEBUGFUNCTION, CurlDebugFunc);
+        curl_easy_setopt(handle_, CURLOPT_DEBUGDATA, &log_);
+        curl_easy_setopt(handle_, CURLOPT_VERBOSE, 1L);
+    }
 }
 
 int16_t CurlSender::sendPayload(std::string const &endpointUrl, struct curl_slist *headers, std::vector<std::byte> const &payload) const {

@@ -136,7 +136,7 @@ public:
     }
 
     void initializeConnection(std::string endpointUrl, size_t endpointHash, std::string contentType, HttpEndpoint::enpointHeaders_t const &endpointHeaders, std::chrono::milliseconds timeout, std::size_t maxRetries, std::chrono::milliseconds retryDelay) {
-        ELOG_TRACE(log_, "HttpTransportAsync::initializeConnection endpointUrl '%s' enpointHash: %X timeout: %zums retries: %zu retry delay: %zums", endpointUrl.c_str(), endpointHash, timeout.count(), maxRetries, retryDelay.count());
+        ELOG_DEBUG(log_, "HttpTransportAsync::initializeConnection endpointUrl '%s' enpointHash: %X timeout: %zums retries: %zu retry delay: %zums", endpointUrl.c_str(), endpointHash, timeout.count(), maxRetries, retryDelay.count());
 
         try {
             std::lock_guard<std::mutex> lock(mutex_);
@@ -144,7 +144,7 @@ public:
             HttpEndpoint endpoint(std::move(endpointUrl), std::move(contentType), endpointHeaders, maxRetries, retryDelay);
 
             if (connections_.try_emplace(endpoint.getConnectionId(), log_, timeout, config_->get().verify_server_cert).second) { // CurlSender
-                ELOG_TRACE(log_, "HttpTransportAsync::initializeConnection endpointUrl '%s' enpointHash: %X initialize new connectionId: %X", endpoint.getEndpoint().c_str(), endpointHash, endpoint.getConnectionId());
+                ELOG_DEBUG(log_, "HttpTransportAsync::initializeConnection endpointUrl '%s' enpointHash: %X initialize new connectionId: %X", endpoint.getEndpoint().c_str(), endpointHash, endpoint.getConnectionId());
             }
             endpoints_.emplace(std::make_pair(endpointHash, std::move(endpoint)));
 
@@ -160,7 +160,7 @@ public:
             ELOG_TRACE(log_, "HttpTransportAsync::enqueue enpointHash: %X payload size: %zu, current queue size %zu usage %zu bytes", endpointHash, payload.size(), payloadsToSend_.size(), payloadsByteUsage_);
 
             if (payloadsByteUsage_ + payload.size() > config_->get().max_send_queue_size) {
-                ELOG_TRACE(log_, "HttpTransportAsync::enqueue payloadsByteUsageLimit %zu reached. Payload will be dropped. enpointHash: %X payload size: %zu, current queue size %zu usage %zu bytes", config_->get().max_send_queue_size, endpointHash, payload.size(), payloadsToSend_.size(), payloadsByteUsage_);
+                ELOG_DEBUG(log_, "HttpTransportAsync::enqueue payloadsByteUsageLimit %zu reached. Payload will be dropped. enpointHash: %X payload size: %zu, current queue size %zu usage %zu bytes", config_->get().max_send_queue_size, endpointHash, payload.size(), payloadsToSend_.size(), payloadsByteUsage_);
                 return;
             }
 
@@ -173,7 +173,7 @@ public:
     void prefork() final {
         shutdownThread();
 
-        ELOG_TRACE(log_, "HttpTransportAsync::prefork payloads queue size %zu", payloadsToSend_.size());
+        ELOG_DEBUG(log_, "HttpTransportAsync::prefork payloads queue size %zu", payloadsToSend_.size());
         CurlCleanup();
     }
 
@@ -181,7 +181,7 @@ public:
         CurlInit();
 
         if (child && !payloadsToSend_.empty()) {
-            ELOG_TRACE(log_, "HttpTransportAsync::postfork child emptying payloads queue. %zu will be sent from parent", payloadsToSend_.size());
+            ELOG_DEBUG(log_, "HttpTransportAsync::postfork child emptying payloads queue. %zu will be sent from parent", payloadsToSend_.size());
             decltype(payloadsToSend_) q;
             payloadsToSend_.swap(q);
         }
@@ -193,14 +193,14 @@ public:
 protected:
     void startThread() {
         if (!thread_) {
-            ELOG_TRACE(log_, "HttpTransportAsync startThread");
+            ELOG_DEBUG(log_, "HttpTransportAsync startThread");
             thread_ = std::make_unique<std::thread>([this]() { asyncSender(); });
         }
     }
 
     void shutdownThread() {
         if (thread_) {
-            ELOG_TRACE(log_, "HttpTransportAsync shutdownThread");
+            ELOG_DEBUG(log_, "HttpTransportAsync shutdownThread");
         }
 
         {
@@ -216,7 +216,7 @@ protected:
     }
 
     void asyncSender() {
-        ELOG_TRACE(log_, "HttpTransportAsync::asyncSender blocking signals and starting work");
+        ELOG_DEBUG(log_, "HttpTransportAsync::asyncSender blocking signals and starting work");
 
         elasticapm::utils::blockApacheAndPHPSignals();
 
@@ -252,7 +252,7 @@ protected:
                 continue;
             }
 
-            ELOG_TRACE(log_, "HttpTransportAsync::send enpointHash: %X connectionId: %X payload size: %zu", endpointHash, endpoint->second.getConnectionId(), payload.size());
+            ELOG_DEBUG(log_, "HttpTransportAsync::send enpointHash: %X connectionId: %X payload size: %zu", endpointHash, endpoint->second.getConnectionId(), payload.size());
 
             auto maxRetries = std::max(static_cast<std::size_t>(1), static_cast<std::size_t>(endpoint->second.getMaxRetries()));
             auto retryDelay = endpoint->second.getRetryDelay();
@@ -265,7 +265,7 @@ protected:
                 while (retry < maxRetries) {
                     auto responseCode = connection->second.sendPayload(endpoint->second.getEndpoint(), endpoint->second.getHeaders(), payload);
 
-                    ELOG_DEBUG(log_, "HttpTransportAsync::send enpointHash: %X connectionId: %X payload size: %zu responseCode %d", endpointHash, endpoint->second.getConnectionId(), payload.size(), static_cast<int>(responseCode));
+                    ELOG_TRACE(log_, "HttpTransportAsync::send enpointHash: %X connectionId: %X payload size: %zu responseCode %d", endpointHash, endpoint->second.getConnectionId(), payload.size(), static_cast<int>(responseCode));
 
                     if (responseCode >= 200 && responseCode < 300) {
                         break;

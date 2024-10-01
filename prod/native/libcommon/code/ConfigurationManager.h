@@ -109,7 +109,7 @@ private:
         BUILD_METADATA(ELASTIC_OTEL_CFG_OPT_NAME_DEBUG_DIAGNOSTICS_FILE, OptionMetadata::type::string, false),
         BUILD_METADATA(ELASTIC_OTEL_CFG_OPT_NAME_VERIFY_SERVER_CERT, OptionMetadata::type::boolean, false),
         BUILD_METADATA(ELASTIC_OTEL_CFG_OPT_NAME_MAX_SEND_QUEUE_SIZE, OptionMetadata::type::bytes, false),
-        BUILD_METADATA(ELASTIC_OTEL_CFG_OPT_NAME_DISABLE_ASYNC_TRANSPORT, OptionMetadata::type::boolean, false)};
+        BUILD_METADATA(ELASTIC_OTEL_CFG_OPT_NAME_ASYNC_TRANSPORT, OptionMetadata::type::boolean, false)};
     // clang-format on
 };
 

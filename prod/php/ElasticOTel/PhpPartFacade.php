@@ -176,11 +176,12 @@ final class PhpPartFacade
 
     private static function registerAsyncTransportFactory(): void
     {
-        if (elastic_otel_get_config_option_by_name('disable_async_transport') === true) {
-            BootstrapStageLogger::logDebug('TRANSPORT_DISABLED', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
+        if (elastic_otel_get_config_option_by_name('async_transport') === false) {
+            BootstrapStageLogger::logDebug('ELASTIC_OTEL_ASYNC_TRANSPORT set to false', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
             return;
         }
 
+        // TODO remove after autoloader implementation
         require __DIR__ . DIRECTORY_SEPARATOR . 'HttpTransport' . DIRECTORY_SEPARATOR . 'ElasticHttpTransport.php';
         require __DIR__ . DIRECTORY_SEPARATOR . 'HttpTransport' . DIRECTORY_SEPARATOR . 'ElasticHttpTransportFactory.php';
         \OpenTelemetry\SDK\Registry::registerTransportFactory('http', \Elastic\Otel\HttpTransport\ElasticHttpTransportFactory::class, true);
