@@ -130,6 +130,7 @@ public:
     }
 
     ~HttpTransportAsync() {
+        shutdownStart_ = std::chrono::steady_clock::now();
         forceFlush_ = true;
         shutdownThread();
         CurlCleanup();
@@ -233,8 +234,6 @@ protected:
     }
 
     void send(std::unique_lock<std::mutex> &locked) {
-        auto sendStartTime = std::chrono::steady_clock::now();
-
         while (!payloadsToSend_.empty()) {
             auto [endpointHash, payload] = std::move(payloadsToSend_.front());
             payloadsToSend_.pop();
@@ -287,7 +286,7 @@ protected:
                 ELOG_WARNING(log_, "HttpTransportAsync::send exception '%s'. enpointHash: %X connectionId: %X payload size: %zu", e.what(), endpointHash, endpoint->second.getConnectionId(), payload.size());
             }
 
-            if (forceFlush_ && !payloadsToSend_.empty() && config_->get().async_transport_shutdown_timeout.count() > 0 && ((std::chrono::steady_clock::now() - sendStartTime) >= config_->get().async_transport_shutdown_timeout)) {
+            if (forceFlush_ && !payloadsToSend_.empty() && config_->get().async_transport_shutdown_timeout.count() > 0 && ((std::chrono::steady_clock::now() - shutdownStart_) >= config_->get().async_transport_shutdown_timeout)) {
                 ELOG_WARNING(log_, "Dropping %zu payloads because ELASTIC_OTEL_ASYNC_TRANSPORT_SHUTDOWN_TIMEOUT (%zums) was reached", payloadsToSend_.size(), config_->get().async_transport_shutdown_timeout.count());
                 break;
             }
@@ -319,8 +318,8 @@ protected:
     std::unique_ptr<std::thread> thread_;
     std::condition_variable pauseCondition_;
     bool working_ = true;
-    bool resumed_ = false;
     std::atomic_bool forceFlush_ = false;
+    std::chrono::time_point<std::chrono::steady_clock> shutdownStart_;
 };
 
 } // namespace elasticapm::php::transport
