@@ -32,6 +32,10 @@ static int CurlDebugFunc(CURL *handle, curl_infotype type, char *data, size_t si
     return 0;
 }
 
+static size_t CurlWriteFunc(char *data, size_t size, size_t nmemb, void *clientp) {
+    return size * nmemb;
+}
+
 CurlSender::CurlSender(std::shared_ptr<LoggerInterface> logger, std::chrono::milliseconds timeout, bool verifyCert) : log_(std::move(logger)) {
 
     handle_ = curl_easy_init();
@@ -49,6 +53,7 @@ CurlSender::CurlSender(std::shared_ptr<LoggerInterface> logger, std::chrono::mil
 
     curl_easy_setopt(handle_, CURLOPT_FOLLOWLOCATION, 1L);
     curl_easy_setopt(handle_, CURLOPT_FORBID_REUSE, 0L);
+    curl_easy_setopt(handle_, CURLOPT_WRITEFUNCTION, CurlWriteFunc);
 
     if (log_ && log_->doesMeetsLevelCondition(LogLevel::logLevel_trace)) {
         curl_easy_setopt(handle_, CURLOPT_DEBUGFUNCTION, CurlDebugFunc);
@@ -61,9 +66,9 @@ int16_t CurlSender::sendPayload(std::string const &endpointUrl, struct curl_slis
     curl_easy_setopt(handle_, CURLOPT_URL, endpointUrl.c_str());
     curl_easy_setopt(handle_, CURLOPT_HTTPHEADER, headers);
 
-    curl_easy_setopt(handle_, CURLOPT_POST, 1L);
     curl_easy_setopt(handle_, CURLOPT_POSTFIELDS, payload.data());
     curl_easy_setopt(handle_, CURLOPT_POSTFIELDSIZE, payload.size());
+    curl_easy_setopt(handle_, CURLOPT_POST, 1L);
 
     CURLcode res = curl_easy_perform(handle_);
     if (res != CURLE_OK) {

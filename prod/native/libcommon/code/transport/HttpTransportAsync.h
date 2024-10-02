@@ -233,6 +233,8 @@ protected:
     }
 
     void send(std::unique_lock<std::mutex> &locked) {
+        auto sendStartTime = std::chrono::steady_clock::now();
+
         while (!payloadsToSend_.empty()) {
             auto [endpointHash, payload] = std::move(payloadsToSend_.front());
             payloadsToSend_.pop();
@@ -264,7 +266,6 @@ protected:
 
                 while (retry < maxRetries) {
                     auto responseCode = connection->second.sendPayload(endpoint->second.getEndpoint(), endpoint->second.getHeaders(), payload);
-
                     ELOG_TRACE(log_, "HttpTransportAsync::send enpointHash: %X connectionId: %X payload size: %zu responseCode %d", endpointHash, endpoint->second.getConnectionId(), payload.size(), static_cast<int>(responseCode));
 
                     if (responseCode >= 200 && responseCode < 300) {
@@ -284,6 +285,11 @@ protected:
 
             } catch (std::runtime_error const &e) {
                 ELOG_WARNING(log_, "HttpTransportAsync::send exception '%s'. enpointHash: %X connectionId: %X payload size: %zu", e.what(), endpointHash, endpoint->second.getConnectionId(), payload.size());
+            }
+
+            if (forceFlush_ && !payloadsToSend_.empty() && config_->get().async_transport_shutdown_timeout.count() > 0 && ((std::chrono::steady_clock::now() - sendStartTime) >= config_->get().async_transport_shutdown_timeout)) {
+                ELOG_WARNING(log_, "Dropping %zu payloads because ELASTIC_OTEL_ASYNC_TRANSPORT_SHUTDOWN_TIMEOUT (%zums) was reached", payloadsToSend_.size(), config_->get().async_transport_shutdown_timeout.count());
+                break;
             }
 
             locked.lock();

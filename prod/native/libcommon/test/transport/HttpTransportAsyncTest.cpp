@@ -91,6 +91,7 @@ private:
     FRIEND_TEST(HttpTransportAsyncTest, enqueueAndSendRetry);
     FRIEND_TEST(HttpTransportAsyncTest, enqueueAndSendRetryUntilMaxRetriesAndDropPayload);
     FRIEND_TEST(HttpTransportAsyncTest, enqueueAndSendNoRetryOnClientError);
+    FRIEND_TEST(HttpTransportAsyncTest, destructorSendTimeout);
 };
 
 class HttpTransportAsyncTest : public ::testing::Test {
@@ -105,13 +106,20 @@ public:
     }
 
 protected:
+    bool configUpdater(elasticapm::php::ConfigurationSnapshot &cfg) {
+        cfg = configForUpdate_;
+        return true;
+    }
+
+    elasticapm::php::ConfigurationSnapshot configForUpdate_;
     std::shared_ptr<LoggerInterface> log_ = std::make_shared<elasticapm::php::Logger>(std::vector<std::shared_ptr<LoggerSinkInterface>>());
-    std::shared_ptr<ConfigurationStorage> config_ = std::make_shared<ConfigurationStorage>([](elasticapm::php::ConfigurationSnapshot &cfg) { return true; });
-    TestableHttpTransportAsync transport_{log_, config_};
+    std::shared_ptr<ConfigurationStorage> config_ = std::make_shared<ConfigurationStorage>([this](elasticapm::php::ConfigurationSnapshot &cfg) { return configUpdater(cfg); });
 };
 
 TEST_F(HttpTransportAsyncTest, initializeConnection_ParseError) {
     HttpEndpoint::enpointHeaders_t headers;
+    TestableHttpTransportAsync transport_{log_, config_};
+
     transport_.initializeConnection("local", 1234, "some-type", headers, 100ms, 3, 100ms);
     ASSERT_TRUE(transport_.endpoints_.empty());
     ASSERT_TRUE(transport_.connections_.empty());
@@ -119,6 +127,8 @@ TEST_F(HttpTransportAsyncTest, initializeConnection_ParseError) {
 
 TEST_F(HttpTransportAsyncTest, initializeConnection_SameServer) {
     HttpEndpoint::enpointHeaders_t headers;
+    TestableHttpTransportAsync transport_{log_, config_};
+
     transport_.initializeConnection("http://local/traces", 1234, "some-type", headers, 100ms, 3, 100ms);
     transport_.initializeConnection("http://local/metrics", 5678, "some-type", headers, 100ms, 3, 100ms);
     transport_.initializeConnection("https://local/logs", 9898, "some-type", headers, 100ms, 3, 100ms);
@@ -128,6 +138,7 @@ TEST_F(HttpTransportAsyncTest, initializeConnection_SameServer) {
 
 TEST_F(HttpTransportAsyncTest, enqueue) {
     HttpEndpoint::enpointHeaders_t headers;
+    TestableHttpTransportAsync transport_{log_, config_};
 
     std::vector<std::byte> data(120);
     ASSERT_EQ(transport_.payloadsToSend_.size(), 0ul);
@@ -137,6 +148,7 @@ TEST_F(HttpTransportAsyncTest, enqueue) {
 
 TEST_F(HttpTransportAsyncTest, enqueueOverLimit) {
     HttpEndpoint::enpointHeaders_t headers;
+    TestableHttpTransportAsync transport_{log_, config_};
 
     auto limit = config_->get().max_send_queue_size;
     std::vector<std::byte> data(limit / 4);
@@ -162,6 +174,7 @@ TEST_F(HttpTransportAsyncTest, enqueueOverLimit) {
 
 TEST_F(HttpTransportAsyncTest, enqueueAndSend) {
     HttpEndpoint::enpointHeaders_t headers;
+    TestableHttpTransportAsync transport_{log_, config_};
 
     transport_.initializeConnection("http://local/traces", 1234, "some-type", headers, 100ms, 3, 100ms);
     // initializeConnection starts thread - we need to shutdown thread to avoid race condition between test
@@ -186,6 +199,7 @@ TEST_F(HttpTransportAsyncTest, enqueueAndSend) {
 
 TEST_F(HttpTransportAsyncTest, enqueueAndSendRetry) {
     HttpEndpoint::enpointHeaders_t headers;
+    TestableHttpTransportAsync transport_{log_, config_};
 
     transport_.initializeConnection("http://local/traces", 1234, "some-type", headers, 100ms, 3, 100ms);
     // initializeConnection starts thread - we need to shutdown thread to avoid race condition between test
@@ -212,6 +226,7 @@ TEST_F(HttpTransportAsyncTest, enqueueAndSendRetry) {
 
 TEST_F(HttpTransportAsyncTest, enqueueAndSendRetryUntilMaxRetriesAndDropPayload) {
     HttpEndpoint::enpointHeaders_t headers;
+    TestableHttpTransportAsync transport_{log_, config_};
 
     int maxReties = 3;
 
@@ -239,6 +254,7 @@ TEST_F(HttpTransportAsyncTest, enqueueAndSendRetryUntilMaxRetriesAndDropPayload)
 
 TEST_F(HttpTransportAsyncTest, enqueueAndSendNoRetryOnClientError) {
     HttpEndpoint::enpointHeaders_t headers;
+    TestableHttpTransportAsync transport_{log_, config_};
 
     transport_.initializeConnection("http://local/traces", 1234, "some-type", headers, 100ms, 3, 100ms);
     // initializeConnection starts thread - we need to shutdown thread to avoid race condition between test
@@ -259,6 +275,28 @@ TEST_F(HttpTransportAsyncTest, enqueueAndSendNoRetryOnClientError) {
     }
 
     ASSERT_EQ(transport_.payloadsToSend_.size(), 0ul);
+}
+
+TEST_F(HttpTransportAsyncTest, destructorSendTimeout) {
+    HttpEndpoint::enpointHeaders_t headers;
+
+    configForUpdate_.async_transport_shutdown_timeout = 5ms;
+    config_->update();
+
+    {
+        TestableHttpTransportAsync transport_{log_, config_};
+        transport_.initializeConnection("http://local/traces", 1234, "some-type", headers, 100ms, 3, 100ms);
+        std::this_thread::sleep_for(5ms); // give thread a bit of time to go into sleep condition
+
+        EXPECT_CALL(transport_.connections_.begin()->second, sendPayload("http://local/traces", ::testing::_, ::testing::_)).Times(::testing::Exactly(1)).WillRepeatedly(::testing::DoAll(::testing::Invoke([]() { std::this_thread::sleep_for(10ms); }), ::testing::Return(200)));
+
+        // We're enqueuing 4 payloads, but sending will take at least 10ms. The destructor timeout is set for 5ms, so only the first payload will be sent. Times(::testing::Exactly(1)) will do the job and will fail if it tries to send any further payloads.
+        std::vector<std::byte> data(1024);
+        transport_.enqueue(1234, {data.begin(), data.end()});
+        transport_.enqueue(1234, {data.begin(), data.end()});
+        transport_.enqueue(1234, {data.begin(), data.end()});
+        transport_.enqueue(1234, {data.begin(), data.end()});
+    }
 }
 
 } // namespace elasticapm::php::transport
