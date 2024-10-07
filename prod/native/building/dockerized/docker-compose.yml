@@ -4,7 +4,7 @@ services:
         build:
             context: .
             dockerfile: images/Dockerfile_glibc
-        image: elasticobservability/apm-agent-php-dev:native-build-gcc-12.2.0-linux-x86-64-0.0.2
+        image: elasticobservability/apm-agent-php-dev:native-build-gcc-14.2.0-linux-x86-64-0.0.1
         volumes:
           - ../../../../:/source
         command: sh -c "cd /source/prod/native && cmake --preset linux-x86-64-release && cmake --build --preset linux-x86-64-release"
@@ -13,7 +13,7 @@ services:
         build:
             context: .
             dockerfile: images/Dockerfile_musl
-        image: elasticobservability/apm-agent-php-dev:native-build-gcc-12.2.0-linuxmusl-x86-64-0.0.2
+        image: elasticobservability/apm-agent-php-dev:native-build-gcc-14.2.0-linuxmusl-x86-64-0.0.1
         volumes:
           - ../../../../:/source
         command: sh -c "cd /source/prod/native && cmake --preset linuxmusl-x86-64-release && cmake --build --preset linuxmusl-x86-64-release"
@@ -22,7 +22,7 @@ services:
         build:
             context: .
             dockerfile: images/Dockerfile_arm64
-        image: elasticobservability/apm-agent-php-dev:native-build-gcc-12.2.0-linux-arm64-0.0.2
+        image: elasticobservability/apm-agent-php-dev:native-build-gcc-14.2.0-linux-arm64-0.0.1
         volumes:
           - ../../../../:/source
         command: sh -c "cd /source/prod/native && cmake --preset linux-arm64-release && cmake --build --preset linux-arm64-release"
@@ -31,7 +31,7 @@ services:
         build:
             context: .
             dockerfile: images/Dockerfile_arm64_musl
-        image: elasticobservability/apm-agent-php-dev:native-build-gcc-12.2.0-linuxmusl-arm64-0.0.2
+        image: elasticobservability/apm-agent-php-dev:native-build-gcc-14.2.0-linuxmusl-arm64-0.0.1
         volumes:
           - ../../../../:/source
         command: sh -c "cd /source/prod/native && cmake --preset linuxmusl-arm64-release && cmake --build --preset linuxmusl-arm64-release"

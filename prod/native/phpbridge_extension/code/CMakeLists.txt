@@ -3,7 +3,7 @@
 AUX_SOURCE_DIRECTORY(. SrcFiles)
 
 foreach(_php_version ${_supported_php_versions})
-    set (_Target  phpbridge_${_php_version})
+    set (_Target  phpbridge_ext_${_php_version})
 
     add_library (${_Target}
         SHARED ${SrcFiles}
@@ -21,24 +21,24 @@ foreach(_php_version ${_supported_php_versions})
         )
     endif()
 
-    target_include_directories(${_Target} PUBLIC "${CONAN_INCLUDE_DIRS_PHP-HEADERS-${_php_version}}"
-                                                "${CONAN_INCLUDE_DIRS_PHP-HEADERS-${_php_version}}/ext"
-                                                "${CONAN_INCLUDE_DIRS_PHP-HEADERS-${_php_version}}/main"
-                                                "${CONAN_INCLUDE_DIRS_PHP-HEADERS-${_php_version}}/TSRM"
-                                                "${CONAN_INCLUDE_DIRS_PHP-HEADERS-${_php_version}}/Zend"
+    target_include_directories(${_Target} PUBLIC "${php-headers-${_php_version}_INCLUDE_DIRS}"
+                                                "${php-headers-${_php_version}_INCLUDE_DIRS}/ext"
+                                                "${php-headers-${_php_version}_INCLUDE_DIRS}/main"
+                                                "${php-headers-${_php_version}_INCLUDE_DIRS}/TSRM"
+                                                "${php-headers-${_php_version}_INCLUDE_DIRS}/Zend"
                                                 "${CONAN_INCLUDE_DIRS_LIBCURL}"
                                                 "${CONAN_INCLUDE_DIRS_LIBUNWIND}"
                                             )
 
     target_link_libraries(${_Target}
-        libcommon
-        libphpbridge_${_php_version}
+        common
+        phpbridge_${_php_version}
     )
 
     set_target_properties(${_Target}
-        PROPERTIES OUTPUT_NAME ${_Target}
+        PROPERTIES OUTPUT_NAME phpbridge_${_php_version}
         PREFIX ""
-        DEBUG_SYMBOL_FILE "${_Target}.debug"
+        DEBUG_SYMBOL_FILE "phpbridge_${_php_version}.debug"
     )
 
     if (RELEASE_BUILD)

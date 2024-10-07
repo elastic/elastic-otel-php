@@ -15,20 +15,23 @@
         "binaryDir": "${sourceDir}/_build/${presetName}",
         "environment": {
             "PATH": "$env{HOME}/ninja/bin:$penv{PATH}"
+        },
+        "cacheVariables": {
+            "CMAKE_PRESET_NAME": "${presetName}"
         }
     },
     {
         "name": "binutils",
         "hidden": true,
         "environment": {
-            "PATH": "/opt/binutils-2.40/bin:$penv{PATH}"
+            "PATH": "/opt/binutils-2.43/bin:$penv{PATH}"
         }
     },
     {
         "name": "gcc",
         "hidden": true,
         "environment": {
-            "COMPILER_HOME_PATH": "/opt/gcc-12.2.0"
+            "COMPILER_HOME_PATH": "/opt/gcc-14.2.0"
         },
         "cacheVariables": {
             "CMAKE_C_COMPILER": {
@@ -60,7 +63,7 @@
                 "value": "Release"
             }
         }
-    },    
+    },
     {
         "name": "os-type-unix",
         "hidden": true,
@@ -133,7 +136,7 @@
             "debug",
             "binutils"
         ]
-    }    
+    }
     ],
     "buildPresets": [
     {
@@ -279,6 +282,6 @@
             "inherits": [
                 "release"
             ]
-        }        
+        }
     ]
   }

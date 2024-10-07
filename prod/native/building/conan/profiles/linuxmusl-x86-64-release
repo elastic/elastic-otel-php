@@ -1,0 +1,19 @@
+[settings]
+os=Linux
+arch=x86_64
+compiler=gcc
+compiler.version=14
+compiler.cppstd=20
+compiler.libcxx=libstdc++11
+compiler.libc=musl
+build_type=Release
+
+[conf]
+tools.cmake.cmaketoolchain:generator=Unix Makefiles
+tools.build:compiler_executables={"c":"/opt/gcc-14.2.0/bin/gcc","cpp":"/opt/gcc-14.2.0/bin/g++"}
+
+[buildenv]
+CC=/opt/gcc-14.2.0/bin/gcc
+CXX=/opt/gcc-14.2.0/bin/g++
+LDFLAGS+=-static-libgcc
+LDFLAGS+=-static-libstdc++

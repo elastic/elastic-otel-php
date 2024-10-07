@@ -83,7 +83,7 @@ TEST_F(LoggerTest, Formatting) {
         ASSERT_NE(str.find("["s + std::to_string(getpid()) + "/"s), std::string::npos);
     };
     auto testFormattedTime = [](std::string_view str) {
-        ASSERT_EQ(str.length(), 32);
+        ASSERT_EQ(str.length(), 32u);
         ASSERT_TRUE(str.ends_with(" UTC]"sv));
     };
 

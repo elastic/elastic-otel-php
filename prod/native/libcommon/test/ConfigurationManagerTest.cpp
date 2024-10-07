@@ -66,19 +66,19 @@ TEST_F(ConfigurationManagerTest, updateSomeOption) {
     EXPECT_CALL(iniMock_, getIniValue("elastic_otel.enabled")).Times(1).WillOnce(::testing::Return("off")).RetiresOnSaturation();
 
     ConfigurationSnapshot snapshot;
-    ASSERT_EQ(snapshot.revision, 0);
+    ASSERT_EQ(snapshot.revision, 0u);
 
     cfg_.updateIfChanged(snapshot);
 
     // ASSERT_TRUE(snapshot.api_key.empty());
     // ASSERT_EQ(snapshot.server_timeout, ConfigurationSnapshot().server_timeout); // default value
     ASSERT_EQ(snapshot.enabled, ConfigurationSnapshot().enabled); // default value
-    ASSERT_EQ(snapshot.revision, 1);
+    ASSERT_EQ(snapshot.revision, 1u);
 
     cfg_.update();
     cfg_.updateIfChanged(snapshot);
 
-    ASSERT_EQ(snapshot.revision, 2);
+    ASSERT_EQ(snapshot.revision, 2u);
     // ASSERT_EQ(snapshot.api_key, "secret_api_key"s);
     ASSERT_NE(snapshot.enabled, ConfigurationSnapshot().enabled); // default value
     // ASSERT_EQ(snapshot.server_timeout.count(), 10000ul);
@@ -97,7 +97,7 @@ TEST_F(ConfigurationManagerTest, getOptionValue) {
     EXPECT_CALL(iniMock_, getIniValue("elastic_otel.enabled")).Times(1).WillOnce(::testing::Return("off")).RetiresOnSaturation();
 
     ConfigurationSnapshot snapshot;
-    ASSERT_EQ(snapshot.revision, 0);
+    ASSERT_EQ(snapshot.revision, 0u);
 
     cfg_.update();
     cfg_.updateIfChanged(snapshot);

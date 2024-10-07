@@ -34,7 +34,7 @@ TEST(HttpEndpointTest, Construction) {
     HttpEndpoint endpoint("https://localhost/traces", "super-trace", headers, 10, 1s);
 
     ASSERT_EQ(endpoint.getEndpoint(), "https://localhost/traces"s);
-    ASSERT_EQ(endpoint.getMaxRetries(), 10);
+    ASSERT_EQ(endpoint.getMaxRetries(), 10u);
     ASSERT_EQ(endpoint.getRetryDelay(), 1000ms);
 
     auto cheaders = endpoint.getHeaders();
