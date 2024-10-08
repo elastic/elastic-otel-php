@@ -119,7 +119,7 @@ public:
     }
 
     bool handleError(int type, std::string_view errorFilename, uint32_t errorLineno, std::string_view message) {
-        ELOG_DEBUG(log_, "RequestScope::handleError type: %d fn: %s:%d msg: %s\n", type, errorFilename.data(), errorLineno, message.data());
+        ELOG_DEBUG(log_, "RequestScope::handleError type: %d fn: %s:%d msg: %s", type, errorFilename.data(), errorLineno, message.data());
 
         bridge_->callPHPSideErrorHandler(type, errorFilename, errorLineno, message);
 
