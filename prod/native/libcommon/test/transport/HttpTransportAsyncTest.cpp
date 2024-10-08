@@ -22,51 +22,12 @@
 #include "transport/HttpTransportAsync.h"
 #include "Logger.h"
 
+#include <tuple>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <pthread.h>
 
 namespace elasticapm::php::transport {
-
-TEST(HttpEndpointTest, Construction) {
-    HttpEndpoint::enpointHeaders_t headers = {{"Cookie", "Rookie"}, {"Auth", "1234"}};
-
-    HttpEndpoint endpoint("https://localhost/traces", "super-trace", headers, 10, 1s);
-
-    ASSERT_EQ(endpoint.getEndpoint(), "https://localhost/traces"s);
-    ASSERT_EQ(endpoint.getMaxRetries(), 10);
-    ASSERT_EQ(endpoint.getRetryDelay(), 1000ms);
-
-    auto cheaders = endpoint.getHeaders();
-    ASSERT_NE(cheaders, nullptr);
-    ASSERT_NE(cheaders->data, nullptr);
-    ASSERT_NE(cheaders->next, nullptr);
-    ASSERT_STREQ(cheaders->data, "Content-Type: super-trace");
-
-    cheaders = cheaders->next;
-    ASSERT_NE(cheaders->data, nullptr);
-    ASSERT_NE(cheaders->next, nullptr);
-    ASSERT_STREQ(cheaders->data, "Cookie: Rookie");
-
-    cheaders = cheaders->next;
-    ASSERT_NE(cheaders->data, nullptr);
-    ASSERT_EQ(cheaders->next, nullptr);
-    ASSERT_STREQ(cheaders->data, "Auth: 1234");
-}
-
-TEST(HttpEndpointTest, EndpointParseException) {
-    HttpEndpoint::enpointHeaders_t headers = {{"Cookie", "Rookie"}, {"Auth", "1234"}};
-
-    ASSERT_THROW(HttpEndpoint endpoint("localhost", "super-trace", headers, 10, 1s), std::runtime_error);
-}
-
-TEST(HttpEndpointTest, MissingContentType) {
-    HttpEndpoint::enpointHeaders_t headers = {};
-    HttpEndpoint endpoint("https://localhost/traces", {}, headers, 10, 1s);
-
-    auto cheaders = endpoint.getHeaders();
-    ASSERT_EQ(cheaders, nullptr);
-}
 
 class CurlSenderMock : public boost::noncopyable {
 public:
@@ -76,10 +37,21 @@ public:
     MOCK_METHOD(int16_t, sendPayload, (std::string const &endpointUrl, struct curl_slist *headers, std::vector<std::byte> const &payload), (const));
 };
 
-class TestableHttpTransportAsync : public HttpTransportAsync<::testing::StrictMock<CurlSenderMock>> {
+class HttpEndpointsMock : public boost::noncopyable {
+public:
+    using endpointUrlHash_t = std::size_t;
+
+    HttpEndpointsMock(std::shared_ptr<LoggerInterface> logger) {
+    }
+
+    MOCK_METHOD(bool, add, (std::string endpointUrl, size_t endpointHash, bool verifyServerCertificate, std::string contentType, HttpEndpoint::enpointHeaders_t const &endpointHeaders, std::chrono::milliseconds timeout, std::size_t maxRetries, std::chrono::milliseconds retryDelay));
+    MOCK_METHOD((std::tuple<std::string, curl_slist *, HttpEndpoint::connectionId_t, CurlSenderMock &, std::size_t, std::chrono::milliseconds>), getConnection, (std::size_t endpointHash));
+};
+
+class TestableHttpTransportAsync : public HttpTransportAsync<::testing::StrictMock<CurlSenderMock>, ::testing::StrictMock<HttpEndpointsMock>> {
 public:
     template <typename... Args>
-    TestableHttpTransportAsync(Args &&...args) : HttpTransportAsync<::testing::StrictMock<CurlSenderMock>>(std::forward<Args>(args)...) {
+    TestableHttpTransportAsync(Args &&...args) : HttpTransportAsync<::testing::StrictMock<CurlSenderMock>, ::testing::StrictMock<HttpEndpointsMock>>(std::forward<Args>(args)...) {
     }
 
 private:
@@ -115,26 +87,6 @@ protected:
     std::shared_ptr<LoggerInterface> log_ = std::make_shared<elasticapm::php::Logger>(std::vector<std::shared_ptr<LoggerSinkInterface>>());
     std::shared_ptr<ConfigurationStorage> config_ = std::make_shared<ConfigurationStorage>([this](elasticapm::php::ConfigurationSnapshot &cfg) { return configUpdater(cfg); });
 };
-
-TEST_F(HttpTransportAsyncTest, initializeConnection_ParseError) {
-    HttpEndpoint::enpointHeaders_t headers;
-    TestableHttpTransportAsync transport_{log_, config_};
-
-    transport_.initializeConnection("local", 1234, "some-type", headers, 100ms, 3, 100ms);
-    ASSERT_TRUE(transport_.endpoints_.empty());
-    ASSERT_TRUE(transport_.connections_.empty());
-}
-
-TEST_F(HttpTransportAsyncTest, initializeConnection_SameServer) {
-    HttpEndpoint::enpointHeaders_t headers;
-    TestableHttpTransportAsync transport_{log_, config_};
-
-    transport_.initializeConnection("http://local/traces", 1234, "some-type", headers, 100ms, 3, 100ms);
-    transport_.initializeConnection("http://local/metrics", 5678, "some-type", headers, 100ms, 3, 100ms);
-    transport_.initializeConnection("https://local/logs", 9898, "some-type", headers, 100ms, 3, 100ms);
-    ASSERT_EQ(transport_.endpoints_.size(), 3u);
-    ASSERT_EQ(transport_.connections_.size(), 2u);
-}
 
 TEST_F(HttpTransportAsyncTest, enqueue) {
     HttpEndpoint::enpointHeaders_t headers;
@@ -176,21 +128,20 @@ TEST_F(HttpTransportAsyncTest, enqueueAndSend) {
     HttpEndpoint::enpointHeaders_t headers;
     TestableHttpTransportAsync transport_{log_, config_};
 
-    transport_.initializeConnection("http://local/traces", 1234, "some-type", headers, 100ms, 3, 100ms);
-    // initializeConnection starts thread - we need to shutdown thread to avoid race condition between test
-    transport_.shutdownThread();
-
     std::vector<std::byte> data(1024);
 
     ASSERT_EQ(transport_.payloadsToSend_.size(), 0ul);
     transport_.enqueue(1234, {data.begin(), data.end()});
     ASSERT_EQ(transport_.payloadsToSend_.size(), 1ul);
 
+    CurlSenderMock sender(log_, 100ms, false);
+
     {
         std::mutex mutex;
         std::unique_lock<std::mutex> lock(mutex);
 
-        EXPECT_CALL(transport_.connections_.begin()->second, sendPayload("http://local/traces", ::testing::_, ::testing::_)).Times(::testing::AnyNumber()).WillRepeatedly(::testing::Return(200));
+        EXPECT_CALL(transport_.endpoints_, getConnection(1234)).Times(1).WillRepeatedly(::testing::Return(::testing::ByMove(std::make_tuple("http://local/traces"s, static_cast<curl_slist *>(nullptr), HttpEndpoint::connectionId_t(900), std::ref(sender), static_cast<std::size_t>(2), 100ms))));
+        EXPECT_CALL(sender, sendPayload("http://local/traces", ::testing::_, ::testing::_)).Times(::testing::AnyNumber()).WillRepeatedly(::testing::Return(200));
         transport_.send(lock);
     }
 
@@ -201,23 +152,23 @@ TEST_F(HttpTransportAsyncTest, enqueueAndSendRetry) {
     HttpEndpoint::enpointHeaders_t headers;
     TestableHttpTransportAsync transport_{log_, config_};
 
-    transport_.initializeConnection("http://local/traces", 1234, "some-type", headers, 100ms, 3, 100ms);
-    // initializeConnection starts thread - we need to shutdown thread to avoid race condition between test
-    transport_.shutdownThread();
-
     std::vector<std::byte> data(1024);
 
     ASSERT_EQ(transport_.payloadsToSend_.size(), 0ul);
     transport_.enqueue(1234, {data.begin(), data.end()});
     ASSERT_EQ(transport_.payloadsToSend_.size(), 1ul);
 
+    CurlSenderMock sender(log_, 100ms, false);
     {
         std::mutex mutex;
         std::unique_lock<std::mutex> lock(mutex);
 
+        EXPECT_CALL(transport_.endpoints_, getConnection(1234)).WillRepeatedly(::testing::Return(::testing::ByMove(std::make_tuple("http://local/traces"s, static_cast<curl_slist *>(nullptr), HttpEndpoint::connectionId_t(900), std::ref(sender), static_cast<std::size_t>(2), 100ms))));
+
         ::testing::InSequence s;
-        EXPECT_CALL(transport_.connections_.begin()->second, sendPayload("http://local/traces", ::testing::_, ::testing::_)).Times(1).WillOnce(::testing::Return(429));
-        EXPECT_CALL(transport_.connections_.begin()->second, sendPayload("http://local/traces", ::testing::_, ::testing::_)).Times(1).WillOnce(::testing::Return(200));
+        EXPECT_CALL(sender, sendPayload("http://local/traces", ::testing::_, ::testing::_)).Times(1).WillOnce(::testing::Return(429));
+        EXPECT_CALL(sender, sendPayload("http://local/traces", ::testing::_, ::testing::_)).Times(1).WillOnce(::testing::Return(200));
+
         transport_.send(lock);
     }
 
@@ -227,12 +178,9 @@ TEST_F(HttpTransportAsyncTest, enqueueAndSendRetry) {
 TEST_F(HttpTransportAsyncTest, enqueueAndSendRetryUntilMaxRetriesAndDropPayload) {
     HttpEndpoint::enpointHeaders_t headers;
     TestableHttpTransportAsync transport_{log_, config_};
+    CurlSenderMock sender(log_, 100ms, false);
 
     int maxReties = 3;
-
-    transport_.initializeConnection("http://local/traces", 1234, "some-type", headers, 100ms, maxReties, 100ms);
-    // initializeConnection starts thread - we need to shutdown thread to avoid race condition between test
-    transport_.shutdownThread();
 
     std::vector<std::byte> data(1024);
 
@@ -244,8 +192,8 @@ TEST_F(HttpTransportAsyncTest, enqueueAndSendRetryUntilMaxRetriesAndDropPayload)
         std::mutex mutex;
         std::unique_lock<std::mutex> lock(mutex);
 
-        ::testing::InSequence s;
-        EXPECT_CALL(transport_.connections_.begin()->second, sendPayload("http://local/traces", ::testing::_, ::testing::_)).Times(maxReties).WillRepeatedly(::testing::Return(429));
+        EXPECT_CALL(transport_.endpoints_, getConnection(1234)).WillRepeatedly(::testing::Return(::testing::ByMove(std::make_tuple("http://local/traces"s, static_cast<curl_slist *>(nullptr), HttpEndpoint::connectionId_t(900), std::ref(sender), static_cast<std::size_t>(maxReties), 100ms))));
+        EXPECT_CALL(sender, sendPayload("http://local/traces", ::testing::_, ::testing::_)).Times(maxReties).WillRepeatedly(::testing::Return(429));
         transport_.send(lock);
     }
 
@@ -254,48 +202,51 @@ TEST_F(HttpTransportAsyncTest, enqueueAndSendRetryUntilMaxRetriesAndDropPayload)
 
 TEST_F(HttpTransportAsyncTest, enqueueAndSendNoRetryOnClientError) {
     HttpEndpoint::enpointHeaders_t headers;
-    TestableHttpTransportAsync transport_{log_, config_};
-
-    transport_.initializeConnection("http://local/traces", 1234, "some-type", headers, 100ms, 3, 100ms);
-    // initializeConnection starts thread - we need to shutdown thread to avoid race condition between test
-    transport_.shutdownThread();
+    TestableHttpTransportAsync transport{log_, config_};
+    CurlSenderMock sender(log_, 100ms, false);
 
     std::vector<std::byte> data(1024);
-    ASSERT_EQ(transport_.payloadsToSend_.size(), 0ul);
-    transport_.enqueue(1234, {data.begin(), data.end()});
-    ASSERT_EQ(transport_.payloadsToSend_.size(), 1ul);
+    ASSERT_EQ(transport.payloadsToSend_.size(), 0ul);
+    transport.enqueue(1234, {data.begin(), data.end()});
+    ASSERT_EQ(transport.payloadsToSend_.size(), 1ul);
 
     {
-        ::testing::InSequence s;
-        EXPECT_CALL(transport_.connections_.begin()->second, sendPayload("http://local/traces", ::testing::_, ::testing::_)).Times(1).WillOnce(::testing::Return(400));
+        EXPECT_CALL(transport.endpoints_, getConnection(1234)).WillRepeatedly(::testing::Return(::testing::ByMove(std::make_tuple("http://local/traces"s, static_cast<curl_slist *>(nullptr), HttpEndpoint::connectionId_t(900), std::ref(sender), static_cast<std::size_t>(3), 100ms))));
+        EXPECT_CALL(sender, sendPayload("http://local/traces", ::testing::_, ::testing::_)).Times(1).WillOnce(::testing::Return(400));
 
         std::mutex mutex;
         std::unique_lock<std::mutex> lock(mutex);
-        transport_.send(lock);
+        transport.send(lock);
     }
 
-    ASSERT_EQ(transport_.payloadsToSend_.size(), 0ul);
+    ASSERT_EQ(transport.payloadsToSend_.size(), 0ul);
 }
 
 TEST_F(HttpTransportAsyncTest, destructorSendTimeout) {
     HttpEndpoint::enpointHeaders_t headers;
+    CurlSenderMock sender(log_, 100ms, false);
 
     configForUpdate_.async_transport_shutdown_timeout = 5ms;
     config_->update();
 
     {
-        TestableHttpTransportAsync transport_{log_, config_};
-        transport_.initializeConnection("http://local/traces", 1234, "some-type", headers, 100ms, 3, 100ms);
+        TestableHttpTransportAsync transport{log_, config_};
+
+        EXPECT_CALL(transport.endpoints_, add("http://local/traces", 1234, true, "some-type", headers, 100ms, 3, 100ms)).Times(1).WillRepeatedly(::testing::Return(true));
+        transport.initializeConnection("http://local/traces", 1234, "some-type", headers, 100ms, 3, 100ms);
+
         std::this_thread::sleep_for(5ms); // give thread a bit of time to go into sleep condition
 
-        EXPECT_CALL(transport_.connections_.begin()->second, sendPayload("http://local/traces", ::testing::_, ::testing::_)).Times(::testing::Exactly(1)).WillRepeatedly(::testing::DoAll(::testing::Invoke([]() { std::this_thread::sleep_for(10ms); }), ::testing::Return(200)));
+        EXPECT_CALL(transport.endpoints_, getConnection(1234)).WillRepeatedly(::testing::Return(::testing::ByMove(std::make_tuple("http://local/traces"s, static_cast<curl_slist *>(nullptr), HttpEndpoint::connectionId_t(900), std::ref(sender), static_cast<std::size_t>(3), 100ms))));
+
+        EXPECT_CALL(sender, sendPayload("http://local/traces", ::testing::_, ::testing::_)).Times(::testing::Exactly(1)).WillRepeatedly(::testing::DoAll(::testing::Invoke([]() { std::this_thread::sleep_for(10ms); }), ::testing::Return(200)));
 
         // We're enqueuing 4 payloads, but sending will take at least 10ms. The destructor timeout is set for 5ms, so only the first payload will be sent. Times(::testing::Exactly(1)) will do the job and will fail if it tries to send any further payloads.
         std::vector<std::byte> data(1024);
-        transport_.enqueue(1234, {data.begin(), data.end()});
-        transport_.enqueue(1234, {data.begin(), data.end()});
-        transport_.enqueue(1234, {data.begin(), data.end()});
-        transport_.enqueue(1234, {data.begin(), data.end()});
+        transport.enqueue(1234, {data.begin(), data.end()});
+        transport.enqueue(1234, {data.begin(), data.end()});
+        transport.enqueue(1234, {data.begin(), data.end()});
+        transport.enqueue(1234, {data.begin(), data.end()});
     }
 }
 

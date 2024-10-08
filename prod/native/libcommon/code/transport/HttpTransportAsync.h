@@ -22,6 +22,8 @@
 #include "ForkableInterface.h"
 #include "ConfigurationStorage.h"
 #include "CurlSender.h"
+#include "HttpEndpoints.h"
+#include "SpinLock.h"
 #include "CommonUtils.h"
 
 #include <algorithm>
@@ -33,7 +35,6 @@
 #include <string>
 #include <string_view>
 #include <thread>
-#include <unordered_map>
 #include <vector>
 #include <boost/container_hash/hash.hpp>
 #include <curl/curl.h>
@@ -42,96 +43,18 @@ using namespace std::literals;
 
 namespace elasticapm::php::transport {
 
-class HttpEndpoint : public boost::noncopyable {
-public:
-    using enpointHeaders_t = std::vector<std::pair<std::string_view, std::string_view>>;
-    using connectionId_t = std::size_t;
-
-    HttpEndpoint(HttpEndpoint &&src) {
-        endpoint_ = std::move(src.endpoint_);
-        connectionId_ = std::move(src.connectionId_);
-        curlHeaders_ = src.curlHeaders_;
-        src.curlHeaders_ = nullptr;
-        maxRetries_ = src.maxRetries_;
-        retryDelay_ = src.retryDelay_;
-    }
-
-    HttpEndpoint(std::string endpoint, std::string_view contentType, enpointHeaders_t const &headers, std::size_t maxRetries, std::chrono::milliseconds retryDelay) : endpoint_(std::move(endpoint)), maxRetries_(maxRetries), retryDelay_(retryDelay) {
-        auto connectionDetails = utils::getConnectionDetailsFromURL(endpoint_);
-        if (!connectionDetails) {
-            std::string msg = "Unable to parse connection details from endpoint: "s;
-            msg.append(endpoint_);
-            throw std::runtime_error(msg);
-        }
-        connectionId_ = std::hash<std::string>{}(connectionDetails.value());
-
-        fillCurlHeaders(contentType, headers);
-    }
-
-    ~HttpEndpoint() {
-        if (curlHeaders_) {
-            curl_slist_free_all(curlHeaders_);
-            curlHeaders_ = nullptr;
-        }
-    }
-
-    std::string const &getEndpoint() const {
-        return endpoint_;
-    }
-
-    struct curl_slist *getHeaders() {
-        return curlHeaders_;
-    }
-
-    connectionId_t getConnectionId() const {
-        return connectionId_;
-    }
-
-    std::size_t getMaxRetries() const {
-        return maxRetries_;
-    }
-
-    std::chrono::milliseconds getRetryDelay() const {
-        return retryDelay_;
-    }
-
-private:
-    void fillCurlHeaders(std::string_view contentType, enpointHeaders_t const &headers) {
-        if (!contentType.empty()) {
-            std::string cType = "Content-Type: "s;
-            cType.append(contentType);
-            curlHeaders_ = curl_slist_append(curlHeaders_, cType.c_str());
-        }
-
-        for (auto const &hdr : headers) {
-            std::string header;
-            header.append(hdr.first);
-            header.append(": "sv);
-            header.append(hdr.second);
-            curlHeaders_ = curl_slist_append(curlHeaders_, header.c_str());
-        }
-    }
-
-    std::string endpoint_;
-    std::size_t maxRetries_ = 1;
-    std::chrono::milliseconds retryDelay_ = 0ms;
-    connectionId_t connectionId_;
-    struct curl_slist *curlHeaders_ = nullptr;
-};
-
-template <typename CurlSender = CurlSender>
+template <typename CurlSender = CurlSender, typename Endpoints = HttpEndpoints>
 class HttpTransportAsync : public ForkableInterface, public boost::noncopyable {
-
-    using endpointUrlHash_t = std::size_t;
+    using endpointUrlHash_t = Endpoints::endpointUrlHash_t;
 
 public:
-    HttpTransportAsync(std::shared_ptr<LoggerInterface> log, std::shared_ptr<ConfigurationStorage> config) : log_(std::move(log)), config_(std::move(config)) {
+    HttpTransportAsync(std::shared_ptr<LoggerInterface> log, std::shared_ptr<ConfigurationStorage> config) : log_(std::move(log)), config_(std::move(config)), endpoints_(log_) {
         CurlInit();
     }
 
     ~HttpTransportAsync() {
         shutdownStart_ = std::chrono::steady_clock::now();
-        forceFlush_ = true;
+        forceFlushOnDestruction_ = true;
         shutdownThread();
         CurlCleanup();
     }
@@ -140,15 +63,7 @@ public:
         ELOG_DEBUG(log_, "HttpTransportAsync::initializeConnection endpointUrl '%s' enpointHash: %X timeout: %zums retries: %zu retry delay: %zums", endpointUrl.c_str(), endpointHash, timeout.count(), maxRetries, retryDelay.count());
 
         try {
-            std::lock_guard<std::mutex> lock(mutex_);
-
-            HttpEndpoint endpoint(std::move(endpointUrl), std::move(contentType), endpointHeaders, maxRetries, retryDelay);
-
-            if (connections_.try_emplace(endpoint.getConnectionId(), log_, timeout, config_->get().verify_server_cert).second) { // CurlSender
-                ELOG_DEBUG(log_, "HttpTransportAsync::initializeConnection endpointUrl '%s' enpointHash: %X initialize new connectionId: %X", endpoint.getEndpoint().c_str(), endpointHash, endpoint.getConnectionId());
-            }
-            endpoints_.emplace(std::make_pair(endpointHash, std::move(endpoint)));
-
+            endpoints_.add(std::move(endpointUrl), endpointHash, config_->get().verify_server_cert, std::move(contentType), endpointHeaders, timeout, maxRetries, retryDelay);
             startThread();
         } catch (std::exception const &error) {
             ELOG_ERROR(log_, "HttpTransportAsync::initializeConnection exception '%s'", error.what());
@@ -193,6 +108,7 @@ public:
 
 protected:
     void startThread() {
+        std::lock_guard<std::mutex> lock(mutex_);
         if (!thread_) {
             ELOG_DEBUG(log_, "HttpTransportAsync startThread");
             thread_ = std::make_unique<std::thread>([this]() { asyncSender(); });
@@ -200,12 +116,12 @@ protected:
     }
 
     void shutdownThread() {
-        if (thread_) {
-            ELOG_DEBUG(log_, "HttpTransportAsync shutdownThread");
-        }
-
         {
             std::lock_guard<std::mutex> lock(mutex_);
+            if (thread_) {
+                ELOG_DEBUG(log_, "HttpTransportAsync shutdownThread");
+            }
+
             working_ = false;
         }
         pauseCondition_.notify_all();
@@ -225,7 +141,7 @@ protected:
         while (working_) {
             pauseCondition_.wait(lock, [this]() -> bool { return !payloadsToSend_.empty() || !working_; });
 
-            if (!working_ && !forceFlush_) {
+            if (!working_ && !forceFlushOnDestruction_) {
                 break;
             }
 
@@ -233,7 +149,7 @@ protected:
         }
     }
 
-    void send(std::unique_lock<std::mutex> &locked) {
+    void send(std::unique_lock<std::mutex> &lockedPayloadsMutex) {
         while (!payloadsToSend_.empty()) {
             auto [endpointHash, payload] = std::move(payloadsToSend_.front());
             payloadsToSend_.pop();
@@ -241,57 +157,47 @@ protected:
 
             ELOG_TRACE(log_, "HttpTransportAsync::send enpointHash: %X payload size: %zu", endpointHash, payload.size());
 
-            auto const &endpoint = endpoints_.find(endpointHash);
-            if (endpoint == std::end(endpoints_)) {
-                ELOG_WARNING(log_, "HttpTransportAsync::send enpointHash: %X not found", endpointHash);
-                continue;
-            }
-
-            auto const &connection = connections_.find(endpoint->second.getConnectionId());
-            if (connection == std::end(connections_)) {
-                ELOG_WARNING(log_, "HttpTransportAsync::send enpointHash: %X  connectionId: %X not found", endpointHash, endpoint->second.getConnectionId());
-                continue;
-            }
-
-            ELOG_DEBUG(log_, "HttpTransportAsync::send enpointHash: %X connectionId: %X payload size: %zu", endpointHash, endpoint->second.getConnectionId(), payload.size());
-
-            auto maxRetries = std::max(static_cast<std::size_t>(1), static_cast<std::size_t>(endpoint->second.getMaxRetries()));
-            auto retryDelay = endpoint->second.getRetryDelay();
-
-            locked.unlock();
+            lockedPayloadsMutex.unlock();
 
             try {
-                std::size_t retry = 0;
+                auto [endpointUrl, headers, connId, conn, maxRetries, retryDelay] = endpoints_.getConnection(endpointHash);
+                try {
+                    std::size_t retry = 0;
 
-                while (retry < maxRetries) {
-                    auto responseCode = connection->second.sendPayload(endpoint->second.getEndpoint(), endpoint->second.getHeaders(), payload);
-                    ELOG_TRACE(log_, "HttpTransportAsync::send enpointHash: %X connectionId: %X payload size: %zu responseCode %d", endpointHash, endpoint->second.getConnectionId(), payload.size(), static_cast<int>(responseCode));
+                    while (retry < maxRetries) {
+                        auto responseCode = conn.sendPayload(endpointUrl, headers, payload);
 
-                    if (responseCode >= 200 && responseCode < 300) {
-                        break;
+                        ELOG_TRACE(log_, "HttpTransportAsync::send enpointHash: %X connectionId: %X payload size: %zu responseCode %d", endpointHash, connId, payload.size(), static_cast<int>(responseCode));
+
+                        if (responseCode >= 200 && responseCode < 300) {
+                            break;
+                        }
+
+                        if (responseCode >= 400 && responseCode < 500 && responseCode != 408 && responseCode != 429) {
+                            std::string msg = "server returned with code "s;
+                            msg.append(std::to_string(responseCode));
+                            throw std::runtime_error(msg);
+                        }
+
+                        retry++;
+                        ELOG_DEBUG(log_, "HttpTransportAsync::send enpointHash: %X connectionId: %X payload size: %zu retry %zu/%zu delay: %zu responseCode %d ", endpointHash, connId, payload.size(), retry, maxRetries, retryDelay.count(), static_cast<int>(responseCode));
+                        std::this_thread::sleep_for(retryDelay);
                     }
-
-                    if (responseCode >= 400 && responseCode < 500 && responseCode != 408 && responseCode != 429) {
-                        std::string msg = "server returned with code "s;
-                        msg.append(std::to_string(responseCode));
-                        throw std::runtime_error(msg);
-                    }
-
-                    retry++;
-                    ELOG_DEBUG(log_, "HttpTransportAsync::send enpointHash: %X connectionId: %X payload size: %zu retry %zu/%zu delay: %zu responseCode %d ", endpointHash, endpoint->second.getConnectionId(), payload.size(), retry, maxRetries, retryDelay.count(), static_cast<int>(responseCode));
-                    std::this_thread::sleep_for(retryDelay);
+                    ELOG_DEBUG(log_, "HttpTransportAsync::send enpointHash: %X connectionId: %X payload size: %zu", endpointHash, connId, payload.size());
+                } catch (std::runtime_error const &e) {
+                    ELOG_WARNING(log_, "HttpTransportAsync::send exception '%s'. enpointHash: %X connectionId: %X payload size: %zu", e.what(), endpointHash, connId, payload.size());
                 }
-
-            } catch (std::runtime_error const &e) {
-                ELOG_WARNING(log_, "HttpTransportAsync::send exception '%s'. enpointHash: %X connectionId: %X payload size: %zu", e.what(), endpointHash, endpoint->second.getConnectionId(), payload.size());
+            } catch (std::runtime_error const &error) {
+                ELOG_WARNING(log_, "HttpTransportAsync::send %s", error.what());
             }
 
-            if (forceFlush_ && !payloadsToSend_.empty() && config_->get().async_transport_shutdown_timeout.count() > 0 && ((std::chrono::steady_clock::now() - shutdownStart_) >= config_->get().async_transport_shutdown_timeout)) {
+            lockedPayloadsMutex.lock();
+
+            // it will break sending and emit log if class destructor was triggered, payloads queue is not empty and timeout was set and reached
+            if (forceFlushOnDestruction_ && !payloadsToSend_.empty() && config_->get().async_transport_shutdown_timeout.count() > 0 && ((std::chrono::steady_clock::now() - shutdownStart_) >= config_->get().async_transport_shutdown_timeout)) {
                 ELOG_WARNING(log_, "Dropping %zu payloads because ELASTIC_OTEL_ASYNC_TRANSPORT_SHUTDOWN_TIMEOUT (%zums) was reached", payloadsToSend_.size(), config_->get().async_transport_shutdown_timeout.count());
                 break;
             }
-
-            locked.lock();
         }
     }
 
@@ -308,17 +214,15 @@ protected:
 protected:
     std::shared_ptr<LoggerInterface> log_;
     std::shared_ptr<ConfigurationStorage> config_;
-    std::unordered_map<endpointUrlHash_t, HttpEndpoint> endpoints_;
-    std::unordered_map<HttpEndpoint::connectionId_t, CurlSender> connections_;
-
+    Endpoints endpoints_;
+    std::mutex mutex_;
     std::queue<std::pair<endpointUrlHash_t, std::vector<std::byte>>> payloadsToSend_;
     std::size_t payloadsByteUsage_ = 0;
 
-    std::mutex mutex_;
     std::unique_ptr<std::thread> thread_;
     std::condition_variable pauseCondition_;
     bool working_ = true;
-    std::atomic_bool forceFlush_ = false;
+    std::atomic_bool forceFlushOnDestruction_ = false;
     std::chrono::time_point<std::chrono::steady_clock> shutdownStart_;
 };
 
