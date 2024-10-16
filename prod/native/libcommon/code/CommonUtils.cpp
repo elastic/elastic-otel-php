@@ -27,6 +27,7 @@
 #include <charconv>
 #include <chrono>
 #include <cstdarg>
+#include <optional>
 #include <string_view>
 #include <signal.h>
 #include <stddef.h>

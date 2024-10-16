@@ -38,7 +38,9 @@ class LogSinkFile;
 class InstrumentedFunctionHooksStorageInterface;
 namespace transport {
 class CurlSender;
-template <typename Sender> class HttpTransportAsync;
+class HttpEndpoints;
+template <typename Sender, typename Endpoints>
+class HttpTransportAsync;
 }
 
 // clang-format off
@@ -61,7 +63,7 @@ public:
     std::shared_ptr<InstrumentedFunctionHooksStorageInterface> hooksStorage_;
     std::shared_ptr<PhpSapi> sapi_;
     std::unique_ptr<PeriodicTaskExecutor> periodicTaskExecutor_;
-    std::unique_ptr<transport::HttpTransportAsync<transport::CurlSender>> httpTransportAsync_;
+    std::unique_ptr<transport::HttpTransportAsync<transport::CurlSender, transport::HttpEndpoints> > httpTransportAsync_;
     std::shared_ptr<SharedMemoryState> sharedMemory_;
     std::shared_ptr<RequestScope> requestScope_;
 

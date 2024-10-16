@@ -30,16 +30,16 @@
 
 #include <boost/noncopyable.hpp>
 
-using namespace std::literals;
-
 namespace elasticapm::php::transport {
 
-class CurlSender : public boost::noncopyable {
+class CurlSender {
 public:
     CurlSender(std::shared_ptr<LoggerInterface> logger, std::chrono::milliseconds timeout, bool verifyCert);
 
     CurlSender(CurlSender &&) = delete;
+    CurlSender &operator=(CurlSender &&) = delete;
     CurlSender(CurlSender const &) = delete;
+    CurlSender &operator=(CurlSender const &) = delete;
 
     ~CurlSender() {
         if (handle_) {

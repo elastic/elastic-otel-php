@@ -60,6 +60,7 @@ _Currently there are no additional `OTEL_` options waiting to be contributed ups
 |---|---|---|---|
 |ELASTIC_OTEL_ENABLED|true|true or false|Enables the automatic bootstrapping of instrumentation code|
 |ELASTIC_OTEL_ASYNC_TRANSPORT|true| true or false | Use asynchronous (background) transfer of traces, metrics and logs. If false - brings back original OpenTelemetry SDK transfer modes|
+|ELASTIC_OTEL_ASYNC_TRANSPORT_SHUTDOWN_TIMEOUT| 30s | interger numberwith time duration. Set to 0 to disable the timeout. Optional units: ms (default), s, m | Timeout after which the asynchronous (background) transfer will interrupt data transmission during process termination|
 |ELASTIC_OTEL_MAX_SEND_QUEUE_SIZE|2MB| integer number with optional units: B, MB or GB | Set the maximum buffer size for asynchronous (background) transfer. It is set per worker process.|
 |ELASTIC_OTEL_VERIFY_SERVER_CERT|true|true or false|Enables server certificate verification for asynchronous sending|
 |ELASTIC_OTEL_LOG_FILE||Filesystem path|Log file name. You can use the %p placeholder where the process ID will appear in the file name, and %t where the timestamp will appear. Please note that the PHP process must have write permissions for the specified path.|
