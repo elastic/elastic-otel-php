@@ -177,34 +177,38 @@ cmake --preset linux-x86-64-release
 
 Now we need to load python virtual environment created in previous step. This will enable path to conan tool.
 ```bash
-source _build/linux-x86-64-release/python_venv/bin/activate
+source _build/linux-x86-64-release/venv/bin/activate
 ```
 
 You can list all local conan packages simply by calling:
 ```bash
-conan search
+conan list -c "*"
 ```
 
 it should output listing similar to this:
 ```bash
-recipes:
-php-headers-80/2.0
-php-headers-81/2.0
-php-headers-82/2.0
-php-headers-83/2.0
-
+Local Cache
+...
+  php-headers-80
+    php-headers-80/2.0
+  php-headers-81
+    php-headers-81/2.0
+  php-headers-82
+    php-headers-82/2.0
+  php-headers-83
+    php-headers-83/2.0
+...
 ```
 
-Now you need to login into conan as elastic user. Package upload is allowed only for mainteiners.
+Now you need to login into conan as elastic user. Package upload is allowed only for mainteiners. You need to generate token from UI and use is instead of password.
 ```bash
-conan user -r ElasticConan user@elastic.co
+conan remote login ElasticConan user@elastic.co
 ```
 
 Now you can upload package to conan artifactory.
 
-`--all` option will upload all revisions of `php-headers-80` you have stored in your .conan/data folder (keep it in mind if you're sharing conan cache folder between containers). You can remove it, then conan will ask before uploading each version.
 ```bash
-conan upload php-headers-80 --all -r=ElasticConan
+conan upload -r=ElasticConan php-headers-80
 ```
 
 Now you can check conan artifactory for new packages here:
