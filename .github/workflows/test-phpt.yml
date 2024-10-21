@@ -29,7 +29,7 @@ jobs:
 
   test-phpt:
     name: test-phpt
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.goarch == 'arm64' && 'observability-linux-2-arm64' || 'ubuntu-latest' }}
     needs: setup-build-matrix
     timeout-minutes: 300
     strategy:
@@ -43,10 +43,10 @@ jobs:
         with:
           name: build-native-${{ matrix.arch }}
           path: prod/native/_build/${{ matrix.arch }}-release/
-      - if: ${{ matrix.run_qemu }}
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64
+      # - if: ${{ matrix.goarch == 'arm64' }}
+      #   uses: docker/setup-qemu-action@v3
+      #   with:
+      #     platforms: arm64
       - name: Run phpt tests
         run: |
           uname -a
