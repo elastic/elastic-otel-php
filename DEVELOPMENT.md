@@ -8,7 +8,7 @@ The best method for building is to use a set of Bash scripts that we utilize in 
 All scripts are located in the `tools/build` folder, but they should be called from the root folder of the repository. To ensure everything works correctly on your system, you need to have Docker installed.
 Each of the scripts mentioned below has a help page; to display it, simply provide the `--help` argument.
 
-### Building the native library
+### Building the native library like on CI
 
 ```bash
 cd elastic-otel-php
@@ -29,6 +29,45 @@ linuxmusl-arm64
 ```
 
 If you want to enable debug logging in tested classes, you need to export environment variable `ELASTIC_OTEL_DEBUG_LOG_TESTS=1` before run.
+
+### Building the native library for other platforms
+
+You can always try to compile the native part for an unsupported architecture or platform. To facilitate this, we have made it possible to remove hard dependencies on Docker images, the compiler, and build profiles.
+
+To make everything work on your system, you will need the gcc compiler (at the time of writing, version 12.0+), cmake (v3.26+), and python 3.x.
+
+Since our system uses Conan as the repository for required dependencies, you need to install them first. The following script will install everything necessary in the `~/.conan2` folder. If you haven't used Conan before, provide the argument `--detect_conan_profile` to create a default profile – if you have used Conan before, you can skip this. If you are not using python-venv and have Conan installed directly on your system, you can pass the argument `--skip_venv_conan`, which will cause the script to skip creating a venv and installing Conan.
+
+```bash
+./prod/native/building/install_dependencies.sh --build_output_path ./prod/native/_build/custom-release --build_type Release --detect_conan_profile
+```
+
+The script will install dependencies and generate the files necessary to configure the project in the next step (prod/native/_build/custom-release):
+
+```bash
+cmake -S ./prod/native/ -B ./prod/native/_build/custom-release/  -DCMAKE_PREFIX_PATH=./prod/native/_build/custom-release/build/Release/generators/ -DSKIP_CONAN_INSTALL=1 -DCMAKE_BUILD_TYPE=Release
+```
+
+Building:
+```bash
+cmake --build ./prod/native/_build/custom-release/
+```
+
+If the build is successful, you can find the built libraries using the following command:
+```bash
+find prod/native/_build/custom-release -name elastic*.so
+```
+
+As a result you should see:
+```bash
+prod/native/_build/custom-release/loader/code/elastic_otel_php_loader.so
+prod/native/_build/custom-release/extension/code/elastic_otel_php_81.so
+prod/native/_build/custom-release/extension/code/elastic_otel_php_80.so
+prod/native/_build/custom-release/extension/code/elastic_otel_php_82.so
+prod/native/_build/custom-release/extension/code/elastic_otel_php_83.so
+```
+
+
 
 ### Testing the native library
 
@@ -106,8 +145,8 @@ docker compose build
 ```
 It will build images for all supported architectures. As a result you should get summary like this:
 ```bash
-Successfully tagged elasticobservability/apm-agent-php-dev:native-build-gcc-12.2.0-linux-x86-64-0.0.2
-Successfully tagged elasticobservability/apm-agent-php-dev:native-build-gcc-12.2.0-linuxmusl-x86-64-0.0.2
+Successfully tagged elasticobservability/apm-agent-php-dev:native-build-gcc-14.2.0-linux-x86-64-0.0.1
+Successfully tagged elasticobservability/apm-agent-php-dev:native-build-gcc-14.2.0-linuxmusl-x86-64-0.0.1
 ```
 
 Be aware that if you want to build images for ARM64 you must run it on ARM64 hardware or inside emulator. The same applies to x86-64.
@@ -117,7 +156,7 @@ To test freshly built images, you need to udate image version in ```./tools/buil
 \
 If everything works as you expected, you just need to push new image to dockerhub by calling:
 ```bash
-docker push elasticobservability/apm-agent-php-dev:native-build-gcc-12.2.0-linux-x86-64-0.0.2
+docker push elasticobservability/apm-agent-php-dev:native-build-gcc-14.2.0-linux-x86-64-0.0.1
 ```
 
 ## Building and publishing conan artifacts
@@ -128,7 +167,7 @@ The following are instructions for building and uploading artifacts for the linu
 
 Execution of container. All you need to do here is to use latest container image revision and replace path to your local repository.
 ```bash
-docker run -ti -v /your/forked/repository/path/elastic-otel-php:/source -w /source/agent/native elasticobservability/apm-agent-php-dev:native-build-gcc-12.2.0-linux-x86-64-0.0.2 bash
+docker run -ti -v /your/forked/repository/path/elastic-otel-php:/source -w /source/agent/native elasticobservability/apm-agent-php-dev:native-build-gcc-14.2.0-linux-x86-64-0.0.1 bash
 ```
 
 In container environment we need to configure project - it will setup build environment, conan environment and build all required conan dependencies
@@ -138,36 +177,38 @@ cmake --preset linux-x86-64-release
 
 Now we need to load python virtual environment created in previous step. This will enable path to conan tool.
 ```bash
-source _build/linux-x86-64-release/python_venv/bin/activate
+source _build/linux-x86-64-release/venv/bin/activate
 ```
 
 You can list all local conan packages simply by calling:
 ```bash
-conan search
+conan list -c "*"
 ```
 
 it should output listing similar to this:
 ```bash
-recipes:
-php-headers-72/1.0@elastic/local
-php-headers-73/1.0@elastic/local
-php-headers-74/1.0@elastic/local
-php-headers-80/1.0@elastic/local
-php-headers-81/1.0@elastic/local
-php-headers-82/1.0@elastic/local
-
+Local Cache
+...
+  php-headers-80
+    php-headers-80/2.0
+  php-headers-81
+    php-headers-81/2.0
+  php-headers-82
+    php-headers-82/2.0
+  php-headers-83
+    php-headers-83/2.0
+...
 ```
 
-Now you need to login into conan as elastic user. Package upload is allowed only for mainteiners.
+Now you need to login into conan as elastic user. Package upload is allowed only for mainteiners. You need to generate token from UI and use is instead of password.
 ```bash
-conan user -r ElasticConan user@elastic.co
+conan remote login ElasticConan user@elastic.co
 ```
 
 Now you can upload package to conan artifactory.
 
-`--all` option will upload all revisions of `php-headers-72` you have stored in your .conan/data folder (keep it in mind if you're sharing conan cache folder between containers). You can remove it, then conan will ask before uploading each version.
 ```bash
-conan upload php-headers-72 --all -r=ElasticConan
+conan upload -r=ElasticConan php-headers-80
 ```
 
 Now you can check conan artifactory for new packages here:

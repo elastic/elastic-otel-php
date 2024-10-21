@@ -101,6 +101,6 @@ docker run --rm -t ${INTERACTIVE} ${USERID} -v ${PWD}:/source \
     ${CONAN_USER_HOME_MP} \
     -w /source/prod/native \
     -e GITHUB_SHA=${GITHUB_SHA} \
-    elasticobservability/apm-agent-php-dev:native-build-gcc-12.2.0-${BUILD_ARCHITECTURE}-0.0.2 \
+    elasticobservability/apm-agent-php-dev:native-build-gcc-14.2.0-${BUILD_ARCHITECTURE}-0.0.1 \
     sh -c "id && echo CONAN_USER_HOME=\$CONAN_USER_HOME && ${CONFIGURE} cmake --build --preset ${BUILD_ARCHITECTURE}-release ${NCPU} && ${UNIT_TESTS}"
 

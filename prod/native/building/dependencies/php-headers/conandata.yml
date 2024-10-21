@@ -1,0 +1,27 @@
+version: 2.0
+sources:
+  "80":
+    linux:
+      version: 8.0.30
+      url: "https://www.php.net/distributions/php-{}.tar.gz"
+      contentsRoot: "php-{}"
+  "81":
+    linux:
+      version: 8.1.30
+      url: "https://www.php.net/distributions/php-{}.tar.gz"
+      contentsRoot: "php-{}"
+  "82":
+    linux:
+      version: 8.2.24
+      url: "https://www.php.net/distributions/php-{}.tar.gz"
+      contentsRoot: "php-{}"
+  "83":
+    linux:
+      version: 8.3.12
+      url: "https://www.php.net/distributions/php-{}.tar.gz"
+      contentsRoot: "php-{}"
+  "84":
+    linux:
+      version: "8.4.0RC2"
+      url: "https://github.com/php/php-src/archive/refs/tags/php-{}.tar.gz"
+      contentsRoot: "php-src-php-{}"

@@ -117,7 +117,7 @@ TEST(CommunUtilsTest, getParameterizedString) {
     ASSERT_EQ(getParameterizedString("%p_example_name"), std::to_string(getpid()) + std::string("_example_name"));
 
     ASSERT_TRUE(getParameterizedString("example_name_%t").starts_with("example_name_"));
-    ASSERT_EQ(getParameterizedString("example_name_%t").length(), 23);
+    ASSERT_EQ(getParameterizedString("example_name_%t").length(), 23u);
 
     ASSERT_EQ(getParameterizedString("example_name%%"), "example_name%%");
 

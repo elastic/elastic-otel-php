@@ -7,7 +7,7 @@ set (_Target elastic_otel_php_loader)
 add_library (${_Target} SHARED ${SrcFiles})
 
 target_link_libraries(${_Target}
-    PRIVATE libcommon
+    PRIVATE common
 )
 
 set_target_properties(${_Target}

@@ -1,8 +1,8 @@
 FROM arm64v8/alpine:3.10 as devtools_alpine
 
-ARG GCC_VERSION=12.2.0
-ARG BINUTILS_VERSION=2.40
-ARG CMAKE_VERSION=3.26.3
+ARG GCC_VERSION=14.2.0
+ARG BINUTILS_VERSION=2.43
+ARG CMAKE_VERSION=3.30.3
 ARG USER_NAME=build
 
 #binutils: bison - gprofng, texinfo - makeinfo
@@ -64,9 +64,9 @@ FROM arm64v8/alpine:3.10
 
 COPY --from=devtools_alpine /opt /opt
 
-ARG GCC_VERSION=12.2.0
-ARG BINUTILS_VERSION=2.40
-ARG CMAKE_VERSION=3.26.3
+ARG GCC_VERSION=14.2.0
+ARG BINUTILS_VERSION=2.43
+ARG CMAKE_VERSION=3.30.3
 ARG USER_NAME=build
 
 RUN apk add --no-cache sudo curl wget git make autoconf bzip2 \
