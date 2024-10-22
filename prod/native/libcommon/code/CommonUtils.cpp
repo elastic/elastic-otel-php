@@ -21,13 +21,17 @@
 #include "CommonUtils.h"
 #include "CiCharTraits.h"
 #include "LogLevel.h"
+#include "LogFeature.h"
+#include "LoggerInterface.h"
 
 #include <algorithm>
 #include <array>
 #include <charconv>
 #include <chrono>
 #include <cstdarg>
+#include <memory>
 #include <optional>
+#include <ranges>
 #include <string_view>
 #include <signal.h>
 #include <stddef.h>
@@ -258,5 +262,33 @@ std::optional<std::string> getConnectionDetailsFromURL(std::string const &url) {
     }
 
     return std::nullopt;
+}
+
+// FEATURENAME=LEVEL,ANOTHERFEATURE=LOGLEVEL
+std::unordered_map<elasticapm::php::LogFeature, LogLevel> parseLogFeatures(std::shared_ptr<elasticapm::php::LoggerInterface> logger, std::string_view logFeatures) {
+    std::unordered_map<elasticapm::php::LogFeature, LogLevel> features;
+
+    if (!logFeatures.empty()) {
+        using namespace std::string_view_literals;
+        for (const auto split : std::views::split(logFeatures, ","sv)) {
+            std::string_view featureAndValue(split);
+            auto pos = featureAndValue.find('=');
+            if (pos != std::string_view::npos) {
+                std::string_view option = featureAndValue.substr(0, pos);
+                std::string_view value = featureAndValue.substr(pos + 1);
+
+                try {
+                    auto level = parseLogLevel(value);
+                    auto feature = elasticapm::php::parseLogFeature(option);
+                    features.emplace(feature, level);
+                } catch (std::invalid_argument const &e) {
+                    ELOG_WARNING(logger, "Error while parsing LogFeature " PRsv ", exception: %s ", PRsvArg(featureAndValue), e.what());
+                }
+            } else {
+                ELOG_WARNING(logger, "Error while parsing LogFeature " PRsv, PRsvArg(featureAndValue));
+            }
+        }
+    }
+    return features;
 }
 }

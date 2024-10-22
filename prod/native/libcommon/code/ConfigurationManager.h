@@ -106,6 +106,7 @@ private:
         BUILD_METADATA(ELASTIC_OTEL_CFG_OPT_NAME_LOG_LEVEL_FILE, OptionMetadata::type::loglevel, false),
         BUILD_METADATA(ELASTIC_OTEL_CFG_OPT_NAME_LOG_LEVEL_STDERR, OptionMetadata::type::loglevel, false),
         BUILD_METADATA(ELASTIC_OTEL_CFG_OPT_NAME_LOG_LEVEL_SYSLOG, OptionMetadata::type::loglevel, false),
+        BUILD_METADATA(ELASTIC_OTEL_CFG_OPT_NAME_LOG_FEATURES, OptionMetadata::type::string, false),
         BUILD_METADATA(ELASTIC_OTEL_CFG_OPT_NAME_DEBUG_DIAGNOSTICS_FILE, OptionMetadata::type::string, false),
         BUILD_METADATA(ELASTIC_OTEL_CFG_OPT_NAME_VERIFY_SERVER_CERT, OptionMetadata::type::boolean, false),
         BUILD_METADATA(ELASTIC_OTEL_CFG_OPT_NAME_MAX_SEND_QUEUE_SIZE, OptionMetadata::type::bytes, false),

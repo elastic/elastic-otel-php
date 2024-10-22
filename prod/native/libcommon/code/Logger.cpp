@@ -27,6 +27,30 @@
 
 namespace elasticapm::php {
 
+void Logger::setLogFeatures(std::unordered_map<elasticapm::php::LogFeature, LogLevel> features) {
+    features_ = std::move(features);
+}
+
+bool Logger::doesFeatureMeetsLevelCondition(LogLevel level, LogFeature feature) const {
+    if (features_.empty()) {
+        return doesMeetsLevelCondition(level);
+    }
+
+    {
+        auto found = features_.find(feature);
+        if (found != std::end(features_)) {
+            return level <= found->second;
+        }
+    }
+
+    auto found = features_.find(LogFeature::ALL);
+    if (found != std::end(features_)) {
+        return level <= found->second;
+    }
+
+    return false;
+}
+
 LogLevel Logger::getMaxLogLevel() const {
     auto maxLevel = LogLevel::logLevel_off;
     for (auto const &sink : sinks_) {

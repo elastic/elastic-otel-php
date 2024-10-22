@@ -25,4 +25,6 @@ declare(strict_types=1);
 
 namespace Elastic\OTel;
 
-const ELASTIC_OTEL_PHP_VERSION = '@_PROJECT_PROPERTIES_VERSION@';
+final class LogFeature {
+@_PROJECT_PROPERTIES_LOGGER_FEATURES_ENUM_VALUES@
+}

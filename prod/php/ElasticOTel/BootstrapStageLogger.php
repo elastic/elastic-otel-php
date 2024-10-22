@@ -25,6 +25,8 @@ namespace Elastic\OTel;
 
 use Throwable;
 
+require __DIR__ . DIRECTORY_SEPARATOR . 'Log' . DIRECTORY_SEPARATOR . 'LogFeature.php';
+
 /**
  * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
  *
@@ -233,9 +235,10 @@ final class BootstrapStageLogger
          * @noinspection PhpFullyQualifiedNameUsageInspection, PhpUndefinedFunctionInspection
          * @phpstan-ignore-next-line
          */
-        \elastic_otel_log(
+        \elastic_otel_log_feature(
             0 /* $isForced */,
             $statementLevel,
+            LogFeature::BOOTSTRAP,
             self::LOG_CATEGORY,
             self::processSourceCodeFilePathForLog($file),
             $line,

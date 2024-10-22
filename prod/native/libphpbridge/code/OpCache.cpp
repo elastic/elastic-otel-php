@@ -65,7 +65,7 @@ bool PhpBridge::isScriptRestricedByOpcacheAPI() const {
     if (!SG(request_info).path_translated ||
         strlen(SG(request_info).path_translated) < len ||
         memcmp(SG(request_info).path_translated, restrict_api, len) != 0) {
-        ELOG_WARNING(log_, "Script '%s' is restricted by \"opcache.restrict_api\" configuration directive. Can't perform any opcache API calls.", SG(request_info).path_translated);
+        ELOGF_WARNING(log_, REQUEST, "Script '%s' is restricted by \"opcache.restrict_api\" configuration directive. Can't perform any opcache API calls.", SG(request_info).path_translated);
         return true;
     }
     return false;
@@ -90,12 +90,12 @@ bool PhpBridge::detectOpcacheRestartPending() const {
 	EG(error_reporting) = originalErrorReportingState;
 
     if (!result) {
-        ELOG_ERROR(log_, "opcache_get_status failure");
+        ELOGF_ERROR(log_, REQUEST, "opcache_get_status failure");
         return false;
     }
 
     if (Z_TYPE(*rv) != IS_ARRAY) {
-        ELOG_DEBUG(log_, "opcache_get_status failed, rvtype: %d", Z_TYPE(*rv));
+        ELOGF_DEBUG(log_, REQUEST, "opcache_get_status failed, rvtype: %d", Z_TYPE(*rv));
         return false;
     }
 
@@ -103,7 +103,7 @@ bool PhpBridge::detectOpcacheRestartPending() const {
     if (restartPending && Z_TYPE_P(restartPending) == IS_TRUE) {
         return true;
     } else if (!restartPending || Z_TYPE_P(restartPending) != IS_FALSE) {
-        ELOG_DEBUG(log_, "opcache_get_status returned unexpected data ptr: %p t:%d", restartPending, restartPending ? Z_TYPE_P(restartPending) : -1);
+        ELOGF_DEBUG(log_, REQUEST, "opcache_get_status returned unexpected data ptr: %p t:%d", restartPending, restartPending ? Z_TYPE_P(restartPending) : -1);
     }
     return false;
 }

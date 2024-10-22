@@ -1,6 +1,7 @@
 [requires]
 libcurl/8.10.1
 libunwind/1.8.1
+magic_enum/0.9.6
 boost/1.86.0
 gtest/1.15.0
 php-headers-80/2.0
