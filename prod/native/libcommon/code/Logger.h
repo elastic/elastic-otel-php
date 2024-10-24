@@ -21,6 +21,7 @@
 
 #include "LoggerInterface.h"
 #include "LoggerSinkInterface.h"
+#include "LogFeature.h"
 #include "CommonUtils.h"
 #include "SpinLock.h"
 
@@ -70,16 +71,21 @@ public:
     }
 
     void printf(LogLevel level, const char *format, ...) const override;
+
     bool doesMeetsLevelCondition(LogLevel level) const override;
+    bool doesFeatureMeetsLevelCondition(LogLevel level, LogFeature feature) const override;
 
     void attachSink(std::shared_ptr<LoggerSinkInterface> sink);
 
     LogLevel getMaxLogLevel() const override;
 
+    void setLogFeatures(std::unordered_map<elasticapm::php::LogFeature, LogLevel> features) override;
+
 private:
     std::string getFormattedTime() const;
     std::string getFormattedProcessData() const;
     std::vector<std::shared_ptr<LoggerSinkInterface>> sinks_;
+    std::unordered_map<elasticapm::php::LogFeature, LogLevel> features_;
     mutable SpinLock spinLock_;
 };
 }

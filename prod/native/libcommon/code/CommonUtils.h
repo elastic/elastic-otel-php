@@ -20,12 +20,17 @@
 
 #pragma once
 
+#include "LoggerInterface.h"
+#include "LogFeature.h"
 #include "LogLevel.h"
+
 #include <chrono>
+#include <memory>
 #include <optional>
 #include <regex>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 
 namespace elasticapm::utils {
 
@@ -74,4 +79,6 @@ struct ParsedURL {
 std::optional<ParsedURL> parseUrl(std::string const &url);
 
 std::optional<std::string> getConnectionDetailsFromURL(std::string const &url);
+
+std::unordered_map<elasticapm::php::LogFeature, LogLevel> parseLogFeatures(std::shared_ptr<elasticapm::php::LoggerInterface> logger, std::string_view logFeatures);
 }

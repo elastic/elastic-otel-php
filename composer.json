@@ -51,7 +51,7 @@
     },
     "scripts": {
         "pre-autoload-dump": [
-            "./tools/build/generate_php_part_version.sh"
+            "./tools/build/configure_php_templates.sh"
         ],
         "parallel-lint": [
             "parallel-lint ./prod/php/ ./tests/ --exclude ./tests/polyfills/"

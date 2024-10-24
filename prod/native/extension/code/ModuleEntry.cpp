@@ -95,7 +95,7 @@ static PHP_GINIT_FUNCTION(elastic_otel) {
 
     configManager.attachLogger(logger);
 
-    ELOG_DEBUG(logger, "%s: GINIT called; parent PID: %d", __FUNCTION__, static_cast<int>(elasticapm::osutils::getParentProcessId()));
+    ELOGF_DEBUG(logger, MODULE, "%s: GINIT called; parent PID: %d", __FUNCTION__, static_cast<int>(elasticapm::osutils::getParentProcessId()));
     elastic_otel_globals->globals = nullptr;
 
     auto phpBridge = std::make_shared<elasticapm::php::PhpBridge>(logger);
@@ -105,7 +105,7 @@ static PHP_GINIT_FUNCTION(elastic_otel) {
     try {
         elastic_otel_globals->globals = new elasticapm::php::AgentGlobals(logger, std::move(logSinkStdErr), std::move(logSinkSysLog), std::move(logSinkFile), std::move(phpBridge), std::move(hooksStorage), [](elasticapm::php::ConfigurationSnapshot &cfg) { return configManager.updateIfChanged(cfg); });
     } catch (std::exception const &e) {
-        ELOG_CRITICAL(logger, "Unable to allocate AgentGlobals. '%s'", e.what());
+        ELOGF_CRITICAL(logger, MODULE, "Unable to allocate AgentGlobals. '%s'", e.what());
     }
 
     // ZVAL_UNDEF(&elastic_otel_globals->lastException);
@@ -115,7 +115,7 @@ static PHP_GINIT_FUNCTION(elastic_otel) {
 
 PHP_GSHUTDOWN_FUNCTION(elastic_otel) {
     if (elastic_otel_globals->globals) {
-        ELOG_DEBUG(elastic_otel_globals->globals->logger_, "%s: GSHUTDOWN called; parent PID: %d", __FUNCTION__, static_cast<int>(elasticapm::osutils::getParentProcessId()) );
+        ELOGF_DEBUG(elastic_otel_globals->globals->logger_, MODULE, "%s: GSHUTDOWN called; parent PID: %d", __FUNCTION__, static_cast<int>(elasticapm::osutils::getParentProcessId()));
         delete elastic_otel_globals->globals;
     }
 
@@ -154,7 +154,7 @@ PHP_MINIT_FUNCTION(elastic_otel) {
     elasticApmModuleInit(type, module_number);
 
     if (!zend_register_internal_module(&elastic_otel_fake)) {
-        ELOG_WARNING(ELASTICAPM_G(globals)->logger_, "Unable to create artificial opentelemetry extension. There might be stability issues.");
+        ELOGF_WARNING(ELASTICAPM_G(globals)->logger_, MODULE, "Unable to create artificial opentelemetry extension. There might be stability issues.");
     }
 
     return SUCCESS;

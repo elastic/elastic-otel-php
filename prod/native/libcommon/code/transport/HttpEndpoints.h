@@ -45,7 +45,7 @@ public:
         std::lock_guard<std::mutex> lock(mutex_);
         auto result = endpoints_.try_emplace(endpointHash, std::move(endpointUrl), std::move(contentType), endpointHeaders, maxRetries, retryDelay);
         if (connections_.try_emplace(result.first->second.getConnectionId(), log_, timeout, verifyServerCertificate).second) { // CurlSender
-            ELOG_DEBUG(log_, "HttpEndpoints::add endpointUrl '%s' enpointHash: %X initialize new connectionId: %X", result.first->second.getEndpoint().c_str(), endpointHash, result.first->second.getConnectionId());
+            ELOGF_DEBUG(log_, TRANSPORT, "HttpEndpoints::add endpointUrl '%s' enpointHash: %X initialize new connectionId: %X", result.first->second.getEndpoint().c_str(), endpointHash, result.first->second.getConnectionId());
             return true;
         }
         return false;

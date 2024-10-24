@@ -19,12 +19,15 @@
 
 
 #include "CommonUtils.h"
+#include "LogFeature.h"
+#include "Logger.h"
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <pthread.h>
 
 #include <chrono>
+#include <memory>
 #include <string_view>
 
 
@@ -32,7 +35,22 @@ using namespace std::literals;
 
 namespace elasticapm::utils {
 
-TEST(CommunUtilsTest, convertDurationWithUnit) {
+class CommonUtilsTest : public ::testing::Test {
+public:
+    CommonUtilsTest() {
+
+        if (std::getenv("ELASTIC_OTEL_DEBUG_LOG_TESTS")) {
+            auto serr = std::make_shared<elasticapm::php::LoggerSinkStdErr>();
+            serr->setLevel(logLevel_trace);
+            reinterpret_cast<elasticapm::php::Logger *>(log_.get())->attachSink(serr);
+        }
+    }
+
+protected:
+    std::shared_ptr<elasticapm::php::LoggerInterface> log_ = std::make_shared<elasticapm::php::Logger>(std::vector<std::shared_ptr<elasticapm::php::LoggerSinkInterface>>());
+};
+
+TEST_F(CommonUtilsTest, convertDurationWithUnit) {
     EXPECT_THROW(convertDurationWithUnit("1  s  s"), std::invalid_argument);
     EXPECT_THROW(convertDurationWithUnit("1xd"), std::invalid_argument);
     EXPECT_THROW(convertDurationWithUnit("1h"), std::invalid_argument);
@@ -56,7 +74,7 @@ TEST(CommunUtilsTest, convertDurationWithUnit) {
     ASSERT_EQ(convertDurationWithUnit("  1234  \t"), 1234ms);
 }
 
-TEST(CommunUtilsTest, parseByteUnits) {
+TEST_F(CommonUtilsTest, parseByteUnits) {
     EXPECT_THROW(parseByteUnits("1  s  s"), std::invalid_argument);
     EXPECT_THROW(parseByteUnits("1xd"), std::invalid_argument);
     EXPECT_THROW(parseByteUnits("1h"), std::invalid_argument);
@@ -74,7 +92,7 @@ TEST(CommunUtilsTest, parseByteUnits) {
     ASSERT_EQ(parseByteUnits("0"), 0u);
 }
 
-TEST(CommunUtilsTest, parseBoolean) {
+TEST_F(CommonUtilsTest, parseBoolean) {
     ASSERT_TRUE(parseBoolean("true"));
     ASSERT_TRUE(parseBoolean("on"));
     ASSERT_TRUE(parseBoolean("yes"));
@@ -97,7 +115,7 @@ TEST(CommunUtilsTest, parseBoolean) {
     ASSERT_FALSE(parseBoolean(" "));
 }
 
-TEST(CommunUtilsTest, parseLogLevel) {
+TEST_F(CommonUtilsTest, parseLogLevel) {
     ASSERT_THROW(parseLogLevel("some unknown"), std::invalid_argument);
     ASSERT_EQ(parseLogLevel("   critical"), LogLevel::logLevel_critical);
     ASSERT_EQ(parseLogLevel("   CriticaL"), LogLevel::logLevel_critical);
@@ -110,8 +128,7 @@ TEST(CommunUtilsTest, parseLogLevel) {
     ASSERT_THROW(parseLogLevel("TRACER"), std::invalid_argument);
 }
 
-
-TEST(CommunUtilsTest, getParameterizedString) {
+TEST_F(CommonUtilsTest, getParameterizedString) {
     ASSERT_EQ(getParameterizedString("example_name"), "example_name");
     ASSERT_EQ(getParameterizedString("example_name_%p"), std::string("example_name_") + std::to_string(getpid()));
     ASSERT_EQ(getParameterizedString("%p_example_name"), std::to_string(getpid()) + std::string("_example_name"));
@@ -126,7 +143,7 @@ TEST(CommunUtilsTest, getParameterizedString) {
     ASSERT_EQ(getParameterizedString("example_%X_name"), "example_%X_name");
 }
 
-TEST(CommunUtilsTest, trim) {
+TEST_F(CommonUtilsTest, trim) {
     using namespace std::string_view_literals;
     ASSERT_EQ(trim("example_name"sv), "example_name"sv);
     ASSERT_EQ(trim("\nexample_name"sv), "example_name"sv);
@@ -137,7 +154,7 @@ TEST(CommunUtilsTest, trim) {
     ASSERT_EQ(trim("   "sv), ""sv);
 }
 
-TEST(CommunUtilsTest, sanitizeKeyValueString) {
+TEST_F(CommonUtilsTest, sanitizeKeyValueString) {
     using namespace std::literals;
 
     ASSERT_EQ(sanitizeKeyValueString("ELASTIC_OTEL_API_KEY"s, "ELASTIC_OTEL_API_KEY=supersecret"s), "ELASTIC_OTEL_API_KEY=***"s);
@@ -146,21 +163,21 @@ TEST(CommunUtilsTest, sanitizeKeyValueString) {
     ASSERT_EQ(sanitizeKeyValueString("ELASTIC_OTEL_API_KEY"s, "THIS IS A TEXT ELASTIC_OTEL_API_KEY=\"aaa with spaces\" EXAMPLE"s), "THIS IS A TEXT ELASTIC_OTEL_API_KEY=*** EXAMPLE"s);
 }
 
-TEST(CommunUtilsTest, stringPrintf) {
+TEST_F(CommonUtilsTest, stringPrintf) {
     ASSERT_EQ(stringPrintf("%s is %d years old", "Mark", 12), "Mark is 12 years old"s);
 }
 
-TEST(CommunUtilsTest, getIniName) {
+TEST_F(CommonUtilsTest, getIniName) {
     ASSERT_EQ(getIniName("basic_option"), "elastic_otel.basic_option"s);
     ASSERT_EQ(getIniName("OtherOption"), "elastic_otel.OtherOption"s);
 }
 
-TEST(CommunUtilsTest, getEnvName) {
+TEST_F(CommonUtilsTest, getEnvName) {
     ASSERT_EQ(getEnvName("basic_option"), "ELASTIC_OTEL_BASIC_OPTION"s);
     ASSERT_EQ(getEnvName("OtherOption"), "ELASTIC_OTEL_OTHEROPTION"s);
 }
 
-TEST(CommonUtilsTest, getConnectionDetailsFromURL) {
+TEST_F(CommonUtilsTest, getConnectionDetailsFromURL) {
     ASSERT_EQ(getConnectionDetailsFromURL("https://localhost/?query=asdsad").value_or(""), "https://localhost"s);
     ASSERT_EQ(getConnectionDetailsFromURL("http://localhost/?query=asdsad").value_or(""), "http://localhost"s);
     ASSERT_EQ(getConnectionDetailsFromURL("http://localhost:8080/?query=asdsad").value_or(""), "http://localhost:8080"s);
@@ -170,6 +187,44 @@ TEST(CommonUtilsTest, getConnectionDetailsFromURL) {
     ASSERT_NE(getConnectionDetailsFromURL("https://localhost").value_or(""), "http://localhost"s);
     ASSERT_EQ(getConnectionDetailsFromURL("localhost"), std::nullopt);
     ASSERT_EQ(getConnectionDetailsFromURL("ftp:://localhost"), std::nullopt);
+}
+
+TEST_F(CommonUtilsTest, parseLogFeatures_Empty) {
+    auto features = parseLogFeatures(log_, "");
+    ASSERT_TRUE(features.empty());
+}
+
+TEST_F(CommonUtilsTest, parseLogFeatures_UnknownFeature) {
+    auto features = parseLogFeatures(log_, "UNKNOWNFEATURE=debug");
+    ASSERT_TRUE(features.empty());
+}
+
+TEST_F(CommonUtilsTest, parseLogFeatures_UnknownLevel) {
+    auto features = parseLogFeatures(log_, "ALL=unknown");
+    ASSERT_TRUE(features.empty());
+}
+
+TEST_F(CommonUtilsTest, parseLogFeatures_UnknownAndCorrectFeature) {
+    auto features = parseLogFeatures(log_, "UNKNOWNFEATURE=debug,ALL=info");
+    ASSERT_EQ(features.size(), 1u);
+    auto found = features.find(elasticapm::php::LogFeature::ALL);
+    ASSERT_NE(found, std::end(features));
+    ASSERT_EQ(found->second, LogLevel::logLevel_info);
+}
+
+TEST_F(CommonUtilsTest, parseLogFeatures_MultipleFeatures) {
+    auto features = parseLogFeatures(log_, "ALL=info,TRANSPORT=debug");
+    ASSERT_EQ(features.size(), 2u);
+    {
+        auto found = features.find(elasticapm::php::LogFeature::ALL);
+        ASSERT_NE(found, std::end(features));
+        ASSERT_EQ(found->second, LogLevel::logLevel_info);
+    }
+    {
+        auto found = features.find(elasticapm::php::LogFeature::TRANSPORT);
+        ASSERT_NE(found, std::end(features));
+        ASSERT_EQ(found->second, LogLevel::logLevel_debug);
+    }
 }
 }
 

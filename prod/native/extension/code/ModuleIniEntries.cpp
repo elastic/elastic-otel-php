@@ -97,7 +97,7 @@ bool registerElasticApmIniEntries(elasticapm::php::LoggerInterface *log, int mod
         auto iniName = elasticapm::utils::getIniName(option.first);
 
         if (zend_ini_register_displayer(iniName.data(), iniName.length(), displaySecretIniValue) != ZEND_RESULT_CODE::SUCCESS) {
-            ELOG_WARNING(log, "zend_ini_register_displayer() failed; iniName: " PRsv, PRsvArg(iniName));
+            ELOGF_WARNING(log, MODULE, "zend_ini_register_displayer() failed; iniName: " PRsv, PRsvArg(iniName));
         }
 
     }

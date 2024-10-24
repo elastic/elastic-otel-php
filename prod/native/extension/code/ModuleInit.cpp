@@ -69,7 +69,7 @@ void elasticApmModuleInit(int moduleType, int moduleNumber) {
     configManager.update();
     globals->config_->update();
 
-    ELOG_DEBUG(globals->logger_, "%s entered: moduleType: %d, moduleNumber: %d, parent PID: %d, SAPI: %s (%d) is %s", __FUNCTION__, moduleType, moduleNumber, static_cast<int>(elasticapm::osutils::getParentProcessId()), sapi.getName().data(), static_cast<uint8_t>(sapi.getType()), sapi.isSupported() ? "supported" : "unsupported");
+    ELOGF_DEBUG(globals->logger_, MODULE, "%s entered: moduleType: %d, moduleNumber: %d, parent PID: %d, SAPI: %s (%d) is %s", __FUNCTION__, moduleType, moduleNumber, static_cast<int>(elasticapm::osutils::getParentProcessId()), sapi.getName().data(), static_cast<uint8_t>(sapi.getType()), sapi.isSupported() ? "supported" : "unsupported");
     if (!sapi.isSupported()) {
         return;
     }
@@ -83,11 +83,11 @@ void elasticApmModuleInit(int moduleType, int moduleNumber) {
     logStartupPreamble(globals->logger_.get());
 
     if (!EAPM_CFG(enabled)) {
-        ELOG_INFO(globals->logger_, "Extension is disabled");
+        ELOGF_INFO(globals->logger_, MODULE, "Extension is disabled");
         return;
     }
 
-    ELOG_DEBUG(globals->logger_, "MINIT Replacing hooks");
+    ELOGF_DEBUG(globals->logger_, MODULE, "MINIT Replacing hooks");
     elasticapm::php::Hooking::getInstance().replaceHooks();
 
     zend_observer_activate();
@@ -95,7 +95,7 @@ void elasticApmModuleInit(int moduleType, int moduleNumber) {
 
 
     if (php_check_open_basedir_ex(EAPM_GL(config_)->get(&elasticapm::php::ConfigurationSnapshot::bootstrap_php_part_file).c_str(), false) != 0) {
-        ELOG_WARNING(globals->logger_, "Elastic Agent bootstrap file (%s) is located outside of paths allowed by open_basedir ini setting. Read more details here https://www.elastic.co/guide/en/apm/agent/php/current/setup.html#limitations", EAPM_GL(config_)->get(&elasticapm::php::ConfigurationSnapshot::bootstrap_php_part_file).c_str());
+        ELOGF_WARNING(globals->logger_, MODULE, "Elastic Agent bootstrap file (%s) is located outside of paths allowed by open_basedir ini setting. Read more details here https://www.elastic.co/guide/en/apm/agent/php/current/setup.html#limitations", EAPM_GL(config_)->get(&elasticapm::php::ConfigurationSnapshot::bootstrap_php_part_file).c_str());
     }
 }
 

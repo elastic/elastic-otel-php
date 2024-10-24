@@ -5,7 +5,7 @@ set(_ELASTIC_FAIL_ON_ERROR true)
 set(_ELASTIC_WARN_ON_UNINITIALIZED true)
 
 
-# determine build type and set 
+# determine build type and set
 set(MUSL_BUILD false)
 
 set_property(GLOBAL PROPERTY GLOBAL_DEPENDS_NO_CYCLES ON) # https://cmake.org/cmake/help/latest/prop_gbl/GLOBAL_DEPENDS_NO_CYCLES.html
@@ -15,7 +15,7 @@ set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)   # https://github.com/ComputationalRadiat
 set(CMAKE_DISABLE_SOURCE_CHANGES  ON)
 set(CMAKE_CXX_EXTENSIONS OFF)           # https://cmake.org/cmake/help/latest/prop_tgt/CXX_EXTENSIONS.html#prop_tgt:CXX_EXTENSIONS
 set(CMAKE_CXX_STANDARD_REQUIRED ON)     # https://cmake.org/cmake/help/latest/prop_tgt/CXX_STANDARD_REQUIRED.html#prop_tgt:CXX_STANDARD_REQUIRED
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)       # https://cmake.org/cmake/help/latest/variable/CMAKE_INCLUDE_CURRENT_DIR.html
 
 set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)  # include runtime search path for shared libs
@@ -33,8 +33,8 @@ find_package(Threads REQUIRED)
 
 
 # Keep output small as possible and manually control what we want to link with binaries
-set(CMAKE_C_IMPLICIT_LINK_LIBRARIES "") 
-set(CMAKE_C_IMPLICIT_LINK_DIRECTORIES "") 
+set(CMAKE_C_IMPLICIT_LINK_LIBRARIES "")
+set(CMAKE_C_IMPLICIT_LINK_DIRECTORIES "")
 
 # Workaround to enable globally staticaly linked libgcc and libstdc++ - don't need to be enabled foreach target
 # linking with libdl and libpthreads
@@ -45,7 +45,7 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-lib
 add_compile_options("-pipe") # don't use temporary files but pipe data to linker
 
 # Set up optimizations
-if(RELEASE_BUILD) 
+if(RELEASE_BUILD)
     add_compile_options("-O2"
                         "-g"
     )
@@ -86,7 +86,7 @@ endif()
 # C++ only switches
 add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-Wno-register>")
 add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-Wnon-virtual-dtor>")
-add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fdiagnostics-show-template-tree>") # print template mismatch as tree - much more user friendly 
+add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fdiagnostics-show-template-tree>") # print template mismatch as tree - much more user friendly
 
 # C only switches
 add_compile_options("$<$<COMPILE_LANGUAGE:C>:-Wstrict-prototypes>")

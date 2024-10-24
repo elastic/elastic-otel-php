@@ -20,7 +20,9 @@
 #pragma once
 
 #include "LogLevel.h"
+#include "LogFeature.h"
 
+#include <unordered_map>
 #include <stdarg.h>
 
 namespace elasticapm::php {
@@ -32,21 +34,34 @@ public:
 
     virtual void printf(LogLevel level, const char *format, ...) const = 0;
     virtual bool doesMeetsLevelCondition(LogLevel level) const = 0;
+    virtual bool doesFeatureMeetsLevelCondition(LogLevel level, LogFeature feature) const = 0;
     virtual LogLevel getMaxLogLevel() const = 0;
+    virtual void setLogFeatures(std::unordered_map<elasticapm::php::LogFeature, LogLevel> features) = 0;
 };
 
-
 #define PRsv "%.*s"
-#define PRsvArg(strv) static_cast<int>(strv.length()), strv.data()
+#define PRsvArg(strv) static_cast<int>(strv.size()), strv.data()
 #define PRcsvArg(str, len) len, str
 #define PRzsArg(strv) ZSTR_LEN(strv), ZSTR_VAL(strv)
 
-#define ELOG_CRITICAL(logger, format, ...) do { if (!logger || !logger->doesMeetsLevelCondition(LogLevel::logLevel_critical)) break; logger->printf(LogLevel::logLevel_critical, format, ##__VA_ARGS__); } while(false);
-#define ELOG_ERROR(logger, format, ...) do { if (!logger || !logger->doesMeetsLevelCondition(LogLevel::logLevel_error)) break; logger->printf(LogLevel::logLevel_error, format, ##__VA_ARGS__); } while(false);
-#define ELOG_WARNING(logger, format, ...) do { if (!logger || !logger->doesMeetsLevelCondition(LogLevel::logLevel_warning)) break; logger->printf(LogLevel::logLevel_warning, format, ##__VA_ARGS__); } while(false);
-#define ELOG_INFO(logger, format, ...) do { if (!logger || !logger->doesMeetsLevelCondition(LogLevel::logLevel_info)) break; logger->printf(LogLevel::logLevel_info, format, ##__VA_ARGS__); } while(false);
-#define ELOG_DEBUG(logger, format, ...) do { if (!logger || !logger->doesMeetsLevelCondition(LogLevel::logLevel_debug)) break; logger->printf(LogLevel::logLevel_debug, format, ##__VA_ARGS__); } while(false);
-#define ELOG_TRACE(logger, format, ...) do { if (!logger || !logger->doesMeetsLevelCondition(LogLevel::logLevel_trace)) break; logger->printf(LogLevel::logLevel_trace, format, ##__VA_ARGS__); } while(false);
-#define ELOG(logger, level, format, ...) do { if (!logger || !logger->doesMeetsLevelCondition(level)) break; logger->printf(level, format, ##__VA_ARGS__); } while(false);
+// clang-format off
 
+#define ELOGF(logger, level, feature, format, ...) do { if (!logger || !logger->doesFeatureMeetsLevelCondition(level, elasticapm::php::LogFeature::feature)) break; logger->printf(level, format, ##__VA_ARGS__); } while(false);
+#define ELOG(logger, level,  format, ...) ELOGF(logger, level, ALL, format, ##__VA_ARGS__)
+
+#define ELOGF_CRITICAL(logger, feature, format, ...) ELOGF(logger, LogLevel::logLevel_critical, feature, format, ##__VA_ARGS__)
+#define ELOGF_ERROR(logger, feature, format, ...)    ELOGF(logger, LogLevel::logLevel_error, feature, format, ##__VA_ARGS__)
+#define ELOGF_WARNING(logger, feature, format, ...)  ELOGF(logger, LogLevel::logLevel_warning, feature, format, ##__VA_ARGS__)
+#define ELOGF_INFO(logger, feature, format, ...)     ELOGF(logger, LogLevel::logLevel_info, feature, format, ##__VA_ARGS__)
+#define ELOGF_DEBUG(logger, feature, format, ...)    ELOGF(logger, LogLevel::logLevel_debug, feature, format, ##__VA_ARGS__)
+#define ELOGF_TRACE(logger, feature, format, ...)    ELOGF(logger, LogLevel::logLevel_trace, feature, format, ##__VA_ARGS__)
+
+#define ELOG_CRITICAL(logger, format, ...) ELOG(logger, LogLevel::logLevel_critical, format, ##__VA_ARGS__)
+#define ELOG_ERROR(logger, format, ...)    ELOG(logger, LogLevel::logLevel_error, format, ##__VA_ARGS__)
+#define ELOG_WARNING(logger, format, ...)  ELOG(logger, LogLevel::logLevel_warning, format, ##__VA_ARGS__)
+#define ELOG_INFO(logger, format, ...)     ELOG(logger, LogLevel::logLevel_info, format, ##__VA_ARGS__)
+#define ELOG_DEBUG(logger, format, ...)    ELOG(logger, LogLevel::logLevel_debug, format, ##__VA_ARGS__)
+#define ELOG_TRACE(logger, format, ...)    ELOG(logger, LogLevel::logLevel_trace, format, ##__VA_ARGS__)
+
+// clang-format on
 }

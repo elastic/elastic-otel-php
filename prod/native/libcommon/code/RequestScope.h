@@ -40,19 +40,19 @@ public:
     }
 
     void onRequestInit() {
-        ELOG_DEBUG(log_, __FUNCTION__);
+        ELOGF_DEBUG(log_, REQUEST, __FUNCTION__);
 
         resetRequest();
 
         if (!sapi_->isSupported()) {
-            ELOG_DEBUG(log_, "SAPI '%s' not supported", sapi_->getName().data());
+            ELOGF_DEBUG(log_, REQUEST, "SAPI '%s' not supported", sapi_->getName().data());
             return;
         }
 
         config_->update();
 
         if (!(*config_)->enabled) {
-            ELOG_DEBUG(log_, "Global instrumentation not enabled");
+            ELOGF_DEBUG(log_, REQUEST, "Global instrumentation not enabled");
             return;
         }
 
@@ -65,7 +65,7 @@ public:
         preloadDetected_ = requestCounter_ == 1 ? bridge_->detectOpcachePreload() : false;
 
         if (requestCounter_ == 1 && preloadDetected_) {
-            ELOG_DEBUG(log_, "opcache.preload request detected on init");
+            ELOGF_DEBUG(log_, REQUEST, "opcache.preload request detected on init");
             return;
         } else if (!preloadDetected_ && requestCounter_ <= 2) {
             auto const &diagnosticFile = (*config_)->debug_diagnostic_file;
@@ -75,14 +75,14 @@ public:
                         // TODO log supportability info
                         elasticapm::utils::storeDiagnosticInformation(elasticapm::utils::getParameterizedString(diagnosticFile), *(bridge_));
                     } catch (std::exception const &e) {
-                        ELOG_WARNING(log_, "Unable to write agent diagnostics: %s", e.what());
+                        ELOGF_WARNING(log_, REQUEST, "Unable to write agent diagnostics: %s", e.what());
                     }
                 }
             }
         }
 
         if (!bridge_->isScriptRestricedByOpcacheAPI() && bridge_->detectOpcacheRestartPending()) {
-            ELOG_WARNING(log_, "Detected that opcache reset is in a pending state. Instrumentation has been disabled for this request. There may be warnings or errors logged for this request.");
+            ELOGF_WARNING(log_, REQUEST, "Detected that opcache reset is in a pending state. Instrumentation has been disabled for this request. There may be warnings or errors logged for this request.");
             return;
         }
 
@@ -91,25 +91,25 @@ public:
     }
 
     void onRequestShutdown() {
-        ELOG_DEBUG(log_, __FUNCTION__);
+        ELOGF_DEBUG(log_, REQUEST, __FUNCTION__);
 
         if (preloadDetected_) {
-            ELOG_DEBUG(log_, "opcache.preload request detected on shutdown");
+            ELOGF_DEBUG(log_, REQUEST, "opcache.preload request detected on shutdown");
             return;
         }
 
         if (!bootstrapSuccessfull_) {
-            ELOG_DEBUG(log_, "onRequestShutdown bootstrap not successfull");
+            ELOGF_DEBUG(log_, REQUEST, "onRequestShutdown bootstrap not successfull");
             return;
         }
 
         if (!bridge_->callPHPSideExitPoint()) {
-            ELOG_ERROR(log_, "callPHPSideExitPoint failed");
+            ELOGF_ERROR(log_, REQUEST, "callPHPSideExitPoint failed");
         }
     }
 
     void onRequestPostDeactivate() {
-        ELOG_DEBUG(log_, __FUNCTION__);
+        ELOGF_DEBUG(log_, REQUEST, __FUNCTION__);
 
         resetRequest();
 
@@ -119,7 +119,7 @@ public:
     }
 
     bool handleError(int type, std::string_view errorFilename, uint32_t errorLineno, std::string_view message) {
-        ELOG_DEBUG(log_, "RequestScope::handleError type: %d fn: %s:%d msg: %s", type, errorFilename.data(), errorLineno, message.data());
+        ELOGF_DEBUG(log_, REQUEST, "RequestScope::handleError type: %d fn: %s:%d msg: %s", type, errorFilename.data(), errorLineno, message.data());
 
         bridge_->callPHPSideErrorHandler(type, errorFilename, errorLineno, message);
 
@@ -137,7 +137,7 @@ protected:
             bridge_->compileAndExecuteFile((*config_)->bootstrap_php_part_file);
             bridge_->callPHPSideEntryPoint(log_->getMaxLogLevel(), requestStartTime);
         } catch (std::exception const &e) {
-            ELOG_CRITICAL(log_, "Unable to bootstrap PHP-side instrumentation '%s'", e.what());
+            ELOGF_CRITICAL(log_, REQUEST, "Unable to bootstrap PHP-side instrumentation '%s'", e.what());
             return false;
         }
 

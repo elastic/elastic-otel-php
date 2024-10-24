@@ -1,5 +1,3 @@
-<?php
-
 /*
  * Copyright Elasticsearch B.V. and/or licensed to Elasticsearch B.V. under one
  * or more contributor license agreements. See the NOTICE file distributed with
@@ -19,10 +17,21 @@
  * under the License.
  */
 
-/* this file is generated, do not edit it manually */
+#include "LogFeature.h"
+#include <magic_enum.hpp>
+#include <stdexcept>
+#include <string>
+#include <string_view>
 
-declare(strict_types=1);
+namespace elasticapm::php {
 
-namespace Elastic\OTel;
+[[nodiscard]] LogFeature parseLogFeature(std::string_view featureName) {
+    using namespace std::string_literals;
+    auto feature = magic_enum::enum_cast<LogFeature>(featureName, magic_enum::case_insensitive);
+    if (!feature.has_value()) {
+        throw std::invalid_argument("Unknown log feature: "s + std::string(featureName));
+    }
+    return feature.value();
+}
 
-const ELASTIC_OTEL_PHP_VERSION = '@_PROJECT_PROPERTIES_VERSION@';
+} // namespace elasticapm::php

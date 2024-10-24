@@ -47,10 +47,10 @@ void elastic_observer_error_cb(int type, zend_string *error_filename, uint32_t e
 #endif
     std::string_view msg = message && ZSTR_VAL(message) ? std::string_view{ZSTR_VAL(message), ZSTR_LEN(message)} : std::string_view{};
 
-    ELOG_DEBUG(ELASTICAPM_G(globals)->logger_, "elastic_observer_error_cb type: %d, fn: " PRsv ":%d, msg: " PRsv " ED: %p", type, PRsvArg(fileName), error_lineno, PRsvArg(msg), EG(current_execute_data));
+    ELOGF_DEBUG(ELASTICAPM_G(globals)->logger_, HOOKS, "elastic_observer_error_cb type: %d, fn: " PRsv ":%d, msg: " PRsv " ED: %p", type, PRsvArg(fileName), error_lineno, PRsvArg(msg), EG(current_execute_data));
     static bool errorHandling = false;
     if (errorHandling) {
-        ELOG_WARNING(ELASTICAPM_G(globals)->logger_, "elastic_observer_error_cb detected error handler loop, skipping error handler");
+        ELOGF_WARNING(ELASTICAPM_G(globals)->logger_, HOOKS, "elastic_observer_error_cb detected error handler loop, skipping error handler");
         return;
     }
 
@@ -61,16 +61,16 @@ void elastic_observer_error_cb(int type, zend_string *error_filename, uint32_t e
         if (hash) {
             if (ELASTICAPM_G(globals)->logger_ && ELASTICAPM_G(globals)->logger_->doesMeetsLevelCondition(LogLevel::logLevel_debug)) {
                 auto [cls, fun] = getClassAndFunctionName(EG(current_execute_data));
-                ELOG_DEBUG(ELASTICAPM_G(globals)->logger_, "elastic_observer_error_cb currentED: %p currentEXception: %p hash: 0x%X " PRsv "::" PRsv, EG(current_execute_data), EG(exception), hash, PRsvArg(cls), PRsvArg(fun));
+                ELOGF_DEBUG(ELASTICAPM_G(globals)->logger_, HOOKS, "elastic_observer_error_cb currentED: %p currentEXception: %p hash: 0x%X " PRsv "::" PRsv, EG(current_execute_data), EG(exception), hash, PRsvArg(cls), PRsvArg(fun));
             }
 
             auto callbacks = reinterpret_cast<InstrumentedFunctionHooksStorage_t *>(EAPM_GL(hooksStorage_).get())->find(hash);
             if (callbacks) {
-                ELOG_DEBUG(ELASTICAPM_G(globals)->logger_, "elastic_observer_error_cb type: %d, fn: " PRsv ":%d, msg: " PRsv ". Skipping default error instrumentation because function is instrumented and error will be passed to posthook", type, PRsvArg(fileName), error_lineno, PRsvArg(msg));
+                ELOGF_DEBUG(ELASTICAPM_G(globals)->logger_, HOOKS, "elastic_observer_error_cb type: %d, fn: " PRsv ":%d, msg: " PRsv ". Skipping default error instrumentation because function is instrumented and error will be passed to posthook", type, PRsvArg(fileName), error_lineno, PRsvArg(msg));
                 return;
             }
         } else {
-            ELOG_WARNING(ELASTICAPM_G(globals)->logger_, "elastic_observer_error_cb currentED: %p currentEXception: %p func null, msg: " PRsv, EG(current_execute_data), EG(exception), PRsvArg(msg));
+            ELOGF_WARNING(ELASTICAPM_G(globals)->logger_, HOOKS, "elastic_observer_error_cb currentED: %p currentEXception: %p func null, msg: " PRsv, EG(current_execute_data), EG(exception), PRsvArg(msg));
         }
     }
 

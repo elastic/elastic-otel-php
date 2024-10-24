@@ -9,10 +9,10 @@ This project depends on folliwng packages:
 --------------------------------------------------------------------------------
 
 Package name: Boost C++ Libraries
-Version: 1.83.0
+Version: 1.86.0
 Authors: Boost contributors (https://github.com/boostorg/boost/graphs/contributors)
 Licenses: BSL-1.0 license
-URL: https://github.com/boostorg/boost/tree/boost-1.83.0
+URL: https://github.com/boostorg/boost/tree/boost-1.86.0
 
 
 LICENSE_1.0.txt content:
@@ -43,10 +43,10 @@ DEALINGS IN THE SOFTWARE.
 --------------------------------------------------------------------------------
 
 Package name: libcurl
-Version: 8.0.1
+Version: 8.10.1
 Authors: Daniel Stenberg, <daniel@haxx.se>, and many contributors
-Licenses: curl (https://github.com/curl/curl/blob/curl-8_0_1/COPYING)
-URL: https://github.com/curl/curl/blob/curl-8_0_1/
+Licenses: curl (https://github.com/curl/curl/blob/curl-8_10_1/COPYING)
+URL: https://github.com/curl/curl/blob/curl-8_10_1/
 
 curl/COPYING content:
 
@@ -73,13 +73,16 @@ Except as contained in this notice, the name of a copyright holder shall not
 be used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization of the copyright holder.
 
+Notice:
+Curl contains pieces of source code that is Copyright (c) 1998, 1999 Kungliga Tekniska Högskolan. This notice is included here to comply with the distribution terms.
+
 --------------------------------------------------------------------------------
 
 Package name: libunwind
-Version: 1.6.2
+Version: 1.8.1
 Authors: David Mosberger <dmosberger@gmail.org>
 Licenses: MIT
-URL: https://github.com/libunwind/libunwind/tree/b3ca1b59a795a617877c01fe5d299ab7a07ff29d
+URL: https://github.com/libunwind/libunwind/tree/9cc4d98b22ae57bc1d8c253988feb85d4298a634
 
 No NOTICE file found
 LICENSE content:
@@ -156,6 +159,40 @@ Copyright notice:
 
   Jean-loup Gailly        Mark Adler
   jloup@gzip.org          madler@alumni.caltech.edu
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+
+Package name: magic_enum
+Version: 0.9.6
+Authors: Jean-loup Gailly <jloup@gzip.org> and Mark Adler <madler@alumni.caltech.edu>
+Licenses: MIT (https://github.com/Neargye/magic_enum/blob/v0.9.6/LICENSE)
+URL: https://github.com/Neargye/magic_enum/tree/v0.9.6
+
+No NOTICE file found
+LICENSE content:
+MIT License
+
+Copyright (c) 2019 - 2024 Daniil Goncharov
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
 --------------------------------------------------------------------------------
 

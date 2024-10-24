@@ -1,5 +1,6 @@
 #generated version file
 prod/php/ElasticOTel/PhpPartVersion.php
+prod/php/ElasticOTel/Log/LogFeature.php
 
 # Mac
 .DS_Store

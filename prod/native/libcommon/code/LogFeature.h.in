@@ -1,5 +1,3 @@
-<?php
-
 /*
  * Copyright Elasticsearch B.V. and/or licensed to Elasticsearch B.V. under one
  * or more contributor license agreements. See the NOTICE file distributed with
@@ -19,10 +17,25 @@
  * under the License.
  */
 
-/* this file is generated, do not edit it manually */
+/* This file has been generated, do not edit it manually.
+ * If you want to make changes, edit the file LogFeature.h.in
+ * in the sources tree.
+ * Remember, every time you add a new feature to the properties,
+ * reconfigure the project and regenerate the files for PHP as well
+ */
 
-declare(strict_types=1);
+#pragma once
 
-namespace Elastic\OTel;
+#include <string_view>
 
-const ELASTIC_OTEL_PHP_VERSION = '@_PROJECT_PROPERTIES_VERSION@';
+namespace elasticapm::php {
+
+// clang-format off
+enum LogFeature {
+    @_PROJECT_PROPERTIES_LOGGER_FEATURES_ENUM_VALUES@
+};
+// clang-format on
+
+[[nodiscard]] LogFeature parseLogFeature(std::string_view featureName);
+
+} // namespace elasticapm::php

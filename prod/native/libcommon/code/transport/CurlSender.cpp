@@ -25,7 +25,7 @@ namespace elasticapm::php::transport {
 
 static int CurlDebugFunc(CURL *handle, curl_infotype type, char *data, size_t size, void *logger) {
     auto &log = *static_cast<std::shared_ptr<LoggerInterface> *>(logger);
-    if (logger && log->doesMeetsLevelCondition(LogLevel::logLevel_trace) && type < 3) {
+    if (logger && log->doesFeatureMeetsLevelCondition(LogLevel::logLevel_trace, elasticapm::php::LogFeature::TRANSPORT) && type < 3) {
         char prefix = type == CURLINFO_TEXT ? '*' : (type == CURLINFO_HEADER_IN ? '<' : '>');
         log->printf(LogLevel::logLevel_trace, "CurlSender %c %.*s", prefix, size - 1, data);
     }
