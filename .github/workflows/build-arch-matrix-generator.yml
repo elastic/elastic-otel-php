@@ -34,7 +34,7 @@ jobs:
           fi
           if [ "${SELECTED_ARCH}" == "arm64" ] ||  [ "${SELECTED_ARCH}" == "all" ]; then
             echo "${SELECTED_ARCH} selected. Adding arm64"
-            MATRIX+='{"arch": "linux-arm64", "run_qemu": 1, "goarch": "arm64", "packages": "deb rpm"},{"arch": "linuxmusl-arm64", "run_qemu": 1, "goarch": "arm64", "packages": "apk"},'
+            MATRIX+='{"arch": "linux-arm64", "goarch": "arm64", "packages": "deb rpm"},{"arch": "linuxmusl-arm64", "goarch": "arm64", "packages": "apk"},'
           fi
           echo "matrix-combinations={\"include\":[$MATRIX]}"
 
