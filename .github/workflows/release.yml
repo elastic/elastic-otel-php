@@ -1,8 +1,6 @@
 ---
 name: release
 
-permissions:
-  contents: read
 
 on:
   push:
@@ -12,6 +10,9 @@ on:
 
 env:
   BUILD_PACKAGES: build/packages
+
+permissions:
+  contents: read
 
 jobs:
 
