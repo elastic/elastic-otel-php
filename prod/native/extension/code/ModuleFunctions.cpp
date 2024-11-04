@@ -103,6 +103,59 @@ PHP_FUNCTION(elastic_otel_log) {
 }
 /* }}} */
 
+ZEND_BEGIN_ARG_INFO_EX(elastic_otel_logf_arginfo, /* _unused: */ 0, /* return_reference: */ 0, /* required_num_args: */ 7)
+ZEND_ARG_TYPE_INFO(/* pass_by_ref: */ 0, isForced, IS_LONG, /* allow_null: */ 0)
+ZEND_ARG_TYPE_INFO(/* pass_by_ref: */ 0, level, IS_LONG, /* allow_null: */ 0)
+ZEND_ARG_TYPE_INFO(/* pass_by_ref: */ 0, feature, IS_LONG, /* allow_null: */ 0)
+ZEND_ARG_TYPE_INFO(/* pass_by_ref: */ 0, category, IS_STRING, /* allow_null: */ 0)
+ZEND_ARG_TYPE_INFO(/* pass_by_ref: */ 0, file, IS_STRING, /* allow_null: */ 0)
+ZEND_ARG_TYPE_INFO(/* pass_by_ref: */ 0, line, IS_LONG, /* allow_null: */ 0)
+ZEND_ARG_TYPE_INFO(/* pass_by_ref: */ 0, func, IS_STRING, /* allow_null: */ 0)
+ZEND_ARG_TYPE_INFO(/* pass_by_ref: */ 0, message, IS_STRING, /* allow_null: */ 0)
+ZEND_END_ARG_INFO()
+
+/* {{{ elastic_otel_logf(
+ *      int $isForced,
+ *      int $level,
+ *      int $feature,
+ *      string $category,
+ *      string $file,
+ *      int $line,
+ *      string $func,
+ *      string $message
+ *  ): void
+ */
+PHP_FUNCTION(elastic_otel_log_feature) {
+    zend_long isForced = 0;
+    zend_long level = 0;
+    zend_long feature = 0;
+    char *file = nullptr;
+    size_t fileLength = 0;
+    char *category = nullptr;
+    size_t categoryLength = 0;
+    zend_long line = 0;
+    char *func = nullptr;
+    size_t funcLength = 0;
+    char *message = nullptr;
+    size_t messageLength = 0;
+
+    ZEND_PARSE_PARAMETERS_START(/* min_num_args: */ 8, /* max_num_args: */ 8)
+    Z_PARAM_LONG(isForced)
+    Z_PARAM_LONG(level)
+    Z_PARAM_LONG(feature)
+    Z_PARAM_STRING(category, categoryLength)
+    Z_PARAM_STRING(file, fileLength)
+    Z_PARAM_LONG(line)
+    Z_PARAM_STRING(func, funcLength)
+    Z_PARAM_STRING(message, messageLength)
+    ZEND_PARSE_PARAMETERS_END();
+
+    if (ELASTICAPM_G(globals)->logger_->doesFeatureMeetsLevelCondition(static_cast<LogLevel>(level), static_cast<elasticapm::php::LogFeature>(feature))) {
+        ELASTICAPM_G(globals)->logger_->printf(static_cast<LogLevel>(level), PRsv " " PRsv " %d " PRsv " " PRsv, PRcsvArg(category, categoryLength), PRcsvArg(file, fileLength), line, PRcsvArg(func, funcLength), PRcsvArg(message, messageLength));
+    }
+}
+/* }}} */
+
 ZEND_BEGIN_ARG_INFO_EX(elastic_otel_get_last_thrown_arginfo, /* _unused */ 0, /* return_reference: */ 0, /* required_num_args: */ 0)
 ZEND_END_ARG_INFO()
 /* {{{ elastic_otel_get_last_thrown(): mixed
@@ -152,7 +205,7 @@ PHP_FUNCTION(elastic_otel_hook) {
     std::string_view functionName = function_name ? std::string_view{ZSTR_VAL(function_name), ZSTR_LEN(function_name)} : std::string_view{};
 
     // if (!EAPM_GL(requestScope_)->isFunctional()) {
-    //     ELOG_DEBUG(EAPM_GL(logger_), "elastic_otel_hook. Can't instrument " PRsv "::" PRsv " beacuse agent is not functional.", PRsvArg(className), PRsvArg(functionName));
+    //     ELOGF_DEBUG(EAPM_GL(logger_), MODULE, "elastic_otel_hook. Can't instrument " PRsv "::" PRsv " beacuse agent is not functional.", PRsvArg(className), PRsvArg(functionName));
     //     RETURN_BOOL(false);
     //     return;
     // }
@@ -222,6 +275,7 @@ const zend_function_entry elastic_otel_functions[] = {
     PHP_FE( elastic_otel_is_enabled, elastic_otel_no_paramters_arginfo )
     PHP_FE( elastic_otel_get_config_option_by_name, elastic_otel_get_config_option_by_name_arginfo )
     PHP_FE( elastic_otel_log, elastic_otel_log_arginfo )
+    PHP_FE( elastic_otel_log_feature, elastic_otel_logf_arginfo )
     PHP_FE( elastic_otel_get_last_thrown, elastic_otel_get_last_thrown_arginfo )
     PHP_FE( elastic_otel_get_last_php_error, elastic_otel_get_last_php_error_arginfo )
     PHP_FE( elastic_otel_hook, elastic_otel_hook_arginfo )

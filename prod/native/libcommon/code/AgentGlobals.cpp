@@ -30,6 +30,8 @@
 #include "CommonUtils.h"
 #include "transport/HttpTransportAsync.h"
 
+#include "LogFeature.h"
+
 namespace elasticapm::php {
 // clang-format off
 
@@ -53,18 +55,19 @@ AgentGlobals::AgentGlobals(std::shared_ptr<LoggerInterface> logger,
     logSinkSysLog_(std::move(logSinkSysLog)),
     logSinkFile_(std::move(logSinkFile))
     {
-        config_->addConfigUpdateWatcher([stderrsink = logSinkStdErr_, syslogsink = logSinkSysLog_, filesink = logSinkFile_](ConfigurationSnapshot const &cfg) {
+        config_->addConfigUpdateWatcher([logger = logger_, stderrsink = logSinkStdErr_, syslogsink = logSinkSysLog_, filesink = logSinkFile_](ConfigurationSnapshot const &cfg) {
             stderrsink->setLevel(cfg.log_level_stderr);
             syslogsink->setLevel(cfg.log_level_syslog);
             if (filesink) {
                 if (cfg.log_file.empty()) {
                     filesink->setLevel(LogLevel::logLevel_off);
-                    return;
+                } else {
+                    filesink->setLevel(cfg.log_level_file);
+                    filesink->reopen(utils::getParameterizedString(cfg.log_file));
                 }
-
-                filesink->setLevel(cfg.log_level_file);
-                filesink->reopen(utils::getParameterizedString(cfg.log_file));
             }
+
+            logger->setLogFeatures(utils::parseLogFeatures(logger, cfg.log_features));
         });
     }
 
