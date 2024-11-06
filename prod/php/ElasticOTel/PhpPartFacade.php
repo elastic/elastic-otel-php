@@ -24,6 +24,8 @@ declare(strict_types=1);
 namespace Elastic\OTel;
 
 use Elastic\OTel\Util\HiddenConstructorTrait;
+use Elastic\OTel\Log\ElasticLogWriter;
+use Elastic\OTel\HttpTransport\ElasticHttpTransportFactory;
 use RuntimeException;
 use Throwable;
 
@@ -79,13 +81,14 @@ final class PhpPartFacade
         }
 
         try {
-            require __DIR__ . DIRECTORY_SEPARATOR . 'Util' . DIRECTORY_SEPARATOR . 'SingletonInstanceTrait.php';
-            require __DIR__ . DIRECTORY_SEPARATOR . 'InstrumentationBridge.php';
+            require __DIR__ . DIRECTORY_SEPARATOR . 'Autoloader.php';
+            Autoloader::register(__DIR__);
 
             InstrumentationBridge::singletonInstance()->bootstrap();
             self::prepareEnvForOTelSdk();
             self::registerAutoloader();
             self::registerAsyncTransportFactory();
+            self::registerOtelLogWriter();
 
             self::$singletonInstance = new self();
         } catch (Throwable $throwable) {
@@ -181,10 +184,12 @@ final class PhpPartFacade
             return;
         }
 
-        // TODO remove after autoloader implementation
-        require __DIR__ . DIRECTORY_SEPARATOR . 'HttpTransport' . DIRECTORY_SEPARATOR . 'ElasticHttpTransport.php';
-        require __DIR__ . DIRECTORY_SEPARATOR . 'HttpTransport' . DIRECTORY_SEPARATOR . 'ElasticHttpTransportFactory.php';
-        \OpenTelemetry\SDK\Registry::registerTransportFactory('http', \Elastic\Otel\HttpTransport\ElasticHttpTransportFactory::class, true);
+        \OpenTelemetry\SDK\Registry::registerTransportFactory('http', ElasticHttpTransportFactory::class, true);
+    }
+
+    private static function registerOtelLogWriter()
+    {
+        ElasticLogWriter::enableLogWriter();
     }
 
     /**

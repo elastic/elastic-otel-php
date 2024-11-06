@@ -23,7 +23,7 @@
 
 declare(strict_types=1);
 
-namespace Elastic\OTel;
+namespace Elastic\OTel\Log;
 
 final class LogFeature {
 @_PROJECT_PROPERTIES_LOGGER_FEATURES_ENUM_VALUES@

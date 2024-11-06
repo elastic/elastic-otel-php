@@ -238,7 +238,7 @@ final class BootstrapStageLogger
         \elastic_otel_log_feature(
             0 /* $isForced */,
             $statementLevel,
-            LogFeature::BOOTSTRAP,
+            Log\LogFeature::BOOTSTRAP,
             self::LOG_CATEGORY,
             self::processSourceCodeFilePathForLog($file),
             $line,

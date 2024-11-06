@@ -80,4 +80,26 @@ final class Level
     {
         return self::TRACE;
     }
+
+    public static function getFromPsrLevel($level): int
+    {
+        switch ($level) {
+            case \Psr\Log\LogLevel::EMERGENCY:
+            case \Psr\Log\LogLevel::ALERT:
+            case \Psr\Log\LogLevel::CRITICAL:
+                return Level::CRITICAL;
+            case \Psr\Log\LogLevel::ERROR:
+                return Level::ERROR;
+            case \Psr\Log\LogLevel::WARNING:
+                return Level::WARNING;
+            case \Psr\Log\LogLevel::NOTICE:
+            case \Psr\Log\LogLevel::INFO:
+                return Level::INFO;
+            case \Psr\Log\LogLevel::DEBUG:
+                return Level::DEBUG;
+            default:
+                return Level::OFF;
+        }
+    }
+
 }

@@ -23,20 +23,10 @@ declare(strict_types=1);
 
 namespace Elastic\OTel\HttpTransport;
 
-use function assert;
-use BadMethodCallException;
-use function explode;
-use function in_array;
 use OpenTelemetry\SDK\Common\Export\TransportInterface;
 use OpenTelemetry\SDK\Common\Future\CancellationInterface;
 use OpenTelemetry\SDK\Common\Future\CompletedFuture;
-use OpenTelemetry\SDK\Common\Future\ErrorFuture;
 use OpenTelemetry\SDK\Common\Future\FutureInterface;
-use RuntimeException;
-use function strtolower;
-use Throwable;
-use function time_nanosleep;
-use function trim;
 
 /**
  * @psalm-template CONTENT_TYPE of string

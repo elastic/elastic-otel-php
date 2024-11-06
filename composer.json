@@ -31,13 +31,9 @@
         "slevomat/coding-standard": "8.14.1",
         "squizlabs/php_codesniffer": "3.8.1"
     },
-    "autoload": {
-        "psr-4": {
-            "Elastic\\OTel\\": "./prod/php/ElasticOTel/"
-        }
-    },
     "autoload-dev": {
         "psr-4": {
+            "Elastic\\OTel\\": "./prod/php/ElasticOTel/",
             "ElasticOTelTests\\": "./tests/ElasticOTelTests/"
         }
     },

@@ -21,19 +21,20 @@
 
 declare(strict_types=1);
 
-namespace Elastic\OTel\Config;
+namespace Elastic\OTel\Log;
 
-/**
- * Code in this file is part of implementation internals and thus it is not covered by the backward compatibility.
- *
- * @internal
- *
- * @extends OptionWithDefaultValueMetadata<float>
- */
-final class FloatOptionMetadata extends OptionWithDefaultValueMetadata
+use OpenTelemetry\API\Behavior\Internal\LogWriter\LogWriterInterface;
+use OpenTelemetry\API\Behavior\Internal\Logging;
+
+class ElasticLogWriter  implements LogWriterInterface
 {
-    public function __construct(?float $minValidValue, ?float $maxValidValue, float $defaultValue)
+    public function write($level, string $message, array $context): void
     {
-        parent::__construct(new FloatOptionParser($minValidValue, $maxValidValue), $defaultValue);
+        \elastic_otel_log_feature(0, Level::getFromPsrLevel($level), LogFeature::OTEL, '', '', 0, $context['source'] ?? '', $message . ' context: ' . var_export($context, true));
+    }
+
+    public static function enableLogWriter()
+    {
+        Logging::setLogWriter(new ElasticLogWriter());
     }
 }
