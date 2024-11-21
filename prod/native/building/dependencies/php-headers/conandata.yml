@@ -1,10 +1,5 @@
 version: 2.0
 sources:
-  "80":
-    linux:
-      version: 8.0.30
-      url: "https://www.php.net/distributions/php-{}.tar.gz"
-      contentsRoot: "php-{}"
   "81":
     linux:
       version: 8.1.30
