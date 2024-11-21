@@ -152,8 +152,9 @@ jobs:
       - name: Create draft release
         if: startsWith(github.ref, 'refs/tags')
         run: |
+          RNOTES=$(./tools/build/get_release_note.sh --release-tag ${TAG_NAME})
           gh release create "${TAG_NAME}" --draft --title "${TAG_NAME}" --repo elastic/elastic-otel-php \
-          --notes "For more information, please see the [changelog](https://www.elastic.co/guide/en/apm/agent/php/current/release-notes.html)." \
+          --notes "${RNOTES}" \
           build/packages/*.*
       - name: Verify sha512 sums
         if: startsWith(github.ref, 'refs/tags')
