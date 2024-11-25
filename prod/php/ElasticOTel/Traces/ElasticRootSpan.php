@@ -57,7 +57,7 @@ class ElasticRootSpan
         $request = self::createRequest();
         if ($request) {
             self::create($request);
-            self::registerShutdownHandler();
+            self::registerShutdownHandler($request);
         } else {
             self::logWarning('Unable to create server request');
         }
@@ -118,15 +118,19 @@ class ElasticRootSpan
     /**
      * @internal
      */
-    private static function registerShutdownHandler(): void
+    private static function registerShutdownHandler($request): void
     {
-        ShutdownHandler::register(self::shutdownHandler(...));
+        $shutdownFunc = function () use ($request) {
+            self::shutdownHandler($request);
+        };
+
+        ShutdownHandler::register($shutdownFunc(...));
     }
 
     /**
      * @internal
      */
-    public static function shutdownHandler(): void
+    public static function shutdownHandler($request): void
     {
         $scope = Context::storage()->scope();
         if (!$scope) {
@@ -135,6 +139,13 @@ class ElasticRootSpan
         }
         $scope->detach();
         $span = Span::fromContext($scope->context());
+
+        if (is_int(http_response_code())) {
+            $span->setAttribute(TraceAttributes::HTTP_RESPONSE_STATUS_CODE, http_response_code());
+        } else  if (array_key_exists('REDIRECT_STATUS', $request->getServerParams())) {
+            $span->setAttribute(TraceAttributes::HTTP_RESPONSE_STATUS_CODE, $request->getServerParams()['REDIRECT_STATUS']);
+        }
+
         $span->end();
     }
 
