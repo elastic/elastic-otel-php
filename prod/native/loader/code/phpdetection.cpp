@@ -75,26 +75,28 @@ bool isThreadSafe() {
 
 std::tuple<std::string_view, int, int, bool> getZendModuleApiVersion(std::string_view zendVersion) {
     using namespace std::string_view_literals;
-    constexpr size_t knownVersionsCount = 16;
+    constexpr size_t knownVersionsCount = 17;
 
-    constexpr std::array<std::tuple<std::string_view, int, int, bool>, knownVersionsCount> knownPhpVersions {{
-        {"4.3"sv, 83, 20230831, true},    // PHP 8.3
-        {"4.2"sv, 82, 20220829, true},    // PHP 8.2
-        {"4.1"sv, 81, 20210902, true},    // PHP 8.1
-        {"4.0"sv, 80, 20200930, true},    // PHP 8.0
-        {"3.4"sv, 74, 20190902, true},    // PHP 7.4
-        {"3.3"sv, 73, 20180731, false},   // PHP 7.3
-        {"3.2"sv, 72, 20170718, false},   // PHP 7.2
-        {"3.1"sv, 71, 20160303, false},   // PHP 7.1
-        {"3.0"sv, 70, 20151012, false},   // PHP 7.0
-        {"2.6"sv, 56, 20131226, false},   // PHP 5.6
-        {"2.5"sv, 55, 20121212, false},   // PHP 5.5
-        {"2.4"sv, 54, 20100525, false},   // PHP 5.4
-        {"2.3"sv, 53, 20090626, false},   // PHP 5.3
-        {"2.2"sv, 52, 20060613, false},   // PHP 5.2
-        {"2.1"sv, 51, 20050922, false},   // PHP 5.1
-        {"2.0"sv, 50, 20041030, false}    // PHP 5.0
-        }};
+    // zendEngineVersion, phpVersion, zendModuleApiVersion, isVersionSupported
+    constexpr std::array<std::tuple<std::string_view, int, int, bool>, knownVersionsCount> knownPhpVersions{{
+        {"4.4"sv, 84, 20240924, false}, // PHP 8.4
+        {"4.3"sv, 83, 20230831, true},  // PHP 8.3
+        {"4.2"sv, 82, 20220829, true},  // PHP 8.2
+        {"4.1"sv, 81, 20210902, true},  // PHP 8.1
+        {"4.0"sv, 80, 20200930, false}, // PHP 8.0
+        {"3.4"sv, 74, 20190902, false}, // PHP 7.4
+        {"3.3"sv, 73, 20180731, false}, // PHP 7.3
+        {"3.2"sv, 72, 20170718, false}, // PHP 7.2
+        {"3.1"sv, 71, 20160303, false}, // PHP 7.1
+        {"3.0"sv, 70, 20151012, false}, // PHP 7.0
+        {"2.6"sv, 56, 20131226, false}, // PHP 5.6
+        {"2.5"sv, 55, 20121212, false}, // PHP 5.5
+        {"2.4"sv, 54, 20100525, false}, // PHP 5.4
+        {"2.3"sv, 53, 20090626, false}, // PHP 5.3
+        {"2.2"sv, 52, 20060613, false}, // PHP 5.2
+        {"2.1"sv, 51, 20050922, false}, // PHP 5.1
+        {"2.0"sv, 50, 20041030, false}  // PHP 5.0
+    }};
 
     auto foundPhpVersion = std::find_if(std::begin(knownPhpVersions), std::end(knownPhpVersions), [zendVersion](std::tuple<std::string_view, int, int, bool> const &entry) {
         return std::get<0>(entry) == zendVersion;
