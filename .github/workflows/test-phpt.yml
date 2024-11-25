@@ -54,7 +54,10 @@ jobs:
         run: |
           uname -a
           echo "Arch: ${BUILD_ARCHITECTURE}"
-          ./tools/build/test_phpt.sh --build_architecture ${BUILD_ARCHITECTURE} --results_path ${PWD}/build/test_phpt_results --php_versions '80 81 82 83'
+          source ./tools/read_properties.sh
+          read_properties elastic-otel-php.properties PROJECT_PROPERTIES
+          PHP_VERSIONS=${PROJECT_PROPERTIES_SUPPORTED_PHP_VERSIONS//[()]/}
+          ./tools/build/test_phpt.sh --build_architecture ${BUILD_ARCHITECTURE} --results_path ${PWD}/build/test_phpt_results --php_versions "${PHP_VERSIONS}"
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

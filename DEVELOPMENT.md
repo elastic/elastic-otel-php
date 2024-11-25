@@ -62,7 +62,6 @@ As a result you should see:
 ```bash
 prod/native/_build/custom-release/loader/code/elastic_otel_php_loader.so
 prod/native/_build/custom-release/extension/code/elastic_otel_php_81.so
-prod/native/_build/custom-release/extension/code/elastic_otel_php_80.so
 prod/native/_build/custom-release/extension/code/elastic_otel_php_82.so
 prod/native/_build/custom-release/extension/code/elastic_otel_php_83.so
 ```
@@ -75,7 +74,7 @@ The following script will run the phpt tests for the native library, which shoul
 
 ```bash
 cd elastic-otel-php
-  ./tools/build/test_phpt.sh --build_architecture linux-x86-64 --php_versions '80 81 82 83'
+  ./tools/build/test_phpt.sh --build_architecture linux-x86-64 --php_versions '81 82 83'
 ```
 
 ### Building PHP dependencies
@@ -84,7 +83,7 @@ To ensure the instrumentation is fully successful, it is required to download an
 
 ```bash
 cd elastic-otel-php
-  ./tools/build/build_php_deps.sh --php_versions '80 81 82 83'
+  ./tools/build/build_php_deps.sh --php_versions '81 82 83'
 ```
 
 ### Building Packages
@@ -159,6 +158,16 @@ If everything works as you expected, you just need to push new image to dockerhu
 docker push elasticobservability/apm-agent-php-dev:native-build-gcc-14.2.0-linux-x86-64-0.0.1
 ```
 
+## Adding or removing support for PHP release
+
+- Add the new version to the `supported_php_versions` list in the [elastic-otel.properties](elastic-otel.properties) file.
+- Add or modify the supported versions array in the loader's [phpdetection.cpp](prod/native/loader/code/phpdetection.cpp) file.
+- Add or remove metadata for the specified PHP version in [conandata.yml](prod/native/building/dependencies/php-headers/conandata.yml).
+- Add or remove the Conan dependency for php-headers-* in [conanfile.txt](prod/native/conanfile.txt).
+- Follow the steps in the ["Building the native library like on CI"](#building-the-native-library-like-on-ci) section to configure and build the agent.
+- To speed up CI builds, upload Conan artifacts to Artifactory if support for the new PHP release has been added (see [Building and publishing conan artifacts](#building-and-publishing-conan-artifacts))
+
+
 ## Building and publishing conan artifacts
 
 First, please remember that you need to perform all steps inside a proper docker container. This will ensure that each package receives the same unique identifier (and package will be used in CI build).
@@ -189,8 +198,6 @@ it should output listing similar to this:
 ```bash
 Local Cache
 ...
-  php-headers-80
-    php-headers-80/2.0
   php-headers-81
     php-headers-81/2.0
   php-headers-82
@@ -208,7 +215,7 @@ conan remote login ElasticConan user@elastic.co
 Now you can upload package to conan artifactory.
 
 ```bash
-conan upload -r=ElasticConan php-headers-80
+conan upload -r=ElasticConan php-headers-81
 ```
 
 Now you can check conan artifactory for new packages here:
