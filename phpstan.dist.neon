@@ -3,13 +3,8 @@ includes:
 
 parameters:
     bootstrapFiles:
-        - tests/bootstrap.php
+        - ./tests/bootstrap.php
+
+    level: max
 
     reportUnmatchedIgnoredErrors: false
-
-    ignoreErrors:
-        #
-        # elastic_otel_* functions are provided by the extension
-        #
-        - '#^Function elastic_otel_[a-z_]* not found\.$#'
-

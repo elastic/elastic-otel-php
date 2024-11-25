@@ -23,18 +23,15 @@ declare(strict_types=1);
 
 namespace Elastic\OTel\HttpTransport;
 
-use Elastic\OTel\HttpTransport\ElasticHttpTransport;
 use OpenTelemetry\SDK\Common\Export\TransportFactoryInterface;
 
 class ElasticHttpTransportFactory implements TransportFactoryInterface
 {
-    private const DEFAULT_COMPRESSION = 'none';
-
     public function create(
         string $endpoint,
         string $contentType,
         array $headers = [],
-        $compression = null,
+        mixed $compression = null,
         float $timeout = 10.,
         int $retryDelay = 100,
         int $maxRetries = 3,

@@ -83,9 +83,8 @@ final class InstrumentationBridge
          * \elastic_otel_* functions are provided by the extension
          *
          * @noinspection PhpFullyQualifiedNameUsageInspection, PhpUndefinedFunctionInspection
-         * @phpstan-ignore-next-line
          */
-        $retVal = \elastic_otel_hook($class, $function, $pre, $post);
+        $retVal = \elastic_otel_hook($class, $function, $pre, $post); // @phpstan-ignore function.notFound
         if ($retVal) {
             BootstrapStageLogger::logTrace('Successfully hooked. class: ' . $dbgClassAsString . ', function: ' . $function, __FILE__, __LINE__, __CLASS__, __FUNCTION__);
             return;

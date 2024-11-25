@@ -1,0 +1,45 @@
+---
+name: test-php-static-check
+
+on:
+  pull_request:
+    paths-ignore:
+      - "**/*.asciidoc"
+      - "**/*.md"
+      - "**/*.png"
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "**/*.asciidoc"
+      - "**/*.md"
+      - "**/*.png"
+
+permissions:
+  contents: read
+
+## Concurrency only allowed in the main branch.
+## So old builds running for old commits within the same Pull Request are cancelled
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  static-check:
+    name: static-check
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version:
+          - "8.1"
+          - "8.2"
+          - "8.3"
+          - "8.4"
+    env:
+      PHP_VERSION: ${{ matrix.php-version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Static check
+        run: ./tools/build/test_php_static_check.sh "${PHP_VERSION}"

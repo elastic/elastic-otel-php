@@ -29,23 +29,26 @@ use OpenTelemetry\SDK\Common\Future\CompletedFuture;
 use OpenTelemetry\SDK\Common\Future\FutureInterface;
 
 /**
- * @psalm-template CONTENT_TYPE of string
- * @template-implements TransportInterface<CONTENT_TYPE>
+ * @template-implements TransportInterface<string>
  */
 final class ElasticHttpTransport implements TransportInterface
 {
-
     private string $endpoint;
     private string $contentType;
 
     /**
-     * @psalm-param CONTENT_TYPE $contentType
+     * @param array<string,string|string[]> $headers
+     *
+     * @noinspection PhpUnusedParameterInspection
+     *
+     * Parameters $compression, $cacert, $cert and $key are unused so constructor.unusedParameter is mentioned 4 times below
+     * @phpstan-ignore constructor.unusedParameter, constructor.unusedParameter, constructor.unusedParameter, constructor.unusedParameter
      */
     public function __construct(
         string $endpoint,
         string $contentType,
         array $headers = [],
-        $compression = null,
+        mixed $compression = null,
         float $timeout = 10.,
         int $retryDelay = 100,
         int $maxRetries = 3,
@@ -56,7 +59,12 @@ final class ElasticHttpTransport implements TransportInterface
         $this->endpoint = $endpoint;
         $this->contentType = $contentType;
 
-        initialize($endpoint, $contentType, $headers, $timeout, $retryDelay, $maxRetries);
+        /**
+         * \Elastic\OTel\HttpTransport\* functions are provided by the extension
+         *
+         * @noinspection PhpUnnecessaryFullyQualifiedNameInspection, PhpUndefinedFunctionInspection
+         */
+        \Elastic\OTel\HttpTransport\initialize($endpoint, $contentType, $headers, $timeout, $retryDelay, $maxRetries); // @phpstan-ignore function.notFound
     }
 
     public function contentType(): string
@@ -64,11 +72,19 @@ final class ElasticHttpTransport implements TransportInterface
         return $this->contentType;
     }
 
+    /**
+     * @return FutureInterface<string>
+     */
     public function send(string $payload, ?CancellationInterface $cancellation = null): FutureInterface
     {
-        enqueue($this->endpoint, $payload);
+        /**
+         * \Elastic\OTel\HttpTransport\* functions are provided by the extension
+         *
+         * @noinspection PhpUnnecessaryFullyQualifiedNameInspection, PhpUndefinedFunctionInspection
+         */
+        \Elastic\OTel\HttpTransport\enqueue($this->endpoint, $payload); // @phpstan-ignore function.notFound
 
-        return new CompletedFuture(null);
+        return new CompletedFuture($payload);
     }
 
     public function shutdown(?CancellationInterface $cancellation = null): bool
