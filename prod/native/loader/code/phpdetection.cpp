@@ -79,7 +79,7 @@ std::tuple<std::string_view, int, int, bool> getZendModuleApiVersion(std::string
 
     // zendEngineVersion, phpVersion, zendModuleApiVersion, isVersionSupported
     constexpr std::array<std::tuple<std::string_view, int, int, bool>, knownVersionsCount> knownPhpVersions{{
-        {"4.4"sv, 84, 20240924, false}, // PHP 8.4
+        {"4.4"sv, 84, 20240924, true},  // PHP 8.4
         {"4.3"sv, 83, 20230831, true},  // PHP 8.3
         {"4.2"sv, 82, 20220829, true},  // PHP 8.2
         {"4.1"sv, 81, 20210902, true},  // PHP 8.1
