@@ -1,13 +1,13 @@
 ---
 
 # Generates list of supported PHP versions by reading supported_php_versions property in ./elastic-otel-php.properties
-name: Generate list of supported PHP versions
+name: generate-php-versions
 
 on:
   workflow_call:
     outputs:
       php-versions:
-        description: "Generate list of supported PHP versions"
+        description: "Generated list of the supported PHP versions"
         value: ${{ jobs.generate-php-versions.outputs.php-versions }}
 
 permissions:
