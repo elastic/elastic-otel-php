@@ -73,7 +73,7 @@ final class ElasticHttpTransport implements TransportInterface
     }
 
     /**
-     * @return FutureInterface<string>
+     * @return FutureInterface<null>
      */
     public function send(string $payload, ?CancellationInterface $cancellation = null): FutureInterface
     {
@@ -84,7 +84,7 @@ final class ElasticHttpTransport implements TransportInterface
          */
         \Elastic\OTel\HttpTransport\enqueue($this->endpoint, $payload); // @phpstan-ignore function.notFound
 
-        return new CompletedFuture($payload);
+        return new CompletedFuture(null);
     }
 
     public function shutdown(?CancellationInterface $cancellation = null): bool
