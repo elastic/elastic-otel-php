@@ -99,16 +99,6 @@ function configure_from_template() {
     echo "Configuring file ${_OUTPUT_FILE} from ${_ARG_INPUT_FILE}"
 
     configure_file "${_ARG_INPUT_FILE}" >"${_OUTPUT_FILE}"
-
-    # phpcbf exit code is 1 even when all formatting issues were fixed
-    set +e
-    composer run-script -- fix_code_format_for "${_OUTPUT_FILE}"
-    local exit_code=$?
-    set -e
-    if [[ ${exit_code} -ne 0 ]] && [[ ${exit_code} -ne 1 ]]; then
-        echo "Attempt to fix code format for ${_OUTPUT_FILE} exited with code ${exit_code}" >&2
-        exit 1
-    fi
 }
 
 # Transform values read from properties before templating

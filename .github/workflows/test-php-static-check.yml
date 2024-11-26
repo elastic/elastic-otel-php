@@ -42,4 +42,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Check code format and static analysis
-        run: ./tools/build/test_php_static_check.sh "${PHP_VERSION}"
+        run: ./tools/build/test_php_static_check.sh --php_versions "${PHP_VERSION}"
