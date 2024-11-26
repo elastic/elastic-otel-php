@@ -33,8 +33,8 @@ class PhpHeadersForPHPConan(ConanFile):
             self.requires("libxml2/2.9.9")
             self.requires("sqlite3/3.46.1")
 
-    # def build_requirements(self):
-    #     self.tool_requires("bison/3.8.2")
+    def build_requirements(self):
+        self.tool_requires("bison/3.8.2")
 
     def init(self):
         self.source_temp_dir = "php-src"

@@ -6,11 +6,11 @@ show_help() {
     echo "Usage: $0 --php_versions <versions>"
     echo
     echo "Arguments:"
-    echo "  --php_versions           Required. List of PHP versions separated by spaces (e.g., '80 81 82 83')."
+    echo "  --php_versions           Required. List of PHP versions separated by spaces (e.g., '81 82 83 84')."
     echo "  --skip_notice            Optional. Skip notice file generator."
     echo
     echo "Example:"
-    echo "  $0 --php_versions '80 81 82 83' --skip_notice"
+    echo "  $0 --php_versions '81 82 83 84' --skip_notice"
 }
 
 # Function to parse arguments

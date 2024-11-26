@@ -25,8 +25,6 @@ namespace Elastic\OTel;
 
 use Throwable;
 
-require __DIR__ . DIRECTORY_SEPARATOR . 'Log' . DIRECTORY_SEPARATOR . 'LogFeature.php';
-
 /**
  * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
  *
@@ -94,15 +92,18 @@ final class BootstrapStageLogger
         }
     }
 
-    public static function nullableToLog(mixed $str): mixed
+    public static function nullableToLog(null|int|string $str): string
     {
-        return $str === null ? 'null' : $str;
+        return $str === null ? 'null' : strval($str);
     }
 
     public static function configure(int $maxEnabledLevel, string $phpSrcCodeRootDir, string $rootNamespace): void
     {
+        /** @noinspection PhpIncludeInspection */
+        require __DIR__ . DIRECTORY_SEPARATOR . 'Log' . DIRECTORY_SEPARATOR . 'LogFeature.php';
+
         self::$maxEnabledLevel = $maxEnabledLevel;
-        if(is_int($pid = getmypid())) {
+        if (is_int($pid = getmypid())) {
             self::$pid = $pid;
         }
 
@@ -116,7 +117,10 @@ final class BootstrapStageLogger
             . '; classNamePrefixToRemove: ' . self::$classNamePrefixToRemove
             . '; maxEnabledLevel: ' . self::levelToString($maxEnabledLevel)
             . '; pid: ' . self::nullableToLog(self::$pid),
-            __FILE__, __LINE__, __CLASS__, __FUNCTION__
+            __FILE__,
+            __LINE__,
+            __CLASS__,
+            __FUNCTION__
         );
     }
 
@@ -179,7 +183,10 @@ final class BootstrapStageLogger
             $message . '.'
             . ' ' . get_class($throwable) . ': ' . $throwable->getMessage()
             . PHP_EOL . 'Stack trace:' . PHP_EOL . $throwable->getTraceAsString(),
-            $file, $line, $class, $func
+            $file,
+            $line,
+            $class,
+            $func
         );
     }
 
@@ -191,12 +198,12 @@ final class BootstrapStageLogger
         }
 
         return substr_compare(
-                   $text /* <- haystack */,
-                   $prefix /* <- needle */,
-                   0 /* <- offset */,
-                   $prefixLen /* <- length */,
-                   !$isCaseSensitive /* <- case_insensitivity */
-               ) === 0;
+            $text /* <- haystack */,
+            $prefix /* <- needle */,
+            0 /* <- offset */,
+            $prefixLen /* <- length */,
+            !$isCaseSensitive /* <- case_insensitivity */
+        ) === 0;
     }
 
     private static function processSourceCodeFilePathForLog(string $file): string
@@ -232,13 +239,12 @@ final class BootstrapStageLogger
         /**
          * elastic_otel_* functions are provided by the extension
          *
-         * @noinspection PhpFullyQualifiedNameUsageInspection, PhpUndefinedFunctionInspection
-         * @phpstan-ignore-next-line
+         * @noinspection PhpFullyQualifiedNameUsageInspection, PhpUndefinedClassInspection, PhpUndefinedFunctionInspection
          */
-        \elastic_otel_log_feature(
+        \elastic_otel_log_feature( // @phpstan-ignore function.notFound
             0 /* $isForced */,
             $statementLevel,
-            Log\LogFeature::BOOTSTRAP,
+            Log\LogFeature::BOOTSTRAP, // @phpstan-ignore class.notFound
             self::LOG_CATEGORY,
             self::processSourceCodeFilePathForLog($file),
             $line,

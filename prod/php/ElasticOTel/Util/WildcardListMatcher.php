@@ -19,6 +19,7 @@
  * under the License.
  */
 
+
 declare(strict_types=1);
 
 namespace Elastic\OTel\Util;
@@ -28,10 +29,43 @@ namespace Elastic\OTel\Util;
  *
  * @internal
  */
-trait StaticClassTrait
+final class WildcardListMatcher
 {
+    /** @var WildcardMatcher[] */
+    private $matchers;
+
     /**
-     * Constructor is hidden because it's a "static" class
+     * @param iterable<string> $wildcardExprs
      */
-    use HiddenConstructorTrait;
+    public function __construct(iterable $wildcardExprs)
+    {
+        $this->matchers = [];
+        foreach ($wildcardExprs as $wildcardExpr) {
+            $this->matchers[] = new WildcardMatcher($wildcardExpr);
+        }
+    }
+
+    public function match(string $text): ?string
+    {
+        foreach ($this->matchers as $matcher) {
+            if ($matcher->match($text)) {
+                return $matcher->groupName();
+            }
+        }
+        return null;
+    }
+
+    public static function matchNullable(?WildcardListMatcher $nullableMatcher, string $text): ?string
+    {
+        if ($nullableMatcher === null) {
+            return null;
+        }
+
+        return $nullableMatcher->match($text);
+    }
+
+    public function __toString(): string
+    {
+        return implode(', ', $this->matchers);
+    }
 }
