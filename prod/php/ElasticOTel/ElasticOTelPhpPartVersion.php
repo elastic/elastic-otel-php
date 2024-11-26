@@ -21,27 +21,29 @@
 
 declare(strict_types=1);
 
-namespace Elastic\OTel\HttpTransport;
+namespace Elastic\OTel;
 
-use Elastic\OTel\ElasticOTelPhpPartVersion;
-use OpenTelemetry\SDK\Common\Export\TransportFactoryInterface;
+use Elastic\OTel\Util\StaticClassTrait;
 
-class ElasticHttpTransportFactory implements TransportFactoryInterface
+/**
+ * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
+ *
+ * @internal
+ */
+final class ElasticOTelPhpPartVersion
 {
-    public function create(
-        string $endpoint,
-        string $contentType,
-        array $headers = [],
-        mixed $compression = null,
-        float $timeout = 10.,
-        int $retryDelay = 100,
-        int $maxRetries = 3,
-        ?string $cacert = null,
-        ?string $cert = null,
-        ?string $key = null
-    ): ElasticHttpTransport {
-        spl_autoload_call("Elastic\OTel\PhpPartVersion");
-        $headers['User-Agent'] = "elastic-otlp-http-php/" . ElasticOTelPhpPartVersion::get();
-        return new ElasticHttpTransport($endpoint, $contentType, $headers, $compression, $timeout, $retryDelay, $maxRetries, $cacert, $cert, $key);
+    use StaticClassTrait;
+
+    public static function get(): string
+    {
+        /**
+         * @var string $phpPartVersion
+         *
+         * Constant \Elastic\OTel\ELASTIC_OTEL_PHP_VERSION is defined in the generated file prod/php/ElasticOTel/PhpPartVersion.php
+         *
+         * @noinspection PhpUnnecessaryFullyQualifiedNameInspection, PhpUndefinedConstantInspection
+         */
+        $phpPartVersion = \Elastic\OTel\ELASTIC_OTEL_PHP_VERSION; // @phpstan-ignore constant.notFound
+        return $phpPartVersion;
     }
 }

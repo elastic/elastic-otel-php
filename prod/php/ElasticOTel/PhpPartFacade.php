@@ -27,7 +27,6 @@ use Elastic\OTel\Util\HiddenConstructorTrait;
 use Elastic\OTel\Log\ElasticLogWriter;
 use Elastic\OTel\HttpTransport\ElasticHttpTransportFactory;
 use OpenTelemetry\SDK\SdkAutoloader;
-
 use RuntimeException;
 use Throwable;
 
@@ -48,8 +47,6 @@ final class PhpPartFacade
     use HiddenConstructorTrait;
 
     private static ?self $singletonInstance = null;
-
-    private static string $elasticOTelVersion;
 
     /**
      * Called by the extension
@@ -74,8 +71,6 @@ final class PhpPartFacade
             __FUNCTION__
         );
 
-        self::setElasticOTelVersion($elasticOTelNativePartVersion);
-
         if (self::$singletonInstance !== null) {
             BootstrapStageLogger::logCritical(
                 'bootstrap() is called even though singleton instance is already created (probably bootstrap() is called more than once)',
@@ -92,11 +87,12 @@ final class PhpPartFacade
             Autoloader::register(__DIR__);
 
             InstrumentationBridge::singletonInstance()->bootstrap();
-            self::prepareEnvForOTelSdk();
+            self::prepareEnvForOTelSdk($elasticOTelNativePartVersion);
             self::registerAutoloader();
             self::registerAsyncTransportFactory();
             self::registerOtelLogWriter();
 
+            /** @noinspection PhpInternalEntityUsedInspection */
             if (SdkAutoloader::isExcludedUrl()) {
                 BootstrapStageLogger::logDebug('Url is excluded', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
                 return false;
@@ -114,32 +110,20 @@ final class PhpPartFacade
         return true;
     }
 
-    private static function setElasticOTelVersion(string $nativePartVersion): void
+    private static function buildElasticOTelVersion(string $nativePartVersion): string
     {
-        /** @noinspection PhpIncludeInspection */
-        require __DIR__ . DIRECTORY_SEPARATOR . 'PhpPartVersion.php';
-
-        /**
-         * @var string $phpPartVersion
-         *
-         * Constant Elastic\OTel\ELASTIC_OTEL_PHP_VERSION is defined in the generated file prod/php/ElasticOTel/PhpPartVersion.php
-         *
-         * @noinspection PhpUnnecessaryFullyQualifiedNameInspection, PhpUndefinedConstantInspection
-         */
-        $phpPartVersion = \Elastic\OTel\ELASTIC_OTEL_PHP_VERSION; // @phpstan-ignore constant.notFound
-
-        if ($nativePartVersion === $phpPartVersion) {
-            self::$elasticOTelVersion = $nativePartVersion;
-        } else {
-            BootstrapStageLogger::logWarning(
-                'Native part and PHP part versions do not match' . "; nativePartVersion: $nativePartVersion" . "; phpPartVersion: $phpPartVersion",
-                __FILE__,
-                __LINE__,
-                __CLASS__,
-                __FUNCTION__
-            );
-            self::$elasticOTelVersion = "$nativePartVersion/$phpPartVersion";
+        if ($nativePartVersion === ($phpPartVersion = ElasticOTelPhpPartVersion::get())) {
+            return $nativePartVersion;
         }
+
+        BootstrapStageLogger::logWarning(
+            'Native part and PHP part versions do not match' . "; nativePartVersion: $nativePartVersion" . "; phpPartVersion: $phpPartVersion",
+            __FILE__,
+            __LINE__,
+            __CLASS__,
+            __FUNCTION__
+        );
+        return "$nativePartVersion/$phpPartVersion";
     }
 
     private static function isInDevMode(): bool
@@ -160,14 +144,15 @@ final class PhpPartFacade
         return false;
     }
 
-    private static function prepareEnvForOTelAttributes(): void
+    private static function prepareEnvForOTelAttributes(string $elasticOTelNativePartVersion): void
     {
-        // https://opentelemetry.io/docs/specs/semconv/resource/#telemetry-distribution-experimental
-
         $envVarName = 'OTEL_RESOURCE_ATTRIBUTES';
         $envVarValueOnEntry = getenv($envVarName);
         $envVarValue = (is_string($envVarValueOnEntry) && strlen($envVarValueOnEntry) !== 0) ? ($envVarValueOnEntry . ',') : '';
-        $envVarValue .= 'telemetry.distro.name=elastic,telemetry.distro.version=' . self::$elasticOTelVersion;
+
+        // https://opentelemetry.io/docs/specs/semconv/resource/#telemetry-distribution-experimental
+        $envVarValue .= 'telemetry.distro.name=elastic,telemetry.distro.version=' . self::buildElasticOTelVersion($elasticOTelNativePartVersion);
+
         self::setEnvVar($envVarName, $envVarValue);
     }
 
@@ -178,10 +163,10 @@ final class PhpPartFacade
         }
     }
 
-    private static function prepareEnvForOTelSdk(): void
+    private static function prepareEnvForOTelSdk(string $elasticOTelNativePartVersion): void
     {
         self::setEnvVar('OTEL_PHP_AUTOLOAD_ENABLED', 'true');
-        self::prepareEnvForOTelAttributes();
+        self::prepareEnvForOTelAttributes($elasticOTelNativePartVersion);
     }
 
     private static function registerAutoloader(): void

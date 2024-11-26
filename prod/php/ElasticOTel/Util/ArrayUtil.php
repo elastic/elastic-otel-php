@@ -21,27 +21,24 @@
 
 declare(strict_types=1);
 
-namespace Elastic\OTel\HttpTransport;
+namespace Elastic\OTel\Util;
 
-use Elastic\OTel\ElasticOTelPhpPartVersion;
-use OpenTelemetry\SDK\Common\Export\TransportFactoryInterface;
-
-class ElasticHttpTransportFactory implements TransportFactoryInterface
+final class ArrayUtil
 {
-    public function create(
-        string $endpoint,
-        string $contentType,
-        array $headers = [],
-        mixed $compression = null,
-        float $timeout = 10.,
-        int $retryDelay = 100,
-        int $maxRetries = 3,
-        ?string $cacert = null,
-        ?string $cert = null,
-        ?string $key = null
-    ): ElasticHttpTransport {
-        spl_autoload_call("Elastic\OTel\PhpPartVersion");
-        $headers['User-Agent'] = "elastic-otlp-http-php/" . ElasticOTelPhpPartVersion::get();
-        return new ElasticHttpTransport($endpoint, $contentType, $headers, $compression, $timeout, $retryDelay, $maxRetries, $cacert, $cert, $key);
+    use StaticClassTrait;
+
+    /**
+     * @template  T
+     * @param     array<array-key, T> $array
+     * @param-out T                   $valOut
+     */
+    public static function getValueIfKeyExists(int|string $key, array $array, /* out */ mixed &$valOut): bool
+    {
+        if (!array_key_exists($key, $array)) {
+            return false;
+        }
+
+        $valOut = $array[$key];
+        return true;
     }
 }

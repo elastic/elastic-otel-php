@@ -25,4 +25,7 @@
     </rule>
 
 	<!-- other sniffs to include -->
+
+    <exclude-pattern>*/prod/php/ElasticOTel/Log/LogFeature.php</exclude-pattern>
+    <exclude-pattern>*/prod/php/ElasticOTel/PhpPartVersion.php</exclude-pattern>
 </ruleset>

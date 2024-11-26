@@ -23,6 +23,8 @@ declare(strict_types=1);
 
 namespace Elastic\OTel\Traces;
 
+use Elastic\OTel\Util\ArrayUtil;
+use Elastic\OTel\Util\TextUtil;
 use Http\Discovery\Exception\NotFoundException;
 use Http\Discovery\Psr17FactoryDiscovery;
 use Nyholm\Psr7Server\ServerRequestCreator;
@@ -42,14 +44,16 @@ class ElasticRootSpan
 {
     use LogsMessagesTrait;
 
-    public static function startRootSpan()
+    private const DEFAULT_SPAN_NAME_FOR_SCRIPT = '<script>';
+
+    public static function startRootSpan(): void
     {
         if (php_sapi_name() === 'cli') {
             if (!Configuration::getBoolean('ELASTIC_OTEL_TRANSACTION_SPAN_ENABLED_CLI', true)) {
                 self::logDebug('ELASTIC_OTEL_TRANSACTION_SPAN_ENABLED_CLI set to false');
                 return;
             }
-        } else if (!Configuration::getBoolean('ELASTIC_OTEL_TRANSACTION_SPAN_ENABLED', true)) {
+        } elseif (!Configuration::getBoolean('ELASTIC_OTEL_TRANSACTION_SPAN_ENABLED', true)) {
             self::logDebug('ELASTIC_OTEL_TRANSACTION_SPAN_ENABLED set to false');
             return;
         }
@@ -61,6 +65,19 @@ class ElasticRootSpan
         } else {
             self::logWarning('Unable to create server request');
         }
+    }
+
+    private static function getStartTime(ServerRequestInterface $request): float
+    {
+        if (ArrayUtil::getValueIfKeyExists('REQUEST_TIME_FLOAT', $request->getServerParams(), /* out */ $serverRequestTime)) {
+            if (is_float($serverRequestTime)) {
+                return $serverRequestTime;
+            }
+            if (is_string($serverRequestTime)) {
+                return floatval($serverRequestTime);
+            }
+        }
+        return microtime(true);
     }
 
     /**
@@ -75,12 +92,9 @@ class ElasticRootSpan
             Version::VERSION_1_25_0->url(),
         );
         $parent = Globals::propagator()->extract($request->getHeaders());
-        $startTime = array_key_exists('REQUEST_TIME_FLOAT', $request->getServerParams())
-            ? $request->getServerParams()['REQUEST_TIME_FLOAT']
-            : (int) microtime(true);
         $span = $tracer->spanBuilder(self::getSpanName($request))
             ->setSpanKind(SpanKind::KIND_SERVER)
-            ->setStartTimestamp((int) ($startTime * 1_000_000_000))
+            ->setStartTimestamp((int) (self::getStartTime($request) * 1_000_000_000))
             ->setParent($parent)
             ->setAttribute(TraceAttributes::URL_FULL, (string) $request->getUri())
             ->setAttribute(TraceAttributes::HTTP_REQUEST_METHOD, $request->getMethod())
@@ -118,7 +132,7 @@ class ElasticRootSpan
     /**
      * @internal
      */
-    private static function registerShutdownHandler($request): void
+    private static function registerShutdownHandler(ServerRequestInterface $request): void
     {
         $shutdownFunc = function () use ($request) {
             self::shutdownHandler($request);
@@ -130,7 +144,7 @@ class ElasticRootSpan
     /**
      * @internal
      */
-    public static function shutdownHandler($request): void
+    public static function shutdownHandler(ServerRequestInterface $request): void
     {
         $scope = Context::storage()->scope();
         if (!$scope) {
@@ -142,28 +156,45 @@ class ElasticRootSpan
 
         if (is_int(http_response_code())) {
             $span->setAttribute(TraceAttributes::HTTP_RESPONSE_STATUS_CODE, http_response_code());
-        } else  if (array_key_exists('REDIRECT_STATUS', $request->getServerParams())) {
-            $span->setAttribute(TraceAttributes::HTTP_RESPONSE_STATUS_CODE, $request->getServerParams()['REDIRECT_STATUS']);
+        } elseif (ArrayUtil::getValueIfKeyExists('REDIRECT_STATUS', $request->getServerParams(), /* out */ $redirectStatus)) {
+            if (is_int($redirectStatus)) {
+                $span->setAttribute(TraceAttributes::HTTP_RESPONSE_STATUS_CODE, $redirectStatus);
+            }
         }
 
         $span->end();
     }
 
-    private static function getSpanName(ServerRequestInterface $request)
+    private static function getOptionalServerVarElement(string $key): mixed
+    {
+        /** @noinspection PhpIssetCanBeReplacedWithCoalesceInspection */
+        return isset($_SERVER[$key]) ? $_SERVER[$key] : null;
+    }
+
+    /**
+     * @return non-empty-string
+     */
+    private static function getSpanName(ServerRequestInterface $request): string
     {
         if (php_sapi_name() === 'cli') {
-            return self::processPathMatchers($_SERVER['SCRIPT_NAME']);
+            if (is_string($scriptName = self::getOptionalServerVarElement('SCRIPT_NAME'))) {
+                $processedScriptName = self::processPathMatchers($scriptName);
+                return TextUtil::isEmptyString($processedScriptName) ? self::DEFAULT_SPAN_NAME_FOR_SCRIPT : $processedScriptName;
+            } else {
+                return self::DEFAULT_SPAN_NAME_FOR_SCRIPT;
+            }
         }
 
         $method = $request->getMethod();
         $path = $request->getUri()->getPath();
-        return $method . " " . self::processPathMatchers($path);
+        return $method . ' ' . self::processPathMatchers($path);
     }
 
     private static function processPathMatchers(string $path): string
     {
+        /** @var string[] $groups */
         $groups = Configuration::getList('ELASTIC_OTEL_TRANSACTION_URL_GROUPS', []);
-        if ($groups === null || count($groups) == 0) {
+        if (count($groups) == 0) {
             return $path;
         }
 
