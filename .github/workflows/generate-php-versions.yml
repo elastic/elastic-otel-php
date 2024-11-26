@@ -1,0 +1,32 @@
+---
+
+# Generates list of supported PHP versions by reading supported_php_versions property in ./elastic-otel-php.properties
+name: Generate list of supported PHP versions
+
+on:
+  workflow_call:
+    outputs:
+      php-versions:
+        description: "Generate list of supported PHP versions"
+        value: ${{ jobs.generate-php-versions.outputs.php-versions }}
+
+permissions:
+  contents: read
+
+jobs:
+  generate-php-versions:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    outputs:
+      include: ${{ steps.generate.outputs.php_versions }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: generate
+        run: |
+          source ./tools/read_properties.sh
+          read_properties elastic-otel-php.properties PROJECT_PROPERTIES
+          PHP_VERSIONS=${PROJECT_PROPERTIES_SUPPORTED_PHP_VERSIONS//[()]/}
+          echo "PHP_VERSIONS: ${PHP_VERSIONS}"
+          PHP_VERSIONS_JSON=$(echo ${PHP_VERSIONS} | jq --raw-input --slurp -c 'split(" ") | map(select(length > 0)) | map({ "php-version": . } )')
+          echo "php-versions=${PHP_VERSIONS_JSON}"
+          echo "php-versions=${PHP_VERSIONS_JSON}" >> $GITHUB_OUTPUT
