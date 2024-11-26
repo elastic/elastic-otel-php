@@ -27,6 +27,6 @@ jobs:
           read_properties elastic-otel-php.properties PROJECT_PROPERTIES
           PHP_VERSIONS=${PROJECT_PROPERTIES_SUPPORTED_PHP_VERSIONS//[()]/}
           echo "PHP_VERSIONS: ${PHP_VERSIONS}"
-          PHP_VERSIONS_JSON=$(echo ${PHP_VERSIONS} | jq --raw-input --slurp -c 'split(" ") | map(select(length > 0)) | map({ "php-version": . } )')
+          PHP_VERSIONS_JSON=$(echo -n ${PHP_VERSIONS} | jq --raw-input --slurp --compact-output 'split(" ") | map(select(length > 0)) | map({ "php-version": . } )')
           echo "php-versions=${PHP_VERSIONS_JSON}"
           echo "php-versions=${PHP_VERSIONS_JSON}" >> $GITHUB_OUTPUT
