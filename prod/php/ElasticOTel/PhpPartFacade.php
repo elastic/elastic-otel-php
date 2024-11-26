@@ -26,6 +26,8 @@ namespace Elastic\OTel;
 use Elastic\OTel\Util\HiddenConstructorTrait;
 use Elastic\OTel\Log\ElasticLogWriter;
 use Elastic\OTel\HttpTransport\ElasticHttpTransportFactory;
+use OpenTelemetry\SDK\SdkAutoloader;
+
 use RuntimeException;
 use Throwable;
 
@@ -94,6 +96,13 @@ final class PhpPartFacade
             self::registerAutoloader();
             self::registerAsyncTransportFactory();
             self::registerOtelLogWriter();
+
+            if (SdkAutoloader::isExcludedUrl()) {
+                BootstrapStageLogger::logDebug('Url is excluded', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
+                return false;
+            }
+
+            Traces\ElasticRootSpan::startRootSpan();
 
             self::$singletonInstance = new self();
         } catch (Throwable $throwable) {

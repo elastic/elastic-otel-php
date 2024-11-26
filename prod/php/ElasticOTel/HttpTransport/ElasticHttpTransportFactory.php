@@ -39,6 +39,8 @@ class ElasticHttpTransportFactory implements TransportFactoryInterface
         ?string $cert = null,
         ?string $key = null
     ): ElasticHttpTransport {
+        spl_autoload_call("Elastic\OTel\PhpPartVersion");
+        $headers['User-Agent'] = "elastic-otlp-http-php/" . \Elastic\OTel\ELASTIC_OTEL_PHP_VERSION;
         return new ElasticHttpTransport($endpoint, $contentType, $headers, $compression, $timeout, $retryDelay, $maxRetries, $cacert, $cert, $key);
     }
 }
