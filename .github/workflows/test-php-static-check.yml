@@ -1,4 +1,3 @@
----
 name: test-php-static-check
 
 on:
@@ -29,7 +28,6 @@ jobs:
     uses: ./.github/workflows/generate-php-versions.yml
 
   static-check:
-    name: Check PHP code format and static analysis
     runs-on: ubuntu-latest
     needs: generate-php-versions
     timeout-minutes: 30
@@ -40,5 +38,5 @@ jobs:
       PHP_VERSION: ${{ matrix.php-version }}
     steps:
       - uses: actions/checkout@v4
-      - name: Check code format and static analysis
+      - name: Invoke test_php_static_check.sh
         run: ./tools/build/test_php_static_check.sh --php_versions "${PHP_VERSION}"

@@ -7,7 +7,7 @@ on:
   workflow_call:
     outputs:
       php-versions:
-        description: "Generated list of the supported PHP versions"
+        description: "Generated list of supported PHP versions"
         value: ${{ jobs.generate-php-versions.outputs.php-versions }}
 
 permissions:
@@ -15,10 +15,11 @@ permissions:
 
 jobs:
   generate-php-versions:
+    name: generate-php-versions
     timeout-minutes: 5
     runs-on: ubuntu-latest
     outputs:
-      include: ${{ steps.generate.outputs.php_versions }}
+      php-versions: ${{ steps.generate.outputs.php-versions }}
     steps:
       - uses: actions/checkout@v4
       - id: generate
@@ -28,5 +29,5 @@ jobs:
           PHP_VERSIONS=${PROJECT_PROPERTIES_SUPPORTED_PHP_VERSIONS//[()]/}
           echo "PHP_VERSIONS: ${PHP_VERSIONS}"
           PHP_VERSIONS_JSON=$(echo -n ${PHP_VERSIONS} | jq --raw-input --slurp --compact-output 'split(" ") | map(select(length > 0)) | map({ "php-version": . } )')
-          echo "php-versions=${PHP_VERSIONS_JSON}"
-          echo "php-versions=${PHP_VERSIONS_JSON}" >> $GITHUB_OUTPUT
+          echo "php-versions={\"include\":${PHP_VERSIONS_JSON}}"
+          echo "php-versions={\"include\":${PHP_VERSIONS_JSON}}" >> $GITHUB_OUTPUT
