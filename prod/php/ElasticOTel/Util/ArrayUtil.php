@@ -21,10 +21,24 @@
 
 declare(strict_types=1);
 
-namespace Elastic\OTel;
+namespace Elastic\OTel\Util;
 
-final class ProdPhpDir
+final class ArrayUtil
 {
-    /** @var string */
-    public static $fullPath;
+    use StaticClassTrait;
+
+    /**
+     * @template  T
+     * @param     array<array-key, T> $array
+     * @param-out T                   $valOut
+     */
+    public static function getValueIfKeyExists(int|string $key, array $array, /* out */ mixed &$valOut): bool
+    {
+        if (!array_key_exists($key, $array)) {
+            return false;
+        }
+
+        $valOut = $array[$key];
+        return true;
+    }
 }

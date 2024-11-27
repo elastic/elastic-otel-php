@@ -23,8 +23,27 @@ declare(strict_types=1);
 
 namespace Elastic\OTel;
 
-final class ProdPhpDir
+use Elastic\OTel\Util\StaticClassTrait;
+
+/**
+ * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
+ *
+ * @internal
+ */
+final class ElasticOTelPhpPartVersion
 {
-    /** @var string */
-    public static $fullPath;
+    use StaticClassTrait;
+
+    public static function get(): string
+    {
+        /**
+         * @var string $phpPartVersion
+         *
+         * Constant \Elastic\OTel\ELASTIC_OTEL_PHP_VERSION is defined in the generated file prod/php/ElasticOTel/PhpPartVersion.php
+         *
+         * @noinspection PhpUnnecessaryFullyQualifiedNameInspection, PhpUndefinedConstantInspection
+         */
+        $phpPartVersion = \Elastic\OTel\ELASTIC_OTEL_PHP_VERSION; // @phpstan-ignore constant.notFound
+        return $phpPartVersion;
+    }
 }

@@ -35,6 +35,9 @@ final class TextUtil
         return substr($text, /* start: */ 0, /* length: */ $maxLength);
     }
 
+    /**
+     * @phpstan-assert-if-false non-empty-string $str
+     */
     public static function isEmptyString(string $str): bool
     {
         return $str === '';

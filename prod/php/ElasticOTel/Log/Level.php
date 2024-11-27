@@ -43,7 +43,7 @@ final class Level
     public const TRACE      = 6;
 
     /** @var array<array{string, int}> */
-    private static $nameIntPairs
+    private static array $nameIntPairs
         = [
             ['OFF', Level::OFF],
             ['CRITICAL', Level::CRITICAL],
@@ -55,16 +55,21 @@ final class Level
         ];
 
     /** @var ?array<int, string> */
-    private static $intToName = null;
+    private static ?array $intToName = null;
 
     /**
      * @return array<array{string, int}>
+     *
+     * @noinspection PhpUnused
      */
     public static function nameIntPairs(): array
     {
         return self::$nameIntPairs;
     }
 
+    /**
+     * @noinspection PhpUnused
+     */
     public static function intToName(int $intValueToMap): string
     {
         if (self::$intToName === null) {
@@ -76,30 +81,26 @@ final class Level
         return self::$intToName[$intValueToMap];
     }
 
+    /**
+     * @noinspection PhpUnused
+     */
     public static function getHighest(): int
     {
         return self::TRACE;
     }
 
-    public static function getFromPsrLevel($level): int
+    /**
+     * @noinspection PhpFullyQualifiedNameUsageInspection
+     */
+    public static function getFromPsrLevel(string $level): int
     {
-        switch ($level) {
-            case \Psr\Log\LogLevel::EMERGENCY:
-            case \Psr\Log\LogLevel::ALERT:
-            case \Psr\Log\LogLevel::CRITICAL:
-                return Level::CRITICAL;
-            case \Psr\Log\LogLevel::ERROR:
-                return Level::ERROR;
-            case \Psr\Log\LogLevel::WARNING:
-                return Level::WARNING;
-            case \Psr\Log\LogLevel::NOTICE:
-            case \Psr\Log\LogLevel::INFO:
-                return Level::INFO;
-            case \Psr\Log\LogLevel::DEBUG:
-                return Level::DEBUG;
-            default:
-                return Level::OFF;
-        }
+        return match ($level) {
+            \Psr\Log\LogLevel::EMERGENCY, \Psr\Log\LogLevel::ALERT, \Psr\Log\LogLevel::CRITICAL => Level::CRITICAL,
+            \Psr\Log\LogLevel::ERROR => Level::ERROR,
+            \Psr\Log\LogLevel::WARNING => Level::WARNING,
+            \Psr\Log\LogLevel::NOTICE, \Psr\Log\LogLevel::INFO => Level::INFO,
+            \Psr\Log\LogLevel::DEBUG => Level::DEBUG,
+            default => Level::OFF,
+        };
     }
-
 }

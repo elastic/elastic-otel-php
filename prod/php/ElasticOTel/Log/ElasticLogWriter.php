@@ -26,15 +26,32 @@ namespace Elastic\OTel\Log;
 use OpenTelemetry\API\Behavior\Internal\LogWriter\LogWriterInterface;
 use OpenTelemetry\API\Behavior\Internal\Logging;
 
-class ElasticLogWriter  implements LogWriterInterface
+class ElasticLogWriter implements LogWriterInterface
 {
-    public function write($level, string $message, array $context): void
+    /**
+     * @param array<mixed> $context
+     */
+    public function write(mixed $level, string $message, array $context): void
     {
-        \elastic_otel_log_feature(0, Level::getFromPsrLevel($level), LogFeature::OTEL, '', '', 0, $context['source'] ?? '', $message . ' context: ' . var_export($context, true));
+        /**
+         * elastic_otel_* functions are provided by the extension
+         *
+         * @noinspection PhpFullyQualifiedNameUsageInspection, PhpUndefinedClassInspection, PhpUndefinedFunctionInspection
+         */
+        \elastic_otel_log_feature( // @phpstan-ignore function.notFound
+            0 /* isForced */,
+            Level::getFromPsrLevel(strval($level)) /* level */, // @phpstan-ignore argument.type
+            LogFeature::OTEL /* feature */, // @phpstan-ignore class.notFound
+            '' /* category */,
+            '' /* file */,
+            0 /* line */,
+            $context['source'] ?? '' /* func */,
+            $message . ' context: ' . var_export($context, true) /* message */
+        );
     }
 
-    public static function enableLogWriter()
+    public static function enableLogWriter(): void
     {
-        Logging::setLogWriter(new ElasticLogWriter());
+        Logging::setLogWriter(new self());
     }
 }
