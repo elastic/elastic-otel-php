@@ -7,4 +7,4 @@ parameters:
 
     level: max
 
-    reportUnmatchedIgnoredErrors: false
+    reportUnmatchedIgnoredErrors: true

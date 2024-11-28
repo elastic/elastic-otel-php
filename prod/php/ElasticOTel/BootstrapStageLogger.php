@@ -99,7 +99,6 @@ final class BootstrapStageLogger
 
     public static function configure(int $maxEnabledLevel, string $phpSrcCodeRootDir, string $rootNamespace): void
     {
-        /** @noinspection PhpIncludeInspection */
         require __DIR__ . DIRECTORY_SEPARATOR . 'Log' . DIRECTORY_SEPARATOR . 'LogFeature.php';
 
         self::$maxEnabledLevel = $maxEnabledLevel;
@@ -239,12 +238,12 @@ final class BootstrapStageLogger
         /**
          * elastic_otel_* functions are provided by the extension
          *
-         * @noinspection PhpFullyQualifiedNameUsageInspection, PhpUndefinedClassInspection, PhpUndefinedFunctionInspection
+         * @noinspection PhpFullyQualifiedNameUsageInspection, PhpUndefinedFunctionInspection
          */
         \elastic_otel_log_feature( // @phpstan-ignore function.notFound
             0 /* $isForced */,
             $statementLevel,
-            Log\LogFeature::BOOTSTRAP, // @phpstan-ignore class.notFound
+            Log\LogFeature::BOOTSTRAP,
             self::LOG_CATEGORY,
             self::processSourceCodeFilePathForLog($file),
             $line,

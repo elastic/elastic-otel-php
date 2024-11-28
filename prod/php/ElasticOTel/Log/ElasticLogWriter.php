@@ -29,19 +29,20 @@ use OpenTelemetry\API\Behavior\Internal\Logging;
 class ElasticLogWriter implements LogWriterInterface
 {
     /**
-     * @param array<mixed> $context
+     * @param array<array-key, mixed> $context
      */
     public function write(mixed $level, string $message, array $context): void
     {
+        $edotLevel = is_string($level) ? Level::getFromPsrLevel($level) : Level::OFF;
         /**
          * elastic_otel_* functions are provided by the extension
          *
-         * @noinspection PhpFullyQualifiedNameUsageInspection, PhpUndefinedClassInspection, PhpUndefinedFunctionInspection
+         * @noinspection PhpFullyQualifiedNameUsageInspection, PhpUndefinedFunctionInspection
          */
         \elastic_otel_log_feature( // @phpstan-ignore function.notFound
             0 /* isForced */,
-            Level::getFromPsrLevel(strval($level)) /* level */, // @phpstan-ignore argument.type
-            LogFeature::OTEL /* feature */, // @phpstan-ignore class.notFound
+            $edotLevel,
+            LogFeature::OTEL /* feature */,
             '' /* category */,
             '' /* file */,
             0 /* line */,
