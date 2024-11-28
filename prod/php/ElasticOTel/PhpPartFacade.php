@@ -112,18 +112,18 @@ final class PhpPartFacade
 
     private static function buildElasticOTelVersion(string $nativePartVersion): string
     {
-        if ($nativePartVersion === ($phpPartVersion = ElasticOTelPhpPartVersion::get())) {
+        if ($nativePartVersion === PhpPartVersion::VALUE) {
             return $nativePartVersion;
         }
 
         BootstrapStageLogger::logWarning(
-            'Native part and PHP part versions do not match' . "; nativePartVersion: $nativePartVersion" . "; phpPartVersion: $phpPartVersion",
+            'Native part and PHP part versions do not match. native part version: ' . $nativePartVersion . '; PHP part version: ' . PhpPartVersion::VALUE,
             __FILE__,
             __LINE__,
             __CLASS__,
             __FUNCTION__
         );
-        return "$nativePartVersion/$phpPartVersion";
+        return $nativePartVersion . '/' . PhpPartVersion::VALUE;
     }
 
     private static function isInDevMode(): bool

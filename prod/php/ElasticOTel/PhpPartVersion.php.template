@@ -25,4 +25,16 @@ declare(strict_types=1);
 
 namespace Elastic\OTel;
 
-const ELASTIC_OTEL_PHP_VERSION = '@_PROJECT_PROPERTIES_VERSION@';
+use Elastic\OTel\Util\StaticClassTrait;
+
+/**
+ * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
+ *
+ * @internal
+ */
+final class PhpPartVersion
+{
+    use StaticClassTrait;
+
+    public const VALUE = '@_PROJECT_PROPERTIES_VERSION@';
+}
