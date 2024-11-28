@@ -112,7 +112,7 @@ final class PhpPartFacade
 
     private static function buildElasticOTelVersion(string $nativePartVersion): string
     {
-        if ($nativePartVersion === ($phpPartVersion = ElasticOTelPhpPartVersion::get())) {
+        if ($nativePartVersion === ($phpPartVersion = PhpPartVersion::VALUE)) {
             return $nativePartVersion;
         }
 
