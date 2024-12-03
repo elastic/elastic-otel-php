@@ -1,7 +1,16 @@
 ---
 version: 2
 updates:
-  # GitHub actions
+
+  - package-ecosystem: "composer"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "sunday"
+      time: "22:00"
+    reviewers:
+      - "elastic/apm-agent-php"
+
   - package-ecosystem: "github-actions"
     directory: "/"
     reviewers:
