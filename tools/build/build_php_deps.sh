@@ -1,6 +1,7 @@
 #!/bin/bash
 
 SKIP_NOTICE=false
+KEEP_COMPOSER=false
 
 show_help() {
     echo "Usage: $0 --php_versions <versions>"
@@ -8,6 +9,7 @@ show_help() {
     echo "Arguments:"
     echo "  --php_versions           Required. List of PHP versions separated by spaces (e.g., '81 82 83 84')."
     echo "  --skip_notice            Optional. Skip notice file generator."
+    echo "  --keep_composer          Optional. Keep composer.lock file."
     echo
     echo "Example:"
     echo "  $0 --php_versions '81 82 83 84' --skip_notice"
@@ -23,6 +25,9 @@ parse_args() {
                 ;;
             --skip_notice)
                 SKIP_NOTICE=true
+                ;;
+            --keep_composer)
+                KEEP_COMPOSER=true
                 ;;
             --help)
                 show_help
@@ -73,10 +78,14 @@ do
         apt-get update && apt-get install -y unzip git \
         && git config --global --add safe.directory /sources \
         && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
-        && composer --ignore-platform-req=ext-opentelemetry --ignore-platform-req=ext-otel_instrumentation --ignore-platform-req=php --no-dev install \
+        && composer --ignore-platform-req=php --no-dev install \
         ${GEN_NOTICE} \
         && chmod 666 /sources/composer.lock"
 
-    rm -f composer.lock
+    if [ "$KEEP_COMPOSER" = true ]; then
+        echo "Keeping composer.lock file"
+    else
+        rm -f composer.lock
+    fi
 
 done
