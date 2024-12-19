@@ -42,6 +42,11 @@ public:
         callbacks_[functionKey].emplace_back(callbacks_t(std::move(callableOnEntry), std::move(callableOnExit)));
     }
 
+    std::list<callbacks_t> *storeFront(key_t functionKey, callback_t callableOnEntry, callback_t callableOnExit) {
+        callbacks_[functionKey].emplace_front(callbacks_t(std::move(callableOnEntry), std::move(callableOnExit)));
+        return &callbacks_[functionKey];
+    }
+
     std::list<callbacks_t> *find(key_t functionKey) {
         auto found = callbacks_.find(functionKey);
         if (found == std::end(callbacks_)) {
