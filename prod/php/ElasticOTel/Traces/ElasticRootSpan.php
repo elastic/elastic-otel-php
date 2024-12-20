@@ -46,7 +46,7 @@ class ElasticRootSpan
 
     private const DEFAULT_SPAN_NAME_FOR_SCRIPT = '<script>';
 
-    public static function startRootSpan(): void
+    public static function startRootSpan(?callable $notifySpanEnded): void
     {
         if (php_sapi_name() === 'cli') {
             if (!Configuration::getBoolean('ELASTIC_OTEL_TRANSACTION_SPAN_ENABLED_CLI', true)) {
@@ -61,7 +61,7 @@ class ElasticRootSpan
         $request = self::createRequest();
         if ($request) {
             self::create($request);
-            self::registerShutdownHandler($request);
+            self::registerShutdownHandler($request, $notifySpanEnded);
         } else {
             self::logWarning('Unable to create server request');
         }
@@ -132,11 +132,15 @@ class ElasticRootSpan
     /**
      * @internal
      */
-    private static function registerShutdownHandler(ServerRequestInterface $request): void
+    private static function registerShutdownHandler(ServerRequestInterface $request, ?callable $notifySpanEnded): void
     {
-        $shutdownFunc = function () use ($request) {
-            self::shutdownHandler($request);
-        };
+        $shutdownFunc =
+            function () use ($request, $notifySpanEnded) {
+                if ($notifySpanEnded) {
+                    $notifySpanEnded();
+                }
+                self::shutdownHandler($request);
+            };
 
         ShutdownHandler::register($shutdownFunc(...));
     }
