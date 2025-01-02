@@ -38,6 +38,8 @@
 #define ELASTIC_OTEL_CFG_OPT_NAME_ASYNC_TRANSPORT async_transport
 #define ELASTIC_OTEL_CFG_OPT_NAME_ASYNC_TRANSPORT_SHUTDOWN_TIMEOUT async_transport_shutdown_timeout
 
+#define ELASTIC_OTEL_CFG_OPT_NAME_DEBUG_INSTRUMENT_ALL debug_instrument_all
+
 namespace elasticapm::php {
 
 using namespace std::string_literals;
@@ -56,6 +58,7 @@ struct ConfigurationSnapshot {
     std::size_t ELASTIC_OTEL_CFG_OPT_NAME_MAX_SEND_QUEUE_SIZE = 2 * 1024 * 1204;
     bool ELASTIC_OTEL_CFG_OPT_NAME_ASYNC_TRANSPORT = true;
     std::chrono::milliseconds ELASTIC_OTEL_CFG_OPT_NAME_ASYNC_TRANSPORT_SHUTDOWN_TIMEOUT = std::chrono::seconds(30);
+    bool ELASTIC_OTEL_CFG_OPT_NAME_DEBUG_INSTRUMENT_ALL = false;
 
     uint64_t revision = 0;
 };
