@@ -26,7 +26,14 @@ namespace Elastic\OTel;
 use Elastic\OTel\Util\HiddenConstructorTrait;
 use Elastic\OTel\Log\ElasticLogWriter;
 use Elastic\OTel\HttpTransport\ElasticHttpTransportFactory;
+use OpenTelemetry\API\Globals;
 use OpenTelemetry\SDK\SdkAutoloader;
+use OpenTelemetry\API\Trace\Span;
+use OpenTelemetry\API\Trace\SpanKind;
+use OpenTelemetry\API\Trace\StatusCode;
+use OpenTelemetry\Context\Context;
+use OpenTelemetry\SemConv\TraceAttributes;
+use OpenTelemetry\SemConv\Version;
 use RuntimeException;
 use Throwable;
 
@@ -47,6 +54,7 @@ final class PhpPartFacade
     use HiddenConstructorTrait;
 
     private static ?self $singletonInstance = null;
+    private static bool $rootSpanEnded = false;
 
     /**
      * Called by the extension
@@ -98,7 +106,9 @@ final class PhpPartFacade
                 return false;
             }
 
-            Traces\ElasticRootSpan::startRootSpan();
+            Traces\ElasticRootSpan::startRootSpan(function () {
+                PhpPartFacade::$rootSpanEnded = true;
+            });
 
             self::$singletonInstance = new self();
         } catch (Throwable $throwable) {
@@ -227,5 +237,58 @@ final class PhpPartFacade
     public static function shutdown(): void
     {
         self::$singletonInstance = null;
+    }
+
+    /** @phpstan-ignore-next-line */
+    public static function debugPreHook(mixed $object, array $params, ?string $class, string $function, ?string $filename, ?int $lineno): void
+    {
+        if (self::$rootSpanEnded) {
+            return;
+        }
+
+        $tracer = Globals::tracerProvider()->getTracer(
+            'co.elastic.edot.php.debug',
+            null,
+            Version::VERSION_1_25_0->url(),
+        );
+
+        $parent = Context::getCurrent();
+        /** @phpstan-ignore-next-line */
+        $span = $tracer->spanBuilder($class ? $class . "::" . $function : $function)
+            ->setSpanKind(SpanKind::KIND_CLIENT)
+            ->setParent($parent)
+            ->setAttribute(TraceAttributes::CODE_NAMESPACE, $class)
+            ->setAttribute(TraceAttributes::CODE_FUNCTION, $function)
+            ->setAttribute(TraceAttributes::CODE_FILEPATH, $filename)
+            ->setAttribute(TraceAttributes::CODE_LINENO, $lineno)
+            ->setAttribute('call.arguments', print_r($params, true))
+            ->startSpan();
+
+        $context = $span->storeInContext($parent);
+        Context::storage()->attach($context);
+    }
+
+    /** @phpstan-ignore-next-line */
+    public static function debugPostHook(mixed $object, array $params, mixed $retval, ?Throwable $exception): void
+    {
+        if (self::$rootSpanEnded) {
+            return;
+        }
+
+        $scope = Context::storage()->scope();
+        if (!$scope) {
+            return;
+        }
+
+        $scope->detach();
+        $span = Span::fromContext($scope->context());
+        $span->setAttribute('call.return_value', print_r($retval, true));
+
+        if ($exception) {
+            $span->recordException($exception, [TraceAttributes::EXCEPTION_ESCAPED => true]);
+            $span->setStatus(StatusCode::STATUS_ERROR, $exception->getMessage());
+        }
+
+        $span->end();
     }
 }

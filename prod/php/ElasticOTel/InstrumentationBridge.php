@@ -25,7 +25,6 @@ namespace Elastic\OTel;
 
 use Closure;
 use Elastic\OTel\Util\SingletonInstanceTrait;
-use RuntimeException;
 use Throwable;
 
 /**
@@ -90,11 +89,7 @@ final class InstrumentationBridge
             return;
         }
 
-        throw new RuntimeException(
-            'elastic_otel_hook returned false'
-            . ($class === null ? '' : ('; class: ' . $dbgClassAsString))
-            . '; function: ' . $function
-        );
+        BootstrapStageLogger::logDebug('elastic_otel_hook returned false: ' . $dbgClassAsString . ', function: ' . $function, __FILE__, __LINE__, __CLASS__, __FUNCTION__);
     }
 
     private static function elasticOTelHookNoThrow(?string $class, string $function, ?Closure $pre = null, ?Closure $post = null): bool

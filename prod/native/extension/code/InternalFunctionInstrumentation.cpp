@@ -435,29 +435,34 @@ zend_observer_fcall_handlers elasticRegisterObserver(zend_execute_data *execute_
             ELOGF_TRACE(EAPM_GL(logger_), INSTRUMENTATION, "elasticRegisterObserver hash: 0x%X " PRsv "::" PRsv ", not marked to be instrumented", hash, PRsvArg(cls), PRsvArg(func));
         }
 
-        auto ce = execute_data->func->common.scope;
-        if (!ce) {
-            return {nullptr, nullptr};
-        }
-
         // lookup for class interfaces
-        for (uint32_t i = 0; i < ce->num_interfaces; ++i) {
-            auto classHash = ZSTR_HASH(ce->interfaces[i]->name);
-            zend_ulong funcHash = ZSTR_HASH(execute_data->func->common.function_name);
-            zend_ulong ifaceHash = classHash ^ (funcHash << 1);
+        auto ce = execute_data->func->common.scope;
+        if (ce) {
+            for (uint32_t i = 0; i < ce->num_interfaces; ++i) {
+                auto classHash = ZSTR_HASH(ce->interfaces[i]->name);
+                zend_ulong funcHash = ZSTR_HASH(execute_data->func->common.function_name);
+                zend_ulong ifaceHash = classHash ^ (funcHash << 1);
 
-            callbacks = reinterpret_cast<InstrumentedFunctionHooksStorage_t *>(EAPM_GL(hooksStorage_).get())->find(ifaceHash);
-            if (callbacks) {
-                if (EAPM_GL(logger_)->doesMeetsLevelCondition(LogLevel::logLevel_trace)) {
-                    auto [cls, func] = getClassAndFunctionName(execute_data);
-                    ELOGF_TRACE(EAPM_GL(logger_), INSTRUMENTATION, "elasticRegisterObserver hash: 0x%X " PRsv "::" PRsv ", will be instrumented because interface 0x%X '" PRsv "' was marked to be instrumented", hash, PRsvArg(cls), PRsvArg(func), ifaceHash, PRzsArg(ce->interfaces[i]->name));
+                callbacks = reinterpret_cast<InstrumentedFunctionHooksStorage_t *>(EAPM_GL(hooksStorage_).get())->find(ifaceHash);
+                if (callbacks) {
+                    if (EAPM_GL(logger_)->doesMeetsLevelCondition(LogLevel::logLevel_trace)) {
+                        auto [cls, func] = getClassAndFunctionName(execute_data);
+                        ELOGF_TRACE(EAPM_GL(logger_), INSTRUMENTATION, "elasticRegisterObserver hash: 0x%X " PRsv "::" PRsv ", will be instrumented because interface 0x%X '" PRsv "' was marked to be instrumented", hash, PRsvArg(cls), PRsvArg(func), ifaceHash, PRzsArg(ce->interfaces[i]->name));
+                    }
+                    // copy callbacks from interface storage hash to implementation hash
+                    for (auto &item : *callbacks) {
+                        reinterpret_cast<InstrumentedFunctionHooksStorage_t *>(EAPM_GL(hooksStorage_).get())->store(hash, AutoZval(item.first.get()), AutoZval(item.second.get()));
+                    }
+                    break;
                 }
-                // copy callbacks from interface storage hash to implementation hash
-                for (auto &item : *callbacks) {
-                    reinterpret_cast<InstrumentedFunctionHooksStorage_t *>(EAPM_GL(hooksStorage_).get())->store(hash, AutoZval(item.first.get()), AutoZval(item.second.get()));
-                }
-                break;
             }
+        }
+    }
+
+    if (EAPM_GL(config_)->get().debug_instrument_all && EAPM_GL(requestScope_)->isFunctional()) {
+        std::string_view filename(ZSTR_VAL(execute_data->func->op_array.filename), ZSTR_LEN(execute_data->func->op_array.filename));
+        if (!(execute_data->func->common.fn_flags & ZEND_ACC_CLOSURE) && filename.find("/ElasticOTel/") == std::string_view::npos && filename.find("/open-telemetry/") == std::string_view::npos) {
+            callbacks = reinterpret_cast<InstrumentedFunctionHooksStorage_t *>(EAPM_GL(hooksStorage_).get())->storeFront(hash, AutoZval("Elastic\\OTel\\PhpPartFacade::debugPreHook"sv), AutoZval("Elastic\\OTel\\PhpPartFacade::debugPostHook"));
         }
     }
 

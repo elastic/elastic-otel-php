@@ -46,6 +46,13 @@
             "dealerdirect/phpcodesniffer-composer-installer": true,
             "php-http/discovery": true,
             "tbachert/spi": true
+        },
+        "platform": {
+            "ext-mysqli": "8.1",
+            "ext-curl": "8.1",
+            "ext-pdo": "8.1",
+            "ext-opentelemetry": "0",
+            "ext-otel_instrumentation": "0"
         }
     },
     "scripts": {
