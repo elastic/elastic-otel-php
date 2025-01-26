@@ -19,13 +19,15 @@
 
 #pragma once
 
+#include "ConfigurationStorage.h"
 #include "CommonUtils.h"
 #include "Diagnostics.h"
+#include "InferredSpans.h"
 #include "LoggerInterface.h"
+#include "PeriodicTaskExecutor.h"
 #include "PhpBridgeInterface.h"
 #include "PhpSapi.h"
 #include "SharedMemoryState.h"
-#include "ConfigurationStorage.h"
 
 #include <memory>
 #include <string_view>
@@ -35,11 +37,15 @@ namespace elasticapm::php {
 class RequestScope {
 public:
     using clearHooks_t = std::function<void()>;
+    using getPeriodicTaskExecutor_t = std::function<std::shared_ptr<PeriodicTaskExecutor>()>;
 
-    RequestScope(std::shared_ptr<LoggerInterface> log, std::shared_ptr<PhpBridgeInterface> bridge, std::shared_ptr<PhpSapi> sapi, std::shared_ptr<SharedMemoryState> sharedMemory, std::shared_ptr<ConfigurationStorage> config, clearHooks_t clearHooks) : log_(log), bridge_(std::move(bridge)), sapi_(std::move(sapi)), sharedMemory_(sharedMemory), config_(config), clearHooks_(std::move(clearHooks)) {
+    RequestScope(std::shared_ptr<LoggerInterface> log, std::shared_ptr<PhpBridgeInterface> bridge, std::shared_ptr<PhpSapi> sapi, std::shared_ptr<SharedMemoryState> sharedMemory, std::shared_ptr<InferredSpans> inferredSpans, std::shared_ptr<ConfigurationStorage> config, clearHooks_t clearHooks, getPeriodicTaskExecutor_t getPeriodicTaskExecutor) : log_(log), bridge_(std::move(bridge)), sapi_(std::move(sapi)), sharedMemory_(sharedMemory), inferredSpans_(std::move(inferredSpans)), config_(config), clearHooks_(std::move(clearHooks)), getPeriodicTaskExecutor_(std::move(getPeriodicTaskExecutor)) {
     }
 
     void onRequestInit() {
+
+        bool inferredSpansEnabled = true; // TODO fix
+
         ELOGF_DEBUG(log_, REQUEST, __FUNCTION__);
 
         resetRequest();
@@ -88,6 +94,30 @@ public:
 
         bootstrapSuccessfull_ = bootstrapPHPSideInstrumentation(requestStartTime);
 
+        if (bootstrapSuccessfull_ && inferredSpansEnabled) {
+
+            auto periodicTaskExecutor = getPeriodicTaskExecutor_();
+
+            std::chrono::milliseconds interval{10};
+            // try {
+            //     if (config->profilingInferredSpansSamplingInterval) {
+            //         interval = elasticapm::utils::convertDurationWithUnit(config->profilingInferredSpansSamplingInterval);
+            //     }
+            // } catch (std::invalid_argument const &e) {
+            //     ELASTIC_APM_LOG_ERROR("profilingInferredSpansSamplingInterval '%s': '%s'", e.what(), config->profilingInferredSpansSamplingInterval);
+            // }
+
+            if (interval.count() == 0) {
+                interval = std::chrono::milliseconds{50};
+                ELOGF_DEBUG(log_, REQUEST, "inferred spans thread interval too low, forced to default %zums", interval.count());
+            }
+
+            ELOGF_DEBUG(log_, REQUEST, "resuming inferred spans thread with sampling interval %zums", interval.count());
+            inferredSpans_->setInterval(interval);
+            inferredSpans_->reset();
+            periodicTaskExecutor->setInterval(interval);
+            periodicTaskExecutor->resumePeriodicTasks();
+        }
     }
 
     void onRequestShutdown() {
@@ -101,6 +131,11 @@ public:
         if (!bootstrapSuccessfull_) {
             ELOGF_DEBUG(log_, REQUEST, "onRequestShutdown bootstrap not successfull");
             return;
+        }
+
+        if (true) { // TODO inferredSpansEnabled) {
+            ELOGF_DEBUG(log_, REQUEST, "pausing inferred spans thread");
+            getPeriodicTaskExecutor_()->suspendPeriodicTasks();
         }
 
         if (!bridge_->callPHPSideExitPoint()) {
@@ -154,8 +189,10 @@ private:
     std::shared_ptr<PhpBridgeInterface> bridge_;
     std::shared_ptr<PhpSapi> sapi_;
     std::shared_ptr<SharedMemoryState> sharedMemory_;
+    std::shared_ptr<InferredSpans> inferredSpans_;
     std::shared_ptr<ConfigurationStorage> config_;
     clearHooks_t clearHooks_;
+    getPeriodicTaskExecutor_t getPeriodicTaskExecutor_;
     size_t requestCounter_ = 0;
     bool bootstrapSuccessfull_ = false;
     bool preloadDetected_ = false;

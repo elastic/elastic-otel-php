@@ -23,9 +23,10 @@ declare(strict_types=1);
 
 namespace Elastic\OTel;
 
-use Elastic\OTel\Util\HiddenConstructorTrait;
-use Elastic\OTel\Log\ElasticLogWriter;
 use Elastic\OTel\HttpTransport\ElasticHttpTransportFactory;
+use Elastic\OTel\InferredSpans\InferredSpans;
+use Elastic\OTel\Log\ElasticLogWriter;
+use Elastic\OTel\Util\HiddenConstructorTrait;
 use OpenTelemetry\API\Globals;
 use OpenTelemetry\SDK\SdkAutoloader;
 use OpenTelemetry\API\Trace\Span;
@@ -55,6 +56,7 @@ final class PhpPartFacade
 
     private static ?self $singletonInstance = null;
     private static bool $rootSpanEnded = false;
+    private ?InferredSpans $inferredSpans = null;
 
     /**
      * Called by the extension
@@ -111,12 +113,31 @@ final class PhpPartFacade
             });
 
             self::$singletonInstance = new self();
+
+            self::$singletonInstance->inferredSpans = new InferredSpans();
+
         } catch (Throwable $throwable) {
             BootstrapStageLogger::logCriticalThrowable($throwable, 'One of the steps in bootstrap sequence has thrown', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
             return false;
         }
 
         BootstrapStageLogger::logDebug('Successfully completed bootstrap sequence', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
+        return true;
+    }
+
+
+    public static function inferredSpans(int $durationMs, bool $internalFunction): bool
+    {
+        if (self::$singletonInstance === null) {
+            BootstrapStageLogger::logDebug('Missig facade', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
+            return true;
+        }
+
+        if (self::$singletonInstance->inferredSpans === null) {
+            BootstrapStageLogger::logDebug('Missig inferred spans instance', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
+            return true;
+        }
+        self::$singletonInstance->inferredSpans->captureStackTrace($durationMs, $internalFunction);
         return true;
     }
 

@@ -54,36 +54,16 @@ std::optional<std::string_view> PhpBridge::getCurrentExceptionMessage() const {
 }
 
 bool PhpBridge::callInferredSpans(std::chrono::milliseconds duration) const {
-    auto phpPartFacadeClass = findClassEntry("elastic\\apm\\impl\\phppartfacade"sv);
+    auto phpPartFacadeClass = findClassEntry("elastic\\otel\\phppartfacade"sv);
     if (!phpPartFacadeClass) {
         return false;
     }
 
-    auto objectOfPhpPartFacade = getClassStaticPropertyValue(phpPartFacadeClass, "singletonInstance"sv);
-    if (!objectOfPhpPartFacade || Z_TYPE_P(objectOfPhpPartFacade) != IS_OBJECT) {
-        return false;
-    }
-
-    auto transactionForExtensionRequest = getClassPropertyValue(phpPartFacadeClass, objectOfPhpPartFacade, "transactionForExtensionRequest"sv);
-    if (!isObjectOfClass(transactionForExtensionRequest, "Elastic\\Apm\\Impl\\TransactionForExtensionRequest")) {
-        return false;
-    }
-
-    zend_class_entry *ceTransactionForExtensionRequest = Z_OBJCE_P(transactionForExtensionRequest);
-    if (!ceTransactionForExtensionRequest) {
-        return false;
-    }
-
-    zval *inferredSpansManager = getClassPropertyValue(ceTransactionForExtensionRequest, transactionForExtensionRequest, "inferredSpansManager"sv);
-    if (!isObjectOfClass(inferredSpansManager, "Elastic\\Apm\\Impl\\InferredSpansManager")) {
-        return false;
-    }
+    bool internal = (EG(current_execute_data) && EG(current_execute_data)->func->type == ZEND_INTERNAL_FUNCTION);
 
     AutoZval rv;
-    AutoZval params;
-    params.setLong(duration.count());
-
-    return callMethod(inferredSpansManager, "handleAutomaticCapturing"sv, params.get(), 1, rv.get());
+    std::array<AutoZval, 2> params{duration.count(), internal};
+    return callMethod(nullptr, "\\Elastic\\OTel\\PhpPartFacade::inferredSpans"sv, params.data()->get(), params.size(), rv.get());
 }
 
 std::string_view PhpBridge::getPhpSapiName() const {
