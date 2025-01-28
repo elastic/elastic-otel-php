@@ -43,9 +43,6 @@ public:
     }
 
     void onRequestInit() {
-
-        bool inferredSpansEnabled = true; // TODO fix
-
         ELOGF_DEBUG(log_, REQUEST, __FUNCTION__);
 
         resetRequest();
@@ -94,18 +91,9 @@ public:
 
         bootstrapSuccessfull_ = bootstrapPHPSideInstrumentation(requestStartTime);
 
-        if (bootstrapSuccessfull_ && inferredSpansEnabled) {
-
+        if (bootstrapSuccessfull_ && (*config_)->inferred_spans_enabled) {
             auto periodicTaskExecutor = getPeriodicTaskExecutor_();
-
-            std::chrono::milliseconds interval{10};
-            // try {
-            //     if (config->profilingInferredSpansSamplingInterval) {
-            //         interval = elasticapm::utils::convertDurationWithUnit(config->profilingInferredSpansSamplingInterval);
-            //     }
-            // } catch (std::invalid_argument const &e) {
-            //     ELASTIC_APM_LOG_ERROR("profilingInferredSpansSamplingInterval '%s': '%s'", e.what(), config->profilingInferredSpansSamplingInterval);
-            // }
+            auto interval = (*config_)->inferred_spans_sampling_interval;
 
             if (interval.count() == 0) {
                 interval = std::chrono::milliseconds{50};
@@ -133,7 +121,7 @@ public:
             return;
         }
 
-        if (true) { // TODO inferredSpansEnabled) {
+        if ((*config_)->inferred_spans_enabled) {
             ELOGF_DEBUG(log_, REQUEST, "pausing inferred spans thread");
             getPeriodicTaskExecutor_()->suspendPeriodicTasks();
         }

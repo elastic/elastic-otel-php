@@ -228,7 +228,34 @@ zval *getClassPropertyValue(zend_class_entry *ce, zend_object *object, std::stri
 #endif
 }
 
+bool forceSetObjectPropertyValue(zend_object *object, zend_string *propertyName, zval *value) {
+    auto ce = object->ce;
 
+    decltype(zend_property_info::flags) originalFlags = 0;
+    bool flagChanged = false;
+
+    if (zend_hash_num_elements(&ce->properties_info) == 0) {
+        return false;
+    }
+    zval *zv = zend_hash_find(&ce->properties_info, propertyName);
+    if (!zv) {
+        return false;
+    }
+
+    auto prop_info = static_cast<zend_property_info *>(Z_PTR_P(zv));
+
+    originalFlags = prop_info->flags;
+    if (prop_info->flags & ZEND_ACC_READONLY) {
+        prop_info->flags = prop_info->flags & ~ZEND_ACC_READONLY;
+    }
+
+    zend_update_property_ex(object->ce, object, propertyName, value);
+
+    if (flagChanged) {
+        prop_info->flags = originalFlags;
+    }
+    return true;
+}
 
 bool callMethod(zval *object, std::string_view methodName, zval arguments[], int32_t argCount, zval *returnValue) {
     elasticapm::utils::callOnScopeExit callOnExit([exceptionState = saveExceptionState()]() { restoreExceptionState(exceptionState); });
@@ -375,6 +402,5 @@ void getCurrentException(zval *zv, zend_object *exception) {
         ZVAL_NULL(zv);
     }
 }
-
 
 } // namespace elasticapm::php

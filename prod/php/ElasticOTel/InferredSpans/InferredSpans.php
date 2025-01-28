@@ -31,32 +31,40 @@ use OpenTelemetry\SemConv\TraceAttributes;
 use OpenTelemetry\API\Common\Time\Clock;
 use OpenTelemetry\SemConv\Version;
 use WeakReference;
+use force_set_object_propety_value;
 
 class InferredSpans
 {
     use LogsMessagesTrait;
 
+    private const METADATA_SPAN = 'span';
+    private const METADATA_CONTEXT = 'context';
+    private const METADATA_SCOPE = 'scope';
+    private const METADATA_STACKTRACE_ID = 'stackTraceId';
+
     private const FRAMES_TO_SKIP = 2;
     private $tracer;
     private ?array $lastStackTrace;
+    private int $stackTraceId = 0;
 
-    public function __construct()
+    private $shutdown;
+
+    public function __construct(private readonly bool $spanReductionEnabled)
     {
         $this->tracer = Globals::tracerProvider()->getTracer(
             'co.elastic.php.elastic-inferred-spans',
             null,
             Version::VERSION_1_25_0->url(),
         );
+
         $this->lastStackTrace = array();
+        $this->shutdown = false;
     }
 
     private function getStartTime(int $durationMs)
     {
         return Clock::getDefault()->now() - $durationMs * 1000000;
     }
-
-    //TODO general question - add interval as duration? or half of interval? or don't add frame only if on second frame?
-    //TODO or add if first is internal, then we know that it is at least $duration long
 
     private function filterOutAPMFrames(array &$stackTrace): ?int
     {
@@ -84,29 +92,32 @@ class InferredSpans
     // $durationMs - duration between interrupt request and interrupt occurence
     public function captureStackTrace(int $durationMs, bool $topFrameIsInternalFunction)
     {
-        self::logDebug("captureStackTrace topFrameInternal: $topFrameIsInternalFunction, duration: $durationMs ms");
+        self::logDebug("captureStackTrace topFrameInternal: $topFrameIsInternalFunction, duration: $durationMs ms shutdown: " . $this->shutdown);
+
+        if ($this->shutdown) {
+            return;
+        }
 
         try {
-            $stackTrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS); //TODO should I ask for object and compare it in frames? probably
+            $stackTrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
 
             array_splice($stackTrace, 0, InferredSpans::FRAMES_TO_SKIP); // skip inferred spans logic frames (or call backtrace in native)
             $apmFramesFilteredOut = $this->filterOutAPMFrames($stackTrace);
-
-            // if (count($stackTrace) == 0) {
-            //     if ($this->lastStackTrace != null) {
-            //         foreach ($this->lastStackTrace as $index => &$frame) {
-            //             $this->endFrameSpan($frame);
-            //         }
-            //     }
-            //     $this->lastStackTrace = array();
-            //     return;
-            // }
 
             $this->compareStackTraces($stackTrace, $this->lastStackTrace, $durationMs, $topFrameIsInternalFunction, $apmFramesFilteredOut);
         } catch (\Throwable $throwable) {
             self::logError($throwable->__toString());
         }
     }
+
+    public function shutdown()
+    {
+        self::logDebug("shutdown");
+        $this->shutdown = true;
+        $fakeTrace = [];
+        $this->compareStackTraces($fakeTrace, $this->lastStackTrace, 0, false, 0);
+    }
+
 
     private function getHowManyStackFramesAreIdenticalFromStackBottom(array &$stackTrace, array &$lastStackTrace): int
     {
@@ -140,19 +151,56 @@ class InferredSpans
 
     private function compareStackTraces(array &$stackTrace, array &$lastStackTrace, int $durationMs, bool $topFrameIsInternalFunction, $apmFramesFilteredOut)
     {
+        $this->stackTraceId++;
+
         $identicalFramesCount = $this->getHowManyStackFramesAreIdenticalFromStackBottom($stackTrace, $lastStackTrace);
-        self::logDebug("Same frames count: " . $identicalFramesCount); //[$stackTrace, $lastStackTrace]
+        self::logDebug("Same frames count: " . $identicalFramesCount); //, [$stackTrace, $lastStackTrace]);
 
         $lastStackTraceCount = count($lastStackTrace);
 
         // on previous stack trace - end all spans above identical frames
+        $previousFrameStackTraceId = -1;
+        $forceParentChangeFailed = false;
+
         for ($index = 0; $index < $lastStackTraceCount - $identicalFramesCount; $index++) {
             $endEpochNanos = null;
-             // if last frame was internal function, so duraton contains it's time, previous ones ended between sampling interval - they're much shorter
+             // if last frame was internal function, so duraton contains it's time, previous ones ended between sampling interval - they're shorter
             if ($topFrameIsInternalFunction) {
                 $endEpochNanos = $this->getStartTime($durationMs);
             }
-            $this->endFrameSpan($lastStackTrace[$index], $endEpochNanos);
+
+            $dropSpan = false;
+
+            if ($this->spanReductionEnabled) {
+                $frameStackTraceId = $lastStackTrace[$index][self::METADATA_STACKTRACE_ID];
+
+                $dropSpan = $previousFrameStackTraceId == $frameStackTraceId; // if frame came from same stackTrace (interval) - we're dropping all spans above as they have same timing
+
+                $previousFrameStackTraceId = $frameStackTraceId;
+
+                if (!$dropSpan) { // if span should not be dropped, search for spans with same traceId and get parent from last one
+                    // find last span with same stackTraceId
+                    $lastSpanParent = null;
+                    for ($i = $index; $i < $lastStackTraceCount - $identicalFramesCount; $i++) {
+                        if ($lastStackTrace[$i][self::METADATA_STACKTRACE_ID] != $frameStackTraceId) {
+                            break;
+                        }
+                        $lastSpanParent = $lastStackTrace[$i][self::METADATA_SPAN]->get()->getParentContext();
+                    }
+
+                    if ($lastSpanParent) {
+                        self::logDebug("Changing parent of span. new/old " . $lastStackTrace[$index][self::METADATA_SPAN]->get()->getName(), [$lastSpanParent, $lastStackTrace[$index][self::METADATA_SPAN]->get()->getParentContext()]);
+                        $forceParentChangeFailed = !force_set_object_propety_value($lastStackTrace[$index][self::METADATA_SPAN]->get(), "parentSpanContext", $lastSpanParent);
+                    }
+                }
+
+                if ($forceParentChangeFailed && $dropSpan) {
+                    $dropSpan = false;
+                }
+            }
+
+            $this->endFrameSpan($lastStackTrace[$index], $dropSpan, $endEpochNanos);
+
             unset($lastStackTrace[$index]); // remove ended frame
         }
 
@@ -168,26 +216,26 @@ class InferredSpans
         $first = true;
 
         // start spans for all frames below identical frames
-        for ($index = $stackTraceCount - $identicalFramesCount - 1; $index >= 0; $index--) {
-            if ($first && $apmFramesFilteredOut && $lastStackTrace[0] ?? null) {
-                echo "PAPLO ***************************** STARTING SPAN FROM PREVIOUS SPAN CONTEXT\n";
 
-                $this->startFrameSpan($stackTrace[$index], $durationMs, $lastStackTrace[0]['context']->get());
+        for ($index = $stackTraceCount - $identicalFramesCount - 1; $index >= 0; $index--) {
+            if ($first && $apmFramesFilteredOut && !empty($lastStackTrace)) {
+                self::logDebug("Going to start span in previous span context");
+                $this->startFrameSpan($stackTrace[$index], $durationMs, $lastStackTrace[0][self::METADATA_CONTEXT]->get(), $this->stackTraceId);
             } else {
-                $this->startFrameSpan($stackTrace[$index], $durationMs, null);
+                $this->startFrameSpan($stackTrace[$index], $durationMs, null, $this->stackTraceId);
             }
 
             $first = false;
 
             if ($index == 0 && $topFrameIsInternalFunction) {
-                $this->endFrameSpan($stackTrace[$index]); // we don't need to save newest internal frame, it ended
+                $this->endFrameSpan($stackTrace[$index], false, null); // we don't need to save newest internal frame, it ended
             } else {
                 array_unshift($lastStackTrace, $stackTrace[$index]); // push-copy frame in front of last stack trace for next interruption processing
             }
         }
     }
 
-    private function startFrameSpan(array &$frame, int $durationMs, $parentContext)
+    private function startFrameSpan(array &$frame, int $durationMs, $parentContext, int $stackTraceId)
     {
         $parent = $parentContext ? $parentContext : Context::getCurrent();
         $builder = $this->tracer->spanBuilder($frame['function'])
@@ -204,37 +252,43 @@ class InferredSpans
         $context = $span->storeInContext($parent);
         $scope = Context::storage()->attach($context);
 
-        $frame['span'] = WeakReference::create($span);
-        $frame['context'] = WeakReference::create($context);
-        $frame['scope'] = WeakReference::create($scope);
 
-        echo "PAPLO ***************************** SPAN STARTED: " . $span->getName() . " PARENT CONTEXT: " . ($parentContext ? "PODANY" : "NIE PODANY")  . "\n";
+
+        $frame[self::METADATA_SPAN] = WeakReference::create($span);
+        $frame[self::METADATA_CONTEXT] = WeakReference::create($context);
+        $frame[self::METADATA_SCOPE] = WeakReference::create($scope);
+        $frame[self::METADATA_STACKTRACE_ID] = $stackTraceId;
+
+        self::logDebug("Span started: " . $span->getName() . " parentContext: " . ($parentContext ? "custom" : "default") . " stackTraceId: " . $stackTraceId);
     }
 
-    private function endFrameSpan(array &$frame, ?int $endEpochNanos = null)
+    private function endFrameSpan(array &$frame, bool $dropSpan, ?int $endEpochNanos = null)
     {
-        if (!array_key_exists('span', $frame)) {
+        if (!array_key_exists(self::METADATA_SPAN, $frame)) {
             self::logError("endFrameSpan missing metadata.", [$frame]);
             return;
         }
 
-        $scope = Context::storage()->scope();
 
-        if ($frame['scope']->get() != $scope) {
-            echo "PAPLO ***************************** SCOPE DIFFERENT\n";
-        }
-
-        $scope?->detach();
-
-        if (!$scope || $scope->context() === Context::getCurrent()) {
-            echo "PAPLO ***************************** SPAN END MISSING SPAN CONTEXT\n";
+        if ($dropSpan) {
+            self::logDebug("Span dropped:   " . $frame[self::METADATA_SPAN]->get()->getName() . ' StackTraceId: ' . $frame[self::METADATA_STACKTRACE_ID]);
+            $frame[self::METADATA_SCOPE]->get()->detach();
+            unset($frame[self::METADATA_SCOPE]);
+            unset($frame[self::METADATA_SPAN]);
             return;
         }
 
 
-        $frame['span']->get()->end($endEpochNanos);
-        echo "PAPLO ***************************** SPAN END: " . $frame['span']->get()->getName()  . "\n";
+        $scope = Context::storage()->scope();
+        $scope?->detach();
 
-        unset($frame['span']);
+        if (!$scope || $scope->context() === Context::getCurrent()) {
+            return;
+        }
+
+        $frame[self::METADATA_SPAN]->get()->end($endEpochNanos);
+        self::logDebug("Span finished:  " . $frame[self::METADATA_SPAN]->get()->getName() . ' StackTraceId: ' . $frame[self::METADATA_STACKTRACE_ID]);
+
+        unset($frame[self::METADATA_SPAN]);
     }
 }

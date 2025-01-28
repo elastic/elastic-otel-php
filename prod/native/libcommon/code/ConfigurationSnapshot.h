@@ -40,6 +40,10 @@
 
 #define ELASTIC_OTEL_CFG_OPT_NAME_DEBUG_INSTRUMENT_ALL debug_instrument_all
 
+#define ELASTIC_OTEL_CFG_OPT_NAME_INFERRED_SPANS_ENABLED inferred_spans_enabled
+#define ELASTIC_OTEL_CFG_OPT_NAME_INFERRED_SPANS_REDUCTION_ENABLED inferred_spans_reduction_enabled
+#define ELASTIC_OTEL_CFG_OPT_NAME_INFERRED_SPANS_SAMPLING_INTERVAL inferred_spans_sampling_interval
+
 namespace elasticapm::php {
 
 using namespace std::string_literals;
@@ -59,6 +63,10 @@ struct ConfigurationSnapshot {
     bool ELASTIC_OTEL_CFG_OPT_NAME_ASYNC_TRANSPORT = true;
     std::chrono::milliseconds ELASTIC_OTEL_CFG_OPT_NAME_ASYNC_TRANSPORT_SHUTDOWN_TIMEOUT = std::chrono::seconds(30);
     bool ELASTIC_OTEL_CFG_OPT_NAME_DEBUG_INSTRUMENT_ALL = false;
+
+    bool ELASTIC_OTEL_CFG_OPT_NAME_INFERRED_SPANS_ENABLED = true;
+    bool ELASTIC_OTEL_CFG_OPT_NAME_INFERRED_SPANS_REDUCTION_ENABLED = true;
+    std::chrono::milliseconds ELASTIC_OTEL_CFG_OPT_NAME_INFERRED_SPANS_SAMPLING_INTERVAL = std::chrono::milliseconds(50);
 
     uint64_t revision = 0;
 };

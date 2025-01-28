@@ -110,12 +110,16 @@ final class PhpPartFacade
 
             Traces\ElasticRootSpan::startRootSpan(function () {
                 PhpPartFacade::$rootSpanEnded = true;
+                if (PhpPartFacade::$singletonInstance && PhpPartFacade::$singletonInstance->inferredSpans) {
+                    PhpPartFacade::$singletonInstance->inferredSpans->shutdown();
+                }
             });
 
             self::$singletonInstance = new self();
 
-            self::$singletonInstance->inferredSpans = new InferredSpans();
-
+            if (\elastic_otel_get_config_option_by_name('inferred_spans_enabled')) {
+                self::$singletonInstance->inferredSpans = new InferredSpans(\elastic_otel_get_config_option_by_name('inferred_spans_reduction_enabled') ?? false);
+            }
         } catch (Throwable $throwable) {
             BootstrapStageLogger::logCriticalThrowable($throwable, 'One of the steps in bootstrap sequence has thrown', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
             return false;
@@ -128,6 +132,7 @@ final class PhpPartFacade
 
     public static function inferredSpans(int $durationMs, bool $internalFunction): bool
     {
+
         if (self::$singletonInstance === null) {
             BootstrapStageLogger::logDebug('Missig facade', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
             return true;
@@ -138,6 +143,7 @@ final class PhpPartFacade
             return true;
         }
         self::$singletonInstance->inferredSpans->captureStackTrace($durationMs, $internalFunction);
+
         return true;
     }
 
