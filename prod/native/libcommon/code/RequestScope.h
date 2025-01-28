@@ -96,7 +96,7 @@ public:
             auto interval = (*config_)->inferred_spans_sampling_interval;
 
             if (interval.count() == 0) {
-                interval = std::chrono::milliseconds{50};
+                interval = std::chrono::milliseconds{ConfigurationSnapshot().ELASTIC_OTEL_CFG_OPT_NAME_INFERRED_SPANS_SAMPLING_INTERVAL};
                 ELOGF_DEBUG(log_, REQUEST, "inferred spans thread interval too low, forced to default %zums", interval.count());
             }
 

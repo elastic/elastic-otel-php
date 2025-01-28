@@ -64,7 +64,7 @@ struct ConfigurationSnapshot {
     std::chrono::milliseconds ELASTIC_OTEL_CFG_OPT_NAME_ASYNC_TRANSPORT_SHUTDOWN_TIMEOUT = std::chrono::seconds(30);
     bool ELASTIC_OTEL_CFG_OPT_NAME_DEBUG_INSTRUMENT_ALL = false;
 
-    bool ELASTIC_OTEL_CFG_OPT_NAME_INFERRED_SPANS_ENABLED = true;
+    bool ELASTIC_OTEL_CFG_OPT_NAME_INFERRED_SPANS_ENABLED = false;
     bool ELASTIC_OTEL_CFG_OPT_NAME_INFERRED_SPANS_REDUCTION_ENABLED = true;
     std::chrono::milliseconds ELASTIC_OTEL_CFG_OPT_NAME_INFERRED_SPANS_SAMPLING_INTERVAL = std::chrono::milliseconds(50);
 
