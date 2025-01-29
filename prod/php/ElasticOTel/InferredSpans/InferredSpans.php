@@ -49,7 +49,7 @@ class InferredSpans
 
     private $shutdown;
 
-    public function __construct(private readonly bool $spanReductionEnabled)
+    public function __construct(private readonly bool $spanReductionEnabled, private readonly bool $attachStackTrace)
     {
         $this->tracer = Globals::tracerProvider()->getTracer(
             'co.elastic.php.elastic-inferred-spans',
@@ -117,7 +117,6 @@ class InferredSpans
         $fakeTrace = [];
         $this->compareStackTraces($fakeTrace, $this->lastStackTrace, 0, false, 0);
     }
-
 
     private function getHowManyStackFramesAreIdenticalFromStackBottom(array &$stackTrace, array &$lastStackTrace): int
     {
@@ -227,6 +226,10 @@ class InferredSpans
 
             $first = false;
 
+            if ($this->attachStackTrace) {
+              $stackTrace[$index][self::METADATA_SPAN]->get()->setAttribute(TraceAttributes::CODE_STACKTRACE, $this->getStackTrace($lastStackTrace));
+            }
+
             if ($index == 0 && $topFrameIsInternalFunction) {
                 $this->endFrameSpan($stackTrace[$index], false, null); // we don't need to save newest internal frame, it ended
             } else {
@@ -235,24 +238,43 @@ class InferredSpans
         }
     }
 
+    private function getStackTrace($stackTrace): string
+    {
+        $str = "";
+        $id = 0;
+        foreach ($stackTrace as $frame) {
+            if (array_key_exists('file', $frame)) {
+                $file = $frame['file'] . '(' . $frame['line'] . ')';
+            } else {
+                $file = '[internal function]';
+            }
+
+            $str .= sprintf("#%d %s: %s%s%s\n\t", $id, $file, $frame['class'] ?? '', $frame['type'] ?? '', $frame['function']);
+            $id++;
+        }
+        return $str;
+    }
+
     private function startFrameSpan(array &$frame, int $durationMs, $parentContext, int $stackTraceId)
     {
         $parent = $parentContext ? $parentContext : Context::getCurrent();
         $builder = $this->tracer->spanBuilder($frame['function'])
-        ->setParent($parent)
-        ->setStartTimestamp($this->getStartTime($durationMs))
-        ->setSpanKind(SpanKind::KIND_INTERNAL)
-        ->setAttribute(TraceAttributes::CODE_FUNCTION, $frame['function'] ?? null)
-        ->setAttribute(TraceAttributes::CODE_FILEPATH, $frame['file'] ?? null)
-        ->setAttribute(TraceAttributes::CODE_LINENO, $frame['line'] ?? null)
-        ->setAttribute('is_inferred', true); // also in java: LINK_IS_CHILD bool 'is_child',  code.stacktrace - attribute key
+
+            ->setParent($parent)
+            ->setStartTimestamp($this->getStartTime($durationMs))
+            ->setSpanKind(SpanKind::KIND_INTERNAL)
+            ->setAttribute(TraceAttributes::CODE_FUNCTION, $frame['function'] ?? null)
+            ->setAttribute(TraceAttributes::CODE_FILEPATH, $frame['file'] ?? null)
+            ->setAttribute(TraceAttributes::CODE_LINENO, $frame['line'] ?? null)
+
+
+            ->setAttribute('is_inferred', true);
+
 
 
         $span = $builder->startSpan();
         $context = $span->storeInContext($parent);
         $scope = Context::storage()->attach($context);
-
-
 
         $frame[self::METADATA_SPAN] = WeakReference::create($span);
         $frame[self::METADATA_CONTEXT] = WeakReference::create($context);
@@ -269,7 +291,6 @@ class InferredSpans
             return;
         }
 
-
         if ($dropSpan) {
             self::logDebug("Span dropped:   " . $frame[self::METADATA_SPAN]->get()->getName() . ' StackTraceId: ' . $frame[self::METADATA_STACKTRACE_ID]);
             $frame[self::METADATA_SCOPE]->get()->detach();
@@ -277,7 +298,6 @@ class InferredSpans
             unset($frame[self::METADATA_SPAN]);
             return;
         }
-
 
         $scope = Context::storage()->scope();
         $scope?->detach();

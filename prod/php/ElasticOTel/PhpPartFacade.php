@@ -118,7 +118,11 @@ final class PhpPartFacade
             self::$singletonInstance = new self();
 
             if (\elastic_otel_get_config_option_by_name('inferred_spans_enabled')) {
-                self::$singletonInstance->inferredSpans = new InferredSpans(\elastic_otel_get_config_option_by_name('inferred_spans_reduction_enabled') ?? false);
+                self::$singletonInstance->inferredSpans = new InferredSpans(
+                    \elastic_otel_get_config_option_by_name('inferred_spans_reduction_enabled'),
+                    \elastic_otel_get_config_option_by_name('inferred_spans_stacktrace_enabled')
+                );
+
             }
         } catch (Throwable $throwable) {
             BootstrapStageLogger::logCriticalThrowable($throwable, 'One of the steps in bootstrap sequence has thrown', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
@@ -128,7 +132,6 @@ final class PhpPartFacade
         BootstrapStageLogger::logDebug('Successfully completed bootstrap sequence', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
         return true;
     }
-
 
     public static function inferredSpans(int $durationMs, bool $internalFunction): bool
     {

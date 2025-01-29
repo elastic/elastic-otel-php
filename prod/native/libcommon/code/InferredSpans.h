@@ -37,13 +37,7 @@ public:
     }
 
     void attachBacktraceIfInterrupted() {
-        // fprintf(stderr, "attachBacktraceIfInterrupted\n");
-        // fflush(stderr);
         if (phpSideBacktracePending_.load()) { // avoid triggers from agent side with low interval
-
-            // fprintf(stderr, "attachBacktraceIfInterrupted backtrace pending\n");
-            // fflush(stderr);
-
             return;
         }
 
@@ -51,19 +45,10 @@ public:
         time_point_t requestInterruptTime = lastInterruptRequestTick_;
 
         if (checkAndResetInterruptFlag()) {
-
-#define LUPA(str) str, strlen(str) - 1
-            [[maybe_unused]] auto rv = ::write(STDERR_FILENO, LUPA("attachBacktraceIfInterrupted checkAndResetInterruptFlag CALLING INFSPANS\n\n"));
-#undef LUPA
-
             phpSideBacktracePending_ = true;
             lock.unlock();
             attachInferredSpansOnPhp_(requestInterruptTime, std::chrono::time_point_cast<std::chrono::milliseconds>(clock_t::now()));
             phpSideBacktracePending_ = false;
-        } else {
-
-            // fprintf(stderr, "attachBacktraceIfInterrupted checkAndResetInterruptFlag FAIL\n");
-            // fflush(stderr);
         }
     }
 
@@ -80,9 +65,6 @@ public:
             interruptedRequested_ = true;
             lock.unlock();
             interrupt_(); // set interrupt for user space functions
-
-            // fprintf(stderr, "tryRequestInterrupt REQUESTING INTERRUPT NOW!\n");
-            // fflush(stderr);
         }
     }
 
