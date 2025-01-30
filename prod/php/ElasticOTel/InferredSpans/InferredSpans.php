@@ -46,10 +46,11 @@ class InferredSpans
     private const FRAMES_TO_SKIP = 2;
 
     private TracerInterface $tracer;
+    /** @var array<mixed> */
     private array $lastStackTrace;
     private int $stackTraceId = 0;
 
-    private $shutdown;
+    private bool $shutdown;
 
 
     public function __construct(private readonly bool $spanReductionEnabled, private readonly bool $attachStackTrace, private readonly float $minSpanDuration)
@@ -95,7 +96,7 @@ class InferredSpans
         $this->compareStackTraces($fakeTrace, $this->lastStackTrace, 0, false, 0);
     }
 
-    private function compareStackTraces(array &$stackTrace, array &$lastStackTrace, int $durationMs, bool $topFrameIsInternalFunction, $apmFramesFilteredOut)
+    private function compareStackTraces(array &$stackTrace, array &$lastStackTrace, int $durationMs, bool $topFrameIsInternalFunction, ?int $apmFramesFilteredOut): void
     {
         $this->stackTraceId++;
 
@@ -127,7 +128,7 @@ class InferredSpans
                 if (!$dropSpan) { // if span should not be dropped, search for spans with same traceId and get parent from last one
                     // find last span with same stackTraceId
                     $lastSpanParent = null;
-                    for ($i = $index; $i < $lastStackTraceCount - $identicalFramesCount; $i++) {
+                    for ($i = $index + 1; $i < $lastStackTraceCount - $identicalFramesCount; $i++) {
                         if ($lastStackTrace[$i][self::METADATA_STACKTRACE_ID] != $frameStackTraceId) {
                             break;
                         }
@@ -136,7 +137,7 @@ class InferredSpans
 
                     if ($lastSpanParent) {
                         self::logDebug(
-                            "Changing parent of span. new/old " . $lastStackTrace[$index][self::METADATA_SPAN]->get()->getName(),
+                            "Changing parent of span. " . $lastStackTrace[$index][self::METADATA_SPAN]->get()->getName() . " new/old",
                             [$lastSpanParent, $lastStackTrace[$index][self::METADATA_SPAN]->get()->getParentContext()]
                         );
                         $forceParentChangeFailed = !force_set_object_propety_value($lastStackTrace[$index][self::METADATA_SPAN]->get(), "parentSpanContext", $lastSpanParent);
@@ -327,6 +328,7 @@ class InferredSpans
 
         $span = $frame[self::METADATA_SPAN]->get();
 
+        /** @var int */
         $duration = 0;
         if ($endEpochNanos) {
             $duration = $endEpochNanos - $span->getStartEpochNanos();
@@ -341,4 +343,5 @@ class InferredSpans
         }
         return false;
     }
+
 }
