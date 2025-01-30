@@ -123,7 +123,6 @@ final class PhpPartFacade
                     \elastic_otel_get_config_option_by_name('inferred_spans_stacktrace_enabled'),
                     \elastic_otel_get_config_option_by_name('inferred_spans_min_duration')
                 );
-
             }
         } catch (Throwable $throwable) {
             BootstrapStageLogger::logCriticalThrowable($throwable, 'One of the steps in bootstrap sequence has thrown', __FILE__, __LINE__, __CLASS__, __FUNCTION__);

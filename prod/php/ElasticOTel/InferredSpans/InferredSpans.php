@@ -26,12 +26,12 @@ namespace Elastic\OTel\InferredSpans;
 use OpenTelemetry\API\Globals;
 use OpenTelemetry\API\Behavior\LogsMessagesTrait;
 use OpenTelemetry\API\Trace\SpanKind;
+use OpenTelemetry\API\Trace\TracerInterface;
 use OpenTelemetry\Context\Context;
 use OpenTelemetry\SemConv\TraceAttributes;
 use OpenTelemetry\API\Common\Time\Clock;
 use OpenTelemetry\SemConv\Version;
 use WeakReference;
-use force_set_object_propety_value;
 
 class InferredSpans
 {
@@ -45,8 +45,8 @@ class InferredSpans
     private const MILLIS_TO_NANOS = 1_000_000;
     private const FRAMES_TO_SKIP = 2;
 
-    private $tracer;
-    private ?array $lastStackTrace;
+    private TracerInterface $tracer;
+    private array $lastStackTrace;
     private int $stackTraceId = 0;
 
     private $shutdown;
@@ -135,7 +135,10 @@ class InferredSpans
                     }
 
                     if ($lastSpanParent) {
-                        self::logDebug("Changing parent of span. new/old " . $lastStackTrace[$index][self::METADATA_SPAN]->get()->getName(), [$lastSpanParent, $lastStackTrace[$index][self::METADATA_SPAN]->get()->getParentContext()]);
+                        self::logDebug(
+                            "Changing parent of span. new/old " . $lastStackTrace[$index][self::METADATA_SPAN]->get()->getName(),
+                            [$lastSpanParent, $lastStackTrace[$index][self::METADATA_SPAN]->get()->getParentContext()]
+                        );
                         $forceParentChangeFailed = !force_set_object_propety_value($lastStackTrace[$index][self::METADATA_SPAN]->get(), "parentSpanContext", $lastSpanParent);
                     }
                 }
@@ -174,7 +177,7 @@ class InferredSpans
             $first = false;
 
             if ($this->attachStackTrace) {
-              $stackTrace[$index][self::METADATA_SPAN]->get()->setAttribute(TraceAttributes::CODE_STACKTRACE, $this->getStackTrace($lastStackTrace));
+                $stackTrace[$index][self::METADATA_SPAN]->get()->setAttribute(TraceAttributes::CODE_STACKTRACE, $this->getStackTrace($lastStackTrace));
             }
 
             if ($index == 0 && $topFrameIsInternalFunction) {
@@ -316,7 +319,8 @@ class InferredSpans
         unset($frame[self::METADATA_SPAN]);
     }
 
-    private function shouldDropTooShortSpan(array &$frame, ?int $endEpochNanos = null): bool {
+    private function shouldDropTooShortSpan(array &$frame, ?int $endEpochNanos = null): bool
+    {
         if ($this->minSpanDuration <= 0) {
             return false;
         }
@@ -331,11 +335,10 @@ class InferredSpans
         }
 
         if ($duration < $this->minSpanDuration * self::MILLIS_TO_NANOS) {
-            self::logDebug('Span ' . $frame[self::METADATA_SPAN]->get()->getName() . ' duration ' . intval($duration / self::MILLIS_TO_NANOS) . 'ms is too short to fit within the minimum span duration limit: ' . $this->minSpanDuration . 'ms');
+            self::logDebug('Span ' . $frame[self::METADATA_SPAN]->get()->getName() . ' duration ' . intval($duration / self::MILLIS_TO_NANOS)
+                . 'ms is too short to fit within the minimum span duration limit: ' . $this->minSpanDuration . 'ms');
             return true;
         }
         return false;
     }
-
-
 }
