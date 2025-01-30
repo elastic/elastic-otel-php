@@ -42,14 +42,17 @@ class InferredSpans
     private const METADATA_SCOPE = 'scope';
     private const METADATA_STACKTRACE_ID = 'stackTraceId';
 
+    private const MILLIS_TO_NANOS = 1_000_000;
     private const FRAMES_TO_SKIP = 2;
+
     private $tracer;
     private ?array $lastStackTrace;
     private int $stackTraceId = 0;
 
     private $shutdown;
 
-    public function __construct(private readonly bool $spanReductionEnabled, private readonly bool $attachStackTrace)
+
+    public function __construct(private readonly bool $spanReductionEnabled, private readonly bool $attachStackTrace, private readonly float $minSpanDuration)
     {
         $this->tracer = Globals::tracerProvider()->getTracer(
             'co.elastic.php.elastic-inferred-spans',
@@ -57,40 +60,14 @@ class InferredSpans
             Version::VERSION_1_25_0->url(),
         );
 
+        self::logDebug('spanReductionEnabled ' . $spanReductionEnabled . ' attachStackTrace ' . $attachStackTrace . ' minSpanDuration ' . $minSpanDuration);
+
         $this->lastStackTrace = array();
         $this->shutdown = false;
     }
 
-    private function getStartTime(int $durationMs)
-    {
-        return Clock::getDefault()->now() - $durationMs * 1000000;
-    }
-
-    private function filterOutAPMFrames(array &$stackTrace): ?int
-    {
-       // Filter out Elastic and Otel stacks
-        $cutIndex = null;
-        for ($index = count($stackTrace) - 1; $index >= 0; $index--) {
-            $frame = $stackTrace[$index];
-            if (
-                isset($frame['class']) &&
-                (str_starts_with($frame['class'], 'OpenTelemetry\\') ||
-                str_starts_with($frame['class'], 'Elastic\\'))
-            ) {
-                $cutIndex = $index;
-                break;
-            }
-        }
-
-        if ($cutIndex !== null) {
-            array_splice($stackTrace, 0, $cutIndex + 1);
-        }
-        return $cutIndex;
-    }
-
-
     // $durationMs - duration between interrupt request and interrupt occurence
-    public function captureStackTrace(int $durationMs, bool $topFrameIsInternalFunction)
+    public function captureStackTrace(int $durationMs, bool $topFrameIsInternalFunction): void
     {
         self::logDebug("captureStackTrace topFrameInternal: $topFrameIsInternalFunction, duration: $durationMs ms shutdown: " . $this->shutdown);
 
@@ -110,42 +87,12 @@ class InferredSpans
         }
     }
 
-    public function shutdown()
+    public function shutdown(): void
     {
         self::logDebug("shutdown");
         $this->shutdown = true;
         $fakeTrace = [];
         $this->compareStackTraces($fakeTrace, $this->lastStackTrace, 0, false, 0);
-    }
-
-    private function getHowManyStackFramesAreIdenticalFromStackBottom(array &$stackTrace, array &$lastStackTrace): int
-    {
-        // Helper function to check if two frames are identical
-        $isSameFrame = function ($frame1, $frame2) {
-            $keysToCompare = ['class', 'function', 'file', 'line', 'type'];
-            foreach ($keysToCompare as $key) {
-                if (($frame1[$key] ?? null) !== ($frame2[$key] ?? null)) {
-                    return false;
-                }
-            }
-            return true;
-        };
-
-        $stackTraceCount = count($stackTrace);
-        $lastStackTraceCount = count($lastStackTrace);
-
-        $count = min($stackTraceCount, $lastStackTraceCount);
-
-        $index = 0;
-        for ($index = 1; $index <= $count; $index++) {
-            $stFrame = &$stackTrace[$stackTraceCount - $index];
-            $lastStFrame = &$lastStackTrace[$lastStackTraceCount - $index];
-
-            if ($isSameFrame($stFrame, $lastStFrame) == false) {
-                return $index - 1;
-            }
-        }
-        return $count;
     }
 
     private function compareStackTraces(array &$stackTrace, array &$lastStackTrace, int $durationMs, bool $topFrameIsInternalFunction, $apmFramesFilteredOut)
@@ -238,10 +185,67 @@ class InferredSpans
         }
     }
 
+    private function getStartTime(int $durationMs): int
+    {
+        return Clock::getDefault()->now() - $durationMs * self::MILLIS_TO_NANOS;
+    }
+
+    private function filterOutAPMFrames(array &$stackTrace): ?int
+    {
+       // Filter out Elastic and Otel stacks
+        $cutIndex = null;
+        for ($index = count($stackTrace) - 1; $index >= 0; $index--) {
+            $frame = $stackTrace[$index];
+            if (
+                isset($frame['class']) &&
+                (str_starts_with($frame['class'], 'OpenTelemetry\\') ||
+                str_starts_with($frame['class'], 'Elastic\\'))
+            ) {
+                $cutIndex = $index;
+                break;
+            }
+        }
+
+        if ($cutIndex !== null) {
+            array_splice($stackTrace, 0, $cutIndex + 1);
+        }
+        return $cutIndex;
+    }
+
+    private function getHowManyStackFramesAreIdenticalFromStackBottom(array &$stackTrace, array &$lastStackTrace): int
+    {
+        // Helper function to check if two frames are identical
+        $isSameFrame = function ($frame1, $frame2) {
+            $keysToCompare = ['class', 'function', 'file', 'line', 'type'];
+            foreach ($keysToCompare as $key) {
+                if (($frame1[$key] ?? null) !== ($frame2[$key] ?? null)) {
+                    return false;
+                }
+            }
+            return true;
+        };
+
+        $stackTraceCount = count($stackTrace);
+        $lastStackTraceCount = count($lastStackTrace);
+
+        $count = min($stackTraceCount, $lastStackTraceCount);
+
+        $index = 0;
+        for ($index = 1; $index <= $count; $index++) {
+            $stFrame = &$stackTrace[$stackTraceCount - $index];
+            $lastStFrame = &$lastStackTrace[$lastStackTraceCount - $index];
+
+            if ($isSameFrame($stFrame, $lastStFrame) == false) {
+                return $index - 1;
+            }
+        }
+        return $count;
+    }
+
     private function getStackTrace($stackTrace): string
     {
-        $str = "";
-        $id = 0;
+        $str = "#0 {main}\n";
+        $id = 1;
         foreach ($stackTrace as $frame) {
             if (array_key_exists('file', $frame)) {
                 $file = $frame['file'] . '(' . $frame['line'] . ')';
@@ -249,7 +253,7 @@ class InferredSpans
                 $file = '[internal function]';
             }
 
-            $str .= sprintf("#%d %s: %s%s%s\n\t", $id, $file, $frame['class'] ?? '', $frame['type'] ?? '', $frame['function']);
+            $str .= sprintf("#%d %s: %s%s%s\n", $id, $file, $frame['class'] ?? '', $frame['type'] ?? '', $frame['function']);
             $id++;
         }
         return $str;
@@ -266,11 +270,7 @@ class InferredSpans
             ->setAttribute(TraceAttributes::CODE_FUNCTION, $frame['function'] ?? null)
             ->setAttribute(TraceAttributes::CODE_FILEPATH, $frame['file'] ?? null)
             ->setAttribute(TraceAttributes::CODE_LINENO, $frame['line'] ?? null)
-
-
             ->setAttribute('is_inferred', true);
-
-
 
         $span = $builder->startSpan();
         $context = $span->storeInContext($parent);
@@ -289,6 +289,10 @@ class InferredSpans
         if (!array_key_exists(self::METADATA_SPAN, $frame)) {
             self::logError("endFrameSpan missing metadata.", [$frame]);
             return;
+        }
+
+        if (!$dropSpan) {
+            $dropSpan = $this->shouldDropTooShortSpan($frame, $endEpochNanos);
         }
 
         if ($dropSpan) {
@@ -311,4 +315,27 @@ class InferredSpans
 
         unset($frame[self::METADATA_SPAN]);
     }
+
+    private function shouldDropTooShortSpan(array &$frame, ?int $endEpochNanos = null): bool {
+        if ($this->minSpanDuration <= 0) {
+            return false;
+        }
+
+        $span = $frame[self::METADATA_SPAN]->get();
+
+        $duration = 0;
+        if ($endEpochNanos) {
+            $duration = $endEpochNanos - $span->getStartEpochNanos();
+        } else {
+            $duration = $span->getDuration();
+        }
+
+        if ($duration < $this->minSpanDuration * self::MILLIS_TO_NANOS) {
+            self::logDebug('Span ' . $frame[self::METADATA_SPAN]->get()->getName() . ' duration ' . intval($duration / self::MILLIS_TO_NANOS) . 'ms is too short to fit within the minimum span duration limit: ' . $this->minSpanDuration . 'ms');
+            return true;
+        }
+        return false;
+    }
+
+
 }
