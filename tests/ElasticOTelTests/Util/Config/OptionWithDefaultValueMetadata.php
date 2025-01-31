@@ -1,15 +1,15 @@
 <?php
 
 /*
- * Licensed to Elasticsearch B.V. under one or more contributor
- * license agreements. See the NOTICE file distributed with
+ * Copyright Elasticsearch B.V. and/or licensed to Elasticsearch B.V. under one
+ * or more contributor license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
  * ownership. Elasticsearch B.V. licenses this file to you under
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -21,10 +21,12 @@
 
 declare(strict_types=1);
 
-namespace Elastic\Apm\Impl\Config;
+namespace ElasticOTelTests\Util\Config;
+
+use Override;
 
 /**
- * Code in this file is part of implementation internals and thus it is not covered by the backward compatibility.
+ * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
  *
  * @internal
  *
@@ -35,23 +37,13 @@ namespace Elastic\Apm\Impl\Config;
 abstract class OptionWithDefaultValueMetadata extends OptionMetadata
 {
     /**
-     * @var OptionParser<TParsedValue>
-     */
-    private $parser;
-
-    /**
-     * @var TParsedValue
-     */
-    private $defaultValue;
-
-    /**
      * @param OptionParser<TParsedValue> $parser
      * @param TParsedValue               $defaultValue
      */
-    public function __construct(OptionParser $parser, $defaultValue)
-    {
-        $this->parser = $parser;
-        $this->defaultValue = $defaultValue;
+    public function __construct(
+        public readonly OptionParser $parser,
+        public readonly mixed $defaultValue
+    ) {
     }
 
     /**
@@ -59,6 +51,7 @@ abstract class OptionWithDefaultValueMetadata extends OptionMetadata
      *
      * @return OptionParser<TParsedValue>
      */
+    #[Override]
     public function parser(): OptionParser
     {
         return $this->parser;
@@ -69,7 +62,8 @@ abstract class OptionWithDefaultValueMetadata extends OptionMetadata
      *
      * @return TParsedValue
      */
-    public function defaultValue()
+    #[Override]
+    public function defaultValue(): mixed
     {
         return $this->defaultValue;
     }

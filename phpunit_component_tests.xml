@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.3/phpunit.xsd"
+
+    bootstrap="tests/bootstrap.php"
+    colors="true"
+    failOnRisky="true"
+    noInteraction="true"
+    stopOnDefect="true"
+    stopOnError="true"
+    stopOnFailure="true"
+    stopOnIncomplete="true"
+    stopOnRisky="true"
+    stopOnWarning="true"
+    testdox="true"
+    verbose="true"
+>
+    <testsuites>
+        <testsuite name="Tests">
+            <directory>./tests/ElasticOTelTests/ComponentTests</directory>
+        </testsuite>
+    </testsuites>
+
+    <extensions>
+        <extension class="\ElasticOTelTests\ComponentTests\Util\ComponentTestsPhpUnitExtension"/>
+    </extensions>
+
+    <logging>
+        <junit outputFile="./z_local/GENERATED/PHPUnit/component_tests_log_junit_format.xml"/>
+    </logging>
+
+    <coverage>
+        <include>
+            <directory suffix=".php">./prod/php</directory>
+        </include>
+    </coverage>
+
+    <php>
+        <ini name="memory_limit" value="2G"/>
+    </php>
+</phpunit>

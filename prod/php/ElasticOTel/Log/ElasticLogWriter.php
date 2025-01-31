@@ -33,7 +33,7 @@ class ElasticLogWriter implements LogWriterInterface
      */
     public function write(mixed $level, string $message, array $context): void
     {
-        $edotLevel = is_string($level) ? Level::getFromPsrLevel($level) : Level::OFF;
+        $edotLevelIntValue = (is_string($level) ? (LogLevel::fromPsrLevel($level) ?? LogLevel::off) : LogLevel::off)->value;
         /**
          * elastic_otel_* functions are provided by the extension
          *
@@ -41,7 +41,7 @@ class ElasticLogWriter implements LogWriterInterface
          */
         \elastic_otel_log_feature( // @phpstan-ignore function.notFound
             0 /* isForced */,
-            $edotLevel,
+            $edotLevelIntValue,
             LogFeature::OTEL /* feature */,
             '' /* category */,
             '' /* file */,

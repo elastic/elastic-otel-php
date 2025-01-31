@@ -47,7 +47,7 @@ final class InstrumentationBridge
 
     public function bootstrap(): void
     {
-        self::elasticOTelHook(null, 'spl_autoload_register', null, Closure::fromCallable([$this, 'retryDelayedHooks']));
+        self::elasticOTelHook(null, 'spl_autoload_register', null, $this->retryDelayedHooks(...));
 
         require ProdPhpDir::$fullPath . DIRECTORY_SEPARATOR . 'OpenTelemetry' . DIRECTORY_SEPARATOR . 'Instrumentation' . DIRECTORY_SEPARATOR . 'hook.php';
 

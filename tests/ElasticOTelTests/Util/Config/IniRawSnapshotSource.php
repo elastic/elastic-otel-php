@@ -1,15 +1,15 @@
 <?php
 
 /*
- * Licensed to Elasticsearch B.V. under one or more contributor
- * license agreements. See the NOTICE file distributed with
+ * Copyright Elasticsearch B.V. and/or licensed to Elasticsearch B.V. under one
+ * or more contributor license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright
  * ownership. Elasticsearch B.V. licenses this file to you under
  * the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -21,9 +21,10 @@
 
 declare(strict_types=1);
 
-namespace Elastic\Apm\Impl\Config;
+namespace ElasticOTelTests\Util\Config;
 
-use Elastic\Apm\Impl\Util\ArrayUtil;
+use Elastic\OTel\Util\ArrayUtil;
+use Override;
 
 /**
  * Code in this file is part of implementation internals and thus it is not covered by the backward compatibility.
@@ -32,10 +33,9 @@ use Elastic\Apm\Impl\Util\ArrayUtil;
  */
 final class IniRawSnapshotSource implements RawSnapshotSourceInterface
 {
-    public const DEFAULT_PREFIX = 'elastic_apm.';
+    public const DEFAULT_PREFIX = 'elastic_otel.';
 
-    /** @var string */
-    private $iniNamesPrefix;
+    private string $iniNamesPrefix;
 
     /**
      * @param string $iniNamesPrefix
@@ -50,17 +50,20 @@ final class IniRawSnapshotSource implements RawSnapshotSourceInterface
         return $iniNamesPrefix . $optionName;
     }
 
+    /** @inheritDoc */
+    #[Override]
     public function currentSnapshot(array $optionNameToMeta): RawSnapshotInterface
     {
-        /** @var array<string, string> */
+        /** @var array<string, string> $optionNameToValue */
         $optionNameToValue = [];
 
-        /** @var array<string, mixed> */
-        $allOpts = ini_get_all(/* extension: */ null, /* details */ false);
+        /** @var array<string, mixed> $allOpts */
+        $allOpts = ini_get_all(extension: null, details: false);
 
         foreach ($optionNameToMeta as $optionName => $optionMeta) {
             $iniName = self::optionNameToIniName($this->iniNamesPrefix, $optionName);
             if (($iniValue = ArrayUtil::getValueIfKeyExistsElse($iniName, $allOpts, null)) !== null) {
+                /** @var bool|float|int|string $iniValue */
                 $optionNameToValue[$optionName] = self::iniValueToString($iniValue);
             }
         }
@@ -69,11 +72,9 @@ final class IniRawSnapshotSource implements RawSnapshotSourceInterface
     }
 
     /**
-     * @param mixed $iniValue
-     *
-     * @return string
+     * @param bool|float|int|string $iniValue
      */
-    private static function iniValueToString($iniValue): string
+    private static function iniValueToString(mixed $iniValue): string
     {
         if (is_bool($iniValue)) {
             return $iniValue ? 'true' : 'false';
