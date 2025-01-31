@@ -112,11 +112,10 @@ static void elastic_execute_internal(INTERNAL_FUNCTION_PARAMETERS) {
     ELASTICAPM_G(globals)->inferredSpans_->attachBacktraceIfInterrupted();
 }
 
-void Hooking::replaceHooks() {
+void Hooking::replaceHooks(bool enableInferredSpansHooks) {
     zend_observer_error_register(elastic_observer_error_cb);
 
-    // TODO pass configuration and enable hooks only on demand
-    if (true) {
+    if (enableInferredSpansHooks) {
         ELOGF_DEBUG(ELASTICAPM_G(globals)->logger_, HOOKS, "Hooked into zend_execute_internal and zend_interrupt_function");
         zend_execute_internal = elastic_execute_internal;
         zend_interrupt_function = elastic_interrupt_function;

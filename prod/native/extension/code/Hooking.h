@@ -52,7 +52,8 @@ public:
         return original_zend_interrupt_function_;
     }
 
-    void replaceHooks();
+    void replaceHooks(bool enableInferredSpansHooks);
+
 private:
     Hooking(Hooking const &) = delete;
     void operator=(Hooking const &) = delete;
