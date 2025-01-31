@@ -33,6 +33,7 @@
 #include "os/OsUtils.h"
 #include "CallOnScopeExit.h"
 #include "ConfigurationManager.h"
+#include "InferredSpans.h"
 #include "InstrumentedFunctionHooksStorage.h"
 #include "InternalFunctionInstrumentation.h"
 #include "Logger.h"
@@ -43,7 +44,6 @@
 #include "PhpBridgeInterface.h"
 #include "RequestScope.h"
 #include "SharedMemoryState.h"
-
 
 
 ZEND_DECLARE_MODULE_GLOBALS( elastic_otel )
@@ -102,8 +102,18 @@ static PHP_GINIT_FUNCTION(elastic_otel) {
 
     auto hooksStorage = std::make_shared<elasticapm::php::InstrumentedFunctionHooksStorage_t>();
 
+    auto inferredSpans = std::make_shared<elasticapm::php::InferredSpans>([interruptFlag = reinterpret_cast<void *>(&EG(vm_interrupt))]() {
+#if PHP_VERSION_ID >= 80200
+        zend_atomic_bool_store_ex(reinterpret_cast<zend_atomic_bool *>(interruptFlag), true);
+#else
+        *static_cast<zend_bool *>(interruptFlag) = 1;
+#endif
+    }, [phpBridge](elasticapm::php::InferredSpans::time_point_t requestTime, elasticapm::php::InferredSpans::time_point_t now) {
+        phpBridge->callInferredSpans(now - requestTime);
+    });
+
     try {
-        elastic_otel_globals->globals = new elasticapm::php::AgentGlobals(logger, std::move(logSinkStdErr), std::move(logSinkSysLog), std::move(logSinkFile), std::move(phpBridge), std::move(hooksStorage), [](elasticapm::php::ConfigurationSnapshot &cfg) { return configManager.updateIfChanged(cfg); });
+        elastic_otel_globals->globals = new elasticapm::php::AgentGlobals(logger, std::move(logSinkStdErr), std::move(logSinkSysLog), std::move(logSinkFile), std::move(phpBridge), std::move(hooksStorage), std::move(inferredSpans), [](elasticapm::php::ConfigurationSnapshot &cfg) { return configManager.updateIfChanged(cfg); });
     } catch (std::exception const &e) {
         ELOGF_CRITICAL(logger, MODULE, "Unable to allocate AgentGlobals. '%s'", e.what());
     }

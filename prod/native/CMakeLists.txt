@@ -1,8 +1,5 @@
 cmake_minimum_required(VERSION 3.26.0)
 
-
-#TODO paplo tutaj jakos zgrac te sciezki ze skryptami i tyle
-
 # set path for our local includes
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/building/cmake")
 list(APPEND CMAKE_PREFIX_PATH "${CMAKE_BINARY_DIR}/build/${CMAKE_BUILD_TYPE}/generators")

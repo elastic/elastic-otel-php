@@ -81,12 +81,16 @@ public:
 
     void prefork() final {
         shutdown();
-        thread_.join();
+        if (thread_.joinable()) {
+            thread_.join();
+        }
     }
 
     void postfork([[maybe_unused]] bool child) final {
         working_ = true;
+        mutex_.lock();
         thread_ = std::thread(getThreadWorkerFunction());
+        mutex_.unlock();
         pauseCondition_.notify_all();
     }
 

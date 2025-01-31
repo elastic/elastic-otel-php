@@ -21,6 +21,8 @@
 
 #include "PhpBridgeInterface.h"
 #include "SharedMemoryState.h"
+#include "InferredSpans.h"
+#include "PeriodicTaskExecutor.h"
 #include "PeriodicTaskExecutor.h"
 #include "RequestScope.h"
 #include "LoggerInterface.h"
@@ -31,6 +33,7 @@
 #include "transport/HttpTransportAsync.h"
 
 #include "LogFeature.h"
+#include <signal.h>
 
 namespace elasticapm::php {
 // clang-format off
@@ -41,16 +44,18 @@ AgentGlobals::AgentGlobals(std::shared_ptr<LoggerInterface> logger,
         std::shared_ptr<LoggerSinkFile> logSinkFile,
         std::shared_ptr<PhpBridgeInterface> bridge,
         std::shared_ptr<InstrumentedFunctionHooksStorageInterface> hooksStorage,
+        std::shared_ptr<InferredSpans> inferredSpans,
         ConfigurationStorage::configUpdate_t updateConfigurationSnapshot) :
     config_(std::make_shared<elasticapm::php::ConfigurationStorage>(std::move(updateConfigurationSnapshot))),
     logger_(std::move(logger)),
     bridge_(std::move(bridge)),
     hooksStorage_(std::move(hooksStorage)),
     sapi_(std::make_shared<elasticapm::php::PhpSapi>(bridge_->getPhpSapiName())),
+    inferredSpans_(std::move(inferredSpans)),
     periodicTaskExecutor_(),
     httpTransportAsync_(std::make_unique<elasticapm::php::transport::HttpTransportAsync<>>(logger_, config_)),
     sharedMemory_(std::make_shared<elasticapm::php::SharedMemoryState>()),
-    requestScope_(std::make_shared<elasticapm::php::RequestScope>(logger_, bridge_, sapi_, sharedMemory_, config_, [hs = hooksStorage_]() { hs->clear(); })),
+    requestScope_(std::make_shared<elasticapm::php::RequestScope>(logger_, bridge_, sapi_, sharedMemory_, inferredSpans_, config_, [hs = hooksStorage_]() { hs->clear(); }, [this]() { return getPeriodicTaskExecutor();})),
     logSinkStdErr_(std::move(logSinkStdErr)),
     logSinkSysLog_(std::move(logSinkSysLog)),
     logSinkFile_(std::move(logSinkFile))
@@ -75,6 +80,29 @@ AgentGlobals::AgentGlobals(std::shared_ptr<LoggerInterface> logger,
 AgentGlobals::~AgentGlobals() {
     config_->removeAllConfigUpdateWatchers();
 }
+
+std::shared_ptr<PeriodicTaskExecutor> AgentGlobals::getPeriodicTaskExecutor() {
+    if (periodicTaskExecutor_) {
+        return periodicTaskExecutor_;
+    }
+
+    periodicTaskExecutor_ = std::make_shared<elasticapm::php::PeriodicTaskExecutor>(
+            std::vector<elasticapm::php::PeriodicTaskExecutor::task_t>{
+            [inferredSpans = inferredSpans_](elasticapm::php::PeriodicTaskExecutor::time_point_t now) { inferredSpans->tryRequestInterrupt(now); }
+            },
+            []() {
+                // block signals for this thread to be handled by main Apache/PHP thread
+                // list of signals from Apaches mpm handlers
+                elasticapm::utils::blockSignal(SIGTERM);
+                elasticapm::utils::blockSignal(SIGHUP);
+                elasticapm::utils::blockSignal(SIGINT);
+                elasticapm::utils::blockSignal(SIGWINCH);
+                elasticapm::utils::blockSignal(SIGUSR1);
+                elasticapm::utils::blockSignal(SIGPROF); // php timeout signal
+            }
+        );
+        return periodicTaskExecutor_;
+    }
 
 
 }
