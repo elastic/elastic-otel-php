@@ -27,6 +27,8 @@
 
 namespace elasticapm::php {
 
+using namespace std::string_literals;
+
 void Logger::setLogFeatures(std::unordered_map<elasticapm::php::LogFeature, LogLevel> features) {
     features_ = std::move(features);
 }
@@ -78,8 +80,7 @@ void Logger::printf(LogLevel level, const char *format, ...) const {
     auto msg = elasticapm::utils::stringVPrintf(format, args);
     va_end(args);
 
-
-    std::string output;
+    std::string output = "[EDOT] "s;
     output.append(getFormattedTime());
     output.append(" ");
 
@@ -111,8 +112,6 @@ void Logger::printf(LogLevel level, const char *format, ...) const {
         sink->writeLog(output, msgSv, timeSv, levelSv, processSv);
     }
 }
-
-
 
 std::string Logger::getFormattedTime() const {
     const auto now = std::chrono::system_clock::now();
