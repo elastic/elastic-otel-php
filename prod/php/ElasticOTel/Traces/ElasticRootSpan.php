@@ -48,9 +48,14 @@ class ElasticRootSpan
 
     private const DEFAULT_SPAN_NAME_FOR_SCRIPT = '<script>';
 
+    private static function isCliSapi(): bool
+    {
+        return php_sapi_name() === 'cli';
+    }
+
     public static function startRootSpan(?callable $notifySpanEnded): void
     {
-        if (php_sapi_name() === 'cli') {
+        if (self::isCliSapi()) {
             if (!Configuration::getBoolean('ELASTIC_OTEL_TRANSACTION_SPAN_ENABLED_CLI', true)) {
                 self::logDebug('ELASTIC_OTEL_TRANSACTION_SPAN_ENABLED_CLI set to false');
                 return;
@@ -94,19 +99,25 @@ class ElasticRootSpan
             Version::VERSION_1_25_0->url(),
         );
         $parent = Globals::propagator()->extract($request->getHeaders());
-        $span = $tracer->spanBuilder(self::getSpanName($request))
+        $spanBuilder = $tracer->spanBuilder(self::getSpanName($request))
             ->setSpanKind(SpanKind::KIND_SERVER)
             ->setStartTimestamp((int) (self::getStartTime($request) * 1_000_000_000))
-            ->setParent($parent)
-            ->setAttribute(TraceAttributes::URL_FULL, (string) $request->getUri())
-            ->setAttribute(TraceAttributes::HTTP_REQUEST_METHOD, $request->getMethod())
-            ->setAttribute(TraceAttributes::HTTP_REQUEST_BODY_SIZE, $request->getHeaderLine('Content-Length'))
-            ->setAttribute(TraceAttributes::USER_AGENT_ORIGINAL, $request->getHeaderLine('User-Agent'))
-            ->setAttribute(TraceAttributes::SERVER_ADDRESS, $request->getUri()->getHost())
-            ->setAttribute(TraceAttributes::SERVER_PORT, $request->getUri()->getPort())
-            ->setAttribute(TraceAttributes::URL_SCHEME, $request->getUri()->getScheme())
-            ->setAttribute(TraceAttributes::URL_PATH, $request->getUri()->getPath())
-            ->startSpan();
+            ->setParent($parent);
+        if (!self::isCliSapi()) {
+            $spanBuilder->setAttributes(
+                [
+                    TraceAttributes::URL_FULL               => strval($request->getUri()),
+                    TraceAttributes::HTTP_REQUEST_METHOD    => $request->getMethod(),
+                    TraceAttributes::HTTP_REQUEST_BODY_SIZE => $request->getHeaderLine('Content-Length'),
+                    TraceAttributes::USER_AGENT_ORIGINAL    => $request->getHeaderLine('User-Agent'),
+                    TraceAttributes::SERVER_ADDRESS         => $request->getUri()->getHost(),
+                    TraceAttributes::SERVER_PORT            => $request->getUri()->getPort(),
+                    TraceAttributes::URL_SCHEME             => $request->getUri()->getScheme(),
+                    TraceAttributes::URL_PATH               => $request->getUri()->getPath(),
+                ]
+            );
+        }
+        $span = $spanBuilder->startSpan();
         Context::storage()->attach($span->storeInContext($parent));
     }
 
