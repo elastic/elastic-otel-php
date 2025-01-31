@@ -21,26 +21,23 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTests\ComponentTests\Util;
+namespace ElasticOTelTests\Util;
 
-final class SpanExpectations implements ExpectationsInterface
+/**
+ * @template TKey of array-key
+ * @template-covariant TValue
+ */
+interface ArrayReadInterface
 {
-    use ExpectationsTrait;
+    /**
+     * @phpstan-param TKey $key
+     */
+    public function keyExists(string|int $key): bool;
 
     /**
-     * @param ?string                     $name
-     * @param ?SpanKind                   $kind
-     * @param ?SpanAttributesExpectations $attributes
+     * @phpstan-param TKey $key
+     *
+     * @return TValue
      */
-    public function __construct(
-        public readonly ?string $name = null,
-        public readonly ?SpanKind $kind = null,
-        public readonly ?SpanAttributesExpectations $attributes = null,
-    ) {
-    }
-
-    public function assertMatches(Span $actual): void
-    {
-        $this->assertMatchesMixed($actual);
-    }
+    public function getValue(string|int $key): mixed;
 }

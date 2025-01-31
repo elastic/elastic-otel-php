@@ -29,6 +29,7 @@ use ElasticOTelTests\ComponentTests\Util\AppCodeTarget;
 use ElasticOTelTests\ComponentTests\Util\HttpAppCodeHostHandle;
 use ElasticOTelTests\ComponentTests\Util\HttpAppCodeRequestParams;
 use ElasticOTelTests\ComponentTests\Util\Span;
+use ElasticOTelTests\ComponentTests\Util\SpanAttributesExpectations;
 use ElasticOTelTests\ComponentTests\Util\SpanExpectations;
 use ElasticOTelTests\ComponentTests\Util\SpanKind;
 use ElasticOTelTests\ComponentTests\Util\UrlUtil;
@@ -133,39 +134,43 @@ final class TransactionSpanTest extends ComponentTestCaseBase
             $expectedRootSpanKind = SpanKind::server;
             /** @var HttpAppCodeHostHandle $appCodeHost */
             $expectedRootSpanUrlParts = UrlUtil::buildUrlPartsWithDefaults(port: $appCodeHost->httpServerHandle->getMainPort());
-            $expectedRootSpanAttributes = [
-                TraceAttributes::HTTP_REQUEST_METHOD => HttpAppCodeRequestParams::DEFAULT_HTTP_REQUEST_METHOD,
-                TraceAttributes::SERVER_ADDRESS => $expectedRootSpanUrlParts->host,
-                TraceAttributes::SERVER_PORT => $expectedRootSpanUrlParts->port,
-                TraceAttributes::URL_FULL => UrlUtil::buildFullUrl($expectedRootSpanUrlParts),
-                TraceAttributes::URL_PATH => $expectedRootSpanUrlParts->path,
-                TraceAttributes::URL_SCHEME => $expectedRootSpanUrlParts->scheme,
-            ];
+            $rootSpanAttributesExpectations = new SpanAttributesExpectations(
+                [
+                    TraceAttributes::HTTP_REQUEST_METHOD       => HttpAppCodeRequestParams::DEFAULT_HTTP_REQUEST_METHOD,
+                    TraceAttributes::SERVER_ADDRESS            => $expectedRootSpanUrlParts->host,
+                    TraceAttributes::SERVER_PORT               => $expectedRootSpanUrlParts->port,
+                    TraceAttributes::URL_FULL                  => UrlUtil::buildFullUrl($expectedRootSpanUrlParts),
+                    TraceAttributes::URL_PATH                  => $expectedRootSpanUrlParts->path,
+                    TraceAttributes::URL_SCHEME                => $expectedRootSpanUrlParts->scheme,
+                    self::DID_APP_CODE_FINISH_SUCCESSFULLY_KEY => true,
+                ]
+            );
         } else {
-            // TODO: Sergey Kleyman: Should transaction span for CLI script be fo SERVER kind?
             $expectedRootSpanKind = SpanKind::server;
-            $expectedRootSpanAttributes = [
-                // TODO: Sergey Kleyman: Should transaction span for CLI script have http.request.method attribute?
-                TraceAttributes::HTTP_REQUEST_METHOD => HttpMethods::GET,
-                // TODO: Sergey Kleyman: Should transaction span for CLI script have http.request.body.size attribute?
-                TraceAttributes::HTTP_REQUEST_BODY_SIZE => '',
-                // TODO: Sergey Kleyman: Should transaction span for CLI script have server.address attribute?
-                TraceAttributes::SERVER_ADDRESS => 'localhost',
-                // TODO: Sergey Kleyman: Should transaction span for CLI script have url.full attribute?
-                TraceAttributes::URL_FULL => 'http://localhost',
-                // TODO: Sergey Kleyman: Should transaction span for CLI script have url.path attribute?
-                TraceAttributes::URL_PATH => '',
-                // TODO: Sergey Kleyman: Should transaction span for CLI script have url.scheme attribute?
-                TraceAttributes::URL_SCHEME => HttpSchemes::HTTP,
-                // TODO: Sergey Kleyman: Should transaction span for CLI script have user_agent.original attribute?
-                TraceAttributes::USER_AGENT_ORIGINAL => '',
-            ];
+            $rootSpanAttributesExpectations = new SpanAttributesExpectations(
+                [
+                    // TODO: Sergey Kleyman: Should transaction span for CLI script have http.request.method attribute?
+                    TraceAttributes::HTTP_REQUEST_METHOD       => HttpMethods::GET,
+                    // TODO: Sergey Kleyman: Should transaction span for CLI script have http.request.body.size attribute?
+                    TraceAttributes::HTTP_REQUEST_BODY_SIZE    => '',
+                    // TODO: Sergey Kleyman: Should transaction span for CLI script have server.address attribute?
+                    TraceAttributes::SERVER_ADDRESS            => 'localhost',
+                    // TODO: Sergey Kleyman: Should transaction span for CLI script have url.full attribute?
+                    TraceAttributes::URL_FULL                  => 'http://localhost',
+                    // TODO: Sergey Kleyman: Should transaction span for CLI script have url.path attribute?
+                    TraceAttributes::URL_PATH                  => '',
+                    // TODO: Sergey Kleyman: Should transaction span for CLI script have url.scheme attribute?
+                    TraceAttributes::URL_SCHEME                => HttpSchemes::HTTP,
+                    // TODO: Sergey Kleyman: Should transaction span for CLI script have user_agent.original attribute?
+                    TraceAttributes::USER_AGENT_ORIGINAL       => '',
+                    self::DID_APP_CODE_FINISH_SUCCESSFULLY_KEY => true,
+                ]
+            );
         }
-        $expectedRootSpanAttributes[self::DID_APP_CODE_FINISH_SUCCESSFULLY_KEY] = true;
-        $expectationsForRootSpan = new SpanExpectations(name: self::getExpectedTransactionSpanName(), kind: $expectedRootSpanKind, attributes: $expectedRootSpanAttributes);
+        $expectationsForRootSpan = new SpanExpectations(self::getExpectedTransactionSpanName(), $expectedRootSpanKind, $rootSpanAttributesExpectations);
 
         $expectedDummySpanKind = SpanKind::internal;
-        $expectationsForDummySpan = new SpanExpectations(self::APP_CODE_DUMMY_SPAN_NAME, kind: $expectedDummySpanKind);
+        $expectationsForDummySpan = new SpanExpectations(self::APP_CODE_DUMMY_SPAN_NAME, $expectedDummySpanKind);
 
         $exportedData = $testCaseHandle->waitForEnoughExportedData(WaitForEventCounts::spans($expectedSpanCount));
         $dbgCtx->add(compact('exportedData'));

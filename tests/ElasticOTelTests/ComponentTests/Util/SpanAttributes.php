@@ -23,7 +23,9 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
+use Countable;
 use Elastic\OTel\Util\ArrayUtil;
+use ElasticOTelTests\Util\ArrayReadInterface;
 use ElasticOTelTests\Util\DebugContextForTests;
 use ElasticOTelTests\Util\IterableUtil;
 use ElasticOTelTests\Util\Log\LoggableInterface;
@@ -36,8 +38,10 @@ use Opentelemetry\Proto\Common\V1\KeyValue as OTelProtoKeyValue;
 
 /**
  * @phpstan-type AttributeValue array<int>|array<mixed>|bool|float|int|null|string
+ *
+ * @implements ArrayReadInterface<string, AttributeValue>
  */
-final class SpanAttributes implements LoggableInterface
+final class SpanAttributes implements ArrayReadInterface, Countable, LoggableInterface
 {
     /** @var array<string, AttributeValue> $keyToValueMap */
     private readonly array $keyToValueMap;
@@ -48,8 +52,6 @@ final class SpanAttributes implements LoggableInterface
     }
 
     /**
-     * @param OTelProtoKeyValue $keyValue
-     *
      * @return AttributeValue
      */
     private static function extractValue(OTelProtoKeyValue $keyValue): array|bool|float|int|null|string
@@ -140,15 +142,26 @@ final class SpanAttributes implements LoggableInterface
         return $result;
     }
 
-    public function get(string $attributeName, /* out */ mixed &$attributeValue): bool
+    public function keyExists(int|string $key): bool
     {
-        return ArrayUtil::getValueIfKeyExists($attributeName, $this->keyToValueMap, /* out */ $attributeValue);
+        return array_key_exists($key, $this->keyToValueMap);
+    }
+
+    public function getValue(int|string $key): mixed
+    {
+        TestCaseBase::assertIsString($key);
+        TestCaseBase::assertTrue(ArrayUtil::getValueIfKeyExists($key, $this->keyToValueMap, /* out */ $attributeValue));
+        return $attributeValue;
+    }
+
+    public function count(): int
+    {
+        return count($this->keyToValueMap);
     }
 
     public function tryToGetBool(string $attributeName): ?bool
     {
-        $attributeValue = ArrayUtil::getValueIfKeyExistsElse($attributeName, $this->keyToValueMap, null);
-        if ($attributeValue === null) {
+        if (!ArrayUtil::getValueIfKeyExists($attributeName, $this->keyToValueMap, /* out */ $attributeValue)) {
             return null;
         }
         TestCaseBase::assertIsBool($attributeValue);
@@ -157,8 +170,7 @@ final class SpanAttributes implements LoggableInterface
 
     public function tryToGetFloat(string $attributeName): ?float
     {
-        $attributeValue = ArrayUtil::getValueIfKeyExistsElse($attributeName, $this->keyToValueMap, null);
-        if ($attributeValue === null) {
+        if (!ArrayUtil::getValueIfKeyExists($attributeName, $this->keyToValueMap, /* out */ $attributeValue)) {
             return null;
         }
         TestCaseBase::assertIsFloat($attributeValue);
@@ -167,8 +179,7 @@ final class SpanAttributes implements LoggableInterface
 
     public function tryToGetInt(string $attributeName): ?int
     {
-        $attributeValue = ArrayUtil::getValueIfKeyExistsElse($attributeName, $this->keyToValueMap, null);
-        if ($attributeValue === null) {
+        if (!ArrayUtil::getValueIfKeyExists($attributeName, $this->keyToValueMap, /* out */ $attributeValue)) {
             return null;
         }
         TestCaseBase::assertIsInt($attributeValue);
@@ -177,8 +188,7 @@ final class SpanAttributes implements LoggableInterface
 
     public function tryToGetString(string $attributeName): ?string
     {
-        $attributeValue = ArrayUtil::getValueIfKeyExistsElse($attributeName, $this->keyToValueMap, null);
-        if ($attributeValue === null) {
+        if (!ArrayUtil::getValueIfKeyExists($attributeName, $this->keyToValueMap, /* out */ $attributeValue)) {
             return null;
         }
         TestCaseBase::assertIsString($attributeValue);

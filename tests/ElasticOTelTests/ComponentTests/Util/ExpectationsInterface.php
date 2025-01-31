@@ -23,24 +23,7 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
-final class SpanExpectations implements ExpectationsInterface
+interface ExpectationsInterface
 {
-    use ExpectationsTrait;
-
-    /**
-     * @param ?string                     $name
-     * @param ?SpanKind                   $kind
-     * @param ?SpanAttributesExpectations $attributes
-     */
-    public function __construct(
-        public readonly ?string $name = null,
-        public readonly ?SpanKind $kind = null,
-        public readonly ?SpanAttributesExpectations $attributes = null,
-    ) {
-    }
-
-    public function assertMatches(Span $actual): void
-    {
-        $this->assertMatchesMixed($actual);
-    }
+    public function assertMatchesMixed(mixed $actual): void;
 }

@@ -28,6 +28,7 @@ use ElasticOTelTests\ComponentTests\Util\AppCodeRequestParams;
 use ElasticOTelTests\ComponentTests\Util\AppCodeTarget;
 use ElasticOTelTests\ComponentTests\Util\ComponentTestCaseBase;
 use ElasticOTelTests\ComponentTests\Util\CurlHandleForTests;
+use ElasticOTelTests\ComponentTests\Util\SpanAttributesExpectations;
 use ElasticOTelTests\ComponentTests\Util\SpanExpectations;
 use ElasticOTelTests\ComponentTests\Util\SpanKind;
 use ElasticOTelTests\ComponentTests\Util\HttpAppCodeRequestParams;
@@ -178,28 +179,32 @@ final class CurlAutoInstrumentationTest extends ComponentTestCaseBase
         //        |------------------------------------------------------|    |--------------------------------|
         //        client app host                                             server app host
 
-        $expectedCurlClientSpanAttributes = [
-            TraceAttributes::CODE_FUNCTION => 'curl_exec',
-            TraceAttributes::HTTP_REQUEST_METHOD => HttpMethods::GET,
-            TraceAttributes::HTTP_RESPONSE_STATUS_CODE => self::SERVER_RESPONSE_HTTP_STATUS,
-            TraceAttributes::SERVER_ADDRESS => $appCodeRequestParamsForServer->urlParts->host,
-            TraceAttributes::SERVER_PORT => $appCodeRequestParamsForServer->urlParts->port,
-            TraceAttributes::URL_FULL => UrlUtil::buildFullUrl($appCodeRequestParamsForServer->urlParts),
-            TraceAttributes::URL_SCHEME => $appCodeRequestParamsForServer->urlParts->scheme,
-        ];
-        $expectationsForCurlClientSpan = new SpanExpectations(name: HttpMethods::GET, kind: SpanKind::client, attributes: $expectedCurlClientSpanAttributes);
+        $curlClientSpanAttributesExpectations = new SpanAttributesExpectations(
+            [
+                TraceAttributes::CODE_FUNCTION             => 'curl_exec',
+                TraceAttributes::HTTP_REQUEST_METHOD       => HttpMethods::GET,
+                TraceAttributes::HTTP_RESPONSE_STATUS_CODE => self::SERVER_RESPONSE_HTTP_STATUS,
+                TraceAttributes::SERVER_ADDRESS            => $appCodeRequestParamsForServer->urlParts->host,
+                TraceAttributes::SERVER_PORT               => $appCodeRequestParamsForServer->urlParts->port,
+                TraceAttributes::URL_FULL                  => UrlUtil::buildFullUrl($appCodeRequestParamsForServer->urlParts),
+                TraceAttributes::URL_SCHEME                => $appCodeRequestParamsForServer->urlParts->scheme,
+            ]
+        );
+        $expectationsForCurlClientSpan = new SpanExpectations(HttpMethods::GET, SpanKind::client, $curlClientSpanAttributesExpectations);
 
-        $expectedServerTxSpanAttributes = [
-            TraceAttributes::HTTP_REQUEST_METHOD => HttpMethods::GET,
-            TraceAttributes::HTTP_RESPONSE_STATUS_CODE => self::SERVER_RESPONSE_HTTP_STATUS,
-            TraceAttributes::SERVER_ADDRESS => $appCodeRequestParamsForServer->urlParts->host,
-            TraceAttributes::SERVER_PORT => $appCodeRequestParamsForServer->urlParts->port,
-            TraceAttributes::URL_FULL => UrlUtil::buildFullUrl($appCodeRequestParamsForServer->urlParts),
-            TraceAttributes::URL_PATH => $appCodeRequestParamsForServer->urlParts->path,
-            TraceAttributes::URL_SCHEME => $appCodeRequestParamsForServer->urlParts->scheme,
-        ];
+        $serverTxSpanAttributesExpectations = new SpanAttributesExpectations(
+            [
+                TraceAttributes::HTTP_REQUEST_METHOD       => HttpMethods::GET,
+                TraceAttributes::HTTP_RESPONSE_STATUS_CODE => self::SERVER_RESPONSE_HTTP_STATUS,
+                TraceAttributes::SERVER_ADDRESS            => $appCodeRequestParamsForServer->urlParts->host,
+                TraceAttributes::SERVER_PORT               => $appCodeRequestParamsForServer->urlParts->port,
+                TraceAttributes::URL_FULL                  => UrlUtil::buildFullUrl($appCodeRequestParamsForServer->urlParts),
+                TraceAttributes::URL_PATH                  => $appCodeRequestParamsForServer->urlParts->path,
+                TraceAttributes::URL_SCHEME                => $appCodeRequestParamsForServer->urlParts->scheme,
+            ]
+        );
         $expectedServerTxSpanName = HttpMethods::GET . ' ' . $appCodeRequestParamsForServer->urlParts->path;
-        $expectationsForServerTxSpan = new SpanExpectations(name: $expectedServerTxSpanName, kind: SpanKind::server, attributes: $expectedServerTxSpanAttributes);
+        $expectationsForServerTxSpan = new SpanExpectations($expectedServerTxSpanName, SpanKind::server, $serverTxSpanAttributesExpectations);
 
         $exportedData = $testCaseHandle->waitForEnoughExportedData(WaitForEventCounts::spans(3));
 
