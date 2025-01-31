@@ -117,11 +117,15 @@ final class PhpPartFacade
 
             self::$singletonInstance = new self();
 
+            /**
+             * @noinspection PhpFullyQualifiedNameUsageInspection, PhpUndefinedFunctionInspection
+             * @phpstan-ignore function.notFound
+             */
             if (\elastic_otel_get_config_option_by_name('inferred_spans_enabled')) {
                 self::$singletonInstance->inferredSpans = new InferredSpans(
-                    \elastic_otel_get_config_option_by_name('inferred_spans_reduction_enabled'),
-                    \elastic_otel_get_config_option_by_name('inferred_spans_stacktrace_enabled'),
-                    \elastic_otel_get_config_option_by_name('inferred_spans_min_duration')
+                    (bool)\elastic_otel_get_config_option_by_name('inferred_spans_reduction_enabled'), // @phpstan-ignore-line
+                    (bool)\elastic_otel_get_config_option_by_name('inferred_spans_stacktrace_enabled'), // @phpstan-ignore-line
+                    \elastic_otel_get_config_option_by_name('inferred_spans_min_duration') // @phpstan-ignore-line
                 );
             }
         } catch (Throwable $throwable) {
