@@ -43,22 +43,26 @@ abstract class PhpUnitExtensionBase implements BeforeTestHook
 
     public function __construct(string $dbgProcessName)
     {
-        LoggingSubsystem::$isInTestingContext = true;
-        LoggableToJsonEncodable::$maxDepth = self::LOG_COMPOSITE_DATA_MAX_DEPTH_IN_TEST_MODE;
+        ExceptionUtil::runCatchLogRethrow(
+            function () use ($dbgProcessName): void {
+                LoggingSubsystem::$isInTestingContext = true;
+                LoggableToJsonEncodable::$maxDepth = self::LOG_COMPOSITE_DATA_MAX_DEPTH_IN_TEST_MODE;
 
-        AmbientContextForTests::init($dbgProcessName);
-
+                AmbientContextForTests::init($dbgProcessName);
+            }
+        );
         $this->logger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__);
     }
 
-    /**
-     * @param string $test
-     */
     public function executeBeforeTest(string $test): void
     {
-        DebugContextForTests::reset();
-        self::$timestampBeforeTest = AmbientContextForTests::clock()->getSystemClockCurrentTime();
-        ($loggerProxy = $this->logger->ifDebugLevelEnabled(__LINE__, __FUNCTION__))
-        && $loggerProxy->includeStackTrace()->log('', ['timestampBeforeTest' => TimeUtil::timestampToLoggable(self::$timestampBeforeTest->value)]);
+        ExceptionUtil::runCatchLogRethrow(
+            function (): void {
+                DebugContextForTests::reset();
+                self::$timestampBeforeTest = AmbientContextForTests::clock()->getSystemClockCurrentTime();
+                ($loggerProxy = $this->logger->ifDebugLevelEnabled(__LINE__, __FUNCTION__))
+                && $loggerProxy->includeStackTrace()->log('', ['timestampBeforeTest' => TimeUtil::timestampToLoggable(self::$timestampBeforeTest->value)]);
+            }
+        );
     }
 }

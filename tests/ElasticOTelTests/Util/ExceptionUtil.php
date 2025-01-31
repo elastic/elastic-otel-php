@@ -29,6 +29,8 @@ use ElasticOTelTests\Util\Log\AdhocLoggableObject;
 use ElasticOTelTests\Util\Log\LoggableStackTrace;
 use ElasticOTelTests\Util\Log\LoggableToString;
 use ElasticOTelTests\Util\Log\PropertyLogPriority;
+use ElasticOTelTests\Util\Log\SinkForTests as LogSinkForTests;
+use Throwable;
 
 /**
  * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
@@ -58,5 +60,24 @@ final class ExceptionUtil
         }
         $messageSuffix = LoggableToString::convert($messageSuffixObj, prettyPrint: true);
         return $messagePrefix . (TextUtil::isEmptyString($messageSuffix) ? '' : ('. ' . $messageSuffix));
+    }
+
+    /**
+     * @template TReturnValue
+     *
+     * @param callable(): TReturnValue $callableToRun
+     *
+     * @return TReturnValue
+     *
+     * @noinspection PhpDocMissingThrowsInspection
+     */
+    public static function runCatchLogRethrow(callable $callableToRun): mixed
+    {
+        try {
+            return $callableToRun();
+        } catch (Throwable $throwable) {
+            LogSinkForTests::writeLineToStdErr('Caught throwable: ' . $throwable);
+            throw $throwable;
+        }
     }
 }
