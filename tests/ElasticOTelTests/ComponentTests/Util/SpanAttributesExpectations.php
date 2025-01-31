@@ -39,9 +39,13 @@ final class SpanAttributesExpectations implements ExpectationsInterface
 
     /**
      * @param array<string, AttributeValue> $attributes
+     * @param array<string> $notAllowedAttributeNames
      */
-    public function __construct(array $attributes, bool $allowOtherKeysInActual = true)
-    {
+    public function __construct(
+        array $attributes,
+        bool $allowOtherKeysInActual = true,
+        private readonly array $notAllowedAttributeNames = []
+    ) {
         $this->arrayExpectations = new class ($attributes, $allowOtherKeysInActual) extends ArrayExpectations {
             #[Override]
             protected function assertValueMatches(string|int $key, mixed $expectedValue, mixed $actualValue): void
@@ -65,5 +69,9 @@ final class SpanAttributesExpectations implements ExpectationsInterface
     public function assertMatches(SpanAttributes $actual): void
     {
         $this->arrayExpectations->assertMatches($actual);
+
+        foreach ($this->notAllowedAttributeNames as $notAllowedAttributeName) {
+            TestCaseBase::assertFalse($actual->keyExists($notAllowedAttributeName));
+        }
     }
 }

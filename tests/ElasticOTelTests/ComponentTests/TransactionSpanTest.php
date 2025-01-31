@@ -41,8 +41,6 @@ use ElasticOTelTests\Util\Config\OptionsForProdDefaultValues;
 use ElasticOTelTests\Util\DataProviderForTestBuilder;
 use ElasticOTelTests\ComponentTests\Util\ComponentTestCaseBase;
 use ElasticOTelTests\Util\DebugContextForTests;
-use ElasticOTelTests\Util\HttpMethods;
-use ElasticOTelTests\Util\HttpSchemes;
 use ElasticOTelTests\Util\IterableUtil;
 use ElasticOTelTests\Util\MixedMap;
 use OpenTelemetry\SemConv\TraceAttributes;
@@ -148,23 +146,18 @@ final class TransactionSpanTest extends ComponentTestCaseBase
         } else {
             $expectedRootSpanKind = SpanKind::server;
             $rootSpanAttributesExpectations = new SpanAttributesExpectations(
-                [
-                    // TODO: Sergey Kleyman: Should transaction span for CLI script have http.request.method attribute?
-                    TraceAttributes::HTTP_REQUEST_METHOD       => HttpMethods::GET,
-                    // TODO: Sergey Kleyman: Should transaction span for CLI script have http.request.body.size attribute?
-                    TraceAttributes::HTTP_REQUEST_BODY_SIZE    => '',
-                    // TODO: Sergey Kleyman: Should transaction span for CLI script have server.address attribute?
-                    TraceAttributes::SERVER_ADDRESS            => 'localhost',
-                    // TODO: Sergey Kleyman: Should transaction span for CLI script have url.full attribute?
-                    TraceAttributes::URL_FULL                  => 'http://localhost',
-                    // TODO: Sergey Kleyman: Should transaction span for CLI script have url.path attribute?
-                    TraceAttributes::URL_PATH                  => '',
-                    // TODO: Sergey Kleyman: Should transaction span for CLI script have url.scheme attribute?
-                    TraceAttributes::URL_SCHEME                => HttpSchemes::HTTP,
-                    // TODO: Sergey Kleyman: Should transaction span for CLI script have user_agent.original attribute?
-                    TraceAttributes::USER_AGENT_ORIGINAL       => '',
-                    self::DID_APP_CODE_FINISH_SUCCESSFULLY_KEY => true,
-                ]
+                attributes:               [
+                                              self::DID_APP_CODE_FINISH_SUCCESSFULLY_KEY => true,
+                                          ],
+                notAllowedAttributeNames: [
+                                              TraceAttributes::HTTP_REQUEST_METHOD,
+                                              TraceAttributes::HTTP_REQUEST_BODY_SIZE,
+                                              TraceAttributes::SERVER_ADDRESS,
+                                              TraceAttributes::URL_FULL,
+                                              TraceAttributes::URL_PATH,
+                                              TraceAttributes::URL_SCHEME,
+                                              TraceAttributes::USER_AGENT_ORIGINAL,
+                                          ]
             );
         }
         $expectationsForRootSpan = new SpanExpectations(self::getExpectedTransactionSpanName(), $expectedRootSpanKind, $rootSpanAttributesExpectations);
