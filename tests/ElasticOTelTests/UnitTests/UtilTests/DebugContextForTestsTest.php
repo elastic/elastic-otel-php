@@ -24,12 +24,13 @@ declare(strict_types=1);
 namespace ElasticOTelTests\UnitTests\UtilTests;
 
 use ElasticOTelTests\Util\ArrayUtilForTests;
-use ElasticOTelTests\Util\IterableUtil;
 use ElasticOTelTests\Util\DebugContextForTests;
+use ElasticOTelTests\Util\IterableUtil;
 use ElasticOTelTests\Util\Log\LoggableToString;
 use ElasticOTelTests\Util\Pair;
 use ElasticOTelTests\Util\RangeUtil;
 use ElasticOTelTests\Util\TestCaseBase;
+use PHPUnit\Framework\AssertionFailedError;
 
 /**
  * This class extends TestCase and TestCaseBase on purpose because TestCaseBase uses DebugContext
@@ -411,5 +412,23 @@ class DebugContextForTestsTest extends TestCaseBase
         $thisFuncCtx = ArrayUtilForTests::getFirstValue($capturedCtxStack);
         self::assertArrayHasKey('localVar', $thisFuncCtx);
         self::assertSame(2, $thisFuncCtx['localVar']);
+    }
+
+    public function testPHPUnitFrameworkAssertionFailedErrorContainsDebugContext(): void
+    {
+        DebugContextForTests::newScope(/* out */ $dbgCtx);
+
+        $myLocalVar = 'my localVar value';
+        $dbgCtx->add(compact('myLocalVar'));
+
+        $exceptionMsg = null;
+        try {
+            self::fail();
+        } catch (AssertionFailedError $ex) {
+            $exceptionMsg = $ex->getMessage();
+        }
+        $dbgCtx->add(compact('exceptionMsg'));
+        self::assertStringContainsString('myLocalVar', $exceptionMsg);
+        self::assertStringContainsString('my localVar value', $exceptionMsg);
     }
 }

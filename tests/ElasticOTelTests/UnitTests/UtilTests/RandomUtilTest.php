@@ -25,6 +25,7 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\UnitTests\UtilTests;
 
+use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\Log\LoggableToString;
 use ElasticOTelTests\Util\RandomUtil;
 use ElasticOTelTests\Util\TestCaseBase;
@@ -43,7 +44,7 @@ class RandomUtilTest extends TestCaseBase
             $randSelectedSubSet == ['a'] || $randSelectedSubSet == ['b'],
             LoggableToString::convert(['$randSelectedSubSet' => $randSelectedSubSet])
         );
-        self::assertListArrayIsSubsetOf($randSelectedSubSet, $totalSet);
+        AssertEx::listIsSubsetOf($randSelectedSubSet, $totalSet);
         self::assertEqualsCanonicalizing($totalSet, RandomUtil::arrayRandValues($totalSet, count($totalSet)));
 
         $totalSet = ['a', 'b', 'c'];
@@ -53,10 +54,10 @@ class RandomUtilTest extends TestCaseBase
             $randSelectedSubSet == ['a'] || $randSelectedSubSet == ['b'] || $randSelectedSubSet == ['c'],
             LoggableToString::convert(['$randSelectedSubSet' => $randSelectedSubSet])
         );
-        self::assertListArrayIsSubsetOf($randSelectedSubSet, $totalSet);
+        AssertEx::listIsSubsetOf($randSelectedSubSet, $totalSet);
         $randSelectedSubSet = RandomUtil::arrayRandValues($totalSet, 2);
         self::assertCount(2, $randSelectedSubSet);
-        self::assertListArrayIsSubsetOf($randSelectedSubSet, $totalSet);
+        AssertEx::listIsSubsetOf($randSelectedSubSet, $totalSet);
         self::assertEqualsCanonicalizing($totalSet, RandomUtil::arrayRandValues($totalSet, count($totalSet)));
     }
 }

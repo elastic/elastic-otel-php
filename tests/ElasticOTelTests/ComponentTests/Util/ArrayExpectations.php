@@ -26,8 +26,8 @@ namespace ElasticOTelTests\ComponentTests\Util;
 use Countable;
 use ElasticOTelTests\Util\ArrayReadInterface;
 use ElasticOTelTests\Util\DebugContextForTests;
-use ElasticOTelTests\Util\TestCaseBase;
 use Override;
+use PHPUnit\Framework\Assert;
 
 /**
  * @template TKey of array-key
@@ -51,7 +51,7 @@ class ArrayExpectations implements ExpectationsInterface
     #[Override]
     public function assertMatchesMixed(mixed $actual): void
     {
-        TestCaseBase::assertTrue(is_array($actual) || $actual instanceof ArrayReadInterface);
+        Assert::assertTrue(is_array($actual) || $actual instanceof ArrayReadInterface);
         /** @var ArrayLike $actual */
         $this->assertMatches($actual);
     }
@@ -64,7 +64,7 @@ class ArrayExpectations implements ExpectationsInterface
         DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
         try {
             if (!$this->allowOtherKeysInActual) {
-                TestCaseBase::assertCount(count($this->expectedArray), $actual);
+                Assert::assertCount(count($this->expectedArray), $actual);
             }
             $dbgCtx->pushSubScope();
             foreach ($this->expectedArray as $expectedKey => $expectedValue) {
@@ -100,7 +100,7 @@ class ArrayExpectations implements ExpectationsInterface
     private static function getValue(string|int $key, array|ArrayReadInterface $array): mixed
     {
         if (is_array($array)) {
-            TestCaseBase::assertArrayHasKey($key, $array);
+            Assert::assertArrayHasKey($key, $array);
             return $array[$key];
         }
         return $array->getValue($key);
@@ -111,6 +111,6 @@ class ArrayExpectations implements ExpectationsInterface
      */
     protected function assertValueMatches(string|int $key, mixed $expectedValue, mixed $actualValue): void
     {
-        TestCaseBase::assertSame($expectedValue, $actualValue);
+        Assert::assertSame($expectedValue, $actualValue);
     }
 }

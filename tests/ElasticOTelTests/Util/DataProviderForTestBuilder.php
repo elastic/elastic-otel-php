@@ -24,6 +24,7 @@ declare(strict_types=1);
 namespace ElasticOTelTests\Util;
 
 use ElasticOTelTests\Util\Log\LoggableToString;
+use PHPUnit\Framework\Assert;
 
 final class DataProviderForTestBuilder
 {
@@ -37,7 +38,7 @@ final class DataProviderForTestBuilder
 
     private function assertValid(): void
     {
-        TestCaseBase::assertSameSize($this->generators, $this->onlyFirstValueCombinable);
+        Assert::assertSameSize($this->generators, $this->onlyFirstValueCombinable);
     }
 
     /**
@@ -281,7 +282,7 @@ final class DataProviderForTestBuilder
      */
     private static function getIterableFirstValue(iterable $iterable): mixed
     {
-        TestCaseBase::assertTrue(IterableUtil::getFirstValue($iterable, /* out */ $value));
+        Assert::assertTrue(IterableUtil::getFirstValue($iterable, /* out */ $value));
         return $value;
     }
 
@@ -292,14 +293,14 @@ final class DataProviderForTestBuilder
      */
     private function buildForGenIndex(int $genIndexForAllValues, array $resultSoFar, int $currentGenIndex): iterable
     {
-        TestCaseBase::assertLessThanOrEqual(count($this->generators), $currentGenIndex);
+        Assert::assertLessThanOrEqual(count($this->generators), $currentGenIndex);
         if ($currentGenIndex === count($this->generators)) {
             yield $resultSoFar;
             return;
         }
 
         $currentGen = $this->generators[$currentGenIndex];
-        TestCaseBase::assertFalse(IterableUtil::isEmpty($currentGen($resultSoFar)));
+        Assert::assertFalse(IterableUtil::isEmpty($currentGen($resultSoFar)));
         $iterable = $currentGen($resultSoFar);
         $shouldGenAfterFirst = ($currentGenIndex === $genIndexForAllValues) || (!$this->onlyFirstValueCombinable[$currentGenIndex]);
         $resultsToGen = $shouldGenAfterFirst ? $iterable : [self::getIterableFirstValue($iterable)];
@@ -470,7 +471,7 @@ final class DataProviderForTestBuilder
     public function buildWithoutDataSetName(): iterable
     {
         $this->assertValid();
-        TestCaseBase::assertNotEmpty($this->generators);
+        Assert::assertNotEmpty($this->generators);
 
         for ($genIndexForAllValues = 0; $genIndexForAllValues < count($this->generators); ++$genIndexForAllValues) {
             if ($genIndexForAllValues !== 0 && !$this->onlyFirstValueCombinable[$genIndexForAllValues]) {

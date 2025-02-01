@@ -24,7 +24,7 @@ declare(strict_types=1);
 namespace ElasticOTelTests\Util;
 
 use Elastic\OTel\Util\StaticClassTrait;
-use ElasticOTelTests\Util\TestCaseBase;
+use PHPUnit\Framework\Assert;
 
 final class EnvVarUtil
 {
@@ -38,17 +38,18 @@ final class EnvVarUtil
 
     public static function set(string $envVarName, string $envVarValue): void
     {
-        TestCaseBase::assertTrue(putenv($envVarName . '=' . $envVarValue));
-        TestCaseBase::assertSame($envVarValue, self::get($envVarName));
+        Assert::assertTrue(putenv($envVarName . '=' . $envVarValue));
+        Assert::assertSame($envVarValue, self::get($envVarName));
     }
 
     public static function unset(string $envVarName): void
     {
-        TestCaseBase::assertTrue(putenv($envVarName));
-        TestCaseBase::assertNull(self::get($envVarName));
+        Assert::assertTrue(putenv($envVarName));
+        Assert::assertNull(self::get($envVarName));
     }
 
-    public static function setOrUnset(string $envVarName, ?string $envVarValue): void
+    /** @noinspection PhpUnused */
+    public static function flipSetUnset(string $envVarName, ?string $envVarValue): void
     {
         if ($envVarValue === null) {
             self::unset($envVarName);

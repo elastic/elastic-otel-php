@@ -31,4 +31,6 @@
 
     <exclude-pattern>*/tests/polyfills/AllowDynamicProperties.php</exclude-pattern>
     <exclude-pattern>*/tests/polyfills/Override.php</exclude-pattern>
+
+    <exclude-pattern>*/tests/substitutes/*</exclude-pattern>
 </ruleset>

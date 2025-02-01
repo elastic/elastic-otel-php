@@ -31,7 +31,6 @@ use ElasticOTelTests\Util\HttpStatusCodes;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
 use ElasticOTelTests\Util\Log\LoggableToString;
 use ElasticOTelTests\Util\Log\Logger;
-use ElasticOTelTests\Util\TestCaseBase;
 use ErrorException;
 use Override;
 use PHPUnit\Framework\Assert;
@@ -204,7 +203,7 @@ abstract class TestInfraHttpServerProcessBase extends SpawnedProcessBase
                     ['statusCode' => $response->getStatusCode(), 'reasonPhrase' => $response->getReasonPhrase(), 'body' => $response->getBody()]
                 );
             } else {
-                TestCaseBase::assertInstanceOf(Promise::class, $response); // @phpstan-ignore staticMethod.alreadyNarrowedType
+                Assert::assertInstanceOf(Promise::class, $response); // @phpstan-ignore staticMethod.alreadyNarrowedType
                 $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Promise returned - response will be returned later...');
             }
 

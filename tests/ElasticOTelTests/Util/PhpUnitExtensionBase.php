@@ -39,6 +39,7 @@ abstract class PhpUnitExtensionBase implements BeforeTestHook
 
     public function __construct()
     {
+        AmbientContextForTests::assertIsInited();
         $this->logger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__);
     }
 

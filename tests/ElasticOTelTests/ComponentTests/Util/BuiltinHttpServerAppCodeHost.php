@@ -26,10 +26,9 @@ namespace ElasticOTelTests\ComponentTests\Util;
 use ElasticOTelTests\Util\AmbientContextForTests;
 use ElasticOTelTests\Util\GlobalUnderscoreServer;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
-use ElasticOTelTests\Util\Log\LoggableToString;
 use ElasticOTelTests\Util\Log\Logger;
-use ElasticOTelTests\Util\TestCaseBase;
 use Override;
+use PHPUnit\Framework\Assert;
 use Psr\Http\Message\ResponseInterface;
 
 final class BuiltinHttpServerAppCodeHost extends AppCodeHostBase
@@ -63,11 +62,7 @@ final class BuiltinHttpServerAppCodeHost extends AppCodeHostBase
     #[Override]
     protected function processConfig(): void
     {
-        TestCaseBase::assertCount(
-            1,
-            AmbientContextForTests::testConfig()->dataPerProcess()->thisServerPorts,
-            LoggableToString::convert(AmbientContextForTests::testConfig())
-        );
+        Assert::assertCount(1, AmbientContextForTests::testConfig()->dataPerProcess()->thisServerPorts);
 
         parent::processConfig();
 
@@ -95,7 +90,10 @@ final class BuiltinHttpServerAppCodeHost extends AppCodeHostBase
         $localLogger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__);
         $loggerProxyDebug = $localLogger->ifDebugLevelEnabledNoLine(__FUNCTION__);
 
-        http_response_code($response->getStatusCode());
+        $httpResponseStatusCode = $response->getStatusCode();
+        $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Sending response ...', compact('httpResponseStatusCode', 'response'));
+
+        http_response_code($httpResponseStatusCode);
         echo $response->getBody();
     }
 }

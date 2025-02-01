@@ -25,24 +25,23 @@ namespace ElasticOTelTests\Util;
 
 use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LogStreamInterface;
-use ElasticOTelTests\Util\TestCaseBase;
+use PHPUnit\Framework\Assert;
 
 /**
  * @template T
  */
 final class Optional implements LoggableInterface
 {
-    private bool $isValueSet = false;
-
     /** @var T */
     private mixed $value;
+    private bool $isValueSet = false;
 
     /**
      * @return T
      */
     public function getValue()
     {
-        TestCaseBase::assertTrue($this->isValueSet);
+        Assert::assertTrue($this->isValueSet);
         return $this->value;
     }
 
@@ -59,6 +58,8 @@ final class Optional implements LoggableInterface
      * @param T $elseValue
      *
      * @return T
+     *
+     * @noinspection PhpUnused
      */
     public function getValueOr($elseValue)
     {
@@ -78,6 +79,8 @@ final class Optional implements LoggableInterface
 
     /**
      * @param T $value
+     *
+     * @noinspection PhpUnused
      */
     public function setValueIfNotSet($value): void
     {

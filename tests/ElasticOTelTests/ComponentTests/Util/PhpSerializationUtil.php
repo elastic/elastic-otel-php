@@ -27,7 +27,7 @@ use Elastic\OTel\Util\ArrayUtil;
 use Elastic\OTel\Util\StaticClassTrait;
 use ElasticOTelTests\Util\DebugContextForTests;
 use ElasticOTelTests\Util\JsonUtil;
-use ElasticOTelTests\Util\TestCaseBase;
+use PHPUnit\Framework\Assert;
 
 final class PhpSerializationUtil
 {
@@ -38,9 +38,9 @@ final class PhpSerializationUtil
 
     public static function serializeToString(mixed $val): string
     {
-        TestCaseBase::assertTrue(extension_loaded('zlib'));
+        Assert::assertTrue(extension_loaded('zlib'));
         $serialized = serialize($val);
-        TestCaseBase::assertNotFalse($compressed = gzcompress($serialized, level: 9 /* 9 for maximum compression */));
+        Assert::assertNotFalse($compressed = gzcompress($serialized, level: 9 /* 9 for maximum compression */));
         $data = base64_encode($compressed);
         $checksum = crc32($data);
         return JsonUtil::encode([self::CHECKSUM_KEY => $checksum, self::DATA_KEY => $data]);
@@ -52,15 +52,15 @@ final class PhpSerializationUtil
         try {
             $decodedJson = JsonUtil::decode($serialized, asAssocArray: true);
             $dbgCtx->add(compact('decodedJson'));
-            TestCaseBase::assertIsArray($decodedJson);
-            TestCaseBase::assertTrue(ArrayUtil::getValueIfKeyExists(self::CHECKSUM_KEY, $decodedJson, /* out */ $receivedChecksum));
+            Assert::assertIsArray($decodedJson);
+            Assert::assertTrue(ArrayUtil::getValueIfKeyExists(self::CHECKSUM_KEY, $decodedJson, /* out */ $receivedChecksum));
             $dbgCtx->add(compact('receivedChecksum'));
-            TestCaseBase::assertTrue(ArrayUtil::getValueIfKeyExists(self::DATA_KEY, $decodedJson, /* out */ $data));
+            Assert::assertTrue(ArrayUtil::getValueIfKeyExists(self::DATA_KEY, $decodedJson, /* out */ $data));
             $dbgCtx->add(compact('data'));
-            TestCaseBase::assertIsString($data);
-            TestCaseBase::assertSame($receivedChecksum, crc32($data));
-            TestCaseBase::assertNotFalse($compressed = base64_decode($data, strict: true));
-            TestCaseBase::assertNotFalse($serialized = gzuncompress($compressed));
+            Assert::assertIsString($data);
+            Assert::assertSame($receivedChecksum, crc32($data));
+            Assert::assertNotFalse($compressed = base64_decode($data, strict: true));
+            Assert::assertNotFalse($serialized = gzuncompress($compressed));
             return unserialize($serialized);
         } finally {
             $dbgCtx->pop();
@@ -76,9 +76,9 @@ final class PhpSerializationUtil
      */
     public static function unserializeFromStringAssertType(string $serialized, string $className): object
     {
-        TestCaseBase::assertTrue(class_exists($className));
+        Assert::assertTrue(class_exists($className));
         $obj = self::unserializeFromString($serialized);
-        TestCaseBase::assertInstanceOf($className, $obj);
+        Assert::assertInstanceOf($className, $obj);
         return $obj;
     }
 }

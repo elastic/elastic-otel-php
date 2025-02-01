@@ -24,7 +24,7 @@ declare(strict_types=1);
 namespace ElasticOTelTests\Util\Config;
 
 use Elastic\OTel\Util\SingletonInstanceTrait;
-use ElasticOTelTests\Util\TestCaseBase;
+use PHPUnit\Framework\Assert;
 use UnitEnum;
 
 /**
@@ -52,13 +52,13 @@ trait OptionsMetadataTrait
         /** @var array<string, OptionMetadata<mixed>> $result */
         $result = [];
         foreach ($pairs as $pair) {
-            TestCaseBase::assertArrayNotHasKey($pair[0]->name, $result);
+            Assert::assertArrayNotHasKey($pair[0]->name, $result);
             $result[$pair[0]->name] = $pair[1];
         }
 
-        TestCaseBase::assertCount(count($cases), $result);
+        Assert::assertCount(count($cases), $result);
         foreach ($cases as $case) {
-            TestCaseBase::assertArrayHasKey($case->name, $result);
+            Assert::assertArrayHasKey($case->name, $result);
         }
 
         return $result;

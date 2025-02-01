@@ -27,7 +27,7 @@ use Elastic\OTel\Util\ArrayUtil;
 use Elastic\OTel\Util\TextUtil;
 use ElasticOTelTests\Util\ArrayUtilForTests;
 use ElasticOTelTests\Util\Log\LoggableTrait;
-use ElasticOTelTests\Util\TestCaseBase;
+use PHPUnit\Framework\Assert;
 
 /**
  * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
@@ -46,7 +46,7 @@ trait SnapshotTrait
      */
     protected function setPropertiesToValuesFrom(array $optNameToParsedValue): void
     {
-        TestCaseBase::assertNull($this->optNameToParsedValue);
+        Assert::assertNull($this->optNameToParsedValue);
 
         $actualClass = get_called_class();
         foreach ($optNameToParsedValue as $optName => $parsedValue) {
@@ -84,13 +84,13 @@ trait SnapshotTrait
         /** @var array<string> $propNames */
         $propNames = array_keys(get_class_vars(get_called_class()));
         $propNamesNotForOptions = array_merge(self::snapshotTraitPropNamesNotForOptions(), self::additionalPropNamesNotForOptions());
-        TestCaseBase::assertSame(count($propNamesNotForOptions), ArrayUtilForTests::removeAllValues(/* in,out */ $propNames, $propNamesNotForOptions));
+        Assert::assertSame(count($propNamesNotForOptions), ArrayUtilForTests::removeAllValues(/* in,out */ $propNames, $propNamesNotForOptions));
         return $propNames;
     }
 
     public function getOptionValueByName(OptionForTestsName $optName): mixed
     {
-        TestCaseBase::assertNotNull($this->optNameToParsedValue);
+        Assert::assertNotNull($this->optNameToParsedValue);
         return ArrayUtil::getValueIfKeyExistsElse($optName->name, $this->optNameToParsedValue, null);
     }
 }

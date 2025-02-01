@@ -24,7 +24,7 @@ declare(strict_types=1);
 namespace ElasticOTelTests\Util\Config;
 
 use ElasticOTelTests\Util\EnumUtilForTestsTrait;
-use ElasticOTelTests\Util\TestCaseBase;
+use PHPUnit\Framework\Assert;
 
 /**
  * Code in this file is part of implementation internals and thus it is not covered by the backward compatibility.
@@ -110,7 +110,7 @@ enum OptionForProdName
             $optNameToEnvVarPrefix = [];
             foreach (self::getEnvVarNamePrefixToOptionNames() as $envVarPrefix => $optNames) {
                 foreach ($optNames as $currentOptNameCase) {
-                    TestCaseBase::assertArrayNotHasKey($currentOptNameCase->name, $optNameToEnvVarPrefix);
+                    Assert::assertArrayNotHasKey($currentOptNameCase->name, $optNameToEnvVarPrefix);
                     $optNameToEnvVarPrefix[$currentOptNameCase->name] = $envVarPrefix;
                 }
             }

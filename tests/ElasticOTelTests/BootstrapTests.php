@@ -35,16 +35,34 @@ final class BootstrapTests
 {
     use StaticClassTrait;
 
+    public const UNIT_TESTS_DBG_PROCESS_NAME = 'Unit tests';
+    public const COMPONENT_TESTS_DBG_PROCESS_NAME = 'Component tests';
+
     public const LOG_COMPOSITE_DATA_MAX_DEPTH_IN_TEST_MODE = 15;
 
-    public static function do(string $dbgProcessName): void
+    private static function bootstrapShared(string $dbgProcessName): void
+    {
+        AmbientContextForTests::init($dbgProcessName);
+        LoggingSubsystem::$isInTestingContext = true;
+        LoggableToJsonEncodable::$maxDepth = self::LOG_COMPOSITE_DATA_MAX_DEPTH_IN_TEST_MODE;
+        AmbientContextForTests::assertIsInited();
+    }
+
+    public static function bootstrapUnitTests(): void
     {
         ExceptionUtil::runCatchLogRethrow(
-            function () use ($dbgProcessName): void {
-                AmbientContextForTests::init($dbgProcessName);
-                LoggingSubsystem::$isInTestingContext = true;
-                LoggableToJsonEncodable::$maxDepth = self::LOG_COMPOSITE_DATA_MAX_DEPTH_IN_TEST_MODE;
-                AmbientContextForTests::assertIsInited();
+            function (): void {
+                self::bootstrapShared(self::UNIT_TESTS_DBG_PROCESS_NAME);
+            }
+        );
+    }
+
+    public static function bootstrapComponentTests(): void
+    {
+        ExceptionUtil::runCatchLogRethrow(
+            function (): void {
+                self::bootstrapShared(self::COMPONENT_TESTS_DBG_PROCESS_NAME);
+                AmbientContextForTests::testConfig()->validateForComponentTests();
             }
         );
     }

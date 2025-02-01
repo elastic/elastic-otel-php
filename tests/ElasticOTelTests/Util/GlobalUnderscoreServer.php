@@ -26,6 +26,7 @@ namespace ElasticOTelTests\Util;
 use Elastic\OTel\Util\ArrayUtil;
 use Elastic\OTel\Util\StaticClassTrait;
 use Elastic\OTel\Util\TextUtil;
+use PHPUnit\Framework\Assert;
 
 /**
  * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
@@ -40,24 +41,24 @@ final class GlobalUnderscoreServer
 
     private static function getValue(string $key): mixed
     {
-        TestCaseBase::assertArrayHasKey($key, $_SERVER);
+        Assert::assertArrayHasKey($key, $_SERVER);
         return $_SERVER[$key];
     }
 
     public static function requestMethod(): string
     {
-        return TestCaseBase::assertIsStringAndReturn(self::getValue('REQUEST_METHOD'));
+        return AssertEx::isStringAndReturn(self::getValue('REQUEST_METHOD'));
     }
 
     public static function requestUri(): string
     {
-        return TestCaseBase::assertIsStringAndReturn(self::getValue('REQUEST_URI'));
+        return AssertEx::isStringAndReturn(self::getValue('REQUEST_URI'));
     }
 
     public static function getRequestHeaderValue(string $headerName): ?string
     {
         if (ArrayUtil::getValueIfKeyExists(self::HTTP_REQUEST_HEADER_KEY_PREFIX . strtoupper($headerName), $_SERVER, /* out */ $headerValue)) {
-            TestCaseBase::assertIsString($headerValue);
+            Assert::assertIsString($headerValue);
             return $headerValue;
         }
         return null;

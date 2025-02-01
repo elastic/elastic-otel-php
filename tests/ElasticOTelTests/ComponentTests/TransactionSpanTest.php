@@ -26,6 +26,7 @@ namespace ElasticOTelTests\ComponentTests;
 use ElasticOTelTests\ComponentTests\Util\AppCodeHostParams;
 use ElasticOTelTests\ComponentTests\Util\AppCodeRequestParams;
 use ElasticOTelTests\ComponentTests\Util\AppCodeTarget;
+use ElasticOTelTests\ComponentTests\Util\ComponentTestCaseBase;
 use ElasticOTelTests\ComponentTests\Util\HttpAppCodeHostHandle;
 use ElasticOTelTests\ComponentTests\Util\HttpAppCodeRequestParams;
 use ElasticOTelTests\ComponentTests\Util\Span;
@@ -39,7 +40,6 @@ use ElasticOTelTests\Util\BoolUtil;
 use ElasticOTelTests\Util\Config\OptionForProdName;
 use ElasticOTelTests\Util\Config\OptionsForProdDefaultValues;
 use ElasticOTelTests\Util\DataProviderForTestBuilder;
-use ElasticOTelTests\ComponentTests\Util\ComponentTestCaseBase;
 use ElasticOTelTests\Util\DebugContextForTests;
 use ElasticOTelTests\Util\IterableUtil;
 use ElasticOTelTests\Util\MixedMap;
@@ -61,7 +61,7 @@ final class TransactionSpanTest extends ComponentTestCaseBase
     /**
      * @return iterable<string, array{MixedMap}>
      */
-    public function dataProviderForTestEnabledConfig(): iterable
+    public function dataProviderForTestFeatureWithVariousEnabledConfigCombos(): iterable
     {
         /**
          * @return iterable<array<string, mixed>>
@@ -84,7 +84,7 @@ final class TransactionSpanTest extends ComponentTestCaseBase
         return DataProviderForTestBuilder::convertEachDataSetToMixedMapAndAddDesc($generateDataSets);
     }
 
-    public static function appCodeForTestEnabledConfig(MixedMap $appCodeArgs): void
+    public static function appCodeForTestFeatureWithVariousEnabledConfigCombos(MixedMap $appCodeArgs): void
     {
         self::appCodeSetsHowFinishedAttributes(
             $appCodeArgs,
@@ -94,7 +94,7 @@ final class TransactionSpanTest extends ComponentTestCaseBase
         );
     }
 
-    public function implTestEnabledConfig(MixedMap $testArgs): void
+    public function implTestFeatureWithVariousEnabledConfigCombos(MixedMap $testArgs): void
     {
         DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
 
@@ -111,7 +111,7 @@ final class TransactionSpanTest extends ComponentTestCaseBase
             }
         );
         $appCodeHost->execAppCode(
-            AppCodeTarget::asRouted([__CLASS__, 'appCodeForTestEnabledConfig']),
+            AppCodeTarget::asRouted([__CLASS__, 'appCodeForTestFeatureWithVariousEnabledConfigCombos']),
             function (AppCodeRequestParams $appCodeRequestParams) use ($testArgs): void {
                 $appCodeRequestParams->setAppCodeArgs($testArgs);
             }
@@ -203,14 +203,14 @@ final class TransactionSpanTest extends ComponentTestCaseBase
 
 
     /**
-     * @dataProvider dataProviderForTestEnabledConfig
+     * @dataProvider dataProviderForTestFeatureWithVariousEnabledConfigCombos
      */
-    public function testEnabledConfig(MixedMap $testArgs): void
+    public function testFeatureWithVariousEnabledConfigCombos(MixedMap $testArgs): void
     {
         self::runAndEscalateLogLevelOnFailure(
             self::buildDbgDescForTestWithArgs(__CLASS__, __FUNCTION__, $testArgs),
             function () use ($testArgs): void {
-                $this->implTestEnabledConfig($testArgs);
+                $this->implTestFeatureWithVariousEnabledConfigCombos($testArgs);
             }
         );
     }

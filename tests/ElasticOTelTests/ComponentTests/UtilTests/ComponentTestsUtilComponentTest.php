@@ -36,7 +36,7 @@ use ElasticOTelTests\Util\DataProviderForTestBuilder;
 use ElasticOTelTests\Util\DebugContextForTests;
 use ElasticOTelTests\Util\IterableUtil;
 use ElasticOTelTests\Util\MixedMap;
-use PHPUnit\Framework\AssertionFailedError;
+use PHPUnit\Framework\Exception as PHPUnitFrameworkException;
 
 /**
  * @group does_not_require_external_services
@@ -181,7 +181,7 @@ final class ComponentTestsUtilComponentTest extends ComponentTestCaseBase
                 }
             );
             $runAndEscalateLogLevelOnFailureExitedNormally = true;
-        } catch (AssertionFailedError $ex) {
+        } catch (PHPUnitFrameworkException $ex) {
             $runAndEscalateLogLevelOnFailureExitedNormally = false;
             self::assertStringContainsString($expectedMessage, $ex->getMessage());
         }

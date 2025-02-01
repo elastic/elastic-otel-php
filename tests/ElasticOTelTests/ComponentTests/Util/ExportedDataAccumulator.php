@@ -26,7 +26,7 @@ namespace ElasticOTelTests\ComponentTests\Util;
 use ElasticOTelTests\Util\ArrayUtilForTests;
 use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LoggableTrait;
-use ElasticOTelTests\Util\TestCaseBase;
+use PHPUnit\Framework\Assert;
 
 final class ExportedDataAccumulator implements LoggableInterface
 {
@@ -60,7 +60,7 @@ final class ExportedDataAccumulator implements LoggableInterface
     private function addNewConnection(AgentToOTelCollectorConnectionStarted $event): void
     {
         if ($this->openIntakeApiConnection === null) {
-            TestCaseBase::assertCount(0, $this->openIntakeApiConnectionRequests);
+            Assert::assertCount(0, $this->openIntakeApiConnectionRequests);
         } else {
             $this->closedIntakeApiConnections[] = new IntakeApiConnection($this->openIntakeApiConnection, $this->openIntakeApiConnectionRequests);
             $this->openIntakeApiConnectionRequests = [];

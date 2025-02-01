@@ -26,6 +26,7 @@ namespace ElasticOTelTests\ComponentTests\Util;
 use ElasticOTelTests\Util\TestCaseBase;
 use OpenTelemetry\SemConv\TraceAttributes;
 use Override;
+use PHPUnit\Framework\Assert;
 
 /**
  * @phpstan-import-type AttributeValue from SpanAttributes
@@ -53,7 +54,7 @@ final class SpanAttributesExpectations implements ExpectationsInterface
                 if ($key === TraceAttributes::URL_SCHEME) {
                     TestCaseBase::assertEqualsIgnoringCase($expectedValue, $actualValue);
                 } else {
-                    TestCaseBase::assertSame($expectedValue, $actualValue);
+                    Assert::assertSame($expectedValue, $actualValue);
                 }
             }
         };
@@ -62,7 +63,7 @@ final class SpanAttributesExpectations implements ExpectationsInterface
     #[Override]
     public function assertMatchesMixed(mixed $actual): void
     {
-        TestCaseBase::assertInstanceOf(SpanAttributes::class, $actual);
+        Assert::assertInstanceOf(SpanAttributes::class, $actual);
         $this->assertMatches($actual);
     }
 
@@ -71,7 +72,7 @@ final class SpanAttributesExpectations implements ExpectationsInterface
         $this->arrayExpectations->assertMatches($actual);
 
         foreach ($this->notAllowedAttributeNames as $notAllowedAttributeName) {
-            TestCaseBase::assertFalse($actual->keyExists($notAllowedAttributeName));
+            Assert::assertFalse($actual->keyExists($notAllowedAttributeName));
         }
     }
 }

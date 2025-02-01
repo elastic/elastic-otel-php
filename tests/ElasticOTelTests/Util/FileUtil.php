@@ -28,6 +28,7 @@ use Elastic\OTel\Util\StaticClassTrait;
 use Elastic\OTel\Util\TextUtil;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
 use ElasticOTelTests\Util\Log\LoggableToString;
+use PHPUnit\Framework\Assert;
 
 /**
  * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
@@ -43,6 +44,20 @@ final class FileUtil
         $result = realpath($inAbsolutePath);
         if ($result === false) {
             throw new TestsInfraException(ExceptionUtil::buildMessage("realpath failed", compact('inAbsolutePath')));
+        }
+        return $result;
+    }
+
+    public static function adaptUnixDirectorySeparators(string $path): string
+    {
+        static $unixDirectorySeparatorAsInt = null;
+        if ($unixDirectorySeparatorAsInt === null) {
+            $unixDirectorySeparatorAsInt = ord('/');
+        }
+
+        $result = '';
+        foreach (TextUtilForTests::iterateOverChars($path) as $pathCharAsInt) {
+            $result .= $pathCharAsInt === $unixDirectorySeparatorAsInt ? DIRECTORY_SEPARATOR : chr($pathCharAsInt);
         }
         return $result;
     }
@@ -94,7 +109,7 @@ final class FileUtil
         if ($tempFileFullPath === false) {
             ($loggerProxy = $logger->ifCriticalLevelEnabled(__LINE__, __FUNCTION__))
             && $loggerProxy->includeStackTrace()->log('Failed to create a temporary file', compact('dbgTempFilePurpose'));
-            TestCaseBase::fail(LoggableToString::convert(compact('dbgTempFilePurpose')));
+            Assert::fail(LoggableToString::convert(compact('dbgTempFilePurpose')));
         }
 
         ($loggerProxy = $logger->ifTraceLevelEnabled(__LINE__, __FUNCTION__))

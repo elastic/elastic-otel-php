@@ -32,13 +32,13 @@ class WildcardMatcherTest extends TestCaseBase
 {
     private function testCaseImpl(string $expr, string $text, bool $expectedResult): void
     {
-        $this->assertSame(
+        self::assertSame(
             $expectedResult,
             (new WildcardMatcher($expr))->match($text),
             LoggableToString::convert(
                 [
-                    'expr' => $expr,
-                    'text' => $text,
+                    'expr'           => $expr,
+                    'text'           => $text,
                     'expectedResult' => $expectedResult,
                 ]
             )
@@ -77,7 +77,7 @@ class WildcardMatcherTest extends TestCaseBase
      */
     public function testOnExternalData(string $testCaseDesc, string $expr, string $text, bool $expectedResult): void
     {
-        $this->assertNotSame('', $testCaseDesc);
+        self::assertNotSame('', $testCaseDesc);
         $this->testCaseImpl($expr, $text, $expectedResult);
     }
 
@@ -119,14 +119,14 @@ class WildcardMatcherTest extends TestCaseBase
     {
         $impl = function (string $expr, string $expectedToStringResult): void {
             $actualToStringResult = strval((new WildcardMatcher($expr)));
-            $this->assertSame(
+            self::assertSame(
                 $expectedToStringResult,
                 $actualToStringResult,
                 LoggableToString::convert(
                     [
-                        'expr' => $expr,
+                        'expr'                   => $expr,
                         'expectedToStringResult' => $expectedToStringResult,
-                        'actualToStringResult' => $actualToStringResult,
+                        'actualToStringResult'   => $actualToStringResult,
                     ]
                 )
             );

@@ -21,10 +21,27 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTests\ComponentTests;
+use PHPUnit\Framework\AssertionFailedError;
 
-use ElasticOTelTests\BootstrapTests;
+final class PHPUnitFrameworkAssertionFailedErrorAutoloader
+{
+    private static bool $isClassLoaded = false;
 
-require __DIR__ . '/../../bootstrap.php';
+    public static function register(): void
+    {
+        spl_autoload_register(
+            static function (string $fqClassName): void {
+                // Example of $fqClassName: PHPUnit\Framework\AssertionFailedError
 
-BootstrapTests::bootstrapUnitTests();
+                if (self::$isClassLoaded || $fqClassName !== AssertionFailedError::class) {
+                    return;
+                }
+
+                require __DIR__ . '/patched/AssertionFailedError.php';
+
+                self::$isClassLoaded = true;
+            },
+            prepend: true
+        );
+    }
+}

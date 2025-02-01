@@ -29,6 +29,7 @@ use Elastic\OTel\Util\ArrayUtil;
 use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LogStreamInterface;
 use Override;
+use PHPUnit\Framework\Assert;
 use ReturnTypeWillChange;
 
 /**
@@ -57,7 +58,7 @@ class MixedMap implements LoggableInterface, ArrayAccess
         DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
 
         foreach ($array as $key => $ignored) {
-            TestCaseBase::assertIsString($key);
+            Assert::assertIsString($key);
         }
         /**
          * @var array<string, mixed> $array
@@ -70,7 +71,7 @@ class MixedMap implements LoggableInterface, ArrayAccess
      */
     public static function getFrom(string $key, array $from): mixed
     {
-        TestCaseBase::assertArrayHasKey($key, $from);
+        Assert::assertArrayHasKey($key, $from);
         return $from[$key];
     }
 
@@ -93,7 +94,7 @@ class MixedMap implements LoggableInterface, ArrayAccess
         DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
         $value = self::getFrom($key, $from);
         if ($value !== null) {
-            TestCaseBase::assertIsBool($value);
+            Assert::assertIsBool($value);
         }
         return $value;
     }
@@ -105,7 +106,7 @@ class MixedMap implements LoggableInterface, ArrayAccess
     {
         DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
         $value = self::getNullableBoolFrom($key, $from);
-        TestCaseBase::assertNotNull($value);
+        Assert::assertNotNull($value);
         return $value;
     }
 
@@ -141,7 +142,7 @@ class MixedMap implements LoggableInterface, ArrayAccess
         $dbgCtx->add(['from' => $from]);
         $value = self::getFrom($key, $from);
         if ($value !== null) {
-            TestCaseBase::assertIsString($value);
+            Assert::assertIsString($value);
         }
         return $value;
     }
@@ -155,7 +156,7 @@ class MixedMap implements LoggableInterface, ArrayAccess
     {
         DebugContextForTests::newScope(/* out */ $dbgCtx, array_merge(['this' => $this], DebugContextForTests::funcArgs()));
         $value = $this->getNullableString($key);
-        TestCaseBase::assertNotNull($value);
+        Assert::assertNotNull($value);
         return $value;
     }
 
@@ -170,7 +171,7 @@ class MixedMap implements LoggableInterface, ArrayAccess
             return floatval($value);
         }
         $dbgCtx->add(['value type' => DbgUtil::getType($value), 'value' => $value]);
-        TestCaseBase::fail('Value is not a float');
+        Assert::fail('Value is not a float');
     }
 
     /** @noinspection PhpUnused */
@@ -178,7 +179,7 @@ class MixedMap implements LoggableInterface, ArrayAccess
     {
         DebugContextForTests::newScope(/* out */ $dbgCtx, array_merge(['this' => $this], DebugContextForTests::funcArgs()));
         $value = $this->getNullableFloat($key);
-        TestCaseBase::assertNotNull($value);
+        Assert::assertNotNull($value);
         return $value;
     }
 
@@ -191,7 +192,7 @@ class MixedMap implements LoggableInterface, ArrayAccess
         }
 
         $dbgCtx->add(['value type' => DbgUtil::getType($value), 'value' => $value]);
-        TestCaseBase::fail('Value is not a int');
+        Assert::fail('Value is not a int');
     }
 
     /**
@@ -206,7 +207,7 @@ class MixedMap implements LoggableInterface, ArrayAccess
         DebugContextForTests::newScope(/* out */ $dbgCtx, array_merge(['this' => $this], DebugContextForTests::funcArgs()));
         $value = $this->getNullableInt($key);
         if ($value !== null) {
-            TestCaseBase::assertGreaterThanOrEqual(0, $value);
+            Assert::assertGreaterThanOrEqual(0, $value);
         }
         /** @var null|positive-int|0 $value */
         return $value;
@@ -216,7 +217,7 @@ class MixedMap implements LoggableInterface, ArrayAccess
     {
         DebugContextForTests::newScope(/* out */ $dbgCtx, array_merge(['this' => $this], DebugContextForTests::funcArgs()));
         $value = $this->getNullableInt($key);
-        TestCaseBase::assertNotNull($value);
+        Assert::assertNotNull($value);
         return $value;
     }
 
@@ -231,7 +232,7 @@ class MixedMap implements LoggableInterface, ArrayAccess
     {
         DebugContextForTests::newScope(/* out */ $dbgCtx, array_merge(['this' => $this], DebugContextForTests::funcArgs()));
         $value = $this->getInt($key);
-        TestCaseBase::assertGreaterThanOrEqual(0, $value);
+        Assert::assertGreaterThanOrEqual(0, $value);
         /** @var positive-int|0 $value */
         return $value;
     }
@@ -244,7 +245,7 @@ class MixedMap implements LoggableInterface, ArrayAccess
         DebugContextForTests::newScope(/* out */ $dbgCtx, array_merge(['this' => $this], DebugContextForTests::funcArgs()));
         $value = $this->get($key);
         if ($value !== null) {
-            TestCaseBase::assertIsArray($value);
+            Assert::assertIsArray($value);
         }
         return $value;
     }
@@ -255,7 +256,7 @@ class MixedMap implements LoggableInterface, ArrayAccess
     public function getArray(string $key): array
     {
         $value = $this->getNullableArray($key);
-        TestCaseBase::assertNotNull($value);
+        Assert::assertNotNull($value);
         return $value;
     }
 
@@ -273,7 +274,7 @@ class MixedMap implements LoggableInterface, ArrayAccess
         if ($value === null) {
             return null;
         }
-        TestCaseBase::assertInstanceOf($className, $value);
+        Assert::assertInstanceOf($className, $value);
         return $value;
     }
 
@@ -287,7 +288,7 @@ class MixedMap implements LoggableInterface, ArrayAccess
     public function getObject(string $key, string $className): object
     {
         $value = $this->getNullableObject($key, $className);
-        TestCaseBase::assertNotNull($value);
+        Assert::assertNotNull($value);
         return $value;
     }
 
@@ -349,7 +350,7 @@ class MixedMap implements LoggableInterface, ArrayAccess
     #[Override]
     public function offsetSet($offset, mixed $value): void
     {
-        TestCaseBase::assertIsString($offset); /** @phpstan-ignore staticMethod.alreadyNarrowedType */
+        Assert::assertIsString($offset); /** @phpstan-ignore staticMethod.alreadyNarrowedType */
         $this->map[$offset] = $value;
     }
 
@@ -361,7 +362,7 @@ class MixedMap implements LoggableInterface, ArrayAccess
     #[Override]
     public function offsetUnset($offset): void
     {
-        TestCaseBase::assertArrayHasKey($offset, $this->map);
+        Assert::assertArrayHasKey($offset, $this->map);
         unset($this->map[$offset]);
     }
 

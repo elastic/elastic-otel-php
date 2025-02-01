@@ -24,9 +24,7 @@ declare(strict_types=1);
 namespace ElasticOTelTests\ComponentTests;
 
 use ElasticOTelTests\BootstrapTests;
-use ElasticOTelTests\Util\AmbientContextForTests;
 
 require __DIR__ . '/../../bootstrap.php';
 
-BootstrapTests::do('Component tests');
-AmbientContextForTests::testConfig()->validateForComponentTests();
+BootstrapTests::bootstrapComponentTests();

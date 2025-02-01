@@ -23,9 +23,10 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
+use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LoggableTrait;
-use ElasticOTelTests\Util\TestCaseBase;
+use PHPUnit\Framework\Assert;
 
 final class AppCodeTarget implements LoggableInterface
 {
@@ -39,8 +40,8 @@ final class AppCodeTarget implements LoggableInterface
      */
     public static function asRouted(array $appCodeClassMethod): AppCodeTarget
     {
-        TestCaseBase::assertArrayIsList($appCodeClassMethod);
-        TestCaseBase::assertCount(2, $appCodeClassMethod); /** @phpstan-ignore staticMethod.alreadyNarrowedType */
+        AssertEx::arrayIsList($appCodeClassMethod);
+        Assert::assertCount(2, $appCodeClassMethod); /** @phpstan-ignore staticMethod.alreadyNarrowedType */
 
         $thisObj = new AppCodeTarget();
         $thisObj->appCodeClass = $appCodeClassMethod[0];

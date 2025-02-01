@@ -23,6 +23,8 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\UnitTests\Util;
 
+use ElasticOTelTests\BootstrapTests;
+use ElasticOTelTests\Util\AmbientContextForTests;
 use ElasticOTelTests\Util\ElasticOTelExtensionUtil;
 use ElasticOTelTests\Util\PhpUnitExtensionBase;
 use ElasticOTelTests\Util\TestsInfraException;
@@ -36,6 +38,10 @@ final class UnitTestsPhpUnitExtension extends PhpUnitExtensionBase
 {
     public function __construct()
     {
+        if (!AmbientContextForTests::isInited()) {
+            BootstrapTests::bootstrapUnitTests();
+        }
+
         parent::__construct();
 
         if (ElasticOTelExtensionUtil::isLoaded()) {

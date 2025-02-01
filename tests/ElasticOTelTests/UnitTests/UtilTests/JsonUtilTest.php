@@ -23,8 +23,9 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\UnitTests\UtilTests;
 
-use ElasticOTelTests\Util\JsonUtil;
+use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\DebugContextForTests;
+use ElasticOTelTests\Util\JsonUtil;
 use ElasticOTelTests\Util\TestCaseBase;
 use JsonException;
 
@@ -53,6 +54,6 @@ class JsonUtilTest extends TestCaseBase
         self::assertSame(1, preg_match('/^\s*{\s*"0"\s*:\s*0\s*}\s*$/', $serialized));
         $decodedJson = self::decode($serialized, asAssocArray: true);
         self::assertIsArray($decodedJson);
-        self::assertEqualMaps($original, $decodedJson);
+        AssertEx::equalMaps($original, $decodedJson);
     }
 }

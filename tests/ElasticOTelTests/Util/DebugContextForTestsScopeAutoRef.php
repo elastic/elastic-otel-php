@@ -23,6 +23,8 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\Util;
 
+use PHPUnit\Framework\Assert;
+
 final class DebugContextForTestsScopeAutoRef
 {
     private DebugContextForTests $stack;
@@ -71,9 +73,9 @@ final class DebugContextForTestsScopeAutoRef
             return;
         }
 
-        TestCaseBase::assertGreaterThanOrEqual(1, count($this->data->subScopesStack));
+        Assert::assertGreaterThanOrEqual(1, count($this->data->subScopesStack));
         $this->data->subScopesStack[] = new Pair(DebugContextForTestsScopeData::buildContextName(numberOfStackFramesToSkip: 1), $initialCtx);
-        TestCaseBase::assertGreaterThanOrEqual(2, count($this->data->subScopesStack));
+        Assert::assertGreaterThanOrEqual(2, count($this->data->subScopesStack));
     }
 
     /**
@@ -85,7 +87,7 @@ final class DebugContextForTestsScopeAutoRef
             return;
         }
 
-        TestCaseBase::assertGreaterThanOrEqual(2, count($this->data->subScopesStack));
+        Assert::assertGreaterThanOrEqual(2, count($this->data->subScopesStack));
         $this->data->subScopesStack[count($this->data->subScopesStack) - 1]->second = $initialCtx;
     }
 
@@ -95,8 +97,8 @@ final class DebugContextForTestsScopeAutoRef
             return;
         }
 
-        TestCaseBase::assertGreaterThanOrEqual(2, count($this->data->subScopesStack));
+        Assert::assertGreaterThanOrEqual(2, count($this->data->subScopesStack));
         array_pop(/* ref */ $this->data->subScopesStack);
-        TestCaseBase::assertGreaterThanOrEqual(1, count($this->data->subScopesStack));
+        Assert::assertGreaterThanOrEqual(1, count($this->data->subScopesStack));
     }
 }

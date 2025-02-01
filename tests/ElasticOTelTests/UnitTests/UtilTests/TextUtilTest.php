@@ -75,7 +75,7 @@ class TextUtilTest extends TestCaseBase
      */
     public function testCamelToSnakeCase(string $inputCamelCase, string $inputSnakeCase): void
     {
-        $this->assertSame($inputSnakeCase, TextUtil::camelToSnakeCase($inputCamelCase));
+        self::assertSame($inputSnakeCase, TextUtil::camelToSnakeCase($inputCamelCase));
     }
 
     /**
@@ -86,7 +86,7 @@ class TextUtilTest extends TestCaseBase
      */
     public function testSnakeToCamelCase(string $inputSnakeCase, string $inputCamelCase): void
     {
-        $this->assertSame($inputCamelCase, TextUtil::snakeToCamelCase($inputSnakeCase));
+        self::assertSame($inputCamelCase, TextUtil::snakeToCamelCase($inputSnakeCase));
     }
 
     public function testIsPrefixOf(): void

@@ -24,6 +24,7 @@ declare(strict_types=1);
 namespace ElasticOTelTests\UnitTests\UtilTests;
 
 use ElasticOTelTests\Util\ArrayUtilForTests;
+use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\DebugContextForTests;
 use ElasticOTelTests\Util\IterableUtil;
 use ElasticOTelTests\Util\TestCaseBase;
@@ -102,7 +103,7 @@ final class ArrayUtilTest extends TestCaseBase
             } else {
                 self::assertNotSame($inArray, $actualOutArray);
                 $actualOutArrayIndexesFixed = [...$actualOutArray];
-                self::assertSameArrays($expectedOutArray, $actualOutArrayIndexesFixed);
+                AssertEx::arraysWithSameElements($expectedOutArray, $actualOutArrayIndexesFixed);
             }
         };
 
@@ -127,7 +128,7 @@ final class ArrayUtilTest extends TestCaseBase
          */
         $testImpl = function (array $inArray, array $valuesToRemove, ?array $expectedOutArray = null): void {
             if ($expectedOutArray !== null) {
-                self::assertCountAtMost(count($inArray) - 1, $expectedOutArray);
+                AssertEx::countAtMost(count($inArray) - 1, $expectedOutArray);
                 self::assertNotEmpty($valuesToRemove);
             }
             $expectedRemovedCount = $expectedOutArray === null ? 0 : (count($inArray) - count($expectedOutArray));
@@ -138,7 +139,7 @@ final class ArrayUtilTest extends TestCaseBase
             } else {
                 self::assertNotSame($inArray, $actualOutArray);
                 $actualOutArrayIndexesFixed = [...$actualOutArray];
-                self::assertSameArrays($expectedOutArray, $actualOutArrayIndexesFixed);
+                AssertEx::arraysWithSameElements($expectedOutArray, $actualOutArrayIndexesFixed);
             }
         };
 

@@ -26,6 +26,7 @@ namespace ElasticOTelTests\Util;
 use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LoggableTrait;
 use ElasticOTelTests\Util\Log\LogStreamInterface;
+use PHPUnit\Framework\Assert;
 
 final class DebugContextForTestsScopeData implements LoggableInterface
 {
@@ -58,7 +59,7 @@ final class DebugContextForTestsScopeData implements LoggableInterface
         if ($callerInfo->class !== null) {
             $classMethodPart .= $callerInfo->class . '::';
         }
-        TestCaseBase::assertNotNull($callerInfo->function);
+        Assert::assertNotNull($callerInfo->function);
         $classMethodPart .= $callerInfo->function;
 
         $fileLinePart = '';

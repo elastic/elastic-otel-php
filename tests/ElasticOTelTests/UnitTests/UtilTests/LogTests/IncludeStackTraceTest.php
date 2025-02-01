@@ -27,6 +27,7 @@ namespace ElasticOTelTests\UnitTests\UtilTests\LogTests;
 
 use Elastic\OTel\Log\LogLevel;
 use ElasticOTelTests\UnitTests\Util\MockLogPreformattedSink;
+use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\ClassNameUtil;
 use ElasticOTelTests\Util\JsonUtil;
 use ElasticOTelTests\Util\Log\Backend as LogBackend;
@@ -80,7 +81,7 @@ class IncludeStackTraceTest extends TestCaseBase
         self::assertSame(basename(__FILE__), basename($actualFilePath), $ctx);
 
         $expectedSrcCodeLine = $expectedSrcCodeData[StackTraceUtil::LINE_KEY];
-        self::assertArrayHasKeyWithValue(StackTraceUtil::LINE_KEY, $expectedSrcCodeLine, $actualFrame, $ctx);
+        AssertEx::hasKeyWithSameValue(StackTraceUtil::LINE_KEY, $expectedSrcCodeLine, $actualFrame, $ctx);
 
         self::assertArrayHasKey(StackTraceUtil::CLASS_KEY, $actualFrame, $ctx);
         $thisClassShortName = ClassNameUtil::fqToShort(__CLASS__);
@@ -90,7 +91,7 @@ class IncludeStackTraceTest extends TestCaseBase
         self::assertSame($thisClassShortName, $actualClassShortName, $ctx);
 
         $expectedSrcCodeFunc = $expectedSrcCodeData[StackTraceUtil::FUNCTION_KEY];
-        self::assertArrayHasKeyWithValue(StackTraceUtil::FUNCTION_KEY, $expectedSrcCodeFunc, $actualFrame, $ctx);
+        AssertEx::hasKeyWithSameValue(StackTraceUtil::FUNCTION_KEY, $expectedSrcCodeFunc, $actualFrame, $ctx);
     }
 
     public function testIncludeStackTrace(): void
@@ -115,7 +116,7 @@ class IncludeStackTraceTest extends TestCaseBase
         $actualCtx = JsonUtil::decode($actualLogStatement->messageWithContext, asAssocArray: true);
         self::assertIsArray($actualCtx);
         /** @var array<string, mixed> $actualCtx */
-        self::assertArrayHasKeyWithValue(LogBackend::NAMESPACE_KEY, __NAMESPACE__, $actualCtx);
+        AssertEx::hasKeyWithSameValue(LogBackend::NAMESPACE_KEY, __NAMESPACE__, $actualCtx);
         self::assertArrayHasKey(LogBackend::CLASS_KEY, $actualCtx);
         $thisClassShortName = ClassNameUtil::fqToShort(__CLASS__);
         $actualFqClassName = $actualCtx[LogBackend::CLASS_KEY];
@@ -125,7 +126,7 @@ class IncludeStackTraceTest extends TestCaseBase
         $actualStackTrace = $actualCtx[LoggableStackTrace::STACK_TRACE_KEY];
         self::assertIsArray($actualStackTrace);
         /** @var array<string, mixed>[] $actualStackTrace */
-        self::assertCountAtLeast(2, $actualStackTrace);
+        AssertEx::countAtLeast(2, $actualStackTrace);
         self::verifyStackFrame($expectedSrcCodeDataForTopFrame, $actualStackTrace[0]);
         $expectedSrcCodeDataForThisFrame = [
             StackTraceUtil::FUNCTION_KEY => __FUNCTION__,

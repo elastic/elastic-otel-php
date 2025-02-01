@@ -8,3 +8,6 @@ parameters:
     level: max
 
     reportUnmatchedIgnoredErrors: true
+
+    excludePaths:
+        - ./tests/substitutes/*/original/*

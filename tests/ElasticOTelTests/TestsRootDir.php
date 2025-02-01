@@ -24,7 +24,7 @@ declare(strict_types=1);
 namespace ElasticOTelTests;
 
 use Elastic\OTel\Util\StaticClassTrait;
-use ElasticOTelTests\Util\TestCaseBase;
+use PHPUnit\Framework\Assert;
 
 final class TestsRootDir
 {
@@ -34,13 +34,13 @@ final class TestsRootDir
 
     public static function setFullPath(string $fullPath): void
     {
-        TestCaseBase::assertNull(self::$fullPath);
+        Assert::assertNull(self::$fullPath);
         self::$fullPath = $fullPath;
     }
 
     public static function getFullPath(): string
     {
-        TestCaseBase::assertNotNull(self::$fullPath);
+        Assert::assertNotNull(self::$fullPath);
         return self::$fullPath;
     }
 }

@@ -34,6 +34,7 @@ use ElasticOTelTests\Util\Log\LoggableTrait;
 use ElasticOTelTests\Util\Log\Logger;
 use ElasticOTelTests\Util\TestCaseBase;
 use ElasticOTelTests\Util\TimeUtil;
+use PHPUnit\Framework\Assert;
 
 final class TestCaseHandle implements LoggableInterface
 {
@@ -71,8 +72,6 @@ final class TestCaseHandle implements LoggableInterface
 
     /**
      * @param null|Closure(AppCodeHostParams): void $setParamsFunc
-     *
-     * @return AppCodeHostHandle
      */
     public function ensureMainAppCodeHost(?Closure $setParamsFunc = null, string $dbgInstanceName = 'main'): AppCodeHostHandle
     {
@@ -113,7 +112,7 @@ final class TestCaseHandle implements LoggableInterface
 
     public function waitForEnoughExportedData(IsEnoughExportedDataInterface $isEnoughExportedData): ExportedData
     {
-        TestCaseBase::assertNotEmpty($this->appCodeInvocations);
+        Assert::assertNotEmpty($this->appCodeInvocations);
         $dataAccumulator = new ExportedDataAccumulator();
         $hasPassed = (new PollingCheck(__FUNCTION__ . ' passes', intval(TimeUtil::secondsToMicroseconds(self::MAX_WAIT_TIME_DATA_FROM_AGENT_SECONDS))))->run(
             function () use ($isEnoughExportedData, $dataAccumulator) {
@@ -121,7 +120,7 @@ final class TestCaseHandle implements LoggableInterface
                 return $dataAccumulator->isEnough($isEnoughExportedData);
             }
         );
-        TestCaseBase::assertTrue($hasPassed, 'The expected data from agent has not arrived. ' . LoggableToString::convert(compact('isEnoughExportedData', 'dataAccumulator')));
+        Assert::assertTrue($hasPassed, 'The expected data from agent has not arrived. ' . LoggableToString::convert(compact('isEnoughExportedData', 'dataAccumulator')));
 
         return $dataAccumulator->getAccumulatedData();
     }

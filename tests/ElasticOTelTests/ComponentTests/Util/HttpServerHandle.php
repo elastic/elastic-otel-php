@@ -27,8 +27,7 @@ use ElasticOTelTests\Util\HttpMethods;
 use ElasticOTelTests\Util\HttpStatusCodes;
 use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LoggableTrait;
-use ElasticOTelTests\Util\TestCaseBase;
-use GuzzleHttp\Exception\GuzzleException;
+use PHPUnit\Framework\Assert;
 use Psr\Http\Message\ResponseInterface;
 
 class HttpServerHandle implements LoggableInterface
@@ -53,14 +52,12 @@ class HttpServerHandle implements LoggableInterface
 
     public function getMainPort(): int
     {
-        TestCaseBase::assertNotEmpty($this->ports);
+        Assert::assertNotEmpty($this->ports);
         return $this->ports[0];
     }
 
     /**
      * @param array<string, string> $headers
-     *
-     * @throws GuzzleException
      */
     public function sendRequest(string $httpMethod, string $path, array $headers = []): ResponseInterface
     {
@@ -75,13 +72,13 @@ class HttpServerHandle implements LoggableInterface
     public function signalAndWaitForItToExit(): void
     {
         $response = $this->sendRequest(HttpMethods::POST, TestInfraHttpServerProcessBase::EXIT_URI_PATH);
-        TestCaseBase::assertSame(HttpStatusCodes::OK, $response->getStatusCode());
+        Assert::assertSame(HttpStatusCodes::OK, $response->getStatusCode());
 
         $hasExited = ProcessUtil::waitForProcessToExit(
             $this->dbgServerDesc,
             $this->spawnedProcessOsId,
             10 * 1000 * 1000 /* <- maxWaitTimeInMicroseconds - 10 seconds */
         );
-        TestCaseBase::assertTrue($hasExited);
+        Assert::assertTrue($hasExited);
     }
 }

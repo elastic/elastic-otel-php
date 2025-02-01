@@ -42,6 +42,7 @@ use OpenTelemetry\API\Globals;
 use OpenTelemetry\API\Trace\TracerInterface;
 use OpenTelemetry\SemConv\Version;
 use Override;
+use PHPUnit\Framework\Assert;
 use Throwable;
 
 class ComponentTestCaseBase extends TestCaseBase
@@ -127,9 +128,9 @@ class ComponentTestCaseBase extends TestCaseBase
     protected static function buildResourcesClientForAppCode(): ResourcesClient
     {
         $resCleanerId = AmbientContextForTests::testConfig()->dataPerProcess()->resourcesCleanerSpawnedProcessInternalId;
-        self::assertNotNull($resCleanerId);
+        Assert::assertNotNull($resCleanerId);
         $resCleanerPort = AmbientContextForTests::testConfig()->dataPerProcess()->resourcesCleanerPort;
-        self::assertNotNull($resCleanerPort);
+        Assert::assertNotNull($resCleanerPort);
         return new ResourcesClient($resCleanerId, $resCleanerPort);
     }
 
@@ -327,7 +328,7 @@ class ComponentTestCaseBase extends TestCaseBase
         /** @var array<string, LogLevel> $result */
         $result = [];
         $prodCodeLogLevels = $testCaseHandle->getProdCodeLogLevels();
-        self::assertNotEmpty($prodCodeLogLevels);
+        Assert::assertNotEmpty($prodCodeLogLevels);
         $result[self::LOG_LEVEL_FOR_PROD_CODE_KEY] = self::findLogLevelByValue(min(array_map(fn(LogLevel $logLevel) => $logLevel->value, $prodCodeLogLevels)));
         $result[self::LOG_LEVEL_FOR_TEST_CODE_KEY] = AmbientContextForTests::testConfig()->logLevel;
         return $result;
@@ -336,7 +337,7 @@ class ComponentTestCaseBase extends TestCaseBase
     public static function findLogLevelByValue(int $logLevelValue): LogLevel
     {
         $logLevel = LogLevel::tryFrom($logLevelValue);
-        self::assertNotNull($logLevel);
+        Assert::assertNotNull($logLevel);
         return $logLevel;
     }
 
@@ -347,7 +348,7 @@ class ComponentTestCaseBase extends TestCaseBase
      */
     public static function generateEscalatedLogLevels(array $initialLevels): iterable
     {
-        self::assertNotEmpty($initialLevels);
+        Assert::assertNotEmpty($initialLevels);
 
         /**
          * @param array<string, LogLevel> $currentLevels
@@ -370,7 +371,7 @@ class ComponentTestCaseBase extends TestCaseBase
             $maxDelta = max($maxDelta, LogLevelUtil::getHighest()->value - $initialLevel->value);
         }
         foreach (RangeUtil::generateDown(LogLevelUtil::getHighest()->value, $minInitialLevel) as $baseLevelAsInt) {
-            self::assertGreaterThan(LogLevel::off->value, $baseLevelAsInt);
+            Assert::assertGreaterThan(LogLevel::off->value, $baseLevelAsInt);
             /** @var array<string, LogLevel> $currentLevels */
             $currentLevels = [];
             foreach (self::LOG_LEVEL_FOR_CODE_KEYS as $levelTypeKey) {
@@ -418,7 +419,7 @@ class ComponentTestCaseBase extends TestCaseBase
      */
     public static function &assertAndGetFromArrayByKey(array $array, $key)
     {
-        self::assertArrayHasKey($key, $array);
+        Assert::assertArrayHasKey($key, $array);
         return $array[$key];
     }
 

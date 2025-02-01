@@ -78,8 +78,8 @@ class UrlUtilTest extends TestCaseBase
     {
         $actualHost = null;
         $actualPort = null;
-        $this->assertTrue(UrlUtil::splitHostPort($inputHostPort, /* ref */ $actualHost, /* ref */ $actualPort));
-        $this->assertSame($expectedHost, $actualHost);
-        $this->assertSame($expectedPort, $actualPort);
+        self::assertTrue(UrlUtil::splitHostPort($inputHostPort, /* ref */ $actualHost, /* ref */ $actualPort));
+        self::assertSame($expectedHost, $actualHost);
+        self::assertSame($expectedPort, $actualPort);
     }
 }

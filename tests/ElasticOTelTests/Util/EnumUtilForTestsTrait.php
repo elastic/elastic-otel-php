@@ -24,6 +24,7 @@ declare(strict_types=1);
 namespace ElasticOTelTests\Util;
 
 use Elastic\OTel\Util\EnumUtilTrait;
+use PHPUnit\Framework\Assert;
 
 /**
  * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
@@ -37,7 +38,7 @@ trait EnumUtilForTestsTrait
     public static function findByName(string $enumName): self
     {
         $result = self::tryToFindByName($enumName);
-        TestCaseBase::assertNotNull($result);
+        Assert::assertNotNull($result);
         return $result;
     }
 }

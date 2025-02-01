@@ -32,9 +32,9 @@ use ElasticOTelTests\Util\Config\OptionForTestsName;
 use ElasticOTelTests\Util\DebugContextForTests;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
 use ElasticOTelTests\Util\Log\Logger;
-use ElasticOTelTests\Util\TestCaseBase;
 use GuzzleHttp\Client;
 use GuzzleHttp\RequestOptions;
+use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 
@@ -140,7 +140,7 @@ final class HttpClientUtilForTests
     public static function createCurlHandleToSendRequestToAppCode(UrlParts $urlParts, TestInfraDataPerRequest $dataPerRequest, ResourcesClient $resourcesClient): CurlHandleForTests
     {
         $curlInitRetVal = curl_init(UrlUtil::buildFullUrl($urlParts));
-        TestCaseBase::assertInstanceOf(CurlHandle::class, $curlInitRetVal);
+        Assert::assertInstanceOf(CurlHandle::class, $curlInitRetVal);
         $curlHandle = new CurlHandleForTests($curlInitRetVal, $resourcesClient);
         $dataPerRequestHeaderName = RequestHeadersRawSnapshotSource::optionNameToHeaderName(OptionForTestsName::data_per_request->name);
         $dataPerRequestHeaderVal = PhpSerializationUtil::serializeToString($dataPerRequest);
@@ -155,7 +155,7 @@ final class HttpClientUtilForTests
     {
         DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
 
-        TestCaseBase::assertTrue(ArrayUtil::getValueIfKeyExists($headerName, $headers, /* out */ $values));
+        Assert::assertTrue(ArrayUtil::getValueIfKeyExists($headerName, $headers, /* out */ $values));
         $value = ArrayUtilForTests::getSingleValue($values);
 
         $dbgCtx->pop();

@@ -21,8 +21,6 @@
 
 declare(strict_types=1);
 
-// https://www.php.net/manual/en/class.allowdynamicproperties.php
-// (PHP 8 >= 8.2.0)
 if (!class_exists('AllowDynamicProperties')) {
     require __DIR__ . '/AllowDynamicProperties.php';
 }

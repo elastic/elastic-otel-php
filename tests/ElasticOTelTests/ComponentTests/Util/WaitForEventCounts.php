@@ -29,7 +29,7 @@ use ElasticOTelTests\Util\Log\LogCategoryForTests;
 use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LoggableTrait;
 use ElasticOTelTests\Util\Log\Logger;
-use ElasticOTelTests\Util\TestCaseBase;
+use PHPUnit\Framework\Assert;
 
 final class WaitForEventCounts implements IsEnoughExportedDataInterface, LoggableInterface
 {
@@ -48,9 +48,9 @@ final class WaitForEventCounts implements IsEnoughExportedDataInterface, Loggabl
     {
         DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
 
-        TestCaseBase::assertGreaterThan(0, $min);
+        Assert::assertGreaterThan(0, $min);
         if ($max !== null) {
-            TestCaseBase::assertLessThanOrEqual($min, $max);
+            Assert::assertLessThanOrEqual($min, $max);
         }
 
         $result = new WaitForEventCounts();
@@ -72,7 +72,7 @@ final class WaitForEventCounts implements IsEnoughExportedDataInterface, Loggabl
         $dbgCtx->add(compact('this'));
 
         $spansCount = count($spans);
-        TestCaseBase::assertLessThanOrEqual($this->maxSpanCount, $spansCount);
+        Assert::assertLessThanOrEqual($this->maxSpanCount, $spansCount);
 
         $result = $spansCount >= $this->minSpanCount;
         $dbgCtx->pop();

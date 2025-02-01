@@ -24,6 +24,7 @@ declare(strict_types=1);
 namespace ElasticOTelTests\UnitTests\UtilTests\ConfigTests;
 
 use Elastic\OTel\Util\TextUtil;
+use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\Config\BoolOptionParser;
 use ElasticOTelTests\Util\Config\ConfigSnapshotForTests;
 use ElasticOTelTests\Util\Config\CustomOptionParser;
@@ -83,7 +84,7 @@ class VariousOptionsParsingTest extends TestCaseBase
             return WildcardListOptionTestValuesGenerator::singletonInstance(); /** @phpstan-ignore return.type */
         }
 
-        TestCaseBase::fail('Unknown option metadata type: ' . DbgUtil::getType($optMeta));
+        self::fail('Unknown option metadata type: ' . DbgUtil::getType($optMeta));
     }
 
     /**
@@ -207,7 +208,7 @@ class VariousOptionsParsingTest extends TestCaseBase
                 if (!TextUtil::isEmptyString($invalidRawValue)) {
                     $dbgCtx->add(['ord($invalidRawValue[0])' => ord($invalidRawValue[0])]);
                 }
-                self::assertThrows(
+                AssertEx::throws(
                     ParseException::class,
                     function () use ($optParser, $invalidRawValue): void {
                         Parser::parseOptionRawValue($invalidRawValue, $optParser);
@@ -270,7 +271,7 @@ class VariousOptionsParsingTest extends TestCaseBase
             $validValueData->rawValue = self::genOptionalWhitespace() . $validValueData->rawValue . self::genOptionalWhitespace();
             $actualParsedValue = Parser::parseOptionRawValue($validValueData->rawValue, $optParser);
             $dbgCtx->add(['actualParsedValue' => $valueWithDetails($actualParsedValue)]);
-            self::assertEquals($validValueData->parsedValue, $actualParsedValue);
+            AssertEx::equalsEx($validValueData->parsedValue, $actualParsedValue);
         }
         $dbgCtx->popSubScope();
     }

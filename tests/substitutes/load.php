@@ -21,10 +21,5 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTests\ComponentTests;
-
-use ElasticOTelTests\BootstrapTests;
-
-require __DIR__ . '/../../bootstrap.php';
-
-BootstrapTests::bootstrapUnitTests();
+require __DIR__ . '/SubstitutesUtil.php';
+require __DIR__ . '/PHPUnit_Framework_AssertionFailedError/load.php';

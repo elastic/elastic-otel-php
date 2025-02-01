@@ -19,9 +19,12 @@
  * under the License.
  */
 
+/** @noinspection PhpInternalEntityUsedInspection */
+
 declare(strict_types=1);
 
 use ElasticOTelTests\TestsRootDir;
+use ElasticOTelTests\Util\ExceptionUtil;
 
 // Ensure that composer has installed all dependencies
 if (!file_exists(dirname(__DIR__) . '/composer.lock')) {
@@ -33,10 +36,16 @@ if (!file_exists(dirname(__DIR__) . '/composer.lock')) {
 error_reporting(PHP_VERSION_ID < 80400 ? E_ALL : (E_ALL & ~E_DEPRECATED));
 
 require __DIR__ . '/../vendor/autoload.php';
+// Substitutes should be loaded IMMEDIATELY AFTER vendor
+require __DIR__ . '/substitutes/load.php';
 
-require __DIR__ . '/polyfills/load.php';
+ExceptionUtil::runCatchLogRethrow(
+    function (): void {
+        require __DIR__ . '/polyfills/load.php';
 
-TestsRootDir::setFullPath(__DIR__);
+        TestsRootDir::setFullPath(__DIR__);
+    }
+);
 
 /*
 Dummy comment to verify PHP source code max allowed line length (which is 200).

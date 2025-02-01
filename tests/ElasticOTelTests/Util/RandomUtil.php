@@ -25,6 +25,7 @@ namespace ElasticOTelTests\Util;
 
 use Elastic\OTel\Util\StaticClassTrait;
 use InvalidArgumentException;
+use PHPUnit\Framework\Assert;
 
 /**
  * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
@@ -103,11 +104,11 @@ final class RandomUtil
         if ($subSetSize === 1) {
             $randSelectedSubsetIndexes = [$randSelectedSubsetIndexes];
         }
-        TestCaseBase::assertIsArray($randSelectedSubsetIndexes);
+        Assert::assertIsArray($randSelectedSubsetIndexes);
 
         $randSelectedSubsetValues = [];
         foreach ($randSelectedSubsetIndexes as $index) {
-            TestCaseBase::assertIsInt($index);
+            Assert::assertIsInt($index);
             $randSelectedSubsetValues[] = $totalSet[$index];
         }
         return $randSelectedSubsetValues;
@@ -122,7 +123,7 @@ final class RandomUtil
      */
     public static function getRandomValueFromArray(array $arr)
     {
-        TestCaseBase::assertGreaterThan(0, count($arr));
+        Assert::assertGreaterThan(0, count($arr));
         return $arr[self::generateIntInRange(0, count($arr) - 1)];
     }
 }

@@ -29,12 +29,13 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
+use ElasticOTelTests\BootstrapTests;
 use ElasticOTelTests\Util\AmbientContextForTests;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
 use ElasticOTelTests\Util\Log\Logger;
 use ElasticOTelTests\Util\PhpUnitExtensionBase;
-use ElasticOTelTests\Util\TestCaseBase;
 use ElasticOTelTests\Util\TimeUtil;
+use PHPUnit\Framework\Assert;
 use PHPUnit\Runner\AfterIncompleteTestHook;
 use PHPUnit\Runner\AfterRiskyTestHook;
 use PHPUnit\Runner\AfterSkippedTestHook;
@@ -63,6 +64,10 @@ final class ComponentTestsPhpUnitExtension extends PhpUnitExtensionBase implemen
 
     public function __construct()
     {
+        if (!AmbientContextForTests::isInited()) {
+            BootstrapTests::bootstrapComponentTests();
+        }
+
         parent::__construct();
 
         $this->logger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__);
@@ -85,14 +90,12 @@ final class ComponentTestsPhpUnitExtension extends PhpUnitExtensionBase implemen
         ($loggerProxy = $this->logger->ifDebugLevelEnabled(__LINE__, __FUNCTION__))
         && $loggerProxy->log('Destroying...');
 
-        if (self::$globalTestInfra !== null) {
-            self::$globalTestInfra->getResourcesCleaner()->signalAndWaitForItToExit();
-        }
+        self::$globalTestInfra?->getResourcesCleaner()->signalAndWaitForItToExit();
     }
 
     public static function getGlobalTestInfra(): GlobalTestInfra
     {
-        TestCaseBase::assertNotNull(self::$globalTestInfra);
+        Assert::assertNotNull(self::$globalTestInfra);
         return self::$globalTestInfra;
     }
 

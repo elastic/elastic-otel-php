@@ -23,19 +23,20 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\UnitTests\UtilTests\LogTests;
 
-use ElasticOTelTests\BootstrapTests;
-use ElasticOTelTests\Util\Log\Backend as LogBackend;
 use Elastic\OTel\Log\LogLevel;
+use ElasticOTelTests\BootstrapTests;
+use ElasticOTelTests\Util\AssertEx;
+use ElasticOTelTests\Util\DataProviderForTestBuilder;
+use ElasticOTelTests\Util\FloatLimits;
+use ElasticOTelTests\Util\JsonUtil;
+use ElasticOTelTests\Util\Log\Backend as LogBackend;
 use ElasticOTelTests\Util\Log\LogConsts;
 use ElasticOTelTests\Util\Log\LoggableToEncodedJson;
 use ElasticOTelTests\Util\Log\LoggableToJsonEncodable;
 use ElasticOTelTests\Util\Log\LoggerFactory;
 use ElasticOTelTests\Util\Log\NoopLogSink;
-use ElasticOTelTests\Util\RangeUtil;
-use ElasticOTelTests\Util\DataProviderForTestBuilder;
-use ElasticOTelTests\Util\FloatLimits;
-use ElasticOTelTests\Util\JsonUtil;
 use ElasticOTelTests\Util\MixedMap;
+use ElasticOTelTests\Util\RangeUtil;
 use ElasticOTelTests\Util\TestCaseBase;
 use UnitEnum;
 
@@ -54,9 +55,9 @@ class LoggingVariousTypesTest extends TestCaseBase
         }
 
         if (is_array($expectedValue)) {
-            TestCaseBase::assertEquals($expectedValue, $actualValue);
+            self::assertEquals($expectedValue, $actualValue);
         } else {
-            TestCaseBase::assertSame($expectedValue, $actualValue);
+            self::assertSame($expectedValue, $actualValue);
         }
     }
 
@@ -364,12 +365,12 @@ class LoggingVariousTypesTest extends TestCaseBase
             self::assertLessThanOrEqual($maxDepth, $depth);
 
             if ($depth === $maxDepth) {
-                self::assertEqualMaps(LoggableToJsonEncodable::convertArrayForMaxDepth($buildParentArray([], $maxDepth), $maxDepth), $currentLoggedArray);
+                AssertEx::equalMaps(LoggableToJsonEncodable::convertArrayForMaxDepth($buildParentArray([], $maxDepth), $maxDepth), $currentLoggedArray);
                 break;
             }
 
-            self::assertSameValueInArray('depth ' . $depth . ' int', $depth * 10, $currentLoggedArray);
-            self::assertSameValueInArray('depth ' . $depth . ' string', strval($depth * 10), $currentLoggedArray);
+            AssertEx::hasKeyWithSameValue('depth ' . $depth . ' int', $depth * 10, $currentLoggedArray);
+            AssertEx::hasKeyWithSameValue('depth ' . $depth . ' string', strval($depth * 10), $currentLoggedArray);
 
             $key = 'depth ' . $depth . ' array';
             self::assertArrayHasKey($key, $currentLoggedArray);
@@ -410,12 +411,12 @@ class LoggingVariousTypesTest extends TestCaseBase
             self::assertLessThanOrEqual($maxDepth, $depth);
 
             if ($depth === $maxDepth) {
-                self::assertEqualMaps(LoggableToJsonEncodable::convertObjectForMaxDepth($buildParentObject(new ObjectForLoggableTraitTests(), $maxDepth), $maxDepth), $currentLoggedObject);
+                AssertEx::equalMaps(LoggableToJsonEncodable::convertObjectForMaxDepth($buildParentObject(new ObjectForLoggableTraitTests(), $maxDepth), $maxDepth), $currentLoggedObject);
                 break;
             }
 
-            self::assertSameValueInArray('intProp', $depth, $currentLoggedObject);
-            self::assertSameValueInArray('stringProp', 'depth: ' . $depth . ', maxDepth: ' . $maxDepth, $currentLoggedObject);
+            AssertEx::hasKeyWithSameValue('intProp', $depth, $currentLoggedObject);
+            AssertEx::hasKeyWithSameValue('stringProp', 'depth: ' . $depth . ', maxDepth: ' . $maxDepth, $currentLoggedObject);
 
             $key = 'recursiveProp';
             self::assertArrayHasKey($key, $currentLoggedObject);

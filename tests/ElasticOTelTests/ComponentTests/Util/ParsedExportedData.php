@@ -26,7 +26,7 @@ namespace ElasticOTelTests\ComponentTests\Util;
 use ElasticOTelTests\Util\ArrayUtilForTests;
 use ElasticOTelTests\Util\DebugContextForTests;
 use ElasticOTelTests\Util\IterableUtil;
-use ElasticOTelTests\Util\TestCaseBase;
+use PHPUnit\Framework\Assert;
 
 class ParsedExportedData
 {
@@ -41,7 +41,7 @@ class ParsedExportedData
     public function isEmpty(): bool
     {
         foreach (get_object_vars($this) as $prop) {
-            TestCaseBase::assertIsArray($prop);
+            Assert::assertIsArray($prop);
             if (!ArrayUtilForTests::isEmpty($prop)) {
                 return false;
             }
@@ -91,7 +91,7 @@ class ParsedExportedData
         DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
         $dbgCtx->add(['this' => $this]);
         $spans = $this->findSpansByName($name);
-        TestCaseBase::assertCount(1, $spans);
+        Assert::assertCount(1, $spans);
         return $spans[0];
     }
 

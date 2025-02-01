@@ -26,12 +26,12 @@ declare(strict_types=1);
 namespace ElasticOTelTests\ComponentTests\Util;
 
 use ElasticOTelTests\Util\AmbientContextForTests;
+use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\DebugContextForTests;
 use ElasticOTelTests\Util\HttpContentTypes;
 use ElasticOTelTests\Util\HttpHeaderNames;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
 use ElasticOTelTests\Util\Log\Logger;
-use ElasticOTelTests\Util\TestCaseBase;
 use Google\Protobuf\Internal\RepeatedField;
 use OpenTelemetry\Contrib\Otlp\ProtobufSerializer;
 use Opentelemetry\Proto\Collector\Trace\V1\ExportTraceServiceRequest;
@@ -39,6 +39,7 @@ use Opentelemetry\Proto\Trace\V1\ResourceSpans;
 use Opentelemetry\Proto\Trace\V1\ScopeSpans;
 use Opentelemetry\Proto\Trace\V1\Span as OTelProtoSpan;
 use OpenTelemetry\SemConv\TraceAttributes;
+use PHPUnit\Framework\Assert;
 
 final class IntakeApiRequestDeserializer
 {
@@ -52,14 +53,14 @@ final class IntakeApiRequestDeserializer
         $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Processing intake API request');
 
         $body = base64_decode($intakeApiRequest->bodyBase64Encoded);
-        TestCaseBase::assertIsString($body); // @phpstan-ignore staticMethod.alreadyNarrowedType
+        Assert::assertIsString($body); // @phpstan-ignore staticMethod.alreadyNarrowedType
         $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Body size: ' . strlen($body));
 
         $contentLength = HttpClientUtilForTests::getSingleHeaderValue(HttpHeaderNames::CONTENT_LENGTH, $intakeApiRequest->headers);
-        TestCaseBase::assertStringSameAsInt(strlen($body), $contentLength);
+        AssertEx::stringSameAsInt(strlen($body), $contentLength);
 
         $contentType = HttpClientUtilForTests::getSingleHeaderValue(HttpHeaderNames::CONTENT_TYPE, $intakeApiRequest->headers);
-        TestCaseBase::assertSame(HttpContentTypes::PROTOBUF, $contentType);
+        Assert::assertSame(HttpContentTypes::PROTOBUF, $contentType);
 
         $serializer = ProtobufSerializer::getDefault();
         $exportTraceServiceRequest = new ExportTraceServiceRequest();
@@ -92,17 +93,17 @@ final class IntakeApiRequestDeserializer
         $result = [];
         foreach ($resourceSpansRepeatedField as $resourceSpans) {
             $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, '', compact('resourceSpans'));
-            TestCaseBase::assertInstanceOf(ResourceSpans::class, $resourceSpans);
+            Assert::assertInstanceOf(ResourceSpans::class, $resourceSpans);
             $scopeSpansRepeatedField = $resourceSpans->getScopeSpans();
             $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, '', self::buildLogContextForRepeatedField(compact('scopeSpansRepeatedField')));
             foreach ($scopeSpansRepeatedField as $scopeSpans) {
                 $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, '', compact('scopeSpans'));
-                TestCaseBase::assertInstanceOf(ScopeSpans::class, $scopeSpans);
+                Assert::assertInstanceOf(ScopeSpans::class, $scopeSpans);
                 $spansRepeatedField = $scopeSpans->getSpans();
                 $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, '', self::buildLogContextForRepeatedField(compact('spansRepeatedField')));
                 foreach ($spansRepeatedField as $otelProtoSpan) {
                     $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, '', compact('otelProtoSpan'));
-                    TestCaseBase::assertInstanceOf(OTelProtoSpan::class, $otelProtoSpan);
+                    Assert::assertInstanceOf(OTelProtoSpan::class, $otelProtoSpan);
                     $span = new Span($otelProtoSpan);
                     if (($reason = self::reasonToDiscard($span)) !== null) {
                         $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Span discarded', compact('reason', 'span'));

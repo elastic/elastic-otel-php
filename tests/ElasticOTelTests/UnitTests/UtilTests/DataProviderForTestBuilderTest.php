@@ -24,6 +24,7 @@ declare(strict_types=1);
 namespace ElasticOTelTests\UnitTests\UtilTests;
 
 use ElasticOTelTests\Util\ArrayUtilForTests;
+use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\BoolUtil;
 use ElasticOTelTests\Util\CombinatorialUtil;
 use ElasticOTelTests\Util\DataProviderForTestBuilder;
@@ -81,7 +82,7 @@ class DataProviderForTestBuilderTest extends TestCaseBase
         $dbgCtx->pushSubScope();
         while (true) {
             if (!$expectedIterator->valid()) {
-                TestCaseBase::assertFalse($actualIterator->valid());
+                self::assertFalse($actualIterator->valid());
                 break;
             }
             $expectedDataSet = $expectedIterator->current();
@@ -90,8 +91,8 @@ class DataProviderForTestBuilderTest extends TestCaseBase
             $actualDataSet = $actualIterator->current();
             $actualIterator->next();
             $dbgCtx->clearCurrentSubScope(compact('expectedDataSet', 'actualDataSetDesc', 'actualDataSet'));
-            self::assertArrayHasKeyWithValue(self::TEST_DIMENSION_KEY, $expectedDataSet[self::TEST_DIMENSION_KEY], $actualDataSet);
-            self::assertArrayHasKeyWithValue(self::HELPER_DIMENSION_KEY, $expectedDataSet[self::HELPER_DIMENSION_KEY], $actualDataSet);
+            AssertEx::hasKeyWithSameValue(self::TEST_DIMENSION_KEY, $expectedDataSet[self::TEST_DIMENSION_KEY], $actualDataSet);
+            AssertEx::hasKeyWithSameValue(self::HELPER_DIMENSION_KEY, $expectedDataSet[self::HELPER_DIMENSION_KEY], $actualDataSet);
         }
         $dbgCtx->popSubScope();
 
@@ -157,7 +158,7 @@ class DataProviderForTestBuilderTest extends TestCaseBase
     {
         $inputList = ['a', 'b', 'c'];
         $expected = IterableUtil::toList(CombinatorialUtil::cartesianProduct([$inputList]));
-        TestCaseBase::assertEqualAsSets([['a'], ['b'], ['c']], $expected);
+        AssertEx::equalAsSets([['a'], ['b'], ['c']], $expected);
         foreach (BoolUtil::ALL_VALUES as $onlyFirstValueCombinable) {
             $actual = IterableUtil::toList(
                 $onlyFirstValueCombinable
@@ -168,7 +169,7 @@ class DataProviderForTestBuilderTest extends TestCaseBase
                     ->addDimensionAllValuesCombinable($inputList)
                     ->build()
             );
-            TestCaseBase::assertEqualAsSets($expected, $actual);
+            AssertEx::equalAsSets($expected, $actual);
         }
     }
 
@@ -212,7 +213,7 @@ class DataProviderForTestBuilderTest extends TestCaseBase
                 CombinatorialUtil::cartesianProduct([$inputList1, $inputList2])
             );
         }
-        TestCaseBase::assertEqualAsSets(
+        AssertEx::equalAsSets(
             $expected,
             $actual,
             LoggableToString::convert(
@@ -271,11 +272,11 @@ class DataProviderForTestBuilderTest extends TestCaseBase
         // Unpack $disableInstrumentationsVariants pair in each row
         $cartesianProduct = [];
         foreach ($cartesianProductPacked as $cartesianProductPackedRow) {
-            TestCaseBase::assertIsArray($cartesianProductPackedRow); // @phpstan-ignore staticMethod.alreadyNarrowedType
-            TestCaseBase::assertCount(2, $cartesianProductPackedRow);
+            self::assertIsArray($cartesianProductPackedRow); // @phpstan-ignore staticMethod.alreadyNarrowedType
+            self::assertCount(2, $cartesianProductPackedRow);
             $pair = $cartesianProductPackedRow[0];
-            TestCaseBase::assertIsArray($pair);
-            TestCaseBase::assertCount(2, $pair);
+            self::assertIsArray($pair);
+            self::assertCount(2, $pair);
             $cartesianProductRow = [];
             $cartesianProductRow[] = $pair[0];
             $cartesianProductRow[] = $pair[1];
@@ -294,7 +295,7 @@ class DataProviderForTestBuilderTest extends TestCaseBase
             $expected = $cartesianProduct;
         }
 
-        TestCaseBase::assertEqualAsSets(
+        AssertEx::equalAsSets(
             $expected,
             $actual,
             LoggableToString::convert(
@@ -337,7 +338,7 @@ class DataProviderForTestBuilderTest extends TestCaseBase
                 CombinatorialUtil::cartesianProduct([$inputList1, $inputList2])
             );
         }
-        TestCaseBase::assertEqualAsSets(
+        AssertEx::equalAsSets(
             $expected,
             $actual,
             LoggableToString::convert(
@@ -390,7 +391,7 @@ class DataProviderForTestBuilderTest extends TestCaseBase
                 ['dimA' => 1.23, 'dimB' => 3, 'dimC' => 'b'],
                 ['dimA' => 4.56, 'dimB' => 3, 'dimC' => 'b'],
             ];
-        TestCaseBase::assertEqualAsSets(
+        AssertEx::equalAsSets(
             $expected,
             $actual,
             LoggableToString::convert(['$expected' => $expected, 'actual' => $actual])
@@ -436,7 +437,7 @@ class DataProviderForTestBuilderTest extends TestCaseBase
                 [1.23, 3, 'b'],
                 [4.56, 3, 'b'],
             ];
-        TestCaseBase::assertEqualAsSets(
+        AssertEx::equalAsSets(
             $expected,
             $actual,
             LoggableToString::convert(['$expected' => $expected, 'actual' => $actual])
@@ -463,7 +464,7 @@ class DataProviderForTestBuilderTest extends TestCaseBase
                 ['1st_dim_key' => 2, '2ns_dim_key' => 'b'],
                 ['1st_dim_key' => 2, '2ns_dim_key' => 'c'],
             ];
-        TestCaseBase::assertEqualAsSets($expected, $actual);
+        AssertEx::equalAsSets($expected, $actual);
     }
 
     /**
@@ -499,6 +500,6 @@ class DataProviderForTestBuilderTest extends TestCaseBase
                 ['1st_dim_key' => 1, '2ns_dim_key' => 1, '3rd_dim_key' => 0],
                 ['1st_dim_key' => 1, '2ns_dim_key' => 1, '3rd_dim_key' => 1],
             ];
-        TestCaseBase::assertEqualAsSets($expected, $actual);
+        AssertEx::equalAsSets($expected, $actual);
     }
 }

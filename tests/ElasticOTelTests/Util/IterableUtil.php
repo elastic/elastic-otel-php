@@ -27,6 +27,7 @@ use Countable;
 use Elastic\OTel\Util\StaticClassTrait;
 use Generator;
 use Iterator;
+use PHPUnit\Framework\Assert;
 
 /**
  * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
@@ -219,7 +220,7 @@ final class IterableUtil
                     $tuple[] = $iterator->current();
                     $iterator->next();
                 } else {
-                    TestCaseBase::assertTrue(ArrayUtilForTests::isEmpty($tuple));
+                    Assert::assertTrue(ArrayUtilForTests::isEmpty($tuple));
                 }
             }
 
@@ -227,7 +228,7 @@ final class IterableUtil
                 return;
             }
 
-            TestCaseBase::assertSame(count($iterables), count($tuple));
+            Assert::assertSame(count($iterables), count($tuple));
             yield $tuple;
         }
     }
@@ -377,10 +378,10 @@ final class IterableUtil
     {
         $iterator = self::iterableToIterator($iterable);
         $iterator->rewind();
-        TestCaseBase::assertTrue($iterator->valid());
+        Assert::assertTrue($iterator->valid());
         $result = $iterator->current();
         $iterator->next();
-        TestCaseBase::assertFalse($iterator->valid());
+        Assert::assertFalse($iterator->valid());
         return $result;
     }
 }

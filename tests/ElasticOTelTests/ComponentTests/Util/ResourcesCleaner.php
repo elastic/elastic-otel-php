@@ -28,8 +28,8 @@ use ElasticOTelTests\Util\AmbientContextForTests;
 use ElasticOTelTests\Util\JsonUtil;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
 use ElasticOTelTests\Util\Log\Logger;
-use ElasticOTelTests\Util\TestCaseBase;
 use Override;
+use PHPUnit\Framework\Assert;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use React\EventLoop\TimerInterface;
@@ -80,7 +80,7 @@ final class ResourcesCleaner extends TestInfraHttpServerProcessBase
     {
         parent::beforeLoopRun();
 
-        TestCaseBase::assertNotNull($this->reactLoop);
+        Assert::assertNotNull($this->reactLoop);
         $this->parentProcessTrackingTimer = $this->reactLoop->addPeriodicTimer(
             1 /* interval in seconds */,
             function () {
@@ -100,8 +100,8 @@ final class ResourcesCleaner extends TestInfraHttpServerProcessBase
         $this->cleanSpawnedProcesses(isTestScopedOnly: false);
         $this->cleanFiles(isTestScopedOnly: false);
 
-        TestCaseBase::assertNotNull($this->reactLoop);
-        TestCaseBase::assertNotNull($this->parentProcessTrackingTimer);
+        Assert::assertNotNull($this->reactLoop);
+        Assert::assertNotNull($this->parentProcessTrackingTimer);
         $this->reactLoop->cancelTimer($this->parentProcessTrackingTimer);
 
         parent::exit();

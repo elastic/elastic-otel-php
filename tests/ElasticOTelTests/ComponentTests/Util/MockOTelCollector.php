@@ -31,13 +31,12 @@ use ElasticOTelTests\Util\ArrayUtilForTests;
 use ElasticOTelTests\Util\BoolUtil;
 use ElasticOTelTests\Util\Clock;
 use ElasticOTelTests\Util\ExceptionUtil;
-use ElasticOTelTests\Util\HttpStatusCodes;
 use ElasticOTelTests\Util\HttpContentTypes;
 use ElasticOTelTests\Util\HttpHeaderNames;
+use ElasticOTelTests\Util\HttpStatusCodes;
 use ElasticOTelTests\Util\JsonUtil;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
 use ElasticOTelTests\Util\Log\Logger;
-use ElasticOTelTests\Util\TestCaseBase;
 use Override;
 use PHPUnit\Framework\Assert;
 use Psr\Http\Message\ResponseInterface;
@@ -266,9 +265,9 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
         }
 
         $responseBodyDecodedJson = JsonUtil::decode($responseBody, asAssocArray: true);
-        TestCaseBase::assertIsArray($responseBodyDecodedJson);
-        TestCaseBase::assertTrue(ArrayUtil::getValueIfKeyExists(AgentToOTeCollectorEvents::class, $responseBodyDecodedJson, /* out */ $newEventsWrappedSerialized));
-        TestCaseBase::assertIsString($newEventsWrappedSerialized);
+        Assert::assertIsArray($responseBodyDecodedJson);
+        Assert::assertTrue(ArrayUtil::getValueIfKeyExists(AgentToOTeCollectorEvents::class, $responseBodyDecodedJson, /* out */ $newEventsWrappedSerialized));
+        Assert::assertIsString($newEventsWrappedSerialized);
         return PhpSerializationUtil::unserializeFromStringAssertType($newEventsWrappedSerialized, AgentToOTeCollectorEvents::class)->events;
     }
 

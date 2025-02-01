@@ -21,10 +21,13 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTests\ComponentTests;
+use ElasticOTelTests\substitutes\SubstitutesUtil;
+use PHPUnit\Framework\AssertionFailedError;
 
-use ElasticOTelTests\BootstrapTests;
+require __DIR__ . '/PHPUnitFrameworkAssertionFailedErrorAutoloader.php';
 
-require __DIR__ . '/../../bootstrap.php';
+SubstitutesUtil::assertClassNotLoaded(AssertionFailedError::class, autoload: false);
+PHPUnitFrameworkAssertionFailedErrorAutoloader::register();
+SubstitutesUtil::assertClassLoaded(AssertionFailedError::class, autoload: true);
 
-BootstrapTests::bootstrapUnitTests();
+SubstitutesUtil::assertClassHasProperty(AssertionFailedError::class, 'preprocessMessage');

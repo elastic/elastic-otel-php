@@ -29,6 +29,7 @@ use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LoggableToString;
 use ElasticOTelTests\Util\Log\LoggableTrait;
 use ElasticOTelTests\Util\TestCaseBase;
+use PHPUnit\Framework\Assert;
 
 final class CurlHandleForTests implements LoggableInterface
 {
@@ -46,7 +47,7 @@ final class CurlHandleForTests implements LoggableInterface
 
     public function setOpt(int $option, mixed $value): bool
     {
-        TestCaseBase::assertNotNull($this->curlHandle);
+        Assert::assertNotNull($this->curlHandle);
         return curl_setopt($this->curlHandle, $option, $value);
     }
 
@@ -55,14 +56,14 @@ final class CurlHandleForTests implements LoggableInterface
      */
     public function setOptArray(array $options): bool
     {
-        TestCaseBase::assertNotNull($this->curlHandle);
+        Assert::assertNotNull($this->curlHandle);
         return curl_setopt_array($this->curlHandle, $options);
     }
 
     public function exec(): string|bool
     {
         DebugContextForTests::newScope(/* out */ $dbgCtx);
-        TestCaseBase::assertNotNull($this->curlHandle);
+        Assert::assertNotNull($this->curlHandle);
 
         $verboseOutputFilePath = $this->resourcesClient->createTempFile('curl verbose output');
         $dbgCtx->add(compact('verboseOutputFilePath'));
@@ -72,20 +73,20 @@ final class CurlHandleForTests implements LoggableInterface
         try {
             $verboseOutputFile = fopen($verboseOutputFilePath, 'w'); // open file for write
             TestCaseBase::assertIsResource($verboseOutputFile, 'Failed to open temp file for curl verbose output; ' . LoggableToString::convert(compact('verboseOutputFilePath')));
-            TestCaseBase::assertTrue($this->setOpt(CURLOPT_VERBOSE, true));
-            TestCaseBase::assertTrue($this->setOpt(CURLOPT_STDERR, $verboseOutputFile));
+            Assert::assertTrue($this->setOpt(CURLOPT_VERBOSE, true));
+            Assert::assertTrue($this->setOpt(CURLOPT_STDERR, $verboseOutputFile));
             $retVal = curl_exec($this->curlHandle);
             $isAfterCurlExec = true;
         } finally {
             if (is_resource($verboseOutputFile)) {
-                TestCaseBase::assertTrue(fflush($verboseOutputFile));
-                TestCaseBase::assertTrue(fclose($verboseOutputFile));
+                Assert::assertTrue(fflush($verboseOutputFile));
+                Assert::assertTrue(fclose($verboseOutputFile));
                 if ($isAfterCurlExec) {
                     $verboseOutput = file_get_contents($verboseOutputFilePath);
-                    TestCaseBase::assertIsString($verboseOutput);
+                    Assert::assertIsString($verboseOutput);
                     $this->lastVerboseOutput = $verboseOutput;
                 }
-                TestCaseBase::assertTrue(unlink($verboseOutputFilePath));
+                Assert::assertTrue(unlink($verboseOutputFilePath));
                 $verboseOutputFile = null;
             }
         }
@@ -95,13 +96,13 @@ final class CurlHandleForTests implements LoggableInterface
 
     public function error(): string
     {
-        TestCaseBase::assertNotNull($this->curlHandle);
+        Assert::assertNotNull($this->curlHandle);
         return curl_error($this->curlHandle);
     }
 
     public function errno(): int
     {
-        TestCaseBase::assertNotNull($this->curlHandle);
+        Assert::assertNotNull($this->curlHandle);
         return curl_errno($this->curlHandle);
     }
 
@@ -115,19 +116,19 @@ final class CurlHandleForTests implements LoggableInterface
      */
     public function getInfo(): array
     {
-        TestCaseBase::assertNotNull($this->curlHandle);
+        Assert::assertNotNull($this->curlHandle);
         return curl_getinfo($this->curlHandle);
     }
 
     public function getResponseStatusCode(): mixed
     {
-        TestCaseBase::assertNotNull($this->curlHandle);
+        Assert::assertNotNull($this->curlHandle);
         return curl_getinfo($this->curlHandle, CURLINFO_RESPONSE_CODE);
     }
 
     public function close(): void
     {
-        TestCaseBase::assertNotNull($this->curlHandle);
+        Assert::assertNotNull($this->curlHandle);
         curl_close($this->curlHandle);
         $this->curlHandle = null;
     }

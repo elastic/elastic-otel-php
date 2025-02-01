@@ -26,6 +26,7 @@ namespace ElasticOTelTests\ComponentTests\Util;
 use ElasticOTelTests\Util\DebugContextForTests;
 use ElasticOTelTests\Util\TestCaseBase;
 use Override;
+use PHPUnit\Framework\Assert;
 
 trait ExpectationsTrait
 {
@@ -48,7 +49,7 @@ trait ExpectationsTrait
                 return;
             }
 
-            TestCaseBase::assertSame($expected, $actual);
+            Assert::assertSame($expected, $actual);
         } finally {
             $dbgCtx->pop();
         }
@@ -78,7 +79,7 @@ trait ExpectationsTrait
             $dbgCtx->pushSubScope();
             foreach (get_object_vars($expected) as $propName => $expectationsPropValue) {
                 $dbgCtx->clearCurrentSubScope(compact('propName', 'expectationsPropValue'));
-                TestCaseBase::assertTrue(property_exists($actual, $propName));
+                Assert::assertTrue(property_exists($actual, $propName));
                 static::assertMatchesValue($expectationsPropValue, $actual->$propName);
             }
             $dbgCtx->popSubScope();

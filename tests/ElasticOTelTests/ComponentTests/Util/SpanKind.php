@@ -25,8 +25,8 @@ namespace ElasticOTelTests\ComponentTests\Util;
 
 use Elastic\OTel\Util\ArrayUtil;
 use ElasticOTelTests\Util\EnumUtilForTestsTrait;
-use ElasticOTelTests\Util\TestCaseBase;
 use Opentelemetry\Proto\Trace\V1\Span\SpanKind as OTelProtoSpanKind;
+use PHPUnit\Framework\Assert;
 
 enum SpanKind
 {
@@ -53,6 +53,6 @@ enum SpanKind
         if (ArrayUtil::getValueIfKeyExists($otelProtoSpanKind, self::FROM_OTEL_PROTO_SPAN_KIND, /* out */ $result)) {
             return $result;
         }
-        TestCaseBase::fail('Unexpected span kind: ' . $otelProtoSpanKind);
+        Assert::fail('Unexpected span kind: ' . $otelProtoSpanKind);
     }
 }

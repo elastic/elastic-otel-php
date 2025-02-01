@@ -25,8 +25,8 @@ namespace ElasticOTelTests\Util\Config;
 
 use Elastic\OTel\Util\ArrayUtil;
 use ElasticOTelTests\Util\IterableUtil;
-use ElasticOTelTests\Util\TestCaseBase;
 use Override;
+use PHPUnit\Framework\Assert;
 
 /**
  * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
@@ -47,7 +47,7 @@ final class EnvVarsRawSnapshotSource implements RawSnapshotSourceInterface
         $limitToOptionNameToEnvVarName = [];
         foreach ($limitToOptionNames as $optName) {
             $envVarName = self::optionNameToEnvVarName($envVarNamesPrefix, $optName);
-            TestCaseBase::assertArrayNotHasKey($envVarName, $limitToOptionNameToEnvVarName);
+            Assert::assertArrayNotHasKey($envVarName, $limitToOptionNameToEnvVarName);
             $limitToOptionNameToEnvVarName[$optName] = $envVarName;
         }
         $this->limitToOptionNameToEnvVarName = $limitToOptionNameToEnvVarName;

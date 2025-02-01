@@ -26,8 +26,8 @@ namespace ElasticOTelTests\Util\Config;
 use BackedEnum;
 use Elastic\OTel\Util\TextUtil;
 use ElasticOTelTests\Util\ExceptionUtil;
-use ElasticOTelTests\Util\TestCaseBase;
 use Override;
+use PHPUnit\Framework\Assert;
 use UnitEnum;
 
 /**
@@ -84,7 +84,7 @@ class EnumOptionParser extends OptionParser
         /** @var list<array{string, TEnum}> $nameValuePairs */
         $nameValuePairs = [];
         foreach ($enumClass::cases() as $enumCase) {
-            TestCaseBase::assertIsString($enumCase->value);
+            Assert::assertIsString($enumCase->value);
             $nameValuePairs[] = [$enumCase->value, $enumCase];
         }
         return new self($enumClass, $nameValuePairs, $isCaseSensitive, $isUnambiguousPrefixAllowed);

@@ -23,8 +23,9 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\UnitTests\UtilTests;
 
-use ElasticOTelTests\Util\IterableUtil;
+use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\DebugContextForTests;
+use ElasticOTelTests\Util\IterableUtil;
 use ElasticOTelTests\Util\TestCaseBase;
 use Generator;
 
@@ -32,19 +33,19 @@ final class IterableUtilTest extends TestCaseBase
 {
     public static function testPrepend(): void
     {
-        self::assertEqualLists([1, 2], IterableUtil::toList(IterableUtil::prepend(1, [2])));
-        self::assertEqualLists([1, 2, 3], IterableUtil::toList(IterableUtil::prepend(1, [2, 3])));
-        self::assertEqualLists([1], IterableUtil::toList(IterableUtil::prepend(1, [])));
+        AssertEx::equalLists([1, 2], IterableUtil::toList(IterableUtil::prepend(1, [2])));
+        AssertEx::equalLists([1, 2, 3], IterableUtil::toList(IterableUtil::prepend(1, [2, 3])));
+        AssertEx::equalLists([1], IterableUtil::toList(IterableUtil::prepend(1, [])));
     }
 
     public static function testArraySuffix(): void
     {
-        self::assertEqualLists([1, 2], IterableUtil::toList(IterableUtil::arraySuffix([1, 2], 0)));
-        self::assertEqualLists([2], IterableUtil::toList(IterableUtil::arraySuffix([1, 2], 1)));
-        self::assertEqualLists([], IterableUtil::toList(IterableUtil::arraySuffix([1, 2], 2)));
-        self::assertEqualLists([], IterableUtil::toList(IterableUtil::arraySuffix([1, 2], 3)));
-        self::assertEqualLists([], IterableUtil::toList(IterableUtil::arraySuffix([], 0)));
-        self::assertEqualLists([], IterableUtil::toList(IterableUtil::arraySuffix([], 1)));
+        AssertEx::equalLists([1, 2], IterableUtil::toList(IterableUtil::arraySuffix([1, 2], 0)));
+        AssertEx::equalLists([2], IterableUtil::toList(IterableUtil::arraySuffix([1, 2], 1)));
+        AssertEx::equalLists([], IterableUtil::toList(IterableUtil::arraySuffix([1, 2], 2)));
+        AssertEx::equalLists([], IterableUtil::toList(IterableUtil::arraySuffix([1, 2], 3)));
+        AssertEx::equalLists([], IterableUtil::toList(IterableUtil::arraySuffix([], 0)));
+        AssertEx::equalLists([], IterableUtil::toList(IterableUtil::arraySuffix([], 1)));
     }
 
     /**
@@ -75,7 +76,7 @@ final class IterableUtilTest extends TestCaseBase
             $dbgCtx->clearCurrentSubScope(['i' => $i, 'actualTuple' => $actualTuple]);
             self::assertLessThan(count($expectedOutput), $i);
             $expectedTuple = $expectedOutput[$i];
-            self::assertEqualLists($expectedTuple, $actualTuple);
+            AssertEx::equalLists($expectedTuple, $actualTuple);
             ++$i;
         }
         $dbgCtx->popSubScope();

@@ -25,6 +25,7 @@ namespace ElasticOTelTests\Util;
 
 use Elastic\OTel\Util\StaticClassTrait;
 use ElasticOTelTests\Util\Log\LoggableToString;
+use PHPUnit\Framework\Assert;
 
 final class ArrayUtilForTests
 {
@@ -55,7 +56,7 @@ final class ArrayUtilForTests
      */
     public static function getSingleValue(array $array): mixed
     {
-        TestCaseBase::assertCount(1, $array);
+        Assert::assertCount(1, $array);
         return self::getFirstValue($array);
     }
 
@@ -68,7 +69,7 @@ final class ArrayUtilForTests
      */
     public static function &getLastValue(array $array)
     {
-        TestCaseBase::assertNotEmpty($array);
+        Assert::assertNotEmpty($array);
         return $array[array_key_last($array)];
     }
 
@@ -82,7 +83,7 @@ final class ArrayUtilForTests
      */
     public static function addUnique(string|int $key, mixed $value, array &$result): void
     {
-        TestCaseBase::assertArrayNotHasKey($key, $result, LoggableToString::convert(['key' => $key, 'value' => $value, 'result' => $result]));
+        Assert::assertArrayNotHasKey($key, $result, LoggableToString::convert(['key' => $key, 'value' => $value, 'result' => $result]));
         $result[$key] = $value;
     }
 
@@ -144,7 +145,7 @@ final class ArrayUtilForTests
             }
             ++$additionOrderIndex;
         }
-        TestCaseBase::fail('Not found key in map; ' . LoggableToString::convert(['keyToFind' => $keyToFind, 'map' => $map]));
+        Assert::fail('Not found key in map; ' . LoggableToString::convert(['keyToFind' => $keyToFind, 'map' => $map]));
     }
 
     /**
@@ -152,7 +153,7 @@ final class ArrayUtilForTests
      */
     public static function getFromMap(string $argKey, array $argsMap): mixed
     {
-        TestCaseBase::assertArrayHasKey($argKey, $argsMap);
+        Assert::assertArrayHasKey($argKey, $argsMap);
         return $argsMap[$argKey];
     }
 
@@ -167,7 +168,7 @@ final class ArrayUtilForTests
     public static function getBoolFromMap(string $argKey, array $argsMap): bool
     {
         $val = self::getFromMap($argKey, $argsMap);
-        TestCaseBase::assertIsBool($val, LoggableToString::convert(['argKey' => $argKey, 'argsMap' => $argsMap]));
+        Assert::assertIsBool($val, LoggableToString::convert(['argKey' => $argKey, 'argsMap' => $argsMap]));
         return $val;
     }
 
@@ -248,7 +249,7 @@ final class ArrayUtilForTests
      */
     public static function iterateListInReverse(array $array): iterable
     {
-        TestCaseBase::assertArrayIsList($array);
+        AssertEx::arrayIsList($array);
         for ($currentValue = end($array); key($array) !== null; $currentValue = prev($array)) {
             yield $currentValue; // @phpstan-ignore generator.valueType
         }

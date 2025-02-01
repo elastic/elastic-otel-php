@@ -26,6 +26,7 @@ namespace ElasticOTelTests\ComponentTests\Util;
 use Countable;
 use Elastic\OTel\Util\ArrayUtil;
 use ElasticOTelTests\Util\ArrayReadInterface;
+use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\DebugContextForTests;
 use ElasticOTelTests\Util\IterableUtil;
 use ElasticOTelTests\Util\Log\LoggableInterface;
@@ -35,6 +36,7 @@ use ElasticOTelTests\Util\TestCaseBase;
 use ElasticOTelTests\Util\TextUtilForTests;
 use Google\Protobuf\Internal\RepeatedField as ProtobufRepeatedField;
 use Opentelemetry\Proto\Common\V1\KeyValue as OTelProtoKeyValue;
+use PHPUnit\Framework\Assert;
 
 /**
  * @phpstan-type AttributeValue array<int>|array<mixed>|bool|float|int|null|string
@@ -94,8 +96,7 @@ final class SpanAttributes implements ArrayReadInterface, Countable, LoggableInt
             if (is_int($value)) {
                 return $value;
             }
-            TestCaseBase::assertNotFalse(filter_var($value, FILTER_VALIDATE_INT));
-            return intval($value);
+            return AssertEx::stringIsIntAndReturn($value);
         }
 
         if ($anyValue->hasKvlistValue()) {
@@ -105,8 +106,8 @@ final class SpanAttributes implements ArrayReadInterface, Countable, LoggableInt
             }
             $result = [];
             foreach ($kvListValue->getValues() as $repeatedFieldSubKey => $repeatedFieldSubValue) {
-                TestCaseBase::assertTrue(is_int($repeatedFieldSubKey) || is_string($repeatedFieldSubKey));
-                TestCaseBase::assertArrayNotHasKey($repeatedFieldSubKey, $result);
+                Assert::assertTrue(is_int($repeatedFieldSubKey) || is_string($repeatedFieldSubKey));
+                Assert::assertArrayNotHasKey($repeatedFieldSubKey, $result);
                 $result[$repeatedFieldSubKey] = $repeatedFieldSubValue;
             }
             return $result;
@@ -116,7 +117,7 @@ final class SpanAttributes implements ArrayReadInterface, Countable, LoggableInt
             return $anyValue->getStringValue();
         }
 
-        TestCaseBase::fail('Unknown value type; ' . LoggableToString::convert(compact('keyValue')));
+        Assert::fail('Unknown value type; ' . LoggableToString::convert(compact('keyValue')));
     }
 
     /**
@@ -132,8 +133,8 @@ final class SpanAttributes implements ArrayReadInterface, Countable, LoggableInt
         $dbgCtx->pushSubScope();
         foreach ($protobufRepeatedField as $keyValue) {
             $dbgCtx->clearCurrentSubScope(compact('keyValue'));
-            TestCaseBase::assertInstanceOf(OTelProtoKeyValue::class, $keyValue);
-            TestCaseBase::assertArrayNotHasKey($keyValue->getKey(), $result);
+            Assert::assertInstanceOf(OTelProtoKeyValue::class, $keyValue);
+            Assert::assertArrayNotHasKey($keyValue->getKey(), $result);
             $result[$keyValue->getKey()] = self::extractValue($keyValue);
         }
         $dbgCtx->popSubScope();
@@ -149,8 +150,8 @@ final class SpanAttributes implements ArrayReadInterface, Countable, LoggableInt
 
     public function getValue(int|string $key): mixed
     {
-        TestCaseBase::assertIsString($key);
-        TestCaseBase::assertTrue(ArrayUtil::getValueIfKeyExists($key, $this->keyToValueMap, /* out */ $attributeValue));
+        Assert::assertIsString($key);
+        Assert::assertTrue(ArrayUtil::getValueIfKeyExists($key, $this->keyToValueMap, /* out */ $attributeValue));
         return $attributeValue;
     }
 
@@ -164,7 +165,7 @@ final class SpanAttributes implements ArrayReadInterface, Countable, LoggableInt
         if (!ArrayUtil::getValueIfKeyExists($attributeName, $this->keyToValueMap, /* out */ $attributeValue)) {
             return null;
         }
-        TestCaseBase::assertIsBool($attributeValue);
+        Assert::assertIsBool($attributeValue);
         return $attributeValue;
     }
 
@@ -182,7 +183,7 @@ final class SpanAttributes implements ArrayReadInterface, Countable, LoggableInt
         if (!ArrayUtil::getValueIfKeyExists($attributeName, $this->keyToValueMap, /* out */ $attributeValue)) {
             return null;
         }
-        TestCaseBase::assertIsInt($attributeValue);
+        Assert::assertIsInt($attributeValue);
         return $attributeValue;
     }
 
@@ -191,29 +192,29 @@ final class SpanAttributes implements ArrayReadInterface, Countable, LoggableInt
         if (!ArrayUtil::getValueIfKeyExists($attributeName, $this->keyToValueMap, /* out */ $attributeValue)) {
             return null;
         }
-        TestCaseBase::assertIsString($attributeValue);
+        Assert::assertIsString($attributeValue);
         return $attributeValue;
     }
 
     public function getBool(string $attributeName): bool
     {
-        return TestCaseBase::assertNotNullAndReturn($this->tryToGetBool($attributeName));
+        return AssertEx::notNullAndReturn($this->tryToGetBool($attributeName));
     }
 
     /** @noinspection PhpUnused */
     public function getFloat(string $attributeName): float
     {
-        return TestCaseBase::assertNotNullAndReturn($this->tryToGetFloat($attributeName));
+        return AssertEx::notNullAndReturn($this->tryToGetFloat($attributeName));
     }
 
     public function getInt(string $attributeName): int
     {
-        return TestCaseBase::assertNotNullAndReturn($this->tryToGetInt($attributeName));
+        return AssertEx::notNullAndReturn($this->tryToGetInt($attributeName));
     }
 
     public function getString(string $attributeName): string
     {
-        return TestCaseBase::assertNotNullAndReturn($this->tryToGetString($attributeName));
+        return AssertEx::notNullAndReturn($this->tryToGetString($attributeName));
     }
 
     public function toLog(LogStreamInterface $stream): void

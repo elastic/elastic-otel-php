@@ -28,17 +28,20 @@ use ElasticOTelTests\Util\Log\LoggableToString;
 use ElasticOTelTests\Util\Log\LoggableTrait;
 use ElasticOTelTests\Util\Log\NoopLoggerFactory;
 use PHPUnit\Framework\Assert;
+use PHPUnit\Framework\AssertionFailedError;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionFunction;
 use ReflectionParameter;
 
+/**
+ * @phpstan-import-type PreProcessMessageCallback from AssertionFailedError
+ */
 final class DebugContextForTests implements LoggableInterface
 {
     use LoggableTrait;
 
     private static bool $isEnabled = true;
-
     private static ?DebugContextForTests $singleton = null;
 
     /** @var DebugContextForTestsScopeData[] */
@@ -54,15 +57,27 @@ final class DebugContextForTests implements LoggableInterface
     {
         if (self::$singleton === null) {
             self::$singleton = new self();
+            self::setPHPUnitFrameworkAssertionFailedErrorMessagePreprocess();
         }
         return self::$singleton;
     }
 
+    private static function setPHPUnitFrameworkAssertionFailedErrorMessagePreprocess(): void
+    {
+        AssertionFailedError::$preprocessMessage = function (string $message): string {
+            $formattedContextsStack = LoggableToString::convert(self::getContextsStack(), prettyPrint: true);
+            return $message
+                   . "\n"
+                   . 'DebugContext begin'
+                   . "\n"
+                   . $formattedContextsStack
+                   . "\n"
+                   . 'DebugContext end';
+        };
+    }
+
     /**
-     * @param int                         $numberOfStackFramesToSkip
      * @param array<string, mixed>        $initialCtx
-     *
-     * @return DebugContextForTestsScopeAutoRef
      *
      * @phpstan-param 0|positive-int $numberOfStackFramesToSkip
      */

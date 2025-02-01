@@ -26,9 +26,9 @@ namespace ElasticOTelTests\ComponentTests\Util;
 use Elastic\OTel\Util\TextUtil;
 use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LogStreamInterface;
-use ElasticOTelTests\Util\TestCaseBase;
 use ElasticOTelTests\Util\TextUtilForTests;
 use Opentelemetry\Proto\Trace\V1\Span as OTelProtoSpan;
+use PHPUnit\Framework\Assert;
 
 final class Span implements LoggableInterface
 {
@@ -56,7 +56,7 @@ final class Span implements LoggableInterface
 
     private static function convertId(string $binaryId): string
     {
-        TestCaseBase::assertFalse(TextUtil::isEmptyString($binaryId));
+        Assert::assertFalse(TextUtil::isEmptyString($binaryId));
 
         /** @var int[] $idAsBytesSeq */
         $idAsBytesSeq = [];

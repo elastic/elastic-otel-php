@@ -30,9 +30,10 @@ use ElasticOTelTests\ComponentTests\Util\AppCodeHostKind;
 use ElasticOTelTests\ComponentTests\Util\EnvVarUtilForTests;
 use ElasticOTelTests\ComponentTests\Util\TestInfraDataPerProcess;
 use ElasticOTelTests\ComponentTests\Util\TestInfraDataPerRequest;
+use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\ExceptionUtil;
 use ElasticOTelTests\Util\Log\LoggableInterface;
-use ElasticOTelTests\Util\TestCaseBase;
+use PHPUnit\Framework\Assert;
 
 /**
  * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
@@ -69,17 +70,17 @@ final class ConfigSnapshotForTests implements LoggableInterface
 
     public function appCodeHostKind(): AppCodeHostKind
     {
-        return TestCaseBase::assertNotNullAndReturn($this->appCodeHostKind);
+        return AssertEx::notNullAndReturn($this->appCodeHostKind);
     }
 
     public function dataPerProcess(): TestInfraDataPerProcess
     {
-        return TestCaseBase::assertNotNullAndReturn($this->dataPerProcess);
+        return AssertEx::notNullAndReturn($this->dataPerProcess);
     }
 
     public function dataPerRequest(): TestInfraDataPerRequest
     {
-        return TestCaseBase::assertNotNullAndReturn($this->dataPerRequest);
+        return AssertEx::notNullAndReturn($this->dataPerRequest);
     }
 
     public function isEnvVarToPassThrough(string $envVarName): bool
@@ -128,7 +129,7 @@ final class ConfigSnapshotForTests implements LoggableInterface
         $propertyName = TextUtil::snakeToCamelCase($optName->name);
         $propertyValue = $this->$propertyName;
         if ($propertyValue !== null) {
-            TestCaseBase::assertIsString($propertyValue);
+            Assert::assertIsString($propertyValue);
             if (!file_exists($propertyValue)) {
                 $envVarName = $optName->toEnvVarName();
                 throw new ConfigException(

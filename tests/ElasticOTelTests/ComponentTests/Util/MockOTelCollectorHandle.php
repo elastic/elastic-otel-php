@@ -31,7 +31,7 @@ use ElasticOTelTests\Util\HttpMethods;
 use ElasticOTelTests\Util\HttpStatusCodes;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
 use ElasticOTelTests\Util\Log\Logger;
-use ElasticOTelTests\Util\TestCaseBase;
+use PHPUnit\Framework\Assert;
 
 final class MockOTelCollectorHandle extends HttpServerHandle
 {
@@ -52,7 +52,7 @@ final class MockOTelCollectorHandle extends HttpServerHandle
 
     public function getPortForAgent(): int
     {
-        TestCaseBase::assertCount(2, $this->ports);
+        Assert::assertCount(2, $this->ports);
         return $this->ports[1];
     }
 
@@ -91,6 +91,6 @@ final class MockOTelCollectorHandle extends HttpServerHandle
         $this->nextIntakeApiRequestIndexToFetch = 0;
 
         $response = $this->sendRequest(HttpMethods::POST, TestInfraHttpServerProcessBase::CLEAN_TEST_SCOPED_URI_PATH);
-        TestCaseBase::assertSame(HttpStatusCodes::OK, $response->getStatusCode());
+        Assert::assertSame(HttpStatusCodes::OK, $response->getStatusCode());
     }
 }

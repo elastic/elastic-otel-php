@@ -34,6 +34,7 @@ use ElasticOTelTests\Util\Config\RawSnapshotSourceInterface;
 use ElasticOTelTests\Util\Log\Backend as LogBackend;
 use ElasticOTelTests\Util\Log\LoggerFactory;
 use ElasticOTelTests\Util\Log\SinkForTests;
+use PHPUnit\Framework\Assert;
 
 final class AmbientContextForTests
 {
@@ -60,7 +61,7 @@ final class AmbientContextForTests
         ExceptionUtil::runCatchLogRethrow(
             function () use ($dbgProcessName): void {
                 if (self::$singletonInstance !== null) {
-                    TestCaseBase::assertSame(self::$dbgProcessName, $dbgProcessName);
+                    Assert::assertSame(self::$dbgProcessName, $dbgProcessName);
                     return;
                 }
 
@@ -69,11 +70,16 @@ final class AmbientContextForTests
         );
     }
 
+    public static function isInited(): bool
+    {
+        return self::$singletonInstance !== null;
+    }
+
     public static function assertIsInited(): void
     {
         ExceptionUtil::runCatchLogRethrow(
             function (): void {
-                TestCaseBase::assertNotNull(self::$singletonInstance);
+                Assert::assertTrue(self::isInited(), 'Assertion that, ' . __CLASS__ . ' is initialized, failed');
             }
         );
     }
@@ -82,7 +88,7 @@ final class AmbientContextForTests
     {
         return ExceptionUtil::runCatchLogRethrow(
             function (): self {
-                TestCaseBase::assertNotNull(self::$singletonInstance);
+                Assert::assertNotNull(self::$singletonInstance);
                 return self::$singletonInstance;
             }
         );
@@ -104,13 +110,13 @@ final class AmbientContextForTests
     public static function resetLogLevel(LogLevel $newVal): void
     {
         self::resetConfigOption(OptionForTestsName::log_level, $newVal->name);
-        TestCaseBase::assertSame($newVal, AmbientContextForTests::testConfig()->logLevel);
+        Assert::assertSame($newVal, AmbientContextForTests::testConfig()->logLevel);
     }
 
     public static function resetEscalatedRerunsMaxCount(int $newVal): void
     {
         self::resetConfigOption(OptionForTestsName::escalated_reruns_max_count, strval($newVal));
-        TestCaseBase::assertSame($newVal, AmbientContextForTests::testConfig()->escalatedRerunsMaxCount);
+        Assert::assertSame($newVal, AmbientContextForTests::testConfig()->escalatedRerunsMaxCount);
     }
 
     private static function resetConfigOption(OptionForTestsName $optName, string $newValAsEnvVar): void
@@ -130,7 +136,7 @@ final class AmbientContextForTests
     {
         return ExceptionUtil::runCatchLogRethrow(
             function (): string {
-                TestCaseBase::assertNotNull(self::$dbgProcessName);
+                Assert::assertNotNull(self::$dbgProcessName);
                 return self::$dbgProcessName;
             }
         );
@@ -140,7 +146,7 @@ final class AmbientContextForTests
     {
         return ExceptionUtil::runCatchLogRethrow(
             function (): LoggerFactory {
-                TestCaseBase::assertNotNull(self::$loggerFactory);
+                Assert::assertNotNull(self::$loggerFactory);
                 return self::$loggerFactory;
             }
         );

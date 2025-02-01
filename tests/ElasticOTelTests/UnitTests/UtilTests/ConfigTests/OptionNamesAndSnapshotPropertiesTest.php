@@ -25,6 +25,7 @@ namespace ElasticOTelTests\UnitTests\UtilTests\ConfigTests;
 
 use Elastic\OTel\Util\TextUtil;
 use ElasticOTelTests\Util\ArrayUtilForTests;
+use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\Config\ConfigSnapshotForProd;
 use ElasticOTelTests\Util\Config\ConfigSnapshotForTests;
 use ElasticOTelTests\Util\Config\OptionForProdName;
@@ -51,7 +52,7 @@ class OptionNamesAndSnapshotPropertiesTest extends TestCaseBase
             $optNamesFromMetas = array_keys($optMetas);
             sort(/* ref */ $optNamesFromMetas);
             $dbgCtx->add(compact('optNamesFromCases', 'optNamesFromMetas'));
-            self::assertSameArrays($optNamesFromCases, $optNamesFromMetas);
+            AssertEx::arraysWithSameElements($optNamesFromCases, $optNamesFromMetas);
             $dbgCtx->pop();
         };
 
@@ -148,7 +149,7 @@ class OptionNamesAndSnapshotPropertiesTest extends TestCaseBase
             $dbgCtx->add(compact('envVarNamePrefix'));
             $envVarName = $optName->toEnvVarName();
             $dbgCtx->add(compact('envVarName'));
-            TestCaseBase::assertStringStartsWith($envVarNamePrefix, $envVarName);
+            self::assertStringStartsWith($envVarNamePrefix, $envVarName);
         }
         $dbgCtx->popSubScope();
 
