@@ -27,6 +27,7 @@ use Elastic\OTel\Log\LogLevel;
 use Elastic\OTel\Util\TextUtil;
 use Elastic\OTel\Util\WildcardListMatcher;
 use ElasticOTelTests\ComponentTests\Util\AppCodeHostKind;
+use ElasticOTelTests\ComponentTests\Util\EnvVarUtilForTests;
 use ElasticOTelTests\ComponentTests\Util\TestInfraDataPerProcess;
 use ElasticOTelTests\ComponentTests\Util\TestInfraDataPerRequest;
 use ElasticOTelTests\Util\ExceptionUtil;
@@ -66,32 +67,19 @@ final class ConfigSnapshotForTests implements LoggableInterface
         $this->validateFileExistsIfSet(OptionForTestsName::app_code_ext_binary);
     }
 
-    /**
-     * @template T
-     *
-     * @param ?T $propValue
-     *
-     * @return T
-     */
-    private static function assertNotNull(mixed $propValue): mixed
-    {
-        TestCaseBase::assertNotNull($propValue);
-        return $propValue;
-    }
-
     public function appCodeHostKind(): AppCodeHostKind
     {
-        return self::assertNotNull($this->appCodeHostKind);
+        return TestCaseBase::assertNotNullAndReturn($this->appCodeHostKind);
     }
 
     public function dataPerProcess(): TestInfraDataPerProcess
     {
-        return self::assertNotNull($this->dataPerProcess);
+        return TestCaseBase::assertNotNullAndReturn($this->dataPerProcess);
     }
 
     public function dataPerRequest(): TestInfraDataPerRequest
     {
-        return self::assertNotNull($this->dataPerRequest);
+        return TestCaseBase::assertNotNullAndReturn($this->dataPerRequest);
     }
 
     public function isEnvVarToPassThrough(string $envVarName): bool
@@ -128,8 +116,10 @@ final class ConfigSnapshotForTests implements LoggableInterface
         $propertyName = TextUtil::snakeToCamelCase($optName->name);
         $propertyValue = $this->$propertyName;
         if ($propertyValue === null) {
-            $envVarName = OptionForTestsName::toEnvVarName($optName);
-            throw new ConfigException(ExceptionUtil::buildMessage('Mandatory option is not set (snapshot property value is null)', compact('optName', 'envVarName')));
+            $envVarName = $optName->toEnvVarName();
+            $allEnvVars = EnvVarUtilForTests::getAll();
+            ksort(/* ref */ $allEnvVars);
+            throw new ConfigException(ExceptionUtil::buildMessage('Mandatory option is not set (snapshot property value is null)', compact('optName', 'envVarName', 'allEnvVars')));
         }
     }
 
@@ -140,12 +130,17 @@ final class ConfigSnapshotForTests implements LoggableInterface
         if ($propertyValue !== null) {
             TestCaseBase::assertIsString($propertyValue);
             if (!file_exists($propertyValue)) {
-                $envVarName = OptionForTestsName::toEnvVarName($optName);
+                $envVarName = $optName->toEnvVarName();
                 throw new ConfigException(
                     ExceptionUtil::buildMessage('Option for a file path is set but it points to a file that does not exist', compact('optName', 'envVarName', 'propertyValue'))
                 );
             }
         }
+    }
+
+    public function validateForComponentTests(): void
+    {
+        $this->validateNotNullOption(OptionForTestsName::app_code_host_kind);
     }
 
     public function validateForSpawnedProcess(): void

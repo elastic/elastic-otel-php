@@ -70,7 +70,7 @@ final class InfraUtilForTests
         ?ResourcesCleanerHandle $resourcesCleaner,
         string $dbgProcessName
     ): array {
-        $dataPerProcessEnvVarName = OptionForTestsName::toEnvVarName(OptionForTestsName::data_per_process);
+        $dataPerProcessEnvVarName = OptionForTestsName::data_per_process->toEnvVarName();
         $dataPerProcess = self::buildTestInfraDataPerProcess($targetSpawnedProcessInternalId, $targetServerPorts, $resourcesCleaner);
         $result = $baseEnvVars + [
                 SpawnedProcessBase::DBG_PROCESS_NAME_ENV_VAR_NAME => $dbgProcessName,

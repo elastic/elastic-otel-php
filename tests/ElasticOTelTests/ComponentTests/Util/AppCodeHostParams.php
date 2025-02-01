@@ -88,7 +88,7 @@ class AppCodeHostParams implements LoggableInterface
     {
         $outputEnvVars = $inputEnvVars;
         foreach (OptionForProdName::getAllLogLevelRelated() as $optName) {
-            $envVarName = OptionForProdName::toEnvVarName($optName);
+            $envVarName = $optName->toEnvVarName();
             if (array_key_exists($envVarName, $outputEnvVars)) {
                 unset($outputEnvVars[$envVarName]);
             }
@@ -180,7 +180,7 @@ class AppCodeHostParams implements LoggableInterface
         $result = $this->filterBaseEnvVars(EnvVarUtilForTests::getAll());
 
         foreach ($this->prodOptions as $optName => $optVal) {
-            $result[OptionForProdName::toEnvVarName($optName)] = ConfigUtilForTests::optionValueToString($optVal);
+            $result[$optName->toEnvVarName()] = ConfigUtilForTests::optionValueToString($optVal);
         }
 
         $logger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__);
@@ -194,7 +194,7 @@ class AppCodeHostParams implements LoggableInterface
         $envVars = $this->buildEnvVarsForAppCodeProcess();
         $allOptsMeta = OptionsForProdMetadata::get();
         foreach (IterableUtil::keys($allOptsMeta) as $optName) {
-            $envVarName = OptionForProdName::toEnvVarName(OptionForProdName::findByName($optName));
+            $envVarName = OptionForProdName::findByName($optName)->toEnvVarName();
             if (array_key_exists($envVarName, $envVars)) {
                 $envVarsToInheritSource->set($optName, $envVars[$envVarName]);
             }

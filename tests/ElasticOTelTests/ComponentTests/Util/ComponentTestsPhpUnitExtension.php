@@ -58,14 +58,12 @@ final class ComponentTestsPhpUnitExtension extends PhpUnitExtensionBase implemen
     AfterIncompleteTestHook,
     AfterRiskyTestHook
 {
-    private const DBG_PROCESS_NAME = 'Component tests';
-
     private readonly Logger $logger;
     private static ?GlobalTestInfra $globalTestInfra = null;
 
     public function __construct()
     {
-        parent::__construct(self::DBG_PROCESS_NAME);
+        parent::__construct();
 
         $this->logger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__);
         $this->logger->addContext('appCodeHostKind', AmbientContextForTests::testConfig()->appCodeHostKind());
@@ -96,11 +94,6 @@ final class ComponentTestsPhpUnitExtension extends PhpUnitExtensionBase implemen
     {
         TestCaseBase::assertNotNull(self::$globalTestInfra);
         return self::$globalTestInfra;
-    }
-
-    public static function initSingletons(): void
-    {
-        AmbientContextForTests::init(self::DBG_PROCESS_NAME);
     }
 
     public function executeBeforeTest(string $test): void

@@ -47,7 +47,7 @@ final class ConfigUtilForTests
 
     public static function assertTracingIsDisabled(): void
     {
-        $envVarName = OptionForProdName::toEnvVarName(OptionForProdName::enabled);
+        $envVarName = OptionForProdName::enabled->toEnvVarName();
         $envVarValue = EnvVarUtilForTests::get($envVarName);
         if ($envVarValue !== 'false') {
             throw new ComponentTestsInfraException(

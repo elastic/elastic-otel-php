@@ -36,7 +36,7 @@ final class UnitTestsPhpUnitExtension extends PhpUnitExtensionBase
 {
     public function __construct()
     {
-        parent::__construct(dbgProcessName: 'Unit tests');
+        parent::__construct();
 
         if (ElasticOTelExtensionUtil::isLoaded()) {
             throw new TestsInfraException(ElasticOTelExtensionUtil::EXTENSION_NAME . ' should NOT be loaded when running unit tests because it will cause a clash');

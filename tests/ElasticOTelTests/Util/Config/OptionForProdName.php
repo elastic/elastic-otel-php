@@ -23,7 +23,6 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\Util\Config;
 
-use ElasticOTelTests\Util\DebugContextForTests;
 use ElasticOTelTests\Util\EnumUtilForTestsTrait;
 use ElasticOTelTests\Util\TestCaseBase;
 
@@ -48,16 +47,16 @@ enum OptionForProdName
     case transaction_span_enabled;
     case transaction_span_enabled_cli;
 
-    public const OTEL_ENV_VAR_NAME_PREFIX = 'OTEL_';
-    public const OTEL_PHP_ENV_VAR_NAME_PREFIX = 'OTEL_PHP_';
-    public const ELASTIC_OTEL_ENV_VAR_NAME_PREFIX = 'ELASTIC_OTEL_';
+    private const OTEL_ENV_VAR_NAME_PREFIX = 'OTEL_';
+    private const OTEL_PHP_ENV_VAR_NAME_PREFIX = 'OTEL_PHP_';
+    private const ELASTIC_OTEL_ENV_VAR_NAME_PREFIX = 'ELASTIC_OTEL_';
 
-    public const LOG_LEVEL_RELATED = [self::log_level_file, self::log_level_stderr, self::log_level_syslog];
+    private const LOG_LEVEL_RELATED = [self::log_level_file, self::log_level_stderr, self::log_level_syslog];
 
     /**
      * @return array<string, self[]>
      */
-    public static function getEnvVarNamePrefixToOptionNames(): array
+    private static function getEnvVarNamePrefixToOptionNames(): array
     {
         $otelPrefix = [
             self::exporter_otlp_endpoint,
@@ -86,6 +85,7 @@ enum OptionForProdName
         ];
     }
 
+    // TODO: Sergey Kleyman: Verify if we really need \ElasticOTelTests\Util\Config\OptionForProdName::getEnvVarNamePrefixes
     /**
      * @return list<string>
      */
@@ -101,64 +101,27 @@ enum OptionForProdName
         return $envVarNamePrefixes;
     }
 
-    /**
-     * @return array<string, string>
-     */
-    private static function buildOptionNameToEnvVarName(): array
+    public function getEnvVarNamePrefix(): string
     {
-        /** @var array<string, string> $optNameToEnvVarName */
-        $optNameToEnvVarName = [];
-        foreach (self::getEnvVarNamePrefixToOptionNames() as $envVarPrefix => $optNames) {
-            foreach ($optNames as $currentOptNameCase) {
-                TestCaseBase::assertArrayNotHasKey($currentOptNameCase->name, $optNameToEnvVarName);
-                $optNameToEnvVarName[$currentOptNameCase->name] = EnvVarsRawSnapshotSource::optionNameToEnvVarName($envVarPrefix, $currentOptNameCase->name);
-            }
-        }
+        /** @var ?array<string, string> $optNameToEnvVarPrefix */
+        static $optNameToEnvVarPrefix = null;
 
-        self::assertCorrectOptionNameToEnvVarName($optNameToEnvVarName);
-        return $optNameToEnvVarName;
-    }
-
-    /**
-     * @param array<string, string> $optNameToEnvVarName
-     */
-    private static function assertCorrectOptionNameToEnvVarName(array $optNameToEnvVarName): void
-    {
-        DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
-
-        TestCaseBase::assertCount(count(self::cases()), $optNameToEnvVarName);
-        $envVarPrefixes = self::getEnvVarNamePrefixes();
-        $dbgCtx->pushSubScope();
-        foreach (self::cases() as $currentOptNameCase) {
-            $dbgCtx->add(compact('currentOptNameCase'));
-            TestCaseBase::assertArrayHasKey($currentOptNameCase->name, $optNameToEnvVarName);
-            $currentEnvVarName = $optNameToEnvVarName[$currentOptNameCase->name];
-            $dbgCtx->add(compact('currentEnvVarName'));
-            $foundPrefix = false;
-            foreach ($envVarPrefixes as $envVarPrefix) {
-                $envVarNameCandidate = EnvVarsRawSnapshotSource::optionNameToEnvVarName($envVarPrefix, $currentOptNameCase->name);
-                if ($envVarNameCandidate === $currentEnvVarName) {
-                    $foundPrefix = true;
-                    break;
+        if ($optNameToEnvVarPrefix === null) {
+            $optNameToEnvVarPrefix = [];
+            foreach (self::getEnvVarNamePrefixToOptionNames() as $envVarPrefix => $optNames) {
+                foreach ($optNames as $currentOptNameCase) {
+                    TestCaseBase::assertArrayNotHasKey($currentOptNameCase->name, $optNameToEnvVarPrefix);
+                    $optNameToEnvVarPrefix[$currentOptNameCase->name] = $envVarPrefix;
                 }
             }
-            TestCaseBase::assertTrue($foundPrefix);
         }
-        $dbgCtx->popSubScope();
 
-        $dbgCtx->pop();
+        return $optNameToEnvVarPrefix[$this->name];
     }
 
-    public static function toEnvVarName(self $optName): string
+    public function toEnvVarName(): string
     {
-        /** @var ?array<string, string> $optNameToEnvVarName */
-        static $optNameToEnvVarName = null;
-
-        if ($optNameToEnvVarName === null) {
-            $optNameToEnvVarName = self::buildOptionNameToEnvVarName();
-        }
-
-        return $optNameToEnvVarName[$optName->name];
+        return EnvVarsRawSnapshotSource::optionNameToEnvVarName($this->getEnvVarNamePrefix(), $this->name);
     }
 
     public function isLogLevelRelated(): bool
@@ -167,7 +130,7 @@ enum OptionForProdName
     }
 
     /**
-     * @return iterable<OptionForProdName>
+     * @return iterable<self>
      */
     public static function getAllLogLevelRelated(): iterable
     {

@@ -24,9 +24,7 @@ declare(strict_types=1);
 namespace ElasticOTelTests\Util;
 
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
-use ElasticOTelTests\Util\Log\LoggableToJsonEncodable;
 use ElasticOTelTests\Util\Log\Logger;
-use ElasticOTelTests\Util\Log\LoggingSubsystem;
 use PHPUnit\Runner\BeforeTestHook;
 
 /**
@@ -36,21 +34,11 @@ use PHPUnit\Runner\BeforeTestHook;
  */
 abstract class PhpUnitExtensionBase implements BeforeTestHook
 {
-    public const LOG_COMPOSITE_DATA_MAX_DEPTH_IN_TEST_MODE = 15;
-
     public static SystemTime $timestampBeforeTest;
     private readonly Logger $logger;
 
-    public function __construct(string $dbgProcessName)
+    public function __construct()
     {
-        ExceptionUtil::runCatchLogRethrow(
-            function () use ($dbgProcessName): void {
-                LoggingSubsystem::$isInTestingContext = true;
-                LoggableToJsonEncodable::$maxDepth = self::LOG_COMPOSITE_DATA_MAX_DEPTH_IN_TEST_MODE;
-
-                AmbientContextForTests::init($dbgProcessName);
-            }
-        );
         $this->logger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__);
     }
 

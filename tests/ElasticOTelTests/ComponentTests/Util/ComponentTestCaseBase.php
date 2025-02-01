@@ -34,7 +34,6 @@ use ElasticOTelTests\Util\Config\OptionsForProdMetadata;
 use ElasticOTelTests\Util\Config\Parser as ConfigParser;
 use ElasticOTelTests\Util\IterableUtil;
 use ElasticOTelTests\Util\Log\LoggableToString;
-use ElasticOTelTests\Util\Log\LoggerFactory;
 use ElasticOTelTests\Util\Log\LogLevelUtil;
 use ElasticOTelTests\Util\MixedMap;
 use ElasticOTelTests\Util\RangeUtil;
@@ -65,7 +64,6 @@ class ComponentTestCaseBase extends TestCaseBase
         if ($this->testCaseHandle !== null) {
             return $this->testCaseHandle;
         }
-        ComponentTestsPhpUnitExtension::initSingletons();
         $this->testCaseHandle = new TestCaseHandle($escalatedLogLevelForProdCode);
         return $this->testCaseHandle;
     }
@@ -137,13 +135,11 @@ class ComponentTestCaseBase extends TestCaseBase
 
     public static function isSmoke(): bool
     {
-        ComponentTestsPhpUnitExtension::initSingletons();
         return AmbientContextForTests::testConfig()->isSmoke();
     }
 
     public static function isMainAppCodeHostHttp(): bool
     {
-        ComponentTestsPhpUnitExtension::initSingletons();
         return AmbientContextForTests::testConfig()->appCodeHostKind()->isHttp();
     }
 
@@ -433,16 +429,29 @@ class ComponentTestCaseBase extends TestCaseBase
 
     protected static function buildProdConfigFromAppCode(): ConfigSnapshotForProd
     {
-        $logBackend = AmbientContextForTests::loggerFactory()->getBackend();
-        $loggerFactory = new LoggerFactory($logBackend);
-        $parser = new ConfigParser($loggerFactory);
+        /** @var ?array<string, string[]> $envVarPrefixToOptNames */
+        static $envVarPrefixToOptNames = null;
+
+        $allOptsMeta = OptionsForProdMetadata::get();
+
+        if ($envVarPrefixToOptNames === null) {
+            $envVarPrefixToOptNames = [];
+            foreach (OptionForProdName::cases() as $optName) {
+                $envVarNamePrefix = $optName->getEnvVarNamePrefix();
+                if (!array_key_exists($envVarNamePrefix, $envVarPrefixToOptNames)) {
+                    $envVarPrefixToOptNames[$envVarNamePrefix] = [];
+                }
+                $envVarPrefixToOptNames[$envVarNamePrefix][] = $optName->name;
+            }
+        }
 
         $envVarsSnapSources = [];
-        foreach (OptionForProdName::getEnvVarNamePrefixes() as $envVarPrefix) {
-            $envVarsSnapSources[] = new EnvVarsRawSnapshotSource($envVarPrefix);
+        foreach ($envVarPrefixToOptNames as $currentEnvVarsPrefix => $optNames) {
+            $envVarsSnapSources[] = new EnvVarsRawSnapshotSource($currentEnvVarsPrefix, $optNames);
         }
         $rawSnapshotSource = new CompositeRawSnapshotSource($envVarsSnapSources);
-        $allOptsMeta = OptionsForProdMetadata::get();
+
+        $parser = new ConfigParser(AmbientContextForTests::loggerFactory());
         $rawSnapshot = $rawSnapshotSource->currentSnapshot($allOptsMeta);
         return new ConfigSnapshotForProd($parser->parse($allOptsMeta, $rawSnapshot));
     }

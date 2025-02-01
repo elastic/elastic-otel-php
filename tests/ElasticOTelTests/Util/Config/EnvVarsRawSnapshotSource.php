@@ -23,6 +23,9 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\Util\Config;
 
+use Elastic\OTel\Util\ArrayUtil;
+use ElasticOTelTests\Util\IterableUtil;
+use ElasticOTelTests\Util\TestCaseBase;
 use Override;
 
 /**
@@ -32,12 +35,22 @@ use Override;
  */
 final class EnvVarsRawSnapshotSource implements RawSnapshotSourceInterface
 {
+    /** @var array<string, string> */
+    private readonly array $limitToOptionNameToEnvVarName;
+
     /**
-     * @param string $envVarNamesPrefix
+     * @param string           $envVarNamesPrefix
+     * @param iterable<string> $limitToOptionNames
      */
-    public function __construct(
-        private readonly string $envVarNamesPrefix
-    ) {
+    public function __construct(string $envVarNamesPrefix, iterable $limitToOptionNames)
+    {
+        $limitToOptionNameToEnvVarName = [];
+        foreach ($limitToOptionNames as $optName) {
+            $envVarName = self::optionNameToEnvVarName($envVarNamesPrefix, $optName);
+            TestCaseBase::assertArrayNotHasKey($envVarName, $limitToOptionNameToEnvVarName);
+            $limitToOptionNameToEnvVarName[$optName] = $envVarName;
+        }
+        $this->limitToOptionNameToEnvVarName = $limitToOptionNameToEnvVarName;
     }
 
     public static function optionNameToEnvVarName(string $envVarNamesPrefix, string $optionName): string
@@ -52,8 +65,11 @@ final class EnvVarsRawSnapshotSource implements RawSnapshotSourceInterface
         /** @var array<string, string> $optionNameToEnvVarValue */
         $optionNameToEnvVarValue = [];
 
-        foreach ($optionNameToMeta as $optionName => $optionMeta) {
-            $envVarValue = getenv(self::optionNameToEnvVarName($this->envVarNamesPrefix, $optionName));
+        foreach (IterableUtil::keys($optionNameToMeta) as $optionName) {
+            if (!ArrayUtil::getValueIfKeyExists($optionName, $this->limitToOptionNameToEnvVarName, /* out */ $envVarName)) {
+                continue;
+            }
+            $envVarValue = getenv($envVarName);
             if ($envVarValue !== false) {
                 $optionNameToEnvVarValue[$optionName] = $envVarValue;
             }

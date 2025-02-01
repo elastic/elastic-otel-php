@@ -21,28 +21,12 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTests\Util;
+namespace ElasticOTelTests\ComponentTests;
 
-use Elastic\OTel\Util\SingletonInstanceTrait;
-use ElasticOTelTests\Util\Log\LogConsts;
-use ElasticOTelTests\Util\Log\LogStreamInterface;
+use ElasticOTelTests\BootstrapTests;
+use ElasticOTelTests\Util\AmbientContextForTests;
 
-/**
- * Code in this file is part of implementation internals and thus it is not covered by the backward compatibility.
- *
- * @internal
- */
-trait NoopObjectTrait
-{
-    use SingletonInstanceTrait;
+require __DIR__ . '/../../bootstrap.php';
 
-    public function isNoop(): bool
-    {
-        return true;
-    }
-
-    public function toLog(LogStreamInterface $stream): void
-    {
-        $stream->toLogAs([LogConsts::TYPE_KEY => ClassNameUtil::fqToShort(get_class($this))]);
-    }
-}
+BootstrapTests::do('Component tests');
+AmbientContextForTests::testConfig()->validateForComponentTests();

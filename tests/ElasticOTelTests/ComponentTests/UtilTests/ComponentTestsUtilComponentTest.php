@@ -126,7 +126,7 @@ final class ComponentTestsUtilComponentTest extends ComponentTestCaseBase
         $envVars = EnvVarUtilForTests::getAll();
         $logLevelRelatedEnvVarsToRestore = [];
         foreach (OptionForProdName::getAllLogLevelRelated() as $optName) {
-            $envVarName = OptionForProdName::toEnvVarName($optName);
+            $envVarName = $optName->toEnvVarName();
             if (array_key_exists($envVarName, $envVars)) {
                 $logLevelRelatedEnvVarsToRestore[$envVarName] = $envVars[$envVarName];
                 EnvVarUtilForTests::unset($envVarName);
@@ -145,7 +145,7 @@ final class ComponentTestsUtilComponentTest extends ComponentTestCaseBase
     public function testRunAndEscalateLogLevelOnFailure(MixedMap $testArgs): void
     {
         $logLevelRelatedEnvVarsToRestore = self::unsetLogLevelRelatedEnvVars();
-        $prodCodeSyslogLevelEnvVarName = OptionForProdName::toEnvVarName(OptionForProdName::log_level_syslog);
+        $prodCodeSyslogLevelEnvVarName = OptionForProdName::log_level_syslog->toEnvVarName();
         $initialLogLevelForProdCode = $testArgs->getLogLevel(self::LOG_LEVEL_FOR_PROD_CODE_KEY);
         EnvVarUtilForTests::set($prodCodeSyslogLevelEnvVarName, $initialLogLevelForProdCode->name);
 

@@ -25,19 +25,27 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests;
 
-use ElasticOTelTests\Util\TestCaseBase;
+use Elastic\OTel\Util\StaticClassTrait;
+use ElasticOTelTests\Util\AmbientContextForTests;
+use ElasticOTelTests\Util\ExceptionUtil;
+use ElasticOTelTests\Util\Log\LoggableToJsonEncodable;
+use ElasticOTelTests\Util\Log\LoggingSubsystem;
 
-const DUMMY_FUNC_FOR_TESTS_WITH_NAMESPACE_CALLABLE_NAMESPACE = __NAMESPACE__;
-const DUMMY_FUNC_FOR_TESTS_WITH_NAMESPACE_CALLABLE_FILE_NAME = __FILE__;
-const DUMMY_FUNC_FOR_TESTS_WITH_NAMESPACE_CALLABLE_LINE_NUMBER = 42;
-
-/**
- * @param callable $callable
- *
- * @phpstan-param callable(): void $callable
- */
-function dummyFuncForTestsWithNamespace(callable $callable): void
+final class BootstrapTests
 {
-    TestCaseBase::assertSame(DUMMY_FUNC_FOR_TESTS_WITH_NAMESPACE_CALLABLE_LINE_NUMBER, __LINE__ + 1); // @phpstan-ignore staticMethod.alreadyNarrowedType
-    $callable(); // DUMMY_FUNC_FOR_TESTS_WITH_NAMESPACE_CALLABLE_LINE_NUMBER should be this line number
+    use StaticClassTrait;
+
+    public const LOG_COMPOSITE_DATA_MAX_DEPTH_IN_TEST_MODE = 15;
+
+    public static function do(string $dbgProcessName): void
+    {
+        ExceptionUtil::runCatchLogRethrow(
+            function () use ($dbgProcessName): void {
+                AmbientContextForTests::init($dbgProcessName);
+                LoggingSubsystem::$isInTestingContext = true;
+                LoggableToJsonEncodable::$maxDepth = self::LOG_COMPOSITE_DATA_MAX_DEPTH_IN_TEST_MODE;
+                AmbientContextForTests::assertIsInited();
+            }
+        );
+    }
 }

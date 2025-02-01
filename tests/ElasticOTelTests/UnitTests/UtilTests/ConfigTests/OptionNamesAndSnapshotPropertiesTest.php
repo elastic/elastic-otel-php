@@ -104,7 +104,7 @@ class OptionNamesAndSnapshotPropertiesTest extends TestCaseBase
             $dbgCtx->pushSubScope();
             foreach ($optNameEnumClass::cases() as $optName) {
                 $dbgCtx->clearCurrentSubScope(compact('optName'));
-                $envVarName = $optName::toEnvVarName($optName);
+                $envVarName = $optName->toEnvVarName();
                 $dbgCtx->add(compact('envVarName'));
                 self::assertTrue(TextUtil::isSuffixOf(strtoupper($optName->name), $envVarName));
             }
@@ -131,6 +131,24 @@ class OptionNamesAndSnapshotPropertiesTest extends TestCaseBase
             if (TextUtil::isPrefixOf('log_level_', $optName->name)) {
                 self::assertTrue($optName->isLogLevelRelated());
             }
+        }
+        $dbgCtx->popSubScope();
+
+        $dbgCtx->pop();
+    }
+
+    public function testProdOptionNameToEnvVar(): void
+    {
+        DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
+
+        $dbgCtx->pushSubScope();
+        foreach (OptionForProdName::cases() as $optName) {
+            $dbgCtx->clearCurrentSubScope(compact('optName'));
+            $envVarNamePrefix = $optName->getEnvVarNamePrefix();
+            $dbgCtx->add(compact('envVarNamePrefix'));
+            $envVarName = $optName->toEnvVarName();
+            $dbgCtx->add(compact('envVarName'));
+            TestCaseBase::assertStringStartsWith($envVarNamePrefix, $envVarName);
         }
         $dbgCtx->popSubScope();
 

@@ -35,8 +35,6 @@ error_reporting(PHP_VERSION_ID < 80400 ? E_ALL : (E_ALL & ~E_DEPRECATED));
 require __DIR__ . '/../vendor/autoload.php';
 
 require __DIR__ . '/polyfills/load.php';
-require __DIR__ . '/dummyFuncForTestsWithoutNamespace.php';
-require __DIR__ . '/ElasticOTelTests/dummyFuncForTestsWithNamespace.php';
 
 TestsRootDir::setFullPath(__DIR__);
 

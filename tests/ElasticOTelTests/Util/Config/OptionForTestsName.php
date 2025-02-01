@@ -48,8 +48,8 @@ enum OptionForTestsName
 
     public const ENV_VAR_NAME_PREFIX = 'ELASTIC_OTEL_PHP_TESTS_';
 
-    public static function toEnvVarName(self $optName): string
+    public function toEnvVarName(): string
     {
-        return EnvVarsRawSnapshotSource::optionNameToEnvVarName(self::ENV_VAR_NAME_PREFIX, $optName->name);
+        return EnvVarsRawSnapshotSource::optionNameToEnvVarName(self::ENV_VAR_NAME_PREFIX, $this->name);
     }
 }

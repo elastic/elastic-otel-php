@@ -23,6 +23,7 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\UnitTests\UtilTests\LogTests;
 
+use ElasticOTelTests\BootstrapTests;
 use ElasticOTelTests\Util\Log\Backend as LogBackend;
 use Elastic\OTel\Log\LogLevel;
 use ElasticOTelTests\Util\Log\LogConsts;
@@ -35,7 +36,6 @@ use ElasticOTelTests\Util\DataProviderForTestBuilder;
 use ElasticOTelTests\Util\FloatLimits;
 use ElasticOTelTests\Util\JsonUtil;
 use ElasticOTelTests\Util\MixedMap;
-use ElasticOTelTests\Util\PhpUnitExtensionBase;
 use ElasticOTelTests\Util\TestCaseBase;
 use UnitEnum;
 
@@ -292,7 +292,7 @@ class LoggingVariousTypesTest extends TestCaseBase
         $generateDataSets = function (): iterable {
             $maxDepthVariants = [0, 1, 2, 3, 10, 15, 20];
             $maxDepthVariants[] = LoggableToJsonEncodable::MAX_DEPTH_IN_PROD_MODE;
-            $maxDepthVariants[] = PhpUnitExtensionBase::LOG_COMPOSITE_DATA_MAX_DEPTH_IN_TEST_MODE;
+            $maxDepthVariants[] = BootstrapTests::LOG_COMPOSITE_DATA_MAX_DEPTH_IN_TEST_MODE;
             $maxDepthVariants = array_unique($maxDepthVariants, SORT_NUMERIC);
             asort(/* ref */ $maxDepthVariants, SORT_NUMERIC);
             foreach ($maxDepthVariants as $maxDepth) {

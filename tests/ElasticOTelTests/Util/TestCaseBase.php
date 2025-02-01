@@ -577,12 +577,16 @@ class TestCaseBase extends TestCase
     #[Override]
     public static function assertNotNull(mixed $actual, string $message = ''): void
     {
-        try {
-            Assert::assertNotNull($actual, $message);
-        } catch (AssertionFailedError $ex) {
-            self::addDebugContextToException($ex);
-            throw $ex;
-        }
+        ExceptionUtil::runCatchLogRethrow(
+            function () use ($actual, $message): void {
+                try {
+                    Assert::assertNotNull($actual, $message);
+                } catch (AssertionFailedError $ex) {
+                    self::addDebugContextToException($ex);
+                    throw $ex;
+                }
+            }
+        );
     }
 
     /**

@@ -29,6 +29,7 @@ use ElasticOTelTests\Util\Config\CompositeRawSnapshotSource;
 use ElasticOTelTests\Util\Config\ConfigSnapshotForTests;
 use ElasticOTelTests\Util\Config\EnvVarsRawSnapshotSource;
 use ElasticOTelTests\Util\Config\OptionForTestsName;
+use ElasticOTelTests\Util\Config\OptionsForTestsMetadata;
 use ElasticOTelTests\Util\Config\RawSnapshotSourceInterface;
 use ElasticOTelTests\Util\Log\Backend as LogBackend;
 use ElasticOTelTests\Util\Log\LoggerFactory;
@@ -56,18 +57,35 @@ final class AmbientContextForTests
 
     public static function init(string $dbgProcessName): void
     {
-        if (self::$singletonInstance !== null) {
-            TestCaseBase::assertSame(self::$dbgProcessName, $dbgProcessName);
-            return;
-        }
+        ExceptionUtil::runCatchLogRethrow(
+            function () use ($dbgProcessName): void {
+                if (self::$singletonInstance !== null) {
+                    TestCaseBase::assertSame(self::$dbgProcessName, $dbgProcessName);
+                    return;
+                }
 
-        self::$singletonInstance = new self($dbgProcessName);
+                self::$singletonInstance = new self($dbgProcessName);
+            }
+        );
+    }
+
+    public static function assertIsInited(): void
+    {
+        ExceptionUtil::runCatchLogRethrow(
+            function (): void {
+                TestCaseBase::assertNotNull(self::$singletonInstance);
+            }
+        );
     }
 
     private static function getSingletonInstance(): self
     {
-        TestCaseBase::assertNotNull(self::$singletonInstance);
-        return self::$singletonInstance;
+        return ExceptionUtil::runCatchLogRethrow(
+            function (): self {
+                TestCaseBase::assertNotNull(self::$singletonInstance);
+                return self::$singletonInstance;
+            }
+        );
     }
 
     public static function reconfigure(?RawSnapshotSourceInterface $additionalConfigSource = null): void
@@ -77,7 +95,7 @@ final class AmbientContextForTests
 
     private function readAndApplyConfig(?RawSnapshotSourceInterface $additionalConfigSource = null): void
     {
-        $envVarConfigSource = new EnvVarsRawSnapshotSource(OptionForTestsName::ENV_VAR_NAME_PREFIX);
+        $envVarConfigSource = new EnvVarsRawSnapshotSource(OptionForTestsName::ENV_VAR_NAME_PREFIX, IterableUtil::keys(OptionsForTestsMetadata::get()));
         $configSource = $additionalConfigSource === null ? $envVarConfigSource : new CompositeRawSnapshotSource([$additionalConfigSource, $envVarConfigSource]);
         $this->testConfig = ConfigUtilForTests::read($configSource, self::loggerFactory());
         $this->logBackend->setMaxEnabledLevel($this->testConfig->logLevel);
@@ -97,7 +115,7 @@ final class AmbientContextForTests
 
     private static function resetConfigOption(OptionForTestsName $optName, string $newValAsEnvVar): void
     {
-        $envVarName = OptionForTestsName::toEnvVarName($optName);
+        $envVarName = $optName->toEnvVarName();
         EnvVarUtil::set($envVarName, $newValAsEnvVar);
         AmbientContextForTests::reconfigure();
     }
@@ -110,14 +128,22 @@ final class AmbientContextForTests
     /** @noinspection PhpUnused */
     public static function dbgProcessName(): string
     {
-        TestCaseBase::assertNotNull(self::$dbgProcessName);
-        return self::$dbgProcessName;
+        return ExceptionUtil::runCatchLogRethrow(
+            function (): string {
+                TestCaseBase::assertNotNull(self::$dbgProcessName);
+                return self::$dbgProcessName;
+            }
+        );
     }
 
     public static function loggerFactory(): LoggerFactory
     {
-        TestCaseBase::assertNotNull(self::$loggerFactory);
-        return self::$loggerFactory;
+        return ExceptionUtil::runCatchLogRethrow(
+            function (): LoggerFactory {
+                TestCaseBase::assertNotNull(self::$loggerFactory);
+                return self::$loggerFactory;
+            }
+        );
     }
 
     public static function clock(): Clock
