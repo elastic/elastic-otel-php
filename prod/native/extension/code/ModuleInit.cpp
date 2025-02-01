@@ -87,6 +87,11 @@ void elasticApmModuleInit(int moduleType, int moduleNumber) {
         return;
     }
 
+    if (EAPM_CFG(bootstrap_php_part_file).empty()) {
+        ELOGF_WARNING(globals->logger_, MODULE, "bootstrap_php_part_file configuration option is not set - extension will be disabled");
+        return;
+    }
+
     ELOGF_DEBUG(globals->logger_, MODULE, "MINIT Replacing hooks");
     elasticapm::php::Hooking::getInstance().replaceHooks();
 
@@ -105,6 +110,10 @@ void elasticApmModuleShutdown( int moduleType, int moduleNumber ) {
     }
 
     if (!EAPM_CFG(enabled)) {
+        return;
+    }
+
+    if (EAPM_CFG(bootstrap_php_part_file).empty()) {
         return;
     }
 

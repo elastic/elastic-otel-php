@@ -19,6 +19,8 @@
  * under the License.
  */
 
+/** @noinspection PhpIllegalPsrClassPathInspection */
+
 declare(strict_types=1);
 
 namespace Elastic\OTel;
@@ -114,7 +116,6 @@ final class BootstrapStageLogger
             . '; maxEnabledLevel: ' . self::levelToString($maxEnabledLevel)
             . '; phpSrcCodePathPrefixToRemove: ' . self::$phpSrcCodePathPrefixToRemove
             . '; classNamePrefixToRemove: ' . self::$classNamePrefixToRemove
-            . '; maxEnabledLevel: ' . self::levelToString($maxEnabledLevel)
             . '; pid: ' . self::nullableToLog(self::$pid),
             __FILE__,
             __LINE__,

@@ -19,6 +19,8 @@
  * under the License.
  */
 
+/** @noinspection PhpIllegalPsrClassPathInspection */
+
 declare(strict_types=1);
 
 namespace Elastic\OTel;
@@ -43,8 +45,6 @@ use Throwable;
  * @internal
  *
  * Called by the extension
- *
- * @noinspection PhpUnused, PhpMultipleClassDeclarationsInspection
  */
 final class PhpPartFacade
 {
@@ -53,8 +53,24 @@ final class PhpPartFacade
      */
     use HiddenConstructorTrait;
 
+    public static bool $wasBootstrapCalled = false;
+
     private static ?self $singletonInstance = null;
     private static bool $rootSpanEnded = false;
+
+    public const CONFIG_ENV_VAR_NAME_DEV_INTERNAL_MODE_IS_DEV = 'ELASTIC_OTEL_PHP_DEV_INTERNAL_MODE_IS_DEV';
+
+    /**
+     * We need to use TELEMETRY_DISTRO_NAME and TELEMETRY_DISTRO_VERSION attribute names before OTel SDK is loaded by composer
+     * so we copy those values to local constants
+     *
+     * @see \OpenTelemetry\SemConv\TraceAttributes::TELEMETRY_DISTRO_NAME
+     * @see \OpenTelemetry\SemConv\TraceAttributes::TELEMETRY_DISTRO_VERSION
+     *
+     * @noinspection PhpUnnecessaryFullyQualifiedNameInspection
+     */
+    public const OTEL_ATTR_NAME_TELEMETRY_DISTRO_NAME = 'telemetry.distro.name';
+    public const OTEL_ATTR_NAME_TELEMETRY_DISTRO_VERSION = 'telemetry.distro.version';
 
     /**
      * Called by the extension
@@ -67,6 +83,8 @@ final class PhpPartFacade
      */
     public static function bootstrap(string $elasticOTelNativePartVersion, int $maxEnabledLogLevel, float $requestInitStartTime): bool
     {
+        self::$wasBootstrapCalled = true;
+
         require __DIR__ . DIRECTORY_SEPARATOR . 'BootstrapStageLogger.php';
 
         BootstrapStageLogger::configure($maxEnabledLogLevel, __DIR__, __NAMESPACE__);
@@ -138,7 +156,7 @@ final class PhpPartFacade
 
     private static function isInDevMode(): bool
     {
-        $modeIsDevEnvVarVal = getenv('ELASTIC_OTEL_PHP_DEV_INTERNAL_MODE_IS_DEV');
+        $modeIsDevEnvVarVal = getenv(self::CONFIG_ENV_VAR_NAME_DEV_INTERNAL_MODE_IS_DEV);
         if (is_string($modeIsDevEnvVarVal)) {
             /**
              * @var string[] $trueStringValues
@@ -161,7 +179,10 @@ final class PhpPartFacade
         $envVarValue = (is_string($envVarValueOnEntry) && strlen($envVarValueOnEntry) !== 0) ? ($envVarValueOnEntry . ',') : '';
 
         // https://opentelemetry.io/docs/specs/semconv/resource/#telemetry-distribution-experimental
-        $envVarValue .= 'telemetry.distro.name=elastic,telemetry.distro.version=' . self::buildElasticOTelVersion($elasticOTelNativePartVersion);
+        $envVarValue .=
+            self::OTEL_ATTR_NAME_TELEMETRY_DISTRO_NAME . '=elastic'
+            . ','
+            . self::OTEL_ATTR_NAME_TELEMETRY_DISTRO_VERSION . '=' . self::buildElasticOTelVersion($elasticOTelNativePartVersion);
 
         self::setEnvVar($envVarName, $envVarValue);
     }
@@ -181,7 +202,11 @@ final class PhpPartFacade
 
     private static function registerAutoloader(): void
     {
-        $vendorDir = ProdPhpDir::$fullPath . '/vendor' . (self::isInDevMode() ? '' : '_' . PHP_MAJOR_VERSION . PHP_MINOR_VERSION);
+        $vendorDir = ProdPhpDir::$fullPath . DIRECTORY_SEPARATOR . (
+            self::isInDevMode()
+                ? ('..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'vendor')
+                : ('vendor_' . PHP_MAJOR_VERSION . PHP_MINOR_VERSION)
+            );
         $vendorAutoloadPhp = $vendorDir . '/autoload.php';
         if (!file_exists($vendorAutoloadPhp)) {
             throw new RuntimeException("File $vendorAutoloadPhp does not exist");
@@ -239,7 +264,11 @@ final class PhpPartFacade
         self::$singletonInstance = null;
     }
 
-    /** @phpstan-ignore-next-line */
+    /**
+     * @noinspection PhpUnused, PhpUnusedParameterInspection
+     *
+     * @phpstan-ignore-next-line
+     */
     public static function debugPreHook(mixed $object, array $params, ?string $class, string $function, ?string $filename, ?int $lineno): void
     {
         if (self::$rootSpanEnded) {
@@ -268,7 +297,11 @@ final class PhpPartFacade
         Context::storage()->attach($context);
     }
 
-    /** @phpstan-ignore-next-line */
+    /**
+     * @noinspection PhpUnused, PhpUnusedParameterInspection
+     *
+     * @phpstan-ignore-next-line
+     */
     public static function debugPostHook(mixed $object, array $params, mixed $retval, ?Throwable $exception): void
     {
         if (self::$rootSpanEnded) {

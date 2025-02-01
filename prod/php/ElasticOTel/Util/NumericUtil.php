@@ -19,6 +19,8 @@
  * under the License.
  */
 
+/** @noinspection PhpIllegalPsrClassPathInspection */
+
 declare(strict_types=1);
 
 namespace Elastic\OTel\Util;
@@ -34,62 +36,8 @@ final class NumericUtil
      *
      * @return bool
      */
-    public static function isInClosedInterval($intervalLeft, $x, $intervalRight): bool
+    public static function isInClosedInterval(float|int $intervalLeft, float|int $x, float|int $intervalRight): bool
     {
         return ($intervalLeft <= $x) && ($x <= $intervalRight);
-    }
-
-    /**
-     * @param mixed $intervalLeft
-     * @param mixed $x
-     * @param mixed $intervalRight
-     *
-     * @return bool
-     *
-     * @template        T
-     * @phpstan-param   T $intervalLeft
-     * @phpstan-param   T $x
-     * @phpstan-param   T $intervalRight
-     *
-     */
-    public static function isInOpenInterval($intervalLeft, $x, $intervalRight): bool
-    {
-        return ($intervalLeft < $x) && ($x < $intervalRight);
-    }
-
-    /**
-     * @param mixed $intervalLeft
-     * @param mixed $x
-     * @param mixed $intervalRight
-     *
-     * @return bool
-     *
-     * @template        T
-     * @phpstan-param   T $intervalLeft
-     * @phpstan-param   T $x
-     * @phpstan-param   T $intervalRight
-     *
-     */
-    public static function isInRightOpenInterval($intervalLeft, $x, $intervalRight): bool
-    {
-        return ($intervalLeft <= $x) && ($x < $intervalRight);
-    }
-
-    /**
-     * @param mixed $intervalLeft
-     * @param mixed $x
-     * @param mixed $intervalRight
-     *
-     * @return bool
-     *
-     * @template        T
-     * @phpstan-param   T $intervalLeft
-     * @phpstan-param   T $x
-     * @phpstan-param   T $intervalRight
-     *
-     */
-    public static function isInLeftOpenInterval($intervalLeft, $x, $intervalRight): bool
-    {
-        return ($intervalLeft < $x) && ($x <= $intervalRight);
     }
 }

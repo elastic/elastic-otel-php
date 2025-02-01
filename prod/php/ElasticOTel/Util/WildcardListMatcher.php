@@ -32,7 +32,7 @@ namespace Elastic\OTel\Util;
 final class WildcardListMatcher
 {
     /** @var WildcardMatcher[] */
-    private $matchers;
+    private array $matchers;
 
     /**
      * @param iterable<string> $wildcardExprs
@@ -53,15 +53,6 @@ final class WildcardListMatcher
             }
         }
         return null;
-    }
-
-    public static function matchNullable(?WildcardListMatcher $nullableMatcher, string $text): ?string
-    {
-        if ($nullableMatcher === null) {
-            return null;
-        }
-
-        return $nullableMatcher->match($text);
     }
 
     public function __toString(): string
