@@ -21,6 +21,7 @@
 
 #include "LogLevel.h"
 #include "LogFeature.h"
+#include "basic_macros.h"
 
 #include <unordered_map>
 #include <stdarg.h>
@@ -46,7 +47,7 @@ public:
 
 // clang-format off
 
-#define ELOGF(logger, level, feature, format, ...) do { if (!logger || !logger->doesFeatureMeetsLevelCondition(level, elasticapm::php::LogFeature::feature)) break; logger->printf(level, format, ##__VA_ARGS__); } while(false);
+#define ELOGF(logger, level, feature, format, ...) do { if (!logger || !logger->doesFeatureMeetsLevelCondition(level, elasticapm::php::LogFeature::feature)) break; logger->printf(level, "[" EL_STRINGIFY(feature) "] " format, ##__VA_ARGS__); } while(false);
 #define ELOG(logger, level,  format, ...) ELOGF(logger, level, ALL, format, ##__VA_ARGS__)
 
 #define ELOGF_CRITICAL(logger, feature, format, ...) ELOGF(logger, LogLevel::logLevel_critical, feature, format, ##__VA_ARGS__)
