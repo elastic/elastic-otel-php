@@ -109,7 +109,7 @@ ZEND_ARG_TYPE_INFO(/* pass_by_ref: */ 0, level, IS_LONG, /* allow_null: */ 0)
 ZEND_ARG_TYPE_INFO(/* pass_by_ref: */ 0, feature, IS_LONG, /* allow_null: */ 0)
 ZEND_ARG_TYPE_INFO(/* pass_by_ref: */ 0, category, IS_STRING, /* allow_null: */ 0)
 ZEND_ARG_TYPE_INFO(/* pass_by_ref: */ 0, file, IS_STRING, /* allow_null: */ 0)
-ZEND_ARG_TYPE_INFO(/* pass_by_ref: */ 0, line, IS_LONG, /* allow_null: */ 0)
+ZEND_ARG_TYPE_INFO(/* pass_by_ref: */ 0, line, IS_LONG, /* allow_null: */ 1)
 ZEND_ARG_TYPE_INFO(/* pass_by_ref: */ 0, func, IS_STRING, /* allow_null: */ 0)
 ZEND_ARG_TYPE_INFO(/* pass_by_ref: */ 0, message, IS_STRING, /* allow_null: */ 0)
 ZEND_END_ARG_INFO()
@@ -120,7 +120,7 @@ ZEND_END_ARG_INFO()
  *      int $feature,
  *      string $category,
  *      string $file,
- *      int $line,
+ *      ?int $line,
  *      string $func,
  *      string $message
  *  ): void
@@ -134,6 +134,7 @@ PHP_FUNCTION(elastic_otel_log_feature) {
     char *category = nullptr;
     size_t categoryLength = 0;
     zend_long line = 0;
+    bool lineNull = true;
     char *func = nullptr;
     size_t funcLength = 0;
     char *message = nullptr;
@@ -145,12 +146,15 @@ PHP_FUNCTION(elastic_otel_log_feature) {
     Z_PARAM_LONG(feature)
     Z_PARAM_STRING(category, categoryLength)
     Z_PARAM_STRING(file, fileLength)
-    Z_PARAM_LONG(line)
+    Z_PARAM_LONG_OR_NULL(line, lineNull)
     Z_PARAM_STRING(func, funcLength)
     Z_PARAM_STRING(message, messageLength)
     ZEND_PARSE_PARAMETERS_END();
 
-    if (ELASTICAPM_G(globals)->logger_->doesFeatureMeetsLevelCondition(static_cast<LogLevel>(level), static_cast<elasticapm::php::LogFeature>(feature))) {
+    if (isForced || ELASTICAPM_G(globals)->logger_->doesFeatureMeetsLevelCondition(static_cast<LogLevel>(level), static_cast<elasticapm::php::LogFeature>(feature))) {
+        if (lineNull) {
+            ELASTICAPM_G(globals)->logger_->printf(static_cast<LogLevel>(level), PRsv " " PRsv " " PRsv " " PRsv, PRcsvArg(category, categoryLength), PRcsvArg(file, fileLength), PRcsvArg(func, funcLength), PRcsvArg(message, messageLength));
+        }
         ELASTICAPM_G(globals)->logger_->printf(static_cast<LogLevel>(level), PRsv " " PRsv " %d " PRsv " " PRsv, PRcsvArg(category, categoryLength), PRcsvArg(file, fileLength), line, PRcsvArg(func, funcLength), PRcsvArg(message, messageLength));
     }
 }
