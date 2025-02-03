@@ -37,5 +37,6 @@ enum LogFeature {
 // clang-format on
 
 [[nodiscard]] LogFeature parseLogFeature(std::string_view featureName);
+[[nodiscard]] std::string_view getLogFeatureName(LogFeature feature);
 
 } // namespace elasticapm::php

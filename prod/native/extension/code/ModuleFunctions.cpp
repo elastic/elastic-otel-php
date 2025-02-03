@@ -21,6 +21,7 @@
 #include "ModuleFunctions.h"
 #include "ConfigurationStorage.h"
 #include "LoggerInterface.h"
+#include "LogFeature.h"
 #include "RequestScope.h"
 #include "ModuleGlobals.h"
 #include "ModuleFunctionsImpl.h"
@@ -100,7 +101,7 @@ PHP_FUNCTION(elastic_otel_log) {
     Z_PARAM_STRING(message, messageLength)
     ZEND_PARSE_PARAMETERS_END();
 
-    ELASTICAPM_G(globals)->logger_->printf(static_cast<LogLevel>(level), PRsv " " PRsv " %d " PRsv " " PRsv, PRcsvArg(category, categoryLength), PRcsvArg(file, fileLength), line, PRcsvArg(func, funcLength), PRcsvArg(message, messageLength));
+    ELASTICAPM_G(globals)->logger_->printf(static_cast<LogLevel>(level), "[" PRsv "] [" PRsv ":%d] [" PRsv "] " PRsv, PRcsvArg(category, categoryLength), PRcsvArg(file, fileLength), line, PRcsvArg(func, funcLength), PRcsvArg(message, messageLength));
 }
 /* }}} */
 
@@ -154,9 +155,10 @@ PHP_FUNCTION(elastic_otel_log_feature) {
 
     if (isForced || ELASTICAPM_G(globals)->logger_->doesFeatureMeetsLevelCondition(static_cast<LogLevel>(level), static_cast<elasticapm::php::LogFeature>(feature))) {
         if (lineNull) {
-            ELASTICAPM_G(globals)->logger_->printf(static_cast<LogLevel>(level), PRsv " " PRsv " " PRsv " " PRsv, PRcsvArg(category, categoryLength), PRcsvArg(file, fileLength), PRcsvArg(func, funcLength), PRcsvArg(message, messageLength));
+            ELASTICAPM_G(globals)->logger_->printf(static_cast<LogLevel>(level), "[" PRsv "] [" PRsv "] [" PRsv "] [" PRsv "] " PRsv, PRsvArg(elasticapm::php::getLogFeatureName(static_cast<elasticapm::php::LogFeature>(feature))), PRcsvArg(category, categoryLength), PRcsvArg(file, fileLength), PRcsvArg(func, funcLength), PRcsvArg(message, messageLength));
+            return;
         }
-        ELASTICAPM_G(globals)->logger_->printf(static_cast<LogLevel>(level), PRsv " " PRsv " %d " PRsv " " PRsv, PRcsvArg(category, categoryLength), PRcsvArg(file, fileLength), line, PRcsvArg(func, funcLength), PRcsvArg(message, messageLength));
+        ELASTICAPM_G(globals)->logger_->printf(static_cast<LogLevel>(level), "[" PRsv "] [" PRsv "] [" PRsv ":%d] [" PRsv "] " PRsv, PRsvArg(elasticapm::php::getLogFeatureName(static_cast<elasticapm::php::LogFeature>(feature))), PRcsvArg(category, categoryLength), PRcsvArg(file, fileLength), line, PRcsvArg(func, funcLength), PRcsvArg(message, messageLength));
     }
 }
 /* }}} */

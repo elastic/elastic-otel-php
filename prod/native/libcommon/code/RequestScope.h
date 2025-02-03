@@ -43,7 +43,7 @@ public:
     }
 
     void onRequestInit() {
-        ELOGF_DEBUG(log_, REQUEST, __FUNCTION__);
+        ELOGF_DEBUG(log_, REQUEST, "%s", __FUNCTION__);
 
         resetRequest();
 
@@ -109,7 +109,7 @@ public:
     }
 
     void onRequestShutdown() {
-        ELOGF_DEBUG(log_, REQUEST, __FUNCTION__);
+        ELOGF_DEBUG(log_, REQUEST, "%s", __FUNCTION__);
 
         if (preloadDetected_) {
             ELOGF_DEBUG(log_, REQUEST, "opcache.preload request detected on shutdown");
@@ -132,7 +132,7 @@ public:
     }
 
     void onRequestPostDeactivate() {
-        ELOGF_DEBUG(log_, REQUEST, __FUNCTION__);
+        ELOGF_DEBUG(log_, REQUEST, "%s", __FUNCTION__);
 
         resetRequest();
 
