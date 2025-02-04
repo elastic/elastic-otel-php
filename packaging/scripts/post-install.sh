@@ -194,10 +194,10 @@ function is_php_supported() {
     echo "Detected PHP version '${PHP_MAJOR_MINOR}'"
     # Make sure list of PHP versions supported by the Elastic OTel PHP is in sync.
     # See the comment in .ci/shared.sh
-    if  [ "${PHP_MAJOR_MINOR}" == "8.0" ] || \
-        [ "${PHP_MAJOR_MINOR}" == "8.1" ] || \
+    if  [ "${PHP_MAJOR_MINOR}" == "8.1" ] || \
         [ "${PHP_MAJOR_MINOR}" == "8.2" ] || \
-        [ "${PHP_MAJOR_MINOR}" == "8.3" ]
+        [ "${PHP_MAJOR_MINOR}" == "8.3" ] || \
+        [ "${PHP_MAJOR_MINOR}" == "8.4" ]
     then
         return 0
     else
