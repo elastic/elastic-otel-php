@@ -141,12 +141,12 @@ public:
         }
     }
 
-    bool handleError(int type, std::string_view errorFilename, uint32_t errorLineno, std::string_view message) {
-        ELOGF_DEBUG(log_, REQUEST, "RequestScope::handleError type: %d fn: %s:%d msg: %s", type, errorFilename.data(), errorLineno, message.data());
+    void handleError(int type, std::string_view errorFilename, uint32_t errorLineno, std::string_view message, bool callPHPHandler) {
+        ELOGF_DEBUG(log_, REQUEST, "RequestScope::handleError calling handler: %d, type: %d fn: %s:%d msg: %s", callPHPHandler, type, errorFilename.data(), errorLineno, message.data());
 
-        bridge_->callPHPSideErrorHandler(type, errorFilename, errorLineno, message);
-
-        return false;
+        if (callPHPHandler) {
+            bridge_->callPHPSideErrorHandler(type, errorFilename, errorLineno, message);
+        }
     }
 
     bool isFunctional() {
