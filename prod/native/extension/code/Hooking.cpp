@@ -74,9 +74,8 @@ void elastic_observer_error_cb(int type, zend_string *error_filename, uint32_t e
             ELOGF_WARNING(ELASTICAPM_G(globals)->logger_, HOOKS, "elastic_observer_error_cb currentED: %p currentEXception: %p func null, msg: " PRsv, EG(current_execute_data), EG(exception), PRsvArg(msg));
         }
     }
-
     errorHandling = true;
-    ELASTICAPM_G(globals)->requestScope_->handleError(type, fileName, error_lineno, msg);
+    ELASTICAPM_G(globals)->requestScope_->handleError(type, fileName, error_lineno, msg, static_cast<bool>(EG(current_execute_data)));
     errorHandling = false;
 }
 
