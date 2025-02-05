@@ -1,0 +1,89 @@
+services:
+  php:
+    build:
+      context: ./docker
+      dockerfile: Dockerfile
+      args:
+        - PHP_VERSION
+    volumes:
+    - ./:/usr/src/myapp
+    user: "${PHP_USER}:root"
+    environment:
+      XDEBUG_MODE: ${XDEBUG_MODE:-off}
+      XDEBUG_CONFIG: ${XDEBUG_CONFIG:-''}
+      PHP_IDE_CONFIG: ${PHP_IDE_CONFIG:-''}
+      RABBIT_HOST: ${RABBIT_HOST:-rabbitmq}
+      KAFKA_HOST: ${KAFKA_HOST:-kafka}
+      MONGODB_HOST: ${MONGODB_HOST:-mongodb}
+      MONGODB_PORT: ${MONGODB_PORT:-27017}
+      MYSQL_HOST: ${MYSQL_HOST:-mysql}
+
+  zipkin:
+    image: openzipkin/zipkin-slim
+    ports:
+    - 9411:9411
+  jaeger:
+    image: jaegertracing/all-in-one
+    environment:
+      COLLECTOR_ZIPKIN_HOST_PORT: 9412
+    ports:
+    - 9412:9412
+    - 16686:16686
+
+  collector:
+    image: otel/opentelemetry-collector-contrib
+    command: [ "--config=/etc/otel-collector-config.yml" ]
+    volumes:
+      - ./files/collector/otel-collector-config.yml:/etc/otel-collector-config.yml
+
+  rabbitmq:
+    image: rabbitmq:3
+    hostname: rabbitmq
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 30s
+      retries: 3
+    ports:
+      - "5672:5672/tcp"
+  kafka:
+    image: confluentinc/cp-kafka:7.2.1
+    hostname: kafka
+    ports:
+      - "9092:9092/tcp"
+    environment:
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_NODE_ID: 1
+      KAFKA_ADVERTISED_LISTENERS: ${KAFKA_ADVERTISED_LISTENERS:-PLAINTEXT://kafka:29092,PLAINTEXT_HOST://kafka:9092}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_LISTENERS: 'PLAINTEXT://kafka:29092,CONTROLLER://kafka:29093,PLAINTEXT_HOST://0.0.0.0:9092'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    command: "bash -c '/tmp/update_run.sh && /etc/confluent/docker/run'"
+    volumes:
+      - ./docker/kafka/update_run.sh:/tmp/update_run.sh
+
+  mongodb:
+    image: mongo:4
+    hostname: mongodb
+    ports:
+      - "27017:27017/tcp"
+
+  mysql:
+    image: mysql:8.0
+    hostname: mysql
+    ports:
+      - "3306:3306/tcp"
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: otel_db
+      MYSQL_USER: otel_user
+      MYSQL_PASSWORD: otel_passwd
+    healthcheck:
+      test: mysql -uotel_user -potel_passwd -e "USE otel_db;"
+      interval: 30s
+      timeout: 30s
+      retries: 3
+    volumes:
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql

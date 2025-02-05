@@ -52,6 +52,12 @@ jobs:
     with:
       build_arch: all
 
+  test-otel-unit:
+    needs:
+      - build-packages
+    uses: ./.github/workflows/test-otel-unit.yml
+
+
   # The very last job to report whether the Workflow passed.
   # This will act as the Branch Protection gatekeeper
   ci:
