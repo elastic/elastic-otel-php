@@ -51,19 +51,19 @@ while getopts "f:r:p:w:rhq" opt; do
 done
 
 if [[ -z "$OPT_COMPOSER_FILE" || ${#OPT_PATTERNS[@]} -eq 0 ]]; then
-    echo "Error: You must provide a composer.json file path and at least one pattern." >&2
+    echo "::error::You must provide a composer.json file path and at least one pattern." >&2
     show_help
     exit 1
 fi
 
 if [[ ! -f "$OPT_COMPOSER_FILE" ]]; then
-    echo "Error: File '$OPT_COMPOSER_FILE' does not exist." >&2
+    echo "::error::File '$OPT_COMPOSER_FILE' does not exist." >&2
     exit 1
 fi
 
 # Verify that jq is installed
 if ! command -v jq &>/dev/null; then
-    echo "Error: 'jq' is not installed. Please install it and try again." >&2
+    echo "::error::'jq' is not installed. Please install it and try again." >&2
     exit 1
 fi
 
@@ -122,7 +122,7 @@ function build_list_of_packages_with_version_to_install { # Build a list of pack
         # Extract the version constraint from the composer.json file
         version=$(jq -r --arg pkg "$package" '.require[$pkg]' "$OPT_COMPOSER_FILE")
         if [[ -z "$version" || "$version" == "null" ]]; then
-            echo "Error: No version constraint found for package $package." >&2
+            echo "::error::No version constraint found for package $package." >&2
             continue
         fi
         LIST_OF_PACKAGES_TO_INSTALL+=("$package:$version")
@@ -140,21 +140,21 @@ fi
 match_packages
 
 if [[ ${#MATCHED_PACKAGES[@]} -eq 0 ]]; then
-    echo "Error: No packages matched the provided OPT_PATTERNS."
+    echo "::error::No packages matched the provided OPT_PATTERNS."
     exit 1
 fi
 
 build_list_of_packages_with_version_to_install
 
 if [[ ${#LIST_OF_PACKAGES_TO_INSTALL[@]} -eq 0 ]]; then
-    echo "Error: No valid packages with version constraints found."
+    echo "::error::No valid packages with version constraints found."
     exit 1
 fi
 
 mkdir -p "${OPT_REPORTS_DESTINATION_PATH}"
 mkdir -p "${OPT_WORKINGDIR}"
 
-pushd "${OPT_WORKINGDIR}"
+cd "${OPT_WORKINGDIR}"
 
 setup_composer_project
 
@@ -163,13 +163,13 @@ echo "  ${LIST_OF_PACKAGES_TO_INSTALL[*]}"
 
 composer ${OPT_QUIET} require --dev --ignore-platform-req php "${LIST_OF_PACKAGES_TO_INSTALL[@]}"
 if [[ $? -ne 0 ]]; then
-    echo "Error: Failed to install one or more packages." >&2
+    echo "::error::Failed to install one or more packages"
     echo "::endgroup::"
     popd
     exit 1
 fi
 
-popd
+cd -
 
 echo "::endgroup::"
 
@@ -178,29 +178,29 @@ FAILURE=false
 for package in "${MATCHED_PACKAGES[@]}"; do
     vendor_dir="${OPT_WORKINGDIR}/vendor/$package"
 
-    echo "Running PHPUnit tests for package in directory: $vendor_dir"
+    echo "Preparing PHPUnit tests for package in directory: $vendor_dir"
 
-    pushd $vendor_dir
+    cd $vendor_dir
     echo "::group::Installing $package dependencies"
     composer ${OPT_QUIET} config --no-plugins allow-plugins.php-http/discovery false
     composer ${OPT_QUIET} config allow-plugins.tbachert/spi true
     composer ${OPT_QUIET} install --dev --ignore-platform-req php
     echo "::endgroup::"
 
-    echo "::group::Running $package tests"
+    echo "::group::🚀 Running $package tests 🚀"
     ./vendor/bin/phpunit --debug --log-junit ${OPT_REPORTS_DESTINATION_PATH}/$package.xml
 
     if [[ $? -ne 0 ]]; then
-        echo "Error: PHPUnit tests failed for package $package." >&2
+        echo "::error::PHPUnit tests failed for package $package"
         FAILURE=true
     fi
 
     echo "::endgroup::"
-    popd
+    cd -
 
 done
 
 if [ "$FAILURE" = "true" ]; then
-    echo "Some tests failed."
+    echo "::error::At least one test failed"
     exit 1
 fi

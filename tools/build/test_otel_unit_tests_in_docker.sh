@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -x
-
 RESULTS_PATH="${PWD}/build/otel_test_results"
 
 show_help() {
@@ -86,8 +84,6 @@ for PHP_VERSION in "${PHP_VERSIONS[@]}"; do
         COMMAND="apt install /package/package.deb && ${COMMAND}"
     fi
 
-    echo ${COMMAND}
-
     docker compose --progress plain -f ${COMPOSE_FILE} run --remove-orphans --rm ${VOLUMES} \
         -w /tmp php sh -c "${COMMAND}"
 
@@ -104,6 +100,6 @@ for PHP_VERSION in "${PHP_VERSIONS[@]}"; do
 done
 
 if [[ $TEST_ERROR -ne 0 ]]; then
-    echo "Some tests failed"
+    echo "::error::At least one test failed"
     exit 1
 fi
