@@ -62,7 +62,8 @@ Configuration using an environment variable:
 export ELASTIC_OTEL_ENABLED=true
 ```
 
-Configuration using php.ini:```ini
+Configuration using php.ini:
+```ini
 elastic_otel.enabled=true
 ```
 
