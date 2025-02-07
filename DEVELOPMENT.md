@@ -161,6 +161,7 @@ docker push elasticobservability/apm-agent-php-dev:native-build-gcc-14.2.0-linux
 ## Adding or removing support for PHP release
 
 - Add the new version to the `supported_php_versions` list in the [elastic-otel.properties](elastic-otel.properties) file.
+- Update supported PHP version detection in function `is_php_supported` in [post-install.sh](packaging/scripts/post-install.sh)
 - Add or modify the supported versions array in the loader's [phpdetection.cpp](prod/native/loader/code/phpdetection.cpp) file.
 - Add or remove metadata for the specified PHP version in [conandata.yml](prod/native/building/dependencies/php-headers/conandata.yml).
 - Add or remove the Conan dependency for php-headers-* in [conanfile.txt](prod/native/conanfile.txt).
