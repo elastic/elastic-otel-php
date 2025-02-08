@@ -31,3 +31,5 @@ Feel free to delete or edit these items or add new items to this list.
 
 * [Get started](./docs/get-started.md)
 * [Configuration](./docs/configure.md)
+* [Limitations](./docs/limitations.md)
+* [Troubleshooting](./docs/troubleshooting.md)

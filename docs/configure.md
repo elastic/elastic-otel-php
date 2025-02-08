@@ -53,6 +53,20 @@ _Currently there are no additional `OTEL_` options waiting to be contributed ups
 <!-- Are there any Elastic-specific configuration options? -->
 **Elastic-specific options**
 
+Each option listed in this document that starts with the `ELASTIC_OTEL_` prefix can be set using either an environment variable or the `php.ini` file.
+
+When using the `php.ini` file, replace the `ELASTIC_OTEL_` prefix with `elastic_otel.` and convert the rest of the option name to lowercase, for example:
+
+Configuration using an environment variable:
+```bash
+export ELASTIC_OTEL_ENABLED=true
+```
+
+Configuration using php.ini:
+```ini
+elastic_otel.enabled=true
+```
+
 `ELASTIC_OTEL_` options that are specific to Elastic and will always live in EDOT PHP (in other words, they will _not_ be added upstream):
 
 #### General configuration ####
