@@ -40,7 +40,8 @@ Currently only Linux operating system is supported.
 
 #### PHP
 
-Supported PHP versions are 8.0-8.3.
+Supported PHP versions are 8.1-8.4.
+You can find more details in [supported technologies](supported-technologies.md) doc.
 
 ### Other limitations
 See [limitations](./docs/get-limitations.md) about other limitations of EDOT PHP.
@@ -98,9 +99,7 @@ export OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer P....l"
 
 ### Run EDOT PHP
 
-<!-- Do you have to do something after configuring it to make it run? -->
-
-<!-- Anything else? -->
+:warning: After completing the configuration, you should restart the PHP process. If you are using PHP as an Apache Webserver module or PHP-FPM, you need to perform a **full** process restart to ensure that the extension with the agent is loaded correctly.
 
 <!-- ✅ What success looks like -->
 ## Confirm that EDOT PHP is working
