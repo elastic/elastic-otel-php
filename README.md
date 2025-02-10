@@ -30,6 +30,7 @@ Feel free to delete or edit these items or add new items to this list.
 ## Read the docs
 
 * [Get started](./docs/get-started.md)
+* [Supported technologies](./docs/supported-technologies.md)
 * [Configuration](./docs/configure.md)
 * [Limitations](./docs/limitations.md)
 * [Troubleshooting](./docs/troubleshooting.md)
