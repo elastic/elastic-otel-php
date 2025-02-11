@@ -118,7 +118,9 @@ private:
         BUILD_METADATA(ELASTIC_OTEL_CFG_OPT_NAME_INFERRED_SPANS_REDUCTION_ENABLED, OptionMetadata::type::boolean, false),
         BUILD_METADATA(ELASTIC_OTEL_CFG_OPT_NAME_INFERRED_SPANS_STACKTRACE_ENABLED, OptionMetadata::type::boolean, false),
         BUILD_METADATA(ELASTIC_OTEL_CFG_OPT_NAME_INFERRED_SPANS_SAMPLING_INTERVAL, OptionMetadata::type::duration, false),
-        BUILD_METADATA(ELASTIC_OTEL_CFG_OPT_NAME_INFERRED_SPANS_MIN_DURATION, OptionMetadata::type::duration, false)};
+        BUILD_METADATA(ELASTIC_OTEL_CFG_OPT_NAME_INFERRED_SPANS_MIN_DURATION, OptionMetadata::type::duration, false),
+        BUILD_METADATA(ELASTIC_OTEL_CFG_OPT_NAME_DEPENDENCY_AUTOLOADER_GUARD_ENABLED, OptionMetadata::type::boolean, false)
+        };
 
     // clang-format on
 };

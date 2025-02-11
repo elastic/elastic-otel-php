@@ -37,12 +37,13 @@ class ConfigurationSnapshot;
 class LoggerSinkInterface;
 class LogSinkFile;
 class InstrumentedFunctionHooksStorageInterface;
+class DependencyAutoLoaderGuard;
 namespace transport {
 class CurlSender;
 class HttpEndpoints;
 template <typename Sender, typename Endpoints>
 class HttpTransportAsync;
-}
+} // namespace transport
 
 // clang-format off
 
@@ -64,6 +65,7 @@ public:
     std::shared_ptr<ConfigurationStorage> config_;
     std::shared_ptr<LoggerInterface> logger_;
     std::shared_ptr<PhpBridgeInterface> bridge_;
+    std::shared_ptr<DependencyAutoLoaderGuard> dependencyAutoLoaderGuard_;
     std::shared_ptr<InstrumentedFunctionHooksStorageInterface> hooksStorage_;
     std::shared_ptr<PhpSapi> sapi_;
     std::shared_ptr<InferredSpans> inferredSpans_;
