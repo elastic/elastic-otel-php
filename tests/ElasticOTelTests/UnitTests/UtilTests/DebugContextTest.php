@@ -971,7 +971,6 @@ class DebugContextTest extends TestCaseBase
             foreach (IterableUtil::zipWithIndex(IterableUtil::keys($decodedContextsStack)) as [$scopeIndex, $scopeDesc]) {
                 if (str_contains(haystack: $scopeDesc, needle: __FUNCTION__)) {
                     $testFuncCtxIndex = $scopeIndex;
-                    break;
                 }
             }
             self::assertIsInt($testFuncCtxIndex);
