@@ -277,13 +277,13 @@ PHP_FUNCTION(enqueue) {
     EAPM_GL(httpTransportAsync_)->enqueue(ZSTR_HASH(endpoint), std::span<std::byte>(reinterpret_cast<std::byte *>(ZSTR_VAL(payload)), ZSTR_LEN(payload)));
 }
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(elastic_otel_force_set_object_propety_value_arginfo, 0, 3, _IS_BOOL, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(elastic_otel_force_set_object_property_value_arginfo, 0, 3, _IS_BOOL, 0)
 ZEND_ARG_TYPE_INFO(0, object, IS_OBJECT, 0)
 ZEND_ARG_TYPE_INFO(0, property_name, IS_STRING, 0)
 ZEND_ARG_TYPE_INFO(0, value, IS_MIXED, 0)
 ZEND_END_ARG_INFO()
 
-PHP_FUNCTION(force_set_object_propety_value) {
+PHP_FUNCTION(force_set_object_property_value) {
     zend_object *object = nullptr;
     zend_string *property_name = nullptr;
     zval *value = nullptr;
@@ -307,9 +307,9 @@ const zend_function_entry elastic_otel_functions[] = {
     PHP_FE( elastic_otel_get_last_php_error, elastic_otel_get_last_php_error_arginfo )
     PHP_FE( elastic_otel_hook, elastic_otel_hook_arginfo )
 
-    ZEND_NS_FE( "Elastic\\Otel\\HttpTransport", initialize, ArgInfoInitialize)
-    ZEND_NS_FE( "Elastic\\Otel\\HttpTransport", enqueue, elastic_otel_no_paramters_arginfo)
-    ZEND_NS_FE( "Elastic\\Otel\\InferredSpans", force_set_object_propety_value, elastic_otel_force_set_object_propety_value_arginfo)
+    ZEND_NS_FE( "Elastic\\OTel\\HttpTransport", initialize, ArgInfoInitialize)
+    ZEND_NS_FE( "Elastic\\OTel\\HttpTransport", enqueue, elastic_otel_no_paramters_arginfo)
+    ZEND_NS_FE( "Elastic\\OTel\\InferredSpans", force_set_object_property_value, elastic_otel_force_set_object_property_value_arginfo)
 
     PHP_FE_END
 };

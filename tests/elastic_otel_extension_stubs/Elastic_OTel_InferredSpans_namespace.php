@@ -26,9 +26,9 @@ namespace Elastic\OTel\InferredSpans;
 /**
  * This function is implemented by the extension
  *
- * @noinspection PhpUnusedParameterInspection, SpellCheckingInspection
+ * @noinspection PhpUnusedParameterInspection
  */
-function force_set_object_propety_value(object $object, string $property_name, mixed $value): bool
+function force_set_object_property_value(object $object, string $property_name, mixed $value): bool
 {
     return false;
 }

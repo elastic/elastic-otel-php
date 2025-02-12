@@ -97,7 +97,6 @@ class InferredSpans
 
             array_splice($stackTrace, 0, InferredSpans::FRAMES_TO_SKIP); // skip PhpFacade/Inferred spans logic frames
             $apmFramesFilteredOutCount = $this->filterOutAPMFrames($stackTrace);
-            $apmFramesFilteredOutCount = null;
 
             $this->compareStackTraces($stackTrace, $durationMs, $topFrameIsInternalFunction, $apmFramesFilteredOutCount);
         } catch (Throwable $throwable) {
@@ -238,7 +237,6 @@ class InferredSpans
 
         $count = min($stackTraceCount, $lastStackTraceCount);
 
-        $index = 0;
         for ($index = 1; $index <= $count; $index++) {
             $stFrame = &$stackTrace[$stackTraceCount - $index];
             $lastStFrame = &$this->lastStackTrace[$lastStackTraceCount - $index];
@@ -285,7 +283,7 @@ class InferredSpans
                     ['new', $lastSpanParent, 'old', $span->getParentContext()]
                 );
 
-                $forceParentChangeFailed = !force_set_object_propety_value($span, "parentSpanContext", $lastSpanParent);
+                $forceParentChangeFailed = !force_set_object_property_value($span, "parentSpanContext", $lastSpanParent);
             }
         }
 
@@ -310,13 +308,7 @@ class InferredSpans
             return false;
         }
 
-        $duration = 0;
-        if ($endEpochNanos) {
-            $duration = $endEpochNanos - $span->getStartEpochNanos();
-        } else {
-            $duration = $span->getDuration();
-        }
-
+        $duration = $endEpochNanos ? ($endEpochNanos - $span->getStartEpochNanos()) : $span->getDuration();
         if ($duration < $this->minSpanDuration * self::MILLIS_TO_NANOS) {
             self::logDebug('Span ' . $span->getName() . ' duration ' . intval($duration / self::MILLIS_TO_NANOS)
                 . 'ms is too short to fit within the minimum span duration limit: ' . $this->minSpanDuration . 'ms');
