@@ -35,6 +35,8 @@ use ElasticOTelTests\Util\ElasticOTelExtensionUtil;
 use ElasticOTelTests\Util\Log\LoggerFactory;
 use ElasticOTelTests\Util\TestsInfraException;
 
+use function elastic_otel_is_enabled;
+
 final class ConfigUtilForTests
 {
     use StaticClassTrait;
@@ -65,13 +67,9 @@ final class ConfigUtilForTests
         }
 
         $msgPrefix = 'Component tests auxiliary processes should not be recorded';
-        /**
-         * elastic_otel_* functions are provided by the extension
-         *
-         * @noinspection PhpFullyQualifiedNameUsageInspection
-         */
-        if (function_exists('elastic_otel_is_enabled') && \elastic_otel_is_enabled()) { // phpstan-ignore function.notFound
-            throw new ComponentTestsInfraException($msgPrefix . '; \elastic_otel_is_enabled() returned true');
+        // elastic_otel_is_enabled is provided by the extension
+        if (function_exists('elastic_otel_is_enabled') && elastic_otel_is_enabled()) {
+            throw new ComponentTestsInfraException($msgPrefix . '; elastic_otel_is_enabled() returned true');
         }
         if (PhpPartFacade::$wasBootstrapCalled) {
             throw new ComponentTestsInfraException($msgPrefix . '; PhpPartFacade::$wasBootstrapCalled is true');

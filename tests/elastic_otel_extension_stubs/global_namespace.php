@@ -19,10 +19,14 @@
  * under the License.
  */
 
+/** @noinspection PhpInternalEntityUsedInspection */
+
 declare(strict_types=1);
 
 /**
  * This function is implemented by the extension
+ *
+ * @noinspection PhpUnusedParameterInspection
  */
 function elastic_otel_log_feature(
     int $isForced,
@@ -44,4 +48,33 @@ function elastic_otel_log_feature(
 function elastic_otel_get_config_option_by_name(string $optionName): mixed
 {
     return null;
+}
+
+/**
+ * This function is implemented by the extension
+ *
+ * @phpstan-param ?string $class The hooked function's class. Null for a global/built-in function.
+ * @phpstan-param string $function The hooked function's name.
+ * @phpstan-param ?(Closure(?object $thisObj, array<mixed> $params, string $class, string $function, ?string $filename, ?int $lineno): (void|array<mixed>)) $pre
+ *                  return value is modified parameters
+ * @phpstan-param ?(Closure(?object $thisObj, array<mixed> $params, mixed $returnValue, ?Throwable $throwable): mixed) $post
+ *                  return value is modified return value
+ *
+ * @return bool Whether the observer was successfully added
+ *
+ * @see https://github.com/open-telemetry/opentelemetry-php-instrumentation
+ *
+ * @noinspection PhpUnusedParameterInspection
+ */
+function elastic_otel_hook(?string $class, string $function, ?Closure $pre, ?Closure $post): bool
+{
+    return false;
+}
+
+/**
+ * This function is implemented by the extension
+ */
+function elastic_otel_is_enabled(): bool
+{
+    return false;
 }
