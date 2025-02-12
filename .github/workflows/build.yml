@@ -27,7 +27,7 @@ jobs:
     uses: ./.github/workflows/test-sources-license.yml
 
   test-php-static-check:
-    uses: ./.github/workflows/test-php-static-check.yml
+    uses: ./.github/workflows/php-static-check-and-unit-tests.yml
 
   build-native:
     uses: ./.github/workflows/build-native.yml
