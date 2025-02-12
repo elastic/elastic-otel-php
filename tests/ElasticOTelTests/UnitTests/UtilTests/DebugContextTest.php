@@ -1145,6 +1145,7 @@ class DebugContextTest extends TestCaseBase
 
         // Extract line number in Framework/Assert.php
         $strBeforeAssertPhpLine = JsonUtil::adaptStringToSearchInJson($phpUnitFrameworkAssertPhpFileFullPath . ':');
+        $dbgCtx->add(compact('strBeforeAssertPhpLine'));
         self::assertNotFalse($strBeforeAssertPhpLinePos = strpos($actualAddedText, $strBeforeAssertPhpLine));
         $assertPhpLineStrPos = $strBeforeAssertPhpLinePos + strlen($strBeforeAssertPhpLine);
         self::assertGreaterThan(0, $assertPhpLineNumberStrLen = strspn($actualAddedText, '0123456789', $assertPhpLineStrPos));
