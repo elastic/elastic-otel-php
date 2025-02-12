@@ -34,4 +34,8 @@ namespace elasticapm::php {
     return feature.value();
 }
 
+[[nodiscard]] std::string_view getLogFeatureName(LogFeature feature) {
+    return magic_enum::enum_name(feature);
+}
+
 } // namespace elasticapm::php

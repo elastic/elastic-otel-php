@@ -23,17 +23,31 @@ declare(strict_types=1);
 
 namespace Elastic\OTel\Log;
 
-use OpenTelemetry\API\Behavior\Internal\LogWriter\LogWriterInterface;
 use OpenTelemetry\API\Behavior\Internal\Logging;
+use OpenTelemetry\SDK\Common\Configuration\Configuration;
+use OpenTelemetry\API\Behavior\Internal\LogWriter\LogWriterInterface;
 
 class ElasticLogWriter implements LogWriterInterface
 {
+    private bool $attachLogContext;
+
+    public function __construct()
+    {
+        $this->attachLogContext = Configuration::getBoolean('ELASTIC_OTEL_LOG_OTEL_WITH_CONTEXT', true);
+    }
+
     /**
      * @param array<array-key, mixed> $context
      */
     public function write(mixed $level, string $message, array $context): void
     {
-        $edotLevelIntValue = (is_string($level) ? (LogLevel::fromPsrLevel($level) ?? LogLevel::off) : LogLevel::off)->value;
+        $edotLevel = is_string($level) ? Level::getFromPsrLevel($level) : Level::OFF;
+
+        $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 4)[3];
+
+        $func = ($caller['class'] ?? '') . ($caller['type'] ?? '') . $caller['function'];
+        $logContext = $this->attachLogContext ? (' context: ' . var_export($context, true)) : '';
+
         /**
          * elastic_otel_* functions are provided by the extension
          *
@@ -41,13 +55,13 @@ class ElasticLogWriter implements LogWriterInterface
          */
         \elastic_otel_log_feature( // @phpstan-ignore function.notFound
             0 /* isForced */,
-            $edotLevelIntValue,
-            LogFeature::OTEL /* feature */,
-            '' /* category */,
-            '' /* file */,
-            0 /* line */,
-            $context['source'] ?? '' /* func */,
-            $message . ' context: ' . var_export($context, true) /* message */
+            $edotLevel,
+            LogFeature::OTEL,
+            'OpenTelemetry',
+            $caller['file'] ?? '',
+            $caller['line'] ?? '',
+            $func,
+            $message . $logContext
         );
     }
 

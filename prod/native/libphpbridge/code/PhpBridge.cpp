@@ -54,36 +54,16 @@ std::optional<std::string_view> PhpBridge::getCurrentExceptionMessage() const {
 }
 
 bool PhpBridge::callInferredSpans(std::chrono::milliseconds duration) const {
-    auto phpPartFacadeClass = findClassEntry("elastic\\apm\\impl\\phppartfacade"sv);
+    auto phpPartFacadeClass = findClassEntry("elastic\\otel\\phppartfacade"sv);
     if (!phpPartFacadeClass) {
         return false;
     }
 
-    auto objectOfPhpPartFacade = getClassStaticPropertyValue(phpPartFacadeClass, "singletonInstance"sv);
-    if (!objectOfPhpPartFacade || Z_TYPE_P(objectOfPhpPartFacade) != IS_OBJECT) {
-        return false;
-    }
-
-    auto transactionForExtensionRequest = getClassPropertyValue(phpPartFacadeClass, objectOfPhpPartFacade, "transactionForExtensionRequest"sv);
-    if (!isObjectOfClass(transactionForExtensionRequest, "Elastic\\Apm\\Impl\\TransactionForExtensionRequest")) {
-        return false;
-    }
-
-    zend_class_entry *ceTransactionForExtensionRequest = Z_OBJCE_P(transactionForExtensionRequest);
-    if (!ceTransactionForExtensionRequest) {
-        return false;
-    }
-
-    zval *inferredSpansManager = getClassPropertyValue(ceTransactionForExtensionRequest, transactionForExtensionRequest, "inferredSpansManager"sv);
-    if (!isObjectOfClass(inferredSpansManager, "Elastic\\Apm\\Impl\\InferredSpansManager")) {
-        return false;
-    }
+    bool internal = (EG(current_execute_data) && EG(current_execute_data)->func->type == ZEND_INTERNAL_FUNCTION);
 
     AutoZval rv;
-    AutoZval params;
-    params.setLong(duration.count());
-
-    return callMethod(inferredSpansManager, "handleAutomaticCapturing"sv, params.get(), 1, rv.get());
+    std::array<AutoZval, 2> params{duration.count(), internal};
+    return callMethod(nullptr, "\\Elastic\\OTel\\PhpPartFacade::inferredSpans"sv, params.data()->get(), params.size(), rv.get());
 }
 
 std::string_view PhpBridge::getPhpSapiName() const {
@@ -248,7 +228,34 @@ zval *getClassPropertyValue(zend_class_entry *ce, zend_object *object, std::stri
 #endif
 }
 
+bool forceSetObjectPropertyValue(zend_object *object, zend_string *propertyName, zval *value) {
+    auto ce = object->ce;
 
+    decltype(zend_property_info::flags) originalFlags = 0;
+    bool flagChanged = false;
+
+    if (zend_hash_num_elements(&ce->properties_info) == 0) {
+        return false;
+    }
+    zval *zv = zend_hash_find(&ce->properties_info, propertyName);
+    if (!zv) {
+        return false;
+    }
+
+    auto prop_info = static_cast<zend_property_info *>(Z_PTR_P(zv));
+
+    originalFlags = prop_info->flags;
+    if (prop_info->flags & ZEND_ACC_READONLY) {
+        prop_info->flags = prop_info->flags & ~ZEND_ACC_READONLY;
+    }
+
+    zend_update_property_ex(object->ce, object, propertyName, value);
+
+    if (flagChanged) {
+        prop_info->flags = originalFlags;
+    }
+    return true;
+}
 
 bool callMethod(zval *object, std::string_view methodName, zval arguments[], int32_t argCount, zval *returnValue) {
     elasticapm::utils::callOnScopeExit callOnExit([exceptionState = saveExceptionState()]() { restoreExceptionState(exceptionState); });
@@ -395,6 +402,5 @@ void getCurrentException(zval *zv, zend_object *exception) {
         ZVAL_NULL(zv);
     }
 }
-
 
 } // namespace elasticapm::php

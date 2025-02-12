@@ -29,6 +29,7 @@
 #include "InternalFunctionInstrumentation.h"
 #include "PeriodicTaskExecutor.h"
 #include "RequestScope.h"
+#include "InferredSpans.h"
 #include "os/OsUtils.h"
 
 #include <main/php_version.h>
@@ -73,14 +74,51 @@ void elastic_observer_error_cb(int type, zend_string *error_filename, uint32_t e
             ELOGF_WARNING(ELASTICAPM_G(globals)->logger_, HOOKS, "elastic_observer_error_cb currentED: %p currentEXception: %p func null, msg: " PRsv, EG(current_execute_data), EG(exception), PRsvArg(msg));
         }
     }
-
     errorHandling = true;
-    ELASTICAPM_G(globals)->requestScope_->handleError(type, fileName, error_lineno, msg);
+    ELASTICAPM_G(globals)->requestScope_->handleError(type, fileName, error_lineno, msg, static_cast<bool>(EG(current_execute_data)));
     errorHandling = false;
 }
 
-void Hooking::replaceHooks() {
+static void elastic_interrupt_function(zend_execute_data *execute_data) {
+    ELOGF_DEBUG(ELASTICAPM_G(globals)->logger_, HOOKS, "%s: interrupt", __FUNCTION__);
+
+    ELASTICAPM_G(globals)->inferredSpans_->attachBacktraceIfInterrupted();
+
+    zend_try {
+        if (Hooking::getInstance().getOriginalZendInterruptFunction()) {
+            Hooking::getInstance().getOriginalZendInterruptFunction()(execute_data);
+        }
+    }
+    zend_catch {
+        ELOGF_DEBUG(ELASTICAPM_G(globals)->logger_, HOOKS, "%s: original call error", __FUNCTION__);
+    }
+    zend_end_try();
+}
+
+static void elastic_execute_internal(INTERNAL_FUNCTION_PARAMETERS) {
+    zend_try {
+        if (Hooking::getInstance().getOriginalExecuteInternal()) {
+            Hooking::getInstance().getOriginalExecuteInternal()(INTERNAL_FUNCTION_PARAM_PASSTHRU);
+        } else {
+            execute_internal(INTERNAL_FUNCTION_PARAM_PASSTHRU);
+        }
+    }
+    zend_catch {
+        ELOGF_DEBUG(ELASTICAPM_G(globals)->logger_, HOOKS, "%s: original call error", __FUNCTION__);
+    }
+    zend_end_try();
+
+    ELASTICAPM_G(globals)->inferredSpans_->attachBacktraceIfInterrupted();
+}
+
+void Hooking::replaceHooks(bool enableInferredSpansHooks) {
     zend_observer_error_register(elastic_observer_error_cb);
+
+    if (enableInferredSpansHooks) {
+        ELOGF_DEBUG(ELASTICAPM_G(globals)->logger_, HOOKS, "Hooked into zend_execute_internal and zend_interrupt_function");
+        zend_execute_internal = elastic_execute_internal;
+        zend_interrupt_function = elastic_interrupt_function;
+    }
 }
 
 } // namespace elasticapm::php

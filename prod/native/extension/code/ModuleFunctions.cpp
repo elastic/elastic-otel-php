@@ -21,11 +21,13 @@
 #include "ModuleFunctions.h"
 #include "ConfigurationStorage.h"
 #include "LoggerInterface.h"
+#include "LogFeature.h"
 #include "RequestScope.h"
 #include "ModuleGlobals.h"
 #include "ModuleFunctionsImpl.h"
 #include "InternalFunctionInstrumentation.h"
 #include "transport/HttpTransportAsync.h"
+#include "PhpBridge.h"
 
 #include <main/php.h>
 #include <Zend/zend_API.h>
@@ -99,7 +101,7 @@ PHP_FUNCTION(elastic_otel_log) {
     Z_PARAM_STRING(message, messageLength)
     ZEND_PARSE_PARAMETERS_END();
 
-    ELASTICAPM_G(globals)->logger_->printf(static_cast<LogLevel>(level), PRsv " " PRsv " %d " PRsv " " PRsv, PRcsvArg(category, categoryLength), PRcsvArg(file, fileLength), line, PRcsvArg(func, funcLength), PRcsvArg(message, messageLength));
+    ELASTICAPM_G(globals)->logger_->printf(static_cast<LogLevel>(level), "[" PRsv "] [" PRsv ":%d] [" PRsv "] " PRsv, PRcsvArg(category, categoryLength), PRcsvArg(file, fileLength), line, PRcsvArg(func, funcLength), PRcsvArg(message, messageLength));
 }
 /* }}} */
 
@@ -109,7 +111,7 @@ ZEND_ARG_TYPE_INFO(/* pass_by_ref: */ 0, level, IS_LONG, /* allow_null: */ 0)
 ZEND_ARG_TYPE_INFO(/* pass_by_ref: */ 0, feature, IS_LONG, /* allow_null: */ 0)
 ZEND_ARG_TYPE_INFO(/* pass_by_ref: */ 0, category, IS_STRING, /* allow_null: */ 0)
 ZEND_ARG_TYPE_INFO(/* pass_by_ref: */ 0, file, IS_STRING, /* allow_null: */ 0)
-ZEND_ARG_TYPE_INFO(/* pass_by_ref: */ 0, line, IS_LONG, /* allow_null: */ 0)
+ZEND_ARG_TYPE_INFO(/* pass_by_ref: */ 0, line, IS_LONG, /* allow_null: */ 1)
 ZEND_ARG_TYPE_INFO(/* pass_by_ref: */ 0, func, IS_STRING, /* allow_null: */ 0)
 ZEND_ARG_TYPE_INFO(/* pass_by_ref: */ 0, message, IS_STRING, /* allow_null: */ 0)
 ZEND_END_ARG_INFO()
@@ -120,7 +122,7 @@ ZEND_END_ARG_INFO()
  *      int $feature,
  *      string $category,
  *      string $file,
- *      int $line,
+ *      ?int $line,
  *      string $func,
  *      string $message
  *  ): void
@@ -134,6 +136,7 @@ PHP_FUNCTION(elastic_otel_log_feature) {
     char *category = nullptr;
     size_t categoryLength = 0;
     zend_long line = 0;
+    bool lineNull = true;
     char *func = nullptr;
     size_t funcLength = 0;
     char *message = nullptr;
@@ -145,13 +148,17 @@ PHP_FUNCTION(elastic_otel_log_feature) {
     Z_PARAM_LONG(feature)
     Z_PARAM_STRING(category, categoryLength)
     Z_PARAM_STRING(file, fileLength)
-    Z_PARAM_LONG(line)
+    Z_PARAM_LONG_OR_NULL(line, lineNull)
     Z_PARAM_STRING(func, funcLength)
     Z_PARAM_STRING(message, messageLength)
     ZEND_PARSE_PARAMETERS_END();
 
-    if (ELASTICAPM_G(globals)->logger_->doesFeatureMeetsLevelCondition(static_cast<LogLevel>(level), static_cast<elasticapm::php::LogFeature>(feature))) {
-        ELASTICAPM_G(globals)->logger_->printf(static_cast<LogLevel>(level), PRsv " " PRsv " %d " PRsv " " PRsv, PRcsvArg(category, categoryLength), PRcsvArg(file, fileLength), line, PRcsvArg(func, funcLength), PRcsvArg(message, messageLength));
+    if (isForced || ELASTICAPM_G(globals)->logger_->doesFeatureMeetsLevelCondition(static_cast<LogLevel>(level), static_cast<elasticapm::php::LogFeature>(feature))) {
+        if (lineNull) {
+            ELASTICAPM_G(globals)->logger_->printf(static_cast<LogLevel>(level), "[" PRsv "] [" PRsv "] [" PRsv "] [" PRsv "] " PRsv, PRsvArg(elasticapm::php::getLogFeatureName(static_cast<elasticapm::php::LogFeature>(feature))), PRcsvArg(category, categoryLength), PRcsvArg(file, fileLength), PRcsvArg(func, funcLength), PRcsvArg(message, messageLength));
+            return;
+        }
+        ELASTICAPM_G(globals)->logger_->printf(static_cast<LogLevel>(level), "[" PRsv "] [" PRsv "] [" PRsv ":%d] [" PRsv "] " PRsv, PRsvArg(elasticapm::php::getLogFeatureName(static_cast<elasticapm::php::LogFeature>(feature))), PRcsvArg(category, categoryLength), PRcsvArg(file, fileLength), line, PRcsvArg(func, funcLength), PRcsvArg(message, messageLength));
     }
 }
 /* }}} */
@@ -270,6 +277,26 @@ PHP_FUNCTION(enqueue) {
     EAPM_GL(httpTransportAsync_)->enqueue(ZSTR_HASH(endpoint), std::span<std::byte>(reinterpret_cast<std::byte *>(ZSTR_VAL(payload)), ZSTR_LEN(payload)));
 }
 
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(elastic_otel_force_set_object_propety_value_arginfo, 0, 3, _IS_BOOL, 0)
+ZEND_ARG_TYPE_INFO(0, object, IS_OBJECT, 0)
+ZEND_ARG_TYPE_INFO(0, property_name, IS_STRING, 0)
+ZEND_ARG_TYPE_INFO(0, value, IS_MIXED, 0)
+ZEND_END_ARG_INFO()
+
+PHP_FUNCTION(force_set_object_propety_value) {
+    zend_object *object = nullptr;
+    zend_string *property_name = nullptr;
+    zval *value = nullptr;
+
+    ZEND_PARSE_PARAMETERS_START(3, 3)
+    Z_PARAM_OBJ(object)
+    Z_PARAM_STR(property_name)
+    Z_PARAM_ZVAL(value)
+    ZEND_PARSE_PARAMETERS_END();
+
+    RETURN_BOOL(elasticapm::php::forceSetObjectPropertyValue(object, property_name, value));
+}
+
 // clang-format off
 const zend_function_entry elastic_otel_functions[] = {
     PHP_FE( elastic_otel_is_enabled, elastic_otel_no_paramters_arginfo )
@@ -282,6 +309,7 @@ const zend_function_entry elastic_otel_functions[] = {
 
     ZEND_NS_FE( "Elastic\\Otel\\HttpTransport", initialize, ArgInfoInitialize)
     ZEND_NS_FE( "Elastic\\Otel\\HttpTransport", enqueue, elastic_otel_no_paramters_arginfo)
+    ZEND_NS_FE( "Elastic\\Otel\\InferredSpans", force_set_object_propety_value, elastic_otel_force_set_object_propety_value_arginfo)
 
     PHP_FE_END
 };

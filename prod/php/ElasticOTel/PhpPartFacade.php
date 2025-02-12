@@ -25,9 +25,10 @@ declare(strict_types=1);
 
 namespace Elastic\OTel;
 
-use Elastic\OTel\Util\HiddenConstructorTrait;
-use Elastic\OTel\Log\ElasticLogWriter;
 use Elastic\OTel\HttpTransport\ElasticHttpTransportFactory;
+use Elastic\OTel\InferredSpans\InferredSpans;
+use Elastic\OTel\Log\ElasticLogWriter;
+use Elastic\OTel\Util\HiddenConstructorTrait;
 use OpenTelemetry\API\Globals;
 use OpenTelemetry\SDK\SdkAutoloader;
 use OpenTelemetry\API\Trace\Span;
@@ -57,6 +58,7 @@ final class PhpPartFacade
 
     private static ?self $singletonInstance = null;
     private static bool $rootSpanEnded = false;
+    private ?InferredSpans $inferredSpans = null;
 
     public const CONFIG_ENV_VAR_NAME_DEV_INTERNAL_MODE_IS_DEV = 'ELASTIC_OTEL_PHP_DEV_INTERNAL_MODE_IS_DEV';
 
@@ -126,15 +128,46 @@ final class PhpPartFacade
 
             Traces\ElasticRootSpan::startRootSpan(function () {
                 PhpPartFacade::$rootSpanEnded = true;
+                if (PhpPartFacade::$singletonInstance && PhpPartFacade::$singletonInstance->inferredSpans) {
+                    PhpPartFacade::$singletonInstance->inferredSpans->shutdown();
+                }
             });
 
             self::$singletonInstance = new self();
+
+            /**
+             * @noinspection PhpFullyQualifiedNameUsageInspection, PhpUndefinedFunctionInspection
+             * @phpstan-ignore function.notFound
+             */
+            if (\elastic_otel_get_config_option_by_name('inferred_spans_enabled')) {
+                self::$singletonInstance->inferredSpans = new InferredSpans(
+                    (bool)\elastic_otel_get_config_option_by_name('inferred_spans_reduction_enabled'), // @phpstan-ignore-line
+                    (bool)\elastic_otel_get_config_option_by_name('inferred_spans_stacktrace_enabled'), // @phpstan-ignore-line
+                    \elastic_otel_get_config_option_by_name('inferred_spans_min_duration') // @phpstan-ignore-line
+                );
+            }
         } catch (Throwable $throwable) {
             BootstrapStageLogger::logCriticalThrowable($throwable, 'One of the steps in bootstrap sequence has thrown', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
             return false;
         }
 
         BootstrapStageLogger::logDebug('Successfully completed bootstrap sequence', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
+        return true;
+    }
+
+    public static function inferredSpans(int $durationMs, bool $internalFunction): bool
+    {
+        if (self::$singletonInstance === null) {
+            BootstrapStageLogger::logDebug('Missig facade', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
+            return true;
+        }
+
+        if (self::$singletonInstance->inferredSpans === null) {
+            BootstrapStageLogger::logDebug('Missig inferred spans instance', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
+            return true;
+        }
+        self::$singletonInstance->inferredSpans->captureStackTrace($durationMs, $internalFunction);
+
         return true;
     }
 

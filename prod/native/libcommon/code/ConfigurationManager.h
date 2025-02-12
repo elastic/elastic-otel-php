@@ -112,7 +112,14 @@ private:
         BUILD_METADATA(ELASTIC_OTEL_CFG_OPT_NAME_MAX_SEND_QUEUE_SIZE, OptionMetadata::type::bytes, false),
         BUILD_METADATA(ELASTIC_OTEL_CFG_OPT_NAME_ASYNC_TRANSPORT, OptionMetadata::type::boolean, false),
         BUILD_METADATA(ELASTIC_OTEL_CFG_OPT_NAME_ASYNC_TRANSPORT_SHUTDOWN_TIMEOUT, OptionMetadata::type::duration, false),
-        BUILD_METADATA(ELASTIC_OTEL_CFG_OPT_NAME_DEBUG_INSTRUMENT_ALL, OptionMetadata::type::boolean, false)};
+        BUILD_METADATA(ELASTIC_OTEL_CFG_OPT_NAME_DEBUG_INSTRUMENT_ALL, OptionMetadata::type::boolean, false),
+        BUILD_METADATA(ELASTIC_OTEL_CFG_OPT_NAME_DEBUG_PHP_HOOKS_ENABLED, OptionMetadata::type::boolean, false),
+        BUILD_METADATA(ELASTIC_OTEL_CFG_OPT_NAME_INFERRED_SPANS_ENABLED, OptionMetadata::type::boolean, false),
+        BUILD_METADATA(ELASTIC_OTEL_CFG_OPT_NAME_INFERRED_SPANS_REDUCTION_ENABLED, OptionMetadata::type::boolean, false),
+        BUILD_METADATA(ELASTIC_OTEL_CFG_OPT_NAME_INFERRED_SPANS_STACKTRACE_ENABLED, OptionMetadata::type::boolean, false),
+        BUILD_METADATA(ELASTIC_OTEL_CFG_OPT_NAME_INFERRED_SPANS_SAMPLING_INTERVAL, OptionMetadata::type::duration, false),
+        BUILD_METADATA(ELASTIC_OTEL_CFG_OPT_NAME_INFERRED_SPANS_MIN_DURATION, OptionMetadata::type::duration, false)};
+
     // clang-format on
 };
 

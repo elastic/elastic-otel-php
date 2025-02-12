@@ -81,6 +81,6 @@ void getFunctionDeclarationFileName(zval *zv, zend_execute_data *ex);
 void getFunctionDeclarationLineNo(zval *zv, zend_execute_data *ex);
 void getFunctionReturnValue(zval *zv, zval *retval);
 void getCurrentException(zval *zv, zend_object *exception);
-
+bool forceSetObjectPropertyValue(zend_object *object, zend_string *propertyName, zval *value);
 
 } // namespace elasticapm::php

@@ -28,6 +28,7 @@ namespace elasticapm::php {
 
 class LoggerInterface;
 class PhpBridgeInterface;
+class InferredSpans;
 class PeriodicTaskExecutor;
 class SharedMemoryState;
 class RequestScope;
@@ -53,16 +54,20 @@ public:
         std::shared_ptr<LoggerSinkFile> logSinkFile,
         std::shared_ptr<PhpBridgeInterface> bridge,
         std::shared_ptr<InstrumentedFunctionHooksStorageInterface> hooksStorage,
+        std::shared_ptr<InferredSpans> inferredSpans,
         std::function<bool(ConfigurationSnapshot &)> updateConfigurationSnapshot);
 
     ~AgentGlobals();
+
+    std::shared_ptr<PeriodicTaskExecutor> getPeriodicTaskExecutor();
 
     std::shared_ptr<ConfigurationStorage> config_;
     std::shared_ptr<LoggerInterface> logger_;
     std::shared_ptr<PhpBridgeInterface> bridge_;
     std::shared_ptr<InstrumentedFunctionHooksStorageInterface> hooksStorage_;
     std::shared_ptr<PhpSapi> sapi_;
-    std::unique_ptr<PeriodicTaskExecutor> periodicTaskExecutor_;
+    std::shared_ptr<InferredSpans> inferredSpans_;
+    std::shared_ptr<PeriodicTaskExecutor> periodicTaskExecutor_;
     std::unique_ptr<transport::HttpTransportAsync<transport::CurlSender, transport::HttpEndpoints> > httpTransportAsync_;
     std::shared_ptr<SharedMemoryState> sharedMemory_;
     std::shared_ptr<RequestScope> requestScope_;

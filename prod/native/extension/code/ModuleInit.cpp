@@ -76,10 +76,6 @@ void elasticApmModuleInit(int moduleType, int moduleNumber) {
 
     registerSigSegvHandler(globals->logger_.get());
 
-    elasticapm::php::Hooking::getInstance().fetchOriginalHooks();
-
-    // CURLcode curlCode;
-
     logStartupPreamble(globals->logger_.get());
 
     if (!EAPM_CFG(enabled)) {
@@ -93,7 +89,8 @@ void elasticApmModuleInit(int moduleType, int moduleNumber) {
     }
 
     ELOGF_DEBUG(globals->logger_, MODULE, "MINIT Replacing hooks");
-    elasticapm::php::Hooking::getInstance().replaceHooks();
+    elasticapm::php::Hooking::getInstance().fetchOriginalHooks();
+    elasticapm::php::Hooking::getInstance().replaceHooks(globals->config_->get().inferred_spans_enabled);
 
     zend_observer_activate();
     zend_observer_fcall_register(elasticapm::php::elasticRegisterObserver);
