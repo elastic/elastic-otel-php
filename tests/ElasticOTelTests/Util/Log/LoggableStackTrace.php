@@ -39,12 +39,10 @@ final class LoggableStackTrace
     public const MAX_NUMBER_OF_STACK_FRAMES = 100;
 
     /**
-     * @param int           $numberOfStackFramesToSkip
-     * @param ?positive-int $maxNumberOfStackFrames
+     * @param non-negative-int $numberOfStackFramesToSkip
+     * @param ?positive-int    $maxNumberOfStackFrames
      *
      * @return ClassicFormatStackTraceFrame[]
-     *
-     * @phpstan-param 0|positive-int $numberOfStackFramesToSkip
      */
     public static function buildForCurrent(int $numberOfStackFramesToSkip, ?int $maxNumberOfStackFrames = self::MAX_NUMBER_OF_STACK_FRAMES): array
     {

@@ -27,11 +27,8 @@ namespace ElasticOTelTests\UnitTests\UtilTests\LogTests;
 
 class DerivedObjectForLoggableTraitTests extends ObjectForLoggableTraitTests
 {
-    /** @var float */
-    private $derivedFloatProp = 1.5; // @phpstan-ignore-line
-
-    /** @var string */
-    private $anotherExcludedProp = 'anotherExcludedProp value'; // @phpstan-ignore-line
+    private float $derivedFloatProp = 1.5; // @phpstan-ignore property.onlyWritten
+    private string $anotherExcludedProp = 'anotherExcludedProp value'; // @phpstan-ignore property.onlyWritten
 
     /**
      * @return array<string>

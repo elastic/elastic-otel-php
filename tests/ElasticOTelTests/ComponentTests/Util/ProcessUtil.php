@@ -27,6 +27,7 @@ use Elastic\OTel\Log\LogLevel;
 use Elastic\OTel\Util\ArrayUtil;
 use Elastic\OTel\Util\StaticClassTrait;
 use ElasticOTelTests\Util\AmbientContextForTests;
+use ElasticOTelTests\Util\EnvVarUtil;
 use ElasticOTelTests\Util\ExceptionUtil;
 use ElasticOTelTests\Util\FileUtil;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
@@ -34,6 +35,9 @@ use ElasticOTelTests\Util\Log\LoggableToString;
 use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @phpstan-import-type EnvVars from EnvVarUtil
+ */
 final class ProcessUtil
 {
     use StaticClassTrait;
@@ -65,8 +69,9 @@ final class ProcessUtil
     }
 
     /**
-     * @param string                $cmd
-     * @param array<string, string> $envVars
+     * @param EnvVars $envVars
+     *
+     * @noinspection PhpDocSignatureInspection
      */
     public static function startBackgroundProcess(string $cmd, array $envVars): void
     {
@@ -74,7 +79,9 @@ final class ProcessUtil
     }
 
     /**
-     * @param array<string, string> $envVars
+     * @param EnvVars $envVars
+     *
+     * @noinspection PhpDocSignatureInspection
      */
     public static function startProcessAndWaitUntilExit(string $cmd, array $envVars, bool $shouldCaptureStdOutErr = false, ?int $expectedExitCode = null): int
     {
@@ -118,8 +125,10 @@ final class ProcessUtil
     }
 
     /**
-     * @param array<string, string>                $envVars
+     * @param EnvVars                              $envVars
      * @param array<array{string, string, string}> $descriptorSpec
+     *
+     * @noinspection PhpDocSignatureInspection
      */
     private static function startProcessImpl(string $adaptedCmd, array $envVars, array $descriptorSpec, bool $isBackground): int
     {

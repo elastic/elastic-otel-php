@@ -21,14 +21,26 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTests\Util;
+namespace ElasticOTelTests\ComponentTests\Util;
 
-use Exception;
+use OpenTelemetry\SemConv\TraceAttributes;
+use Override;
+use PHPUnit\Framework\Assert;
 
-final class DebugContextExceptionHelper extends Exception
+/**
+ * @phpstan-import-type AttributeValue from SpanAttributes
+ *
+ * @extends ArrayExpectations<string, AttributeValue>
+ */
+final class SpanAttributesArrayExpectations extends ArrayExpectations
 {
-    public static function setMessage(Exception $ex, string $message): void
+    #[Override]
+    protected function assertValueMatches(string|int $key, mixed $expectedValue, mixed $actualValue): void
     {
-        $ex->message = $message;
+        if ($key === TraceAttributes::URL_SCHEME) {
+            Assert::assertEqualsIgnoringCase($expectedValue, $actualValue);
+        } else {
+            Assert::assertSame($expectedValue, $actualValue);
+        }
     }
 }

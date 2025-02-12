@@ -27,6 +27,7 @@ namespace ElasticOTelTests;
 
 use Elastic\OTel\Util\StaticClassTrait;
 use ElasticOTelTests\Util\AmbientContextForTests;
+use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\ExceptionUtil;
 use ElasticOTelTests\Util\Log\LoggableToJsonEncodable;
 use ElasticOTelTests\Util\Log\LoggingSubsystem;
@@ -43,9 +44,11 @@ final class BootstrapTests
     private static function bootstrapShared(string $dbgProcessName): void
     {
         AmbientContextForTests::init($dbgProcessName);
+
         LoggingSubsystem::$isInTestingContext = true;
         LoggableToJsonEncodable::$maxDepth = self::LOG_COMPOSITE_DATA_MAX_DEPTH_IN_TEST_MODE;
-        AmbientContextForTests::assertIsInited();
+
+        DebugContext::ensureInited();
     }
 
     public static function bootstrapUnitTests(): void

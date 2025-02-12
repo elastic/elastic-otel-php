@@ -33,7 +33,7 @@ class UrlUtilTest extends TestCaseBase
      *
      * @noinspection SpellCheckingInspection
      */
-    public function dataProviderForSplitHostPort(): array
+    public static function dataProviderForSplitHostPort(): array
     {
         return [
             ['my_host_1', 'my_host_1', null],

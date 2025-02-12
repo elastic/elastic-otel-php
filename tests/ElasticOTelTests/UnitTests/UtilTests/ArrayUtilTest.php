@@ -25,12 +25,21 @@ namespace ElasticOTelTests\UnitTests\UtilTests;
 
 use ElasticOTelTests\Util\ArrayUtilForTests;
 use ElasticOTelTests\Util\AssertEx;
-use ElasticOTelTests\Util\DebugContextForTests;
+use ElasticOTelTests\Util\DataProviderForTestBuilder;
+use ElasticOTelTests\Util\DebugContext;
+use ElasticOTelTests\Util\DisableDebugContextTestTrait;
 use ElasticOTelTests\Util\IterableUtil;
 use ElasticOTelTests\Util\TestCaseBase;
+use OutOfBoundsException;
 
+/**
+ * @phpstan-type TestPopNInput array{'array': array<mixed>, 'n': non-negative-int}
+ * @phpstan-type TestPopNArgs array{'input': TestPopNInput, 'expectedOutput': array<mixed>}
+ */
 final class ArrayUtilTest extends TestCaseBase
 {
+    use DisableDebugContextTestTrait;
+
     /**
      * @param mixed[] $args
      *
@@ -57,7 +66,6 @@ final class ArrayUtilTest extends TestCaseBase
         $someParam = 'value set by instrumentationFunc';
     }
 
-    /** @noinspection PhpSameParameterValueInspection */
     private static function instrumentedFunc(string $someParam): string
     {
         self::instrumentationFunc([&$someParam]);
@@ -103,7 +111,7 @@ final class ArrayUtilTest extends TestCaseBase
             } else {
                 self::assertNotSame($inArray, $actualOutArray);
                 $actualOutArrayIndexesFixed = [...$actualOutArray];
-                AssertEx::arraysWithSameElements($expectedOutArray, $actualOutArrayIndexesFixed);
+                AssertEx::arraysHaveTheSameContent($expectedOutArray, $actualOutArrayIndexesFixed);
             }
         };
 
@@ -139,7 +147,7 @@ final class ArrayUtilTest extends TestCaseBase
             } else {
                 self::assertNotSame($inArray, $actualOutArray);
                 $actualOutArrayIndexesFixed = [...$actualOutArray];
-                AssertEx::arraysWithSameElements($expectedOutArray, $actualOutArrayIndexesFixed);
+                AssertEx::arraysHaveTheSameContent($expectedOutArray, $actualOutArrayIndexesFixed);
             }
         };
 
@@ -180,19 +188,13 @@ final class ArrayUtilTest extends TestCaseBase
      */
     public static function testIterateListInReverse(array $input, array $expectedOutput): void
     {
-        DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
-        try {
-            $actualOutput = IterableUtil::toList(ArrayUtilForTests::iterateListInReverse($input));
-            $dbgCtx->add(compact('actualOutput'));
-            self::assertCount(count($input), $actualOutput);
-            $dbgCtx->pushSubScope();
-            foreach (IterableUtil::zip($expectedOutput, $actualOutput) as [$expectedValue, $actualValue]) {
-                $dbgCtx->clearCurrentSubScope(compact('expectedValue', 'actualValue'));
-                self::assertSame($expectedValue, $actualValue);
-            }
-            $dbgCtx->popSubScope();
-        } finally {
-            $dbgCtx->pop();
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
+        $actualOutput = IterableUtil::toList(ArrayUtilForTests::iterateListInReverse($input));
+        $dbgCtx->add(compact('actualOutput'));
+        self::assertCount(count($input), $actualOutput);
+        foreach (IterableUtil::zip($expectedOutput, $actualOutput) as [$expectedValue, $actualValue]) {
+            $dbgCtx->add(compact('expectedValue', 'actualValue'));
+            self::assertSame($expectedValue, $actualValue);
         }
     }
 
@@ -218,19 +220,87 @@ final class ArrayUtilTest extends TestCaseBase
      */
     public static function testIterateMapInReverse(array $input, array $expectedOutput): void
     {
-        DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
-        try {
-            $actualOutput = IterableUtil::toMap(ArrayUtilForTests::iterateMapInReverse($input));
-            $dbgCtx->add(compact('actualOutput'));
-            self::assertCount(count($input), $actualOutput);
-            $dbgCtx->pushSubScope();
-            foreach (IterableUtil::zip($expectedOutput, $actualOutput) as [$expectedValue, $actualValue]) {
-                $dbgCtx->clearCurrentSubScope(compact('expectedValue', 'actualValue'));
-                self::assertSame($expectedValue, $actualValue);
-            }
-            $dbgCtx->popSubScope();
-        } finally {
-            $dbgCtx->pop();
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
+        $actualOutput = IterableUtil::toMap(ArrayUtilForTests::iterateMapInReverse($input));
+        $dbgCtx->add(compact('actualOutput'));
+        self::assertCount(count($input), $actualOutput);
+        foreach (IterableUtil::zip($expectedOutput, $actualOutput) as [$expectedValue, $actualValue]) {
+            $dbgCtx->add(compact('expectedValue', 'actualValue'));
+            self::assertSame($expectedValue, $actualValue);
         }
+    }
+
+    /**
+     * @template T
+     *
+     * @param array<T>         $input
+     * @param non-negative-int $numberOfElementsToPop
+     *
+     * @return array<T>
+     */
+    private static function popNOnCopy(array $input, int $numberOfElementsToPop): array
+    {
+        ArrayUtilForTests::popN(/* in,out */ $input, $numberOfElementsToPop);
+        return $input;
+    }
+
+    /**
+     * @return iterable<string, TestPopNArgs>
+     */
+    public static function dataProviderForTestPopNForValidInput(): iterable
+    {
+        /**
+         * @return iterable<TestPopNArgs>
+         */
+        $genDataSets = function (): iterable {
+            yield ['input' => ['array' => [], 'n' => 0], 'expectedOutput' => []];
+            yield ['input' => ['array' => ['a'], 'n' => 1], 'expectedOutput' => []];
+            yield ['input' => ['array' => ['a', 'b'], 'n' => 2], 'expectedOutput' => []];
+            yield ['input' => ['array' => ['a', 'b', 'c'], 'n' => 3], 'expectedOutput' => []];
+
+            yield ['input' => ['array' => ['a'], 'n' => 0], 'expectedOutput' => ['a']];
+            yield ['input' => ['array' => ['a', 'b'], 'n' => 0], 'expectedOutput' => ['a', 'b']];
+            yield ['input' => ['array' => ['a', 'b', 'c'], 'n' => 0], 'expectedOutput' => ['a', 'b', 'c']];
+
+            yield ['input' => ['array' => ['a', 'b'], 'n' => 1], 'expectedOutput' => ['a']];
+
+            yield ['input' => ['array' => ['a', 'b', 'c'], 'n' => 1], 'expectedOutput' => ['a', 'b']];
+            yield ['input' => ['array' => ['a', 'b', 'c'], 'n' => 2], 'expectedOutput' => ['a']];
+        };
+
+        return DataProviderForTestBuilder::keyEachDataSetWithDbgDesc($genDataSets);
+    }
+
+    /**
+     * @dataProvider dataProviderForTestPopNForValidInput
+     *
+     * @param TestPopNInput $input
+     * @param array<mixed>  $expectedOutput
+     */
+    public static function testPopNForValidInput(array $input, array $expectedOutput): void
+    {
+        AssertEx::sameValuesListIterables($expectedOutput, self::popNOnCopy($input['array'], $input['n']));
+    }
+
+    /**
+     * @return iterable<array{callable(): mixed}>
+     */
+    public static function dataProviderForTestPopNForInvalidInput(): iterable
+    {
+        yield [fn() => self::popNOnCopy([], 1)];
+        yield [fn() => self::popNOnCopy(['a'], 2)];
+        yield [fn() => self::popNOnCopy(['a', 'b'], 3)];
+        yield [fn() => self::popNOnCopy(['a', 'b', 'c'], 4)];
+        yield [fn() => self::popNOnCopy(['a', 'b', 'c'], 5)];
+    }
+
+    /**
+     * @dataProvider dataProviderForTestPopNForInvalidInput
+     *
+     * @param callable(): mixed $callThatThrows
+     */
+    public static function testPopNForInvalidInput(callable $callThatThrows): void
+    {
+        AssertEx::throws(OutOfBoundsException::class, $callThatThrows);
     }
 }

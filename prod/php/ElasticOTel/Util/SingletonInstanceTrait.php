@@ -42,7 +42,7 @@ trait SingletonInstanceTrait
     public static function singletonInstance(): self
     {
         if (self::$singletonInstance === null) {
-            self::$singletonInstance = new static(); // @phpstan-ignore-line
+            self::$singletonInstance = new static();
         }
         return self::$singletonInstance;
     }

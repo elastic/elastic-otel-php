@@ -36,14 +36,7 @@ final class LoggableToString
 
     public const DEFAULT_LENGTH_LIMIT = 1000;
 
-    /**
-     * @param mixed $value
-     * @param bool  $prettyPrint
-     * @param int   $lengthLimit
-     *
-     * @return string
-     */
-    public static function convert($value, bool $prettyPrint = false, int $lengthLimit = self::DEFAULT_LENGTH_LIMIT): string
+    public static function convert(mixed $value, bool $prettyPrint = false, int $lengthLimit = self::DEFAULT_LENGTH_LIMIT): string
     {
         return LoggableToEncodedJson::convert($value, $prettyPrint, $lengthLimit);
     }

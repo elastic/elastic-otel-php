@@ -31,11 +31,15 @@ use ElasticOTelTests\Util\Config\OptionForProdName;
 use ElasticOTelTests\Util\Config\OptionsForTestsMetadata;
 use ElasticOTelTests\Util\Config\Parser;
 use ElasticOTelTests\Util\Config\RawSnapshotSourceInterface;
+use ElasticOTelTests\Util\ElasticOTelExtensionUtil;
 use ElasticOTelTests\Util\Log\LoggerFactory;
+use ElasticOTelTests\Util\TestsInfraException;
 
 final class ConfigUtilForTests
 {
     use StaticClassTrait;
+
+    public const PROD_DISABLED_INSTRUMENTATIONS_ALL = 'all';
 
     public static function read(RawSnapshotSourceInterface $configSource, LoggerFactory $loggerFactory): ConfigSnapshotForTests
     {
@@ -45,12 +49,16 @@ final class ConfigUtilForTests
         return new ConfigSnapshotForTests($optNameToParsedValue);
     }
 
-    public static function assertTracingIsDisabled(): void
+    public static function verifyTracingIsDisabled(): void
     {
+        if (!ElasticOTelExtensionUtil::isLoaded()) {
+            return;
+        }
+
         $envVarName = OptionForProdName::enabled->toEnvVarName();
         $envVarValue = EnvVarUtilForTests::get($envVarName);
         if ($envVarValue !== 'false') {
-            throw new ComponentTestsInfraException(
+            throw new TestsInfraException(
                 'Environment variable ' . $envVarName . ' should be set to `false\'.'
                 . ' Instead it is ' . ($envVarValue === null ? 'not set' : 'set to `' . $envVarValue . '\'')
             );

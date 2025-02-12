@@ -33,7 +33,7 @@ use ElasticOTelTests\Util\Config\OptionForTestsName;
 use ElasticOTelTests\Util\Config\OptionMetadata as OptionMetadata;
 use ElasticOTelTests\Util\Config\OptionsForProdMetadata;
 use ElasticOTelTests\Util\Config\OptionsForTestsMetadata;
-use ElasticOTelTests\Util\DebugContextForTests;
+use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\TestCaseBase;
 use UnitEnum;
 
@@ -46,14 +46,13 @@ class OptionNamesAndSnapshotPropertiesTest extends TestCaseBase
          * @param array<string, OptionMetadata<mixed>> $optMetas
          */
         $impl = function (array $optNameCases, array $optMetas): void {
-            DebugContextForTests::newScope(/* out */ $dbgCtx);
+            DebugContext::getCurrentScope(/* out */ $dbgCtx);
             $optNamesFromCases = array_map(fn($optNameCase) => $optNameCase->name, $optNameCases); // @phpstan-ignore property.nonObject
             sort(/* ref */ $optNamesFromCases);
             $optNamesFromMetas = array_keys($optMetas);
             sort(/* ref */ $optNamesFromMetas);
             $dbgCtx->add(compact('optNamesFromCases', 'optNamesFromMetas'));
-            AssertEx::arraysWithSameElements($optNamesFromCases, $optNamesFromMetas);
-            $dbgCtx->pop();
+            AssertEx::arraysHaveTheSameContent($optNamesFromCases, $optNamesFromMetas);
         };
 
         $impl(OptionForProdName::cases(), OptionsForProdMetadata::get());
@@ -79,80 +78,61 @@ class OptionNamesAndSnapshotPropertiesTest extends TestCaseBase
      */
     public function testOptionNamesAndSnapshotPropertiesMatch(array $optNameCases, array $propertyNamesForOptions): void
     {
-        DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
 
         $remainingSnapPropNames = $propertyNamesForOptions;
-        $dbgCtx->pushSubScope();
         foreach ($optNameCases as $optNameCase) {
-            $dbgCtx->clearCurrentSubScope(compact('optNameCase', 'remainingSnapPropNames'));
+            $dbgCtx->add(compact('optNameCase', 'remainingSnapPropNames'));
             self::assertTrue(ArrayUtilForTests::removeFirstByValue(/* in,out */ $remainingSnapPropNames, TextUtil::snakeToCamelCase($optNameCase->name)));
         }
-        $dbgCtx->popSubScope();
 
         self::assertEmpty($remainingSnapPropNames);
-
-        $dbgCtx->pop();
     }
 
     public function testOptionNameToEnvVarName(): void
     {
-        DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
 
-        $dbgCtx->pushSubScope();
         /** @var class-string<OptionForProdName|OptionForTestsName> $optNameEnumClass */
         foreach ([OptionForProdName::class, OptionForTestsName::class] as $optNameEnumClass) {
-            $dbgCtx->clearCurrentSubScope(compact('optNameEnumClass'));
-            $dbgCtx->pushSubScope();
+            $dbgCtx->add(compact('optNameEnumClass'));
             foreach ($optNameEnumClass::cases() as $optName) {
-                $dbgCtx->clearCurrentSubScope(compact('optName'));
+                $dbgCtx->add(compact('optName'));
                 $envVarName = $optName->toEnvVarName();
                 $dbgCtx->add(compact('envVarName'));
                 self::assertTrue(TextUtil::isSuffixOf(strtoupper($optName->name), $envVarName));
             }
-            $dbgCtx->popSubScope();
         }
-        $dbgCtx->popSubScope();
-        $dbgCtx->pop();
     }
 
     public function testLogRelated(): void
     {
-        DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
 
-        $dbgCtx->pushSubScope();
         foreach (OptionForProdName::getAllLogLevelRelated() as $optName) {
-            $dbgCtx->clearCurrentSubScope(compact('optName'));
+            $dbgCtx->add(compact('optName'));
             self::assertTrue($optName->isLogLevelRelated());
         }
-        $dbgCtx->popSubScope();
 
-        $dbgCtx->pushSubScope();
         foreach (OptionForProdName::cases() as $optName) {
-            $dbgCtx->clearCurrentSubScope(compact('optName'));
+            $dbgCtx->add(compact('optName'));
             if (TextUtil::isPrefixOf('log_level_', $optName->name)) {
                 self::assertTrue($optName->isLogLevelRelated());
             }
         }
-        $dbgCtx->popSubScope();
-
-        $dbgCtx->pop();
     }
 
     public function testProdOptionNameToEnvVar(): void
     {
-        DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
 
-        $dbgCtx->pushSubScope();
         foreach (OptionForProdName::cases() as $optName) {
-            $dbgCtx->clearCurrentSubScope(compact('optName'));
+            $dbgCtx->add(compact('optName'));
             $envVarNamePrefix = $optName->getEnvVarNamePrefix();
             $dbgCtx->add(compact('envVarNamePrefix'));
             $envVarName = $optName->toEnvVarName();
             $dbgCtx->add(compact('envVarName'));
             self::assertStringStartsWith($envVarNamePrefix, $envVarName);
         }
-        $dbgCtx->popSubScope();
-
-        $dbgCtx->pop();
     }
 }

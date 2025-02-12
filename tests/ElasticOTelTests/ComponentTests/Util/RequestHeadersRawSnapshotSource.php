@@ -29,17 +29,18 @@ use ElasticOTelTests\Util\Config\RawSnapshotInterface;
 use ElasticOTelTests\Util\Config\RawSnapshotSourceInterface;
 use Override;
 
+/**
+ * @phpstan-type GetHeader Closure(string): ?string
+ */
 final class RequestHeadersRawSnapshotSource implements RawSnapshotSourceInterface
 {
     public const HEADER_NAMES_PREFIX = 'ELASTIC_OTEL_PHP_TESTS_';
 
-    /** @var Closure(string): ?string */
+    /** @var GetHeader */
     private Closure $getHeaderValue;
 
     /**
-     * @param Closure $getHeaderValue
-     *
-     * @phpstan-param Closure(string): ?string  $getHeaderValue
+     * @param GetHeader $getHeaderValue
      */
     public function __construct(Closure $getHeaderValue)
     {

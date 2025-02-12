@@ -24,6 +24,7 @@ declare(strict_types=1);
 namespace ElasticOTelTests\ComponentTests;
 
 use CurlHandle;
+use ElasticOTelTests\ComponentTests\Util\AppCodeHostParams;
 use ElasticOTelTests\ComponentTests\Util\AppCodeRequestParams;
 use ElasticOTelTests\ComponentTests\Util\AppCodeTarget;
 use ElasticOTelTests\ComponentTests\Util\ComponentTestCaseBase;
@@ -33,19 +34,23 @@ use ElasticOTelTests\ComponentTests\Util\HttpClientUtilForTests;
 use ElasticOTelTests\ComponentTests\Util\PhpSerializationUtil;
 use ElasticOTelTests\ComponentTests\Util\RequestHeadersRawSnapshotSource;
 use ElasticOTelTests\ComponentTests\Util\ResourcesClient;
+use ElasticOTelTests\ComponentTests\Util\Span;
 use ElasticOTelTests\ComponentTests\Util\SpanAttributesExpectations;
 use ElasticOTelTests\ComponentTests\Util\SpanExpectations;
 use ElasticOTelTests\ComponentTests\Util\SpanKind;
 use ElasticOTelTests\ComponentTests\Util\UrlUtil;
 use ElasticOTelTests\ComponentTests\Util\WaitForEventCounts;
+use ElasticOTelTests\Util\Config\OptionForProdName;
 use ElasticOTelTests\Util\Config\OptionForTestsName;
-use ElasticOTelTests\Util\DebugContextForTests;
+use ElasticOTelTests\Util\DataProviderForTestBuilder;
+use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\GlobalUnderscoreServer;
 use ElasticOTelTests\Util\HttpMethods;
 use ElasticOTelTests\Util\IterableUtil;
 use ElasticOTelTests\Util\Log\LoggableToString;
 use ElasticOTelTests\Util\MixedMap;
 use ElasticOTelTests\Util\RangeUtil;
+use OpenTelemetry\Contrib\Instrumentation\Curl\CurlInstrumentation;
 use OpenTelemetry\SemConv\TraceAttributes;
 
 /**
@@ -58,6 +63,13 @@ final class CurlAutoInstrumentationTest extends ComponentTestCaseBase
     private const HTTP_REQUEST_HEADER_NAME_PREFIX = 'Elastic_OTel_PHP_custom_header_';
     private const SERVER_RESPONSE_BODY = 'Response from server app code body';
     private const SERVER_RESPONSE_HTTP_STATUS = 234;
+
+    private const ENABLE_CURL_INSTRUMENTATION_FOR_CLIENT_KEY = 'enable_curl_instrumentation_for_client';
+    private const ENABLE_CURL_INSTRUMENTATION_FOR_SERVER_KEY = 'enable_curl_instrumentation_for_server';
+    private const CURL_INSTRUMENTATION_NAME = 'curl';
+
+    /** @noinspection PhpDeprecationInspection */
+    private const CURL_FUNC_ATTRIBUTE_NAME = TraceAttributes::CODE_FUNCTION;
 
     /**
      * @param iterable<int> $suffixes
@@ -90,26 +102,19 @@ final class CurlAutoInstrumentationTest extends ComponentTestCaseBase
 
     public static function appCodeServer(): void
     {
-        DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
 
-        try {
-            $dbgCtx->add(compact('_SERVER'));
+        $dbgCtx->add(['$_SERVER' => IterableUtil::toMap(GlobalUnderscoreServer::getAll())]);
 
-            $dbgCtx->add(['php_sapi_name()' => php_sapi_name()]);
-            self::assertNotEquals('cli', php_sapi_name());
+        $dbgCtx->add(['php_sapi_name()' => php_sapi_name()]);
+        self::assertNotEquals('cli', php_sapi_name());
 
-            self::assertSame(HttpMethods::GET, GlobalUnderscoreServer::requestMethod());
+        self::assertSame(HttpMethods::GET, GlobalUnderscoreServer::requestMethod());
 
-            $dbgCtx->add(['$_SERVER' => IterableUtil::toMap(GlobalUnderscoreServer::getAll())]);
-            $expectedHeaders = self::genHeaders(RangeUtil::generateFromToIncluding(2, 3));
-            $dbgCtx->pushSubScope();
-            foreach ($expectedHeaders as $expectedHeaderName => $expectedHeaderValue) {
-                $dbgCtx->clearCurrentSubScope(compact('expectedHeaderName', 'expectedHeaderValue'));
-                self::assertSame($expectedHeaderValue, GlobalUnderscoreServer::getRequestHeaderValue($expectedHeaderName));
-            }
-            $dbgCtx->popSubScope();
-        } finally {
-            $dbgCtx->pop();
+        $expectedHeaders = self::genHeaders(RangeUtil::generateFromToIncluding(2, 3));
+        foreach ($expectedHeaders as $expectedHeaderName => $expectedHeaderValue) {
+            $dbgCtx->add(compact('expectedHeaderName', 'expectedHeaderValue'));
+            self::assertSame($expectedHeaderValue, GlobalUnderscoreServer::getRequestHeaderValue($expectedHeaderName));
         }
 
         echo self::SERVER_RESPONSE_BODY;
@@ -118,59 +123,96 @@ final class CurlAutoInstrumentationTest extends ComponentTestCaseBase
 
     public static function appCodeClient(MixedMap $appCodeArgs): void
     {
-        DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
 
-        try {
-            self::assertTrue(extension_loaded('curl'));
+        self::assertTrue(extension_loaded('curl'));
 
-            $requestParams = $appCodeArgs->getObject(self::HTTP_APP_CODE_REQUEST_PARAMS_FOR_SERVER_KEY, HttpAppCodeRequestParams::class);
-            $resourcesClient = $appCodeArgs->getObject(self::RESOURCES_CLIENT_KEY, ResourcesClient::class);
-
-            $curlHandleRaw = curl_init(UrlUtil::buildFullUrl($requestParams->urlParts));
-            self::assertInstanceOf(CurlHandle::class, $curlHandleRaw);
-            $curlHandle = new CurlHandleForTests($curlHandleRaw, $resourcesClient);
-
-            self::assertTrue($curlHandle->setOpt(CURLOPT_CONNECTTIMEOUT, HttpClientUtilForTests::CONNECT_TIMEOUT_SECONDS));
-            self::assertTrue($curlHandle->setOpt(CURLOPT_TIMEOUT, HttpClientUtilForTests::TIMEOUT_SECONDS));
-
-            $dataPerRequestHeaderName = RequestHeadersRawSnapshotSource::optionNameToHeaderName(OptionForTestsName::data_per_request->name);
-            $dataPerRequestHeaderValue = PhpSerializationUtil::serializeToString($requestParams->dataPerRequest);
-
-            $notFinalHeaders12 = self::genHeaders([1, 2]);
-            $notFinalHeader2Key = array_key_last($notFinalHeaders12);
-            $notFinalHeaders12[$notFinalHeader2Key] .= '_NOT_FINAL_VALUE';
-            self::assertTrue($curlHandle->setOptArray([CURLOPT_HTTPHEADER => self::convertHeadersToCurlFormat($notFinalHeaders12), CURLOPT_POST => true]));
-
-            $headers = array_merge([$dataPerRequestHeaderName => $dataPerRequestHeaderValue], self::genHeaders([2, 3]));
-            self::assertTrue($curlHandle->setOptArray([CURLOPT_HTTPHEADER => self::convertHeadersToCurlFormat($headers), CURLOPT_HTTPGET => true, CURLOPT_RETURNTRANSFER => true]));
-
-            $execRetVal = $curlHandle->exec();
-            $dbgCtx->add(compact('execRetVal'));
-            if ($execRetVal === false) {
-                self::fail(LoggableToString::convert(['error' => $curlHandle->error(), 'errno' => $curlHandle->errno(), 'verbose output' => $curlHandle->lastVerboseOutput()]));
-            }
-            $dbgCtx->add(['getInfo()' => $curlHandle->getInfo()]);
-
-            self::assertSame(self::SERVER_RESPONSE_HTTP_STATUS, $curlHandle->getResponseStatusCode());
-            self::assertSame(self::SERVER_RESPONSE_BODY, $execRetVal);
-        } finally {
-            $dbgCtx->pop();
+        $enableCurlInstrumentationForClient = $appCodeArgs->getBool(self::ENABLE_CURL_INSTRUMENTATION_FOR_CLIENT_KEY);
+        if ($enableCurlInstrumentationForClient) {
+            self::assertTrue(class_exists(CurlInstrumentation::class, autoload: false));
+            self::assertSame(CurlInstrumentation::NAME, self::CURL_INSTRUMENTATION_NAME); // @phpstan-ignore staticMethod.alreadyNarrowedType
         }
+
+        $requestParams = $appCodeArgs->getObject(self::HTTP_APP_CODE_REQUEST_PARAMS_FOR_SERVER_KEY, HttpAppCodeRequestParams::class);
+        $resourcesClient = $appCodeArgs->getObject(self::RESOURCES_CLIENT_KEY, ResourcesClient::class);
+
+        $curlHandleRaw = curl_init(UrlUtil::buildFullUrl($requestParams->urlParts));
+        self::assertInstanceOf(CurlHandle::class, $curlHandleRaw);
+        $curlHandle = new CurlHandleForTests($curlHandleRaw, $resourcesClient);
+
+        self::assertTrue($curlHandle->setOpt(CURLOPT_CONNECTTIMEOUT, HttpClientUtilForTests::CONNECT_TIMEOUT_SECONDS));
+        self::assertTrue($curlHandle->setOpt(CURLOPT_TIMEOUT, HttpClientUtilForTests::TIMEOUT_SECONDS));
+
+        $dataPerRequestHeaderName = RequestHeadersRawSnapshotSource::optionNameToHeaderName(OptionForTestsName::data_per_request->name);
+        $dataPerRequestHeaderValue = PhpSerializationUtil::serializeToString($requestParams->dataPerRequest);
+
+        $notFinalHeaders12 = self::genHeaders([1, 2]);
+        $notFinalHeader2Key = array_key_last($notFinalHeaders12);
+        $notFinalHeaders12[$notFinalHeader2Key] .= '_NOT_FINAL_VALUE';
+        self::assertTrue($curlHandle->setOptArray([CURLOPT_HTTPHEADER => self::convertHeadersToCurlFormat($notFinalHeaders12), CURLOPT_POST => true]));
+
+        $headers = array_merge([$dataPerRequestHeaderName => $dataPerRequestHeaderValue], self::genHeaders([2, 3]));
+        self::assertTrue($curlHandle->setOptArray([CURLOPT_HTTPHEADER => self::convertHeadersToCurlFormat($headers), CURLOPT_HTTPGET => true, CURLOPT_RETURNTRANSFER => true]));
+
+        $execRetVal = $curlHandle->exec();
+        $dbgCtx->add(compact('execRetVal'));
+        if ($execRetVal === false) {
+            self::fail(LoggableToString::convert(['error' => $curlHandle->error(), 'errno' => $curlHandle->errno(), 'verbose output' => $curlHandle->lastVerboseOutput()]));
+        }
+        $dbgCtx->add(['getInfo()' => $curlHandle->getInfo()]);
+
+        self::assertSame(self::SERVER_RESPONSE_HTTP_STATUS, $curlHandle->getResponseStatusCode());
+        self::assertSame(self::SERVER_RESPONSE_BODY, $execRetVal);
     }
 
-    public function implTestLocalClientServer(): void
+    /**
+     * @return iterable<string, array{MixedMap}>
+     */
+    public static function dataProviderForTestRunAndEscalateLogLevelOnFailure(): iterable
+    {
+        return self::adaptDataProviderForTestBuilderToSmokeToDescToMixedMap(
+            (new DataProviderForTestBuilder())
+                ->addBoolKeyedDimensionAllValuesCombinable(self::ENABLE_CURL_INSTRUMENTATION_FOR_CLIENT_KEY)
+                ->addBoolKeyedDimensionAllValuesCombinable(self::ENABLE_CURL_INSTRUMENTATION_FOR_SERVER_KEY)
+        );
+    }
+
+    public function implTestLocalClientServer(MixedMap $testArgs): void
     {
         $testCaseHandle = $this->getTestCaseHandle();
 
-        $serverAppCode = $testCaseHandle->ensureAdditionalHttpAppCodeHost(dbgInstanceName: 'server for cUrl request');
+        $enableCurlInstrumentationForServer = $testArgs->getBool(self::ENABLE_CURL_INSTRUMENTATION_FOR_SERVER_KEY);
+        $serverAppCode = $testCaseHandle->ensureAdditionalHttpAppCodeHost(
+            dbgInstanceName: 'server for cUrl request',
+            setParamsFunc: function (AppCodeHostParams $appCodeParams) use ($enableCurlInstrumentationForServer): void {
+                if (!$enableCurlInstrumentationForServer) {
+                    $appCodeParams->setProdOptionIfNotNull(OptionForProdName::disabled_instrumentations, self::CURL_INSTRUMENTATION_NAME);
+                }
+            }
+        );
         $appCodeRequestParamsForServer = $serverAppCode->buildRequestParams(AppCodeTarget::asRouted([__CLASS__, 'appCodeServer']));
-        $clientAppCode = $testCaseHandle->ensureMainAppCodeHost(dbgInstanceName: 'client for cUrl request');
+
+        $enableCurlInstrumentationForClient = $testArgs->getBool(self::ENABLE_CURL_INSTRUMENTATION_FOR_CLIENT_KEY);
+        $clientAppCode = $testCaseHandle->ensureMainAppCodeHost(
+            setParamsFunc: function (AppCodeHostParams $appCodeParams) use ($enableCurlInstrumentationForClient): void {
+                if (!$enableCurlInstrumentationForClient) {
+                    $appCodeParams->setProdOptionIfNotNull(OptionForProdName::disabled_instrumentations, self::CURL_INSTRUMENTATION_NAME);
+                }
+            },
+            dbgInstanceName: 'client for cUrl request',
+        );
         $resourcesClient = $testCaseHandle->getResourcesClient();
 
         $clientAppCode->execAppCode(
             AppCodeTarget::asRouted([__CLASS__, 'appCodeClient']),
-            function (AppCodeRequestParams $clientAppCodeReqParams) use ($appCodeRequestParamsForServer, $resourcesClient): void {
-                $clientAppCodeReqParams->setAppCodeArgs([self::HTTP_APP_CODE_REQUEST_PARAMS_FOR_SERVER_KEY => $appCodeRequestParamsForServer, self::RESOURCES_CLIENT_KEY => $resourcesClient]);
+            function (AppCodeRequestParams $clientAppCodeReqParams) use ($testArgs, $appCodeRequestParamsForServer, $resourcesClient): void {
+                $clientAppCodeReqParams->setAppCodeArgs(
+                    [
+                        self::HTTP_APP_CODE_REQUEST_PARAMS_FOR_SERVER_KEY => $appCodeRequestParamsForServer,
+                        self::RESOURCES_CLIENT_KEY                        => $resourcesClient,
+                    ]
+                    + $testArgs->cloneAsArray()
+                );
             }
         );
 
@@ -181,7 +223,7 @@ final class CurlAutoInstrumentationTest extends ComponentTestCaseBase
 
         $curlClientSpanAttributesExpectations = new SpanAttributesExpectations(
             [
-                TraceAttributes::CODE_FUNCTION             => 'curl_exec',
+                self::CURL_FUNC_ATTRIBUTE_NAME             => 'curl_exec',
                 TraceAttributes::HTTP_REQUEST_METHOD       => HttpMethods::GET,
                 TraceAttributes::HTTP_RESPONSE_STATUS_CODE => self::SERVER_RESPONSE_HTTP_STATUS,
                 TraceAttributes::SERVER_ADDRESS            => $appCodeRequestParamsForServer->urlParts->host,
@@ -206,31 +248,39 @@ final class CurlAutoInstrumentationTest extends ComponentTestCaseBase
         $expectedServerTxSpanName = HttpMethods::GET . ' ' . $appCodeRequestParamsForServer->urlParts->path;
         $expectationsForServerTxSpan = new SpanExpectations($expectedServerTxSpanName, SpanKind::server, $serverTxSpanAttributesExpectations);
 
-        $exportedData = $testCaseHandle->waitForEnoughExportedData(WaitForEventCounts::spans(3));
+        $exportedData = $testCaseHandle->waitForEnoughExportedData(WaitForEventCounts::spans($enableCurlInstrumentationForClient ? 3 : 2));
 
         //
         // Assert
         //
 
-        $rootSpan = $exportedData->singleRootSpan();
-
-        foreach ($exportedData->spans as $span) {
-            self::assertSame($rootSpan->traceId, $span->traceId);
+        if ($enableCurlInstrumentationForClient) {
+            $rootSpan = $exportedData->singleRootSpan();
+            foreach ($exportedData->spans as $span) {
+                self::assertSame($rootSpan->traceId, $span->traceId);
+            }
+            $curlClientSpan = $exportedData->singleChildSpan($rootSpan->id);
+            $expectationsForCurlClientSpan->assertMatches($curlClientSpan);
+            $serverTxSpan = $exportedData->singleChildSpan($curlClientSpan->id);
+        } else {
+            $serverTxSpan = IterableUtil::singleValue($exportedData->findSpansWithAttributeValue(TraceAttributes::SERVER_PORT, $appCodeRequestParamsForServer->urlParts->port));
+            self::assertNull($serverTxSpan->parentId);
+            $clientTxSpan = IterableUtil::singleValue(IterableUtil::findByPredicateOnValue($exportedData->spans, fn(Span $span) => $span->parentId === null && $span !== $serverTxSpan));
+            self::assertNotEquals($serverTxSpan->traceId, $clientTxSpan->traceId);
         }
 
-        $curlClientSpan = $exportedData->singleChildSpan($rootSpan->id);
-        $expectationsForCurlClientSpan->assertMatches($curlClientSpan);
-
-        $serverTxSpan = $exportedData->singleChildSpan($curlClientSpan->id);
         $expectationsForServerTxSpan->assertMatches($serverTxSpan);
     }
 
-    public function testLocalClientServer(): void
+    /**
+     * @dataProvider dataProviderForTestRunAndEscalateLogLevelOnFailure
+     */
+    public function testLocalClientServer(MixedMap $testArgs): void
     {
         self::runAndEscalateLogLevelOnFailure(
-            self::buildDbgDescForTest(__CLASS__, __FUNCTION__),
-            function (): void {
-                $this->implTestLocalClientServer();
+            self::buildDbgDescForTestWithArgs(__CLASS__, __FUNCTION__, $testArgs),
+            function () use ($testArgs): void {
+                $this->implTestLocalClientServer($testArgs);
             }
         );
     }

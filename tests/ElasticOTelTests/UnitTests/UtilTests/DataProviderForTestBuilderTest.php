@@ -28,7 +28,7 @@ use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\BoolUtil;
 use ElasticOTelTests\Util\CombinatorialUtil;
 use ElasticOTelTests\Util\DataProviderForTestBuilder;
-use ElasticOTelTests\Util\DebugContextForTests;
+use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\IterableUtil;
 use ElasticOTelTests\Util\Log\LoggableToString;
 use ElasticOTelTests\Util\TestCaseBase;
@@ -45,7 +45,7 @@ class DataProviderForTestBuilderTest extends TestCaseBase
      */
     public function assertCombinationWithHelperDimension(array $testDimensionValues, bool $onlyFirstValueCombinable, callable $callToGetActualDataSets): void
     {
-        DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
 
         $actualDataSets = IterableUtil::toMap($callToGetActualDataSets());
         $dbgCtx->add(compact('actualDataSets'));
@@ -79,7 +79,6 @@ class DataProviderForTestBuilderTest extends TestCaseBase
         $actualIterator = IterableUtil::iterableToIterator($actualDataSets);
         $actualIterator->rewind();
 
-        $dbgCtx->pushSubScope();
         while (true) {
             if (!$expectedIterator->valid()) {
                 self::assertFalse($actualIterator->valid());
@@ -90,22 +89,9 @@ class DataProviderForTestBuilderTest extends TestCaseBase
             $actualDataSetDesc = $actualIterator->key();
             $actualDataSet = $actualIterator->current();
             $actualIterator->next();
-            $dbgCtx->clearCurrentSubScope(compact('expectedDataSet', 'actualDataSetDesc', 'actualDataSet'));
-            AssertEx::hasKeyWithSameValue(self::TEST_DIMENSION_KEY, $expectedDataSet[self::TEST_DIMENSION_KEY], $actualDataSet);
-            AssertEx::hasKeyWithSameValue(self::HELPER_DIMENSION_KEY, $expectedDataSet[self::HELPER_DIMENSION_KEY], $actualDataSet);
-        }
-        $dbgCtx->popSubScope();
-
-        $dbgCtx->pop();
-    }
-
-    /**
-     * @return iterable<array{bool}>
-     */
-    public static function dataProviderOneBoolArg(): iterable
-    {
-        foreach (BoolUtil::ALL_VALUES as $val) {
-            yield [$val];
+            $dbgCtx->add(compact('expectedDataSet', 'actualDataSetDesc', 'actualDataSet'));
+            AssertEx::arrayHasKeyWithSameValue(self::TEST_DIMENSION_KEY, $expectedDataSet[self::TEST_DIMENSION_KEY], $actualDataSet);
+            AssertEx::arrayHasKeyWithSameValue(self::HELPER_DIMENSION_KEY, $expectedDataSet[self::HELPER_DIMENSION_KEY], $actualDataSet);
         }
     }
 
@@ -353,9 +339,7 @@ class DataProviderForTestBuilderTest extends TestCaseBase
     }
 
     /**
-     * @dataProvider boolDataProvider
-     *
-     * @param bool $dimAOnlyFirstValueCombinable
+     * @dataProvider dataProviderOneBoolArg
      */
     public function testCartesianProductKeyed(bool $dimAOnlyFirstValueCombinable): void
     {
@@ -399,9 +383,7 @@ class DataProviderForTestBuilderTest extends TestCaseBase
     }
 
     /**
-     * @dataProvider boolDataProvider
-     *
-     * @param bool $dimAOnlyFirstValueCombinable
+     * @dataProvider dataProviderOneBoolArg
      */
     public function testCartesianProduct(bool $dimAOnlyFirstValueCombinable): void
     {
@@ -468,9 +450,7 @@ class DataProviderForTestBuilderTest extends TestCaseBase
     }
 
     /**
-     * @dataProvider boolDataProvider
-     *
-     * @param bool $dimAOnlyFirstValueCombinable
+     * @dataProvider dataProviderOneBoolArg
      */
     public function testUsingRangeForDimensionValues(bool $dimAOnlyFirstValueCombinable): void
     {

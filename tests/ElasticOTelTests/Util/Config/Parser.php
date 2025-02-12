@@ -47,16 +47,14 @@ final class Parser
     }
 
     /**
-     * @param string                       $rawValue
-     * @param OptionParser<mixed> $optionParser
+     * @template T
      *
-     * @return mixed
+     * @param string          $rawValue
+     * @param OptionParser<T> $optionParser
      *
-     * @template       T
-     * @phpstan-param  OptionParser<T> $optionParser
-     * @phpstan-return T
+     * @return T
      */
-    public static function parseOptionRawValue(string $rawValue, OptionParser $optionParser)
+    public static function parseOptionRawValue(string $rawValue, OptionParser $optionParser): mixed
     {
         return $optionParser->parse(trim($rawValue));
     }

@@ -33,7 +33,7 @@ use Elastic\OTel\Util\ArrayUtil;
 final class RawSnapshotFromArray implements RawSnapshotInterface
 {
     /** @var array<string, string> */
-    private $optNameToRawValue;
+    private array $optNameToRawValue;
 
     /**
      * @param array<string, string> $optNameToRawValue

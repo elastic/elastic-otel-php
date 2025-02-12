@@ -538,6 +538,14 @@ final class DataProviderForTestBuilder
     }
 
     /**
+     * @return iterable<string, array{MixedMap}>
+     */
+    public function buildAsMixedMaps(): iterable
+    {
+        return self::convertEachDataSetToMixedMap($this->build());
+    }
+
+    /**
      * @return callable(): iterable<string, array<mixed>>
      *
      * @noinspection PhpUnused

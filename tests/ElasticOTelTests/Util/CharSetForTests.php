@@ -24,27 +24,23 @@ declare(strict_types=1);
 namespace ElasticOTelTests\Util;
 
 use Ds\Set;
-use ElasticOTelTests\Util\RangeUtil;
 use IteratorAggregate;
+use Override;
 use PHPUnit\Framework\Assert;
 use Traversable;
 
 /**
  * @implements IteratorAggregate<string>
+ *
+ * @noinspection PhpUnused
  */
 final class CharSetForTests implements IteratorAggregate
 {
-    /** @var ?CharSetForTests */
-    private static $digits = null;
-
-    /** @var ?CharSetForTests */
-    private static $lowerCaseLetters = null;
-
-    /** @var ?CharSetForTests */
-    private static $lowerCaseLettersAndDigits = null;
-
+    private static ?CharSetForTests $digits = null;
+    private static ?CharSetForTests $lowerCaseLetters = null;
+    private static ?CharSetForTests $lowerCaseLettersAndDigits = null;
     /** @var Set<string> */
-    private $chars;
+    private Set $chars;
 
     public static function digits(): CharSetForTests
     {
@@ -64,6 +60,7 @@ final class CharSetForTests implements IteratorAggregate
         return self::$lowerCaseLetters;
     }
 
+    /** @noinspection PhpUnused */
     public static function lowerCaseLettersAndDigits(): CharSetForTests
     {
         if (self::$lowerCaseLettersAndDigits === null) {
@@ -107,11 +104,13 @@ final class CharSetForTests implements IteratorAggregate
     /**
      * @return Traversable<string>
      */
+    #[Override]
     public function getIterator(): Traversable
     {
         return $this->chars;
     }
 
+    /** @noinspection PhpUnused */
     public function getRandom(): string
     {
         Assert::assertGreaterThan(0, $this->chars->count());
@@ -119,12 +118,17 @@ final class CharSetForTests implements IteratorAggregate
         return $this->chars->get($randomIndex);
     }
 
+    /**
+     * @param non-negative-int $length
+     *
+     * @noinspection PhpUnused
+     */
     public function generateString(int $length): string
     {
-        Assert::assertGreaterThan(0, $length);
+        Assert::assertGreaterThanOrEqual(0, $length);
         $result = '';
         while (true) {
-            foreach ($this as $char) {
+            foreach ($this->chars as $char) {
                 if (strlen($result) === $length) {
                     return $result;
                 }

@@ -25,6 +25,7 @@ namespace ElasticOTelTests\ComponentTests\Util;
 
 use ElasticOTelTests\Util\AmbientContextForTests;
 use ElasticOTelTests\Util\ArrayUtilForTests;
+use ElasticOTelTests\Util\EnvVarUtil;
 use ElasticOTelTests\Util\ExceptionUtil;
 use ElasticOTelTests\Util\HttpMethods;
 use ElasticOTelTests\Util\HttpStatusCodes;
@@ -39,6 +40,9 @@ use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\TestCase;
 use Throwable;
 
+/**
+ * @phpstan-import-type EnvVars from EnvVarUtil
+ */
 abstract class HttpServerStarter
 {
     use LoggableTrait;
@@ -65,7 +69,7 @@ abstract class HttpServerStarter
     /**
      * @param int[] $ports
      *
-     * @return array<string, string>
+     * @return EnvVars
      */
     abstract protected function buildEnvVarsForSpawnedProcess(string $spawnedProcessInternalId, array $ports): array;
 

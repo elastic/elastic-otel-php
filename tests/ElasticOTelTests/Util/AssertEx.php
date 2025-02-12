@@ -53,13 +53,12 @@ final class AssertEx
      */
     public static function equalMaps(array $expected, array $actual): void
     {
-        DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
         self::sameCount($expected, $actual);
         self::mapIsSubsetOf($expected, $actual);
     }
 
     /** @noinspection PhpUnused */
-    public static function isBoolAndReturn(mixed $actual, string $message = ''): bool
+    public static function isBool(mixed $actual, string $message = ''): bool
     {
         Assert::assertIsBool($actual, $message);
         return $actual;
@@ -82,13 +81,13 @@ final class AssertEx
      * @template TKey of array-key
      * @template TValue
      *
-     * @param array-key                                     $expectedKey
+     * @param TKey                                          $expectedKey
      * @param TValue                                        $expectedValue
      * @param array<TKey, TValue>|ArrayAccess<TKey, TValue> $actualArray
      *
-     * @phpstan-param TKey                                  $expectedKey
+     * @noinspection PhpDocSignatureInspection
      */
-    public static function hasKeyWithSameValue(string|int $expectedKey, mixed $expectedValue, array|ArrayAccess $actualArray, string $message = ''): void
+    public static function arrayHasKeyWithSameValue(string|int $expectedKey, mixed $expectedValue, array|ArrayAccess $actualArray, string $message = ''): void
     {
         Assert::assertArrayHasKey($expectedKey, $actualArray, $message);
         Assert::assertSame($expectedValue, $actualArray[$expectedKey], $message);
@@ -98,16 +97,13 @@ final class AssertEx
      * @template TKey of array-key
      * @template TValue
      *
-     * @param string|int                                    $expectedKey
-     * @param mixed                                         $expectedValue
+     * @param TKey                                          $expectedKey
+     * @param TValue                                        $expectedValue
      * @param array<TKey, TValue>|ArrayAccess<TKey, TValue> $actualArray
      *
-     * @phpstan-param TKey                                  $expectedKey
-     * @phpstan-param TValue                                $expectedValue
-     *
-     * @noinspection PhpUnused
+     * @noinspection PhpUnused, PhpDocSignatureInspection
      */
-    public static function hasKeyWithEqualValue(string|int $expectedKey, mixed $expectedValue, array|ArrayAccess $actualArray): void
+    public static function arrayHasKeyWithEqualValue(string|int $expectedKey, mixed $expectedValue, array|ArrayAccess $actualArray): void
     {
         Assert::assertArrayHasKey($expectedKey, $actualArray);
         Assert::assertEquals($expectedValue, $actualArray[$expectedKey]);
@@ -118,9 +114,9 @@ final class AssertEx
      *
      * @param ?T $actual
      *
-     * @phpstan-return T
+     * @return T
      */
-    public static function notNullAndReturn(mixed $actual, string $message = ''): mixed
+    public static function notNull(mixed $actual, string $message = ''): mixed
     {
         Assert::assertNotNull($actual, $message);
         return $actual;
@@ -135,25 +131,21 @@ final class AssertEx
         Assert::assertSame(count($expected), count($actual));
     }
 
-    /**
-     * @template T of int|float
-     *
-     * @phpstan-param T $rangeBegin
-     * @phpstan-param T $actual
-     * @phpstan-param T $rangeEnd
-     *
-     * @noinspection PhpUnused
-     */
-    public static function inClosedRange(int|float $rangeBegin, int|float $actual, int|float $rangeEnd): void
-    {
-        DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
-        Assert::assertGreaterThanOrEqual($rangeBegin, $actual);
-        Assert::assertLessThanOrEqual($rangeEnd, $actual);
-    }
-
-    public static function isStringAndReturn(mixed $actual, string $message = ''): string
+    public static function isString(mixed $actual, string $message = ''): string
     {
         Assert::assertIsString($actual, $message);
+        return $actual;
+    }
+
+    public static function isInt(mixed $actual, string $message = ''): int
+    {
+        Assert::assertIsInt($actual, $message);
+        return $actual;
+    }
+
+    public static function isFloat(mixed $actual, string $message = ''): float
+    {
+        Assert::assertIsFloat($actual, $message);
         return $actual;
     }
 
@@ -166,15 +158,13 @@ final class AssertEx
      */
     public static function mapIsSubsetOf(array $subsetMap, array $containingMap): void
     {
-        DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
         Assert::assertGreaterThanOrEqual(count($subsetMap), count($containingMap));
-        $dbgCtx->pushSubScope();
         foreach ($subsetMap as $subsetMapKey => $subsetMapVal) {
-            $dbgCtx->clearCurrentSubScope(['subsetMapKey' => $subsetMapKey, 'subsetMapVal' => $subsetMapVal]);
+            $dbgCtx->add(compact('subsetMapKey', 'subsetMapVal'));
             Assert::assertArrayHasKey($subsetMapKey, $containingMap);
             Assert::assertEquals($subsetMapVal, $containingMap[$subsetMapKey]);
         }
-        $dbgCtx->popSubScope();
     }
 
     public static function equalsEx(mixed $expected, mixed $actual, string $message = ''): void
@@ -191,7 +181,7 @@ final class AssertEx
      * If successful and the inspection callable is not null
      * then it is called and the caught exception is passed as argument.
      *
-     * @param callable(): void           $execute
+     * @param callable(): mixed          $execute
      * @param ?callable(Throwable): void $inspect
      */
     public static function throws(string $class, callable $execute, string $message = '', ?callable $inspect = null): void
@@ -223,14 +213,9 @@ final class AssertEx
         Assert::assertGreaterThanOrEqual($expectedMinCount, count($haystack));
     }
 
-    public static function stringIsInt(string $actual, string $message = ''): void
+    public static function stringIsInt(string $actual, string $message = ''): int
     {
         Assert::assertNotFalse(filter_var($actual, FILTER_VALIDATE_INT), $message);
-    }
-
-    public static function stringIsIntAndReturn(string $actual, string $message = ''): int
-    {
-        self::stringIsInt($actual, $message);
         return intval($actual);
     }
 
@@ -256,21 +241,6 @@ final class AssertEx
         } else {
             Assert::assertSame($expected, $actual, $message);
         }
-    }
-
-    /**
-     * @template T of int|float
-     *
-     * @phpstan-param T $rangeBegin
-     * @phpstan-param T $val
-     * @phpstan-param T $rangeInclusiveEnd
-     *
-     * @noinspection PhpUnused
-     */
-    public static function inRangeInclusive(int|float $rangeBegin, int|float $val, int|float $rangeInclusiveEnd): void
-    {
-        Assert::assertGreaterThanOrEqual($rangeBegin, $val);
-        Assert::assertLessThanOrEqual($rangeInclusiveEnd, $val);
     }
 
     /**
@@ -300,17 +270,11 @@ final class AssertEx
      */
     public static function equalLists(array $expected, array $actual): void
     {
-        DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
-        try {
-            Assert::assertSame(count($expected), count($actual));
-            $dbgCtx->pushSubScope();
-            foreach (RangeUtil::generateUpTo(count($expected)) as $i) {
-                $dbgCtx->clearCurrentSubScope(['i' => $i]);
-                Assert::assertSame($expected[$i], $actual[$i]);
-            }
-            $dbgCtx->popSubScope();
-        } finally {
-            $dbgCtx->pop();
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
+        Assert::assertSame(count($expected), count($actual));
+        foreach (RangeUtil::generateUpTo(count($expected)) as $i) {
+            $dbgCtx->add(compact('i'));
+            Assert::assertSame($expected[$i], $actual[$i]);
         }
     }
 
@@ -320,23 +284,20 @@ final class AssertEx
      */
     public static function listIsSubsetOf(array $subSet, array $largerSet): void
     {
-        DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
-        try {
-            $subSetCount = count($subSet);
-            $dbgCtx->add(compact('subSetCount'));
-            $largerSetCount = count($largerSet);
-            $dbgCtx->add(compact('largerSetCount'));
-            $inSubSetButNotInLarger = array_diff($subSet, $largerSet);
-            $dbgCtx->add(compact('inSubSetButNotInLarger'));
-            $intersection = array_intersect($subSet, $largerSet);
-            $dbgCtx->add(compact('intersection'));
-            $intersectionCount = count($intersection);
-            $dbgCtx->add(compact('intersectionCount'));
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
 
-            Assert::assertSame(count(array_intersect($subSet, $largerSet)), count($subSet));
-        } finally {
-            $dbgCtx->pop();
-        }
+        $subSetCount = count($subSet);
+        $dbgCtx->add(compact('subSetCount'));
+        $largerSetCount = count($largerSet);
+        $dbgCtx->add(compact('largerSetCount'));
+        $inSubSetButNotInLarger = array_diff($subSet, $largerSet);
+        $dbgCtx->add(compact('inSubSetButNotInLarger'));
+        $intersection = array_intersect($subSet, $largerSet);
+        $dbgCtx->add(compact('intersection'));
+        $intersectionCount = count($intersection);
+        $dbgCtx->add(compact('intersectionCount'));
+
+        Assert::assertSame(count(array_intersect($subSet, $largerSet)), count($subSet));
     }
 
     /**
@@ -347,17 +308,12 @@ final class AssertEx
      */
     public static function mapArrayIsSubsetOf(array $subSet, array $largerSet): void
     {
-        DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
-
-        $dbgCtx->pushSubScope();
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
         foreach ($subSet as $key => $value) {
-            $dbgCtx->clearCurrentSubScope(['$key' => $key, '$value' => $value]);
+            $dbgCtx->add(compact('key', 'value'));
             Assert::assertArrayHasKey($key, $largerSet);
             self::sameEx($value, $largerSet[$key]);
         }
-        $dbgCtx->popSubScope();
-
-        $dbgCtx->pop();
     }
 
     /**
@@ -387,14 +343,10 @@ final class AssertEx
 
     public static function lessThanOrEqualTimestamp(float $before, float $after): void
     {
-        DebugContextForTests::newScope(
-            $dbgCtx,
-            [
-                'before'         => TimeUtil::timestampToLoggable($before),
-                'after'          => TimeUtil::timestampToLoggable($after),
-                'after - before' => TimeUtil::timestampToLoggable($after - $before),
-            ]
-        );
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
+        $dbgCtx->add(['before' => TimeUtil::timestampToLoggable($before)]);
+        $dbgCtx->add(['after' => TimeUtil::timestampToLoggable($after)]);
+        $dbgCtx->add(['after - before' => TimeUtil::timestampToLoggable($after - $before)]);
         Assert::assertThat($before, Assert::logicalOr(new IsEqual($after, /* delta: */ self::TIMESTAMP_COMPARISON_PRECISION_MICROSECONDS), new LessThan($after)));
     }
 
@@ -432,18 +384,57 @@ final class AssertEx
      *
      * @noinspection PhpUnused
      */
-    public static function arraysWithSameElements(array $expected, array $actual): void
+    public static function arraysHaveTheSameContent(array $expected, array $actual): void
     {
-        DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
-        try {
-            Assert::assertSame(count($expected), count($actual));
-            $dbgCtx->pushSubScope();
-            foreach ($expected as $expectedKey => $expectedVal) {
-                self::hasKeyWithSameValue($expectedKey, $expectedVal, $actual);
-            }
-            $dbgCtx->popSubScope();
-        } finally {
-            $dbgCtx->pop();
+        Assert::assertSame(count($expected), count($actual));
+        foreach ($expected as $expectedKey => $expectedVal) {
+            self::arrayHasKeyWithSameValue($expectedKey, $expectedVal, $actual);
         }
+    }
+
+    /**
+     * @template T
+     *
+     * @param iterable<T> $expected
+     * @param iterable<T> $actual
+     */
+    public static function sameValuesListIterables(iterable $expected, iterable $actual): void
+    {
+        $expectedIterator = IterableUtil::iterableToIterator($expected);
+        $expectedIterator->rewind();
+        $actualIterator = IterableUtil::iterableToIterator($actual);
+        $actualIterator->rewind();
+
+        while ($expectedIterator->valid()) {
+            Assert::assertTrue($actualIterator->valid());
+            Assert::assertSame($expectedIterator->current(), $actualIterator->current());
+            $expectedIterator->next();
+            $actualIterator->next();
+        }
+        Assert::assertFalse($actualIterator->valid());
+    }
+
+    /**
+     * @template T of int|float
+     *
+     * @param T $rangeBegin
+     * @param T $actual
+     * @param T $rangeInclusiveEnd
+     *
+     * @noinspection PhpDocSignatureInspection
+     */
+    public static function inClosedRange(int|float $rangeBegin, int|float $actual, int|float $rangeInclusiveEnd): void
+    {
+        Assert::assertTrue(RangeUtil::isInClosedRange($rangeBegin, $actual, $rangeInclusiveEnd));
+    }
+
+    /**
+     * @param array<mixed>|Countable $container
+     *
+     * @phpstan-assert non-negative-int $index
+     */
+    public static function isValidIndexOf(int $index, array|Countable $container): void
+    {
+        Assert::assertTrue(RangeUtil::isValidIndexOfCountable($index, count($container)));
     }
 }

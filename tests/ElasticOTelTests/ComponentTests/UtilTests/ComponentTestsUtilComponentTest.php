@@ -33,7 +33,7 @@ use ElasticOTelTests\Util\ArrayUtilForTests;
 use ElasticOTelTests\Util\Config\OptionForProdName;
 use ElasticOTelTests\Util\Config\OptionForTestsName;
 use ElasticOTelTests\Util\DataProviderForTestBuilder;
-use ElasticOTelTests\Util\DebugContextForTests;
+use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\IterableUtil;
 use ElasticOTelTests\Util\MixedMap;
 use PHPUnit\Framework\Exception as PHPUnitFrameworkException;
@@ -50,19 +50,18 @@ final class ComponentTestsUtilComponentTest extends ComponentTestCaseBase
     /**
      * @return iterable<array{MixedMap}>
      */
-    public function dataProviderForTestRunAndEscalateLogLevelOnFailure(): iterable
+    public static function dataProviderForTestRunAndEscalateLogLevelOnFailure(): iterable
     {
         $initialLogLevels = [LogLevel::info, LogLevel::trace, LogLevel::debug];
 
-        $result = (new DataProviderForTestBuilder())
-            ->addKeyedDimensionOnlyFirstValueCombinable(self::LOG_LEVEL_FOR_PROD_CODE_KEY, $initialLogLevels)
-            ->addKeyedDimensionOnlyFirstValueCombinable(self::LOG_LEVEL_FOR_TEST_CODE_KEY, $initialLogLevels)
-            ->addKeyedDimensionOnlyFirstValueCombinable(self::FAIL_ON_RERUN_COUNT_KEY, [1, 2, 3])
-            ->addBoolKeyedDimensionOnlyFirstValueCombinable(self::SHOULD_FAIL_KEY)
-            ->addKeyedDimensionOnlyFirstValueCombinable(OptionForTestsName::escalated_reruns_max_count->name, [2, 0])
-            ->build();
-
-        return self::adaptToSmoke(DataProviderForTestBuilder::convertEachDataSetToMixedMap($result));
+        return self::adaptDataProviderForTestBuilderToSmokeToDescToMixedMap(
+            (new DataProviderForTestBuilder())
+                ->addKeyedDimensionOnlyFirstValueCombinable(self::LOG_LEVEL_FOR_PROD_CODE_KEY, $initialLogLevels)
+                ->addKeyedDimensionOnlyFirstValueCombinable(self::LOG_LEVEL_FOR_TEST_CODE_KEY, $initialLogLevels)
+                ->addKeyedDimensionOnlyFirstValueCombinable(self::FAIL_ON_RERUN_COUNT_KEY, [1, 2, 3])
+                ->addBoolKeyedDimensionOnlyFirstValueCombinable(self::SHOULD_FAIL_KEY)
+                ->addKeyedDimensionOnlyFirstValueCombinable(OptionForTestsName::escalated_reruns_max_count->name, [2, 0])
+        );
     }
 
     private static function buildFailMessage(int $runCount): string
@@ -75,25 +74,21 @@ final class ComponentTestsUtilComponentTest extends ComponentTestCaseBase
         self::appCodeSetsHowFinishedAttributes(
             $appCodeArgs,
             function () use ($appCodeArgs): void {
-                DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
-                try {
-                    $dbgCtx->add(compact('appCodeArgs'));
-                    $dbgCtx->add(['testConfig' => AmbientContextForTests::testConfig()]);
-                    $expectedLogLevelForProdCode = $appCodeArgs->getLogLevel(self::LOG_LEVEL_FOR_PROD_CODE_KEY);
-                    $dbgCtx->add(compact('expectedLogLevelForProdCode'));
-                    $prodConfig = self::buildProdConfigFromAppCode();
-                    $dbgCtx->add(compact('prodConfig'));
-                    $actualLogLevelForProdCode = $prodConfig->effectiveLogLevel();
-                    $dbgCtx->add(compact('actualLogLevelForProdCode'));
-                    self::assertSame($expectedLogLevelForProdCode, $actualLogLevelForProdCode);
-                    $expectedLogLevelForTestCode = $appCodeArgs->getLogLevel(self::LOG_LEVEL_FOR_TEST_CODE_KEY);
-                    $dbgCtx->add(compact('expectedLogLevelForTestCode'));
-                    $actualLogLevelForTestCode = AmbientContextForTests::testConfig()->logLevel;
-                    $dbgCtx->add(compact('actualLogLevelForTestCode'));
-                    self::assertSame($expectedLogLevelForTestCode, $actualLogLevelForTestCode);
-                } finally {
-                    $dbgCtx->pop();
-                }
+                DebugContext::getCurrentScope(/* out */ $dbgCtx);
+                $dbgCtx->add(compact('appCodeArgs'));
+                $dbgCtx->add(['testConfig' => AmbientContextForTests::testConfig()]);
+                $expectedLogLevelForProdCode = $appCodeArgs->getLogLevel(self::LOG_LEVEL_FOR_PROD_CODE_KEY);
+                $dbgCtx->add(compact('expectedLogLevelForProdCode'));
+                $prodConfig = self::buildProdConfigFromAppCode();
+                $dbgCtx->add(compact('prodConfig'));
+                $actualLogLevelForProdCode = $prodConfig->effectiveLogLevel();
+                $dbgCtx->add(compact('actualLogLevelForProdCode'));
+                self::assertSame($expectedLogLevelForProdCode, $actualLogLevelForProdCode);
+                $expectedLogLevelForTestCode = $appCodeArgs->getLogLevel(self::LOG_LEVEL_FOR_TEST_CODE_KEY);
+                $dbgCtx->add(compact('expectedLogLevelForTestCode'));
+                $actualLogLevelForTestCode = AmbientContextForTests::testConfig()->logLevel;
+                $dbgCtx->add(compact('actualLogLevelForTestCode'));
+                self::assertSame($expectedLogLevelForTestCode, $actualLogLevelForTestCode);
             }
         );
     }

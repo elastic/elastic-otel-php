@@ -25,7 +25,7 @@ namespace ElasticOTelTests\ComponentTests\Util;
 
 use Countable;
 use ElasticOTelTests\Util\ArrayReadInterface;
-use ElasticOTelTests\Util\DebugContextForTests;
+use ElasticOTelTests\Util\DebugContext;
 use Override;
 use PHPUnit\Framework\Assert;
 
@@ -61,29 +61,24 @@ class ArrayExpectations implements ExpectationsInterface
      */
     public function assertMatches(array|ArrayReadInterface $actual): void
     {
-        DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
-        try {
-            if (!$this->allowOtherKeysInActual) {
-                Assert::assertCount(count($this->expectedArray), $actual);
-            }
-            $dbgCtx->pushSubScope();
-            foreach ($this->expectedArray as $expectedKey => $expectedValue) {
-                $dbgCtx->clearCurrentSubScope(compact('expectedKey', 'expectedValue'));
-                self::keyExists($expectedKey, $this->expectedArray);
-                $actualValue = self::getValue($expectedKey, $actual);
-                $dbgCtx->add(compact('actualValue'));
-                $this->assertValueMatches($expectedKey, $expectedValue, $actualValue);
-            }
-            $dbgCtx->popSubScope();
-        } finally {
-            $dbgCtx->pop();
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
+        if (!$this->allowOtherKeysInActual) {
+            Assert::assertCount(count($this->expectedArray), $actual);
+        }
+        foreach ($this->expectedArray as $expectedKey => $expectedValue) {
+            $dbgCtx->add(compact('expectedKey', 'expectedValue'));
+            self::keyExists($expectedKey, $this->expectedArray);
+            $actualValue = self::getValue($expectedKey, $actual);
+            $dbgCtx->add(compact('actualValue'));
+            $this->assertValueMatches($expectedKey, $expectedValue, $actualValue);
         }
     }
 
     /**
-     * @phpstan-param TKey $key
+     * @param TKey      $key
+     * @param ArrayLike $array
      *
-     * @param ArrayLike    $array
+     * @noinspection PhpDocSignatureInspection
      */
     private static function keyExists(string|int $key, array|ArrayReadInterface $array): bool
     {
@@ -91,11 +86,12 @@ class ArrayExpectations implements ExpectationsInterface
     }
 
     /**
-     * @phpstan-param TKey $key
-     *
-     * @param ArrayLike    $array
+     * @param TKey      $key
+     * @param ArrayLike $array
      *
      * @return TValue
+     *
+     * @noinspection PhpDocSignatureInspection
      */
     private static function getValue(string|int $key, array|ArrayReadInterface $array): mixed
     {
@@ -107,7 +103,11 @@ class ArrayExpectations implements ExpectationsInterface
     }
 
     /**
-     * @phpstan-param TKey $key
+     * @param TKey   $key
+     * @param TValue $expectedValue
+     * @param TValue $actualValue
+     *
+     * @noinspection PhpDocSignatureInspection
      */
     protected function assertValueMatches(string|int $key, mixed $expectedValue, mixed $actualValue): void
     {

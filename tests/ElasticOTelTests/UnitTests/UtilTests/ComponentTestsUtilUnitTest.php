@@ -30,15 +30,12 @@ use ElasticOTelTests\Util\Log\LoggableToString;
 use ElasticOTelTests\Util\Log\LogLevelUtil;
 use ElasticOTelTests\Util\TestCaseBase;
 
-/**
- * @group does_not_require_external_services
- */
 final class ComponentTestsUtilUnitTest extends TestCaseBase
 {
     /**
      * @return iterable<array{array<string, LogLevel>, array<array<string, LogLevel>>}>
      */
-    public function dataProviderForTestGenerateEscalatedLogLevels(): iterable
+    public static function dataProviderForTestGenerateEscalatedLogLevels(): iterable
     {
         $prodCodeKey = ComponentTestCaseBase::LOG_LEVEL_FOR_PROD_CODE_KEY;
         $testCodeKey = ComponentTestCaseBase::LOG_LEVEL_FOR_TEST_CODE_KEY;

@@ -81,11 +81,14 @@ trait SnapshotTrait
      */
     public static function propertyNamesForOptions(): array
     {
-        /** @var array<string> $propNames */
-        $propNames = array_keys(get_class_vars(get_called_class()));
-        $propNamesNotForOptions = array_merge(self::snapshotTraitPropNamesNotForOptions(), self::additionalPropNamesNotForOptions());
-        Assert::assertSame(count($propNamesNotForOptions), ArrayUtilForTests::removeAllValues(/* in,out */ $propNames, $propNamesNotForOptions));
-        return $propNames;
+        /** @var ?array<string> $result */
+        static $result = null;
+        if ($result === null) {
+            $result = array_keys(get_class_vars(get_called_class()));
+            $propNamesNotForOptions = array_merge(self::snapshotTraitPropNamesNotForOptions(), self::additionalPropNamesNotForOptions());
+            Assert::assertSame(count($propNamesNotForOptions), ArrayUtilForTests::removeAllValues(/* in,out */ $result, $propNamesNotForOptions));
+        }
+        return $result;
     }
 
     public function getOptionValueByName(OptionForTestsName $optName): mixed

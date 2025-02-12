@@ -34,8 +34,7 @@ interface SinkInterface
 {
     /**
      * @param array<array-key, mixed> $context
-     *
-     * @phpstan-param 0|positive-int $numberOfStackFramesToSkip
+     * @param non-negative-int        $numberOfStackFramesToSkip
      */
     public function consume(
         LogLevel $statementLevel,

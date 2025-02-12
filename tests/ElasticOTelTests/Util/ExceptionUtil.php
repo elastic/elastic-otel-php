@@ -42,14 +42,10 @@ final class ExceptionUtil
     use StaticClassTrait;
 
     /**
-     * @param string               $messagePrefix
      * @param array<string, mixed> $context
-     * @param ?int                 $numberOfStackFramesToSkip PHP_INT_MAX means no stack trace
+     * @param ?non-negative-int    $numberOfStackFramesToSkip PHP_INT_MAX means no stack trace
      *
-     * @return string
-     *
-     * @phpstan-param null|0|positive-int $numberOfStackFramesToSkip
-     * @noinspection PhpVarTagWithoutVariableNameInspection
+     * @noinspection PhpDocSignatureIsNotCompleteInspection
      */
     public static function buildMessage(string $messagePrefix, array $context = [], ?int $numberOfStackFramesToSkip = null): string
     {

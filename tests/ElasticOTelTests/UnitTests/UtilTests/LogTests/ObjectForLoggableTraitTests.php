@@ -34,25 +34,14 @@ class ObjectForLoggableTraitTests implements LoggableInterface
     use LoggableTrait;
 
     private static bool $shouldExcludeProp = true;
-    private static ?string $logWithClassNameValue;
+    private static ?string $logWithClassNameValue = null;
 
-    /** @var int */
-    private $intProp; // @phpstan-ignore-line
-
-    /** @var string */
-    private $stringProp; // @phpstan-ignore-line
-
-    /** @var ?string */
-    private $nullableStringProp = null; // @phpstan-ignore-line
-
-    /** @var string */
-    private $excludedProp = 'excludedProp value'; // @phpstan-ignore-line
-
-    /** @var string */
-    public $lateInitProp;
-
-    /** @var ?ObjectForLoggableTraitTests */
-    private $recursiveProp; // @phpstan-ignore-line
+    private int $intProp; // @phpstan-ignore property.onlyWritten
+    private string $stringProp; // @phpstan-ignore property.onlyWritten
+    private ?string $nullableStringProp = null; // @phpstan-ignore property.onlyWritten, property.unusedType
+    private string $excludedProp = 'excludedProp value'; // @phpstan-ignore property.onlyWritten
+    public string $lateInitProp;
+    private ?ObjectForLoggableTraitTests $recursiveProp; // @phpstan-ignore property.onlyWritten
 
     public function __construct(int $intProp = 123, string $stringProp = 'Abc', ?ObjectForLoggableTraitTests $recursiveProp = null)
     {

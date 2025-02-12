@@ -21,31 +21,22 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTests\UnitTests\Util;
+namespace ElasticOTelTests;
 
-use ElasticOTelTests\BootstrapTests;
-use ElasticOTelTests\Util\AmbientContextForTests;
-use ElasticOTelTests\Util\ElasticOTelExtensionUtil;
-use ElasticOTelTests\Util\PhpUnitExtensionBase;
-use ElasticOTelTests\Util\TestsInfraException;
+use Elastic\OTel\Util\StaticClassTrait;
+use ElasticOTelTests\Util\FileUtil;
 
-/**
- * @noinspection PhpUnused
- *
- * Referenced in PHPUnit's configuration file - phpunit.xml.dist
- */
-final class UnitTestsPhpUnitExtension extends PhpUnitExtensionBase
+final class VendorDir
 {
-    public function __construct()
+    use StaticClassTrait;
+
+    private static ?string $fullPath = null;
+
+    public static function get(): string
     {
-        if (!AmbientContextForTests::isInited()) {
-            BootstrapTests::bootstrapUnitTests();
+        if (self::$fullPath === null) {
+            self::$fullPath = FileUtil::normalizePath(TestsRootDir::getFullPath() . FileUtil::adaptUnixDirectorySeparators('/../vendor'));
         }
-
-        parent::__construct();
-
-        if (ElasticOTelExtensionUtil::isLoaded()) {
-            throw new TestsInfraException(ElasticOTelExtensionUtil::EXTENSION_NAME . ' should NOT be loaded when running unit tests because it will cause a clash');
-        }
+        return self::$fullPath;
     }
 }

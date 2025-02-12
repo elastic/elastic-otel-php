@@ -27,7 +27,6 @@ namespace ElasticOTelTests\ComponentTests\Util;
 
 use ElasticOTelTests\Util\AmbientContextForTests;
 use ElasticOTelTests\Util\AssertEx;
-use ElasticOTelTests\Util\DebugContextForTests;
 use ElasticOTelTests\Util\HttpContentTypes;
 use ElasticOTelTests\Util\HttpHeaderNames;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
@@ -47,8 +46,6 @@ final class IntakeApiRequestDeserializer
     {
         $logger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__)->addAllContext(compact('intakeApiRequest'));
         $loggerProxyDebug = $logger->ifDebugLevelEnabledNoLine(__FUNCTION__);
-
-        DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
 
         $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Processing intake API request');
 

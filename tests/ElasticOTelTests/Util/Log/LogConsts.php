@@ -47,6 +47,7 @@ final class LogConsts
     public const SMALL_MAP_ARRAY_MAX_COUNT = 100;
 
     public const LIST_ARRAY_TYPE_VALUE = 'list-array';
+    /** @noinspection PhpUnused */
     public const MAP_ARRAY_TYPE_VALUE = 'map-array';
     public const ARRAY_COUNT_KEY = 'count';
 
@@ -54,4 +55,6 @@ final class LogConsts
     public const OBJECT_HASH_KEY = 'object_hash';
 
     public const MAX_DEPTH_REACHED = 'Max depth reached';
+
+    public const UNINITIALIZED_PROPERTY_SUBSTITUTE = ['<>' => /** @lang text */ '<UNINITIALIZED PROPERTY>'];
 }

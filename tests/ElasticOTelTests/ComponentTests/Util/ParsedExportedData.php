@@ -24,10 +24,12 @@ declare(strict_types=1);
 namespace ElasticOTelTests\ComponentTests\Util;
 
 use ElasticOTelTests\Util\ArrayUtilForTests;
-use ElasticOTelTests\Util\DebugContextForTests;
 use ElasticOTelTests\Util\IterableUtil;
 use PHPUnit\Framework\Assert;
 
+/**
+ * @phpstan-import-type AttributeValue from SpanAttributes as SpanAttributeValue
+ */
 class ParsedExportedData
 {
     /**
@@ -40,9 +42,9 @@ class ParsedExportedData
 
     public function isEmpty(): bool
     {
-        foreach (get_object_vars($this) as $prop) {
-            Assert::assertIsArray($prop);
-            if (!ArrayUtilForTests::isEmpty($prop)) {
+        foreach ($this as $propValue) { // @phpstan-ignore foreach.nonIterable
+            Assert::assertIsArray($propValue);
+            if (!ArrayUtilForTests::isEmpty($propValue)) {
                 return false;
             }
         }
@@ -88,8 +90,6 @@ class ParsedExportedData
      */
     public function singleSpanByName(string $name): Span
     {
-        DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
-        $dbgCtx->add(['this' => $this]);
         $spans = $this->findSpansByName($name);
         Assert::assertCount(1, $spans);
         return $spans[0];
@@ -111,8 +111,6 @@ class ParsedExportedData
 
     /**
      * @return iterable<Span>
-     *
-     * @noinspection PhpUnused
      */
     public function findRootSpans(): iterable
     {
@@ -125,11 +123,26 @@ class ParsedExportedData
 
     public function singleRootSpan(): Span
     {
-        return IterableUtil::getSingleValue($this->findRootSpans());
+        return IterableUtil::singleValue($this->findRootSpans());
     }
 
     public function singleChildSpan(string $parentId): Span
     {
-        return IterableUtil::getSingleValue($this->findChildSpans($parentId));
+        return IterableUtil::singleValue($this->findChildSpans($parentId));
+    }
+
+    /**
+     * @param non-empty-string   $attributeName
+     * @param SpanAttributeValue $attributeValueToFind
+     *
+     * @return iterable<Span>
+     */
+    public function findSpansWithAttributeValue(string $attributeName, array|bool|float|int|null|string $attributeValueToFind): iterable
+    {
+        foreach ($this->spans as $span) {
+            if ($span->attributes->tryToGetValue($attributeName, /* out */ $actualAttributeValue) && $actualAttributeValue === $attributeValueToFind) {
+                yield $span;
+            }
+        }
     }
 }

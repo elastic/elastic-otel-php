@@ -32,7 +32,6 @@ use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LoggableToString;
 use ElasticOTelTests\Util\Log\LoggableTrait;
 use ElasticOTelTests\Util\Log\Logger;
-use ElasticOTelTests\Util\TestCaseBase;
 use ElasticOTelTests\Util\TimeUtil;
 use PHPUnit\Framework\Assert;
 
@@ -63,7 +62,7 @@ final class TestCaseHandle implements LoggableInterface
     ) {
         $this->logger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__)->addAllContext(compact('this'));
 
-        $globalTestInfra = ComponentTestsPhpUnitExtension::getGlobalTestInfra();
+        $globalTestInfra = ComponentTestsPHPUnitExtension::getGlobalTestInfra();
         $globalTestInfra->onTestStart();
         $this->resourcesCleaner = $globalTestInfra->getResourcesCleaner();
         $this->MockOTelCollector = $globalTestInfra->getMockOTelCollector();
@@ -167,7 +166,7 @@ final class TestCaseHandle implements LoggableInterface
         ($loggerProxy = $this->logger->ifDebugLevelEnabled(__LINE__, __FUNCTION__))
         && $loggerProxy->log('Tearing down...');
 
-        ComponentTestsPhpUnitExtension::getGlobalTestInfra()->onTestEnd();
+        ComponentTestsPHPUnitExtension::getGlobalTestInfra()->onTestEnd();
     }
 
     /**
@@ -178,7 +177,7 @@ final class TestCaseHandle implements LoggableInterface
     private function addPortsInUse(array $ports): void
     {
         foreach ($ports as $port) {
-            TestCaseBase::assertNotContains($port, $this->portsInUse);
+            Assert::assertNotContains($port, $this->portsInUse);
             $this->portsInUse[] = $port;
         }
     }

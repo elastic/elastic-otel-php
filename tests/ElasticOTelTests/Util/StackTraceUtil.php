@@ -71,19 +71,14 @@ final class StackTraceUtil
     }
 
     /**
-     * @param int           $offset
-     * @param ?positive-int $maxNumberOfFrames
-     * @param bool          $keepElasticOTelFrames
-     * @param bool          $includeArgs
-     * @param bool          $includeThisObj
+     * @param non-negative-int $offset
+     * @param ?positive-int    $maxNumberOfFrames
      *
      * @return ClassicFormatStackTraceFrame[]
-     *
-     * @phpstan-param 0|positive-int $offset
      */
-    public function captureInClassicFormat(int $offset = 0, ?int $maxNumberOfFrames = null, bool $keepElasticOTelFrames = true, bool $includeArgs = false, bool $includeThisObj = false): array
+    public function captureInClassicFormat(int $offset = 0, ?int $maxNumberOfFrames = null, bool $keepElasticOTelFrames = true, bool $includeThisObj = false, bool $includeArgs = false): array
     {
-        $options = ($includeArgs ? 0 : DEBUG_BACKTRACE_IGNORE_ARGS) | ($includeThisObj ? DEBUG_BACKTRACE_PROVIDE_OBJECT : 0);
+        $options = ($includeThisObj ? DEBUG_BACKTRACE_PROVIDE_OBJECT : 0) | ($includeArgs ? 0 : DEBUG_BACKTRACE_IGNORE_ARGS);
         return $this->convertCaptureToClassicFormat(
             // If there is non-null $maxNumberOfFrames we need to capture one more frame in PHP format
             debug_backtrace($options, limit: $maxNumberOfFrames === null ? 0 : ($offset + $maxNumberOfFrames + 1)),
@@ -91,24 +86,19 @@ final class StackTraceUtil
             $offset + 1,
             $maxNumberOfFrames,
             $keepElasticOTelFrames,
+            $includeThisObj,
             $includeArgs,
-            $includeThisObj
         );
     }
 
     /**
      * @param array<array<string, mixed>> $phpFormatFrames
-     * @param int                         $offset
+     * @param non-negative-int            $offset
      * @param ?positive-int               $maxNumberOfFrames
-     * @param bool                        $keepElasticOTelFrames
-     * @param bool                        $includeArgs
-     * @param bool                        $includeThisObj
      *
      * @return ClassicFormatStackTraceFrame[]
-     *
-     * @phpstan-param 0|positive-int $offset
      */
-    public function convertCaptureToClassicFormat(array $phpFormatFrames, int $offset, ?int $maxNumberOfFrames, bool $keepElasticOTelFrames, bool $includeArgs, bool $includeThisObj): array
+    public function convertCaptureToClassicFormat(array $phpFormatFrames, int $offset, ?int $maxNumberOfFrames, bool $keepElasticOTelFrames, bool $includeThisObj, bool $includeArgs): array
     {
         if ($offset >= count($phpFormatFrames)) {
             return [];
@@ -119,8 +109,8 @@ final class StackTraceUtil
             $offset === 0 ? $phpFormatFrames : IterableUtil::arraySuffix($phpFormatFrames, $offset),
             $maxNumberOfFrames,
             $keepElasticOTelFrames,
+            $includeThisObj,
             $includeArgs,
-            $includeThisObj
         );
     }
 
@@ -128,9 +118,6 @@ final class StackTraceUtil
      * @param ?array<string, mixed>          $prevPhpFormatFrame
      * @param iterable<array<string, mixed>> $phpFormatFrames
      * @param ?positive-int                  $maxNumberOfFrames
-     * @param bool                           $keepElasticOTelFrames
-     * @param bool                           $includeArgs
-     * @param bool                           $includeThisObj
      *
      * @return ClassicFormatStackTraceFrame[]
      */
@@ -139,8 +126,8 @@ final class StackTraceUtil
         iterable $phpFormatFrames,
         ?int $maxNumberOfFrames,
         bool $keepElasticOTelFrames,
-        bool $includeArgs,
-        bool $includeThisObj
+        bool $includeThisObj,
+        bool $includeArgs
     ): array {
         $allClassicFormatFrames = [];
         $prevInFrame = $prevPhpFormatFrame;
@@ -152,7 +139,7 @@ final class StackTraceUtil
                 $isOutFrameEmpty = false;
             }
             if ($this->hasNonLocationPropertiesInPhpFormat($currentInFrame)) {
-                $this->copyNonLocationPropertiesFromPhpToClassicFormat($currentInFrame, $includeArgs, $includeThisObj, $outFrame);
+                $this->copyNonLocationPropertiesFromPhpToClassicFormat($currentInFrame, $includeThisObj, $includeArgs, $outFrame);
                 $isOutFrameEmpty = false;
             }
             if (!$isOutFrameEmpty) {
@@ -322,7 +309,7 @@ final class StackTraceUtil
             ($loggerProxy = $this->logger->ifErrorLevelEnabled(__LINE__, __FUNCTION__))
             && $loggerProxy->log(
                 'Unexpected type for value under key (expected ' . $dbgExpectedType . ')',
-                ['$key' => $key, 'value type' => DbgUtil::getType($value), 'value' => $value]
+                ['$key' => $key, 'value type' => get_debug_type($value), 'value' => $value]
             );
             return null;
         }
@@ -358,11 +345,8 @@ final class StackTraceUtil
 
     /**
      * @param array<string, mixed>         $srcFrame
-     * @param bool                         $includeArgs
-     * @param bool                         $includeThisObj
-     * @param ClassicFormatStackTraceFrame $dstFrame
      */
-    private function copyNonLocationPropertiesFromPhpToClassicFormat(array $srcFrame, bool $includeArgs, bool $includeThisObj, ClassicFormatStackTraceFrame $dstFrame): void
+    private function copyNonLocationPropertiesFromPhpToClassicFormat(array $srcFrame, bool $includeThisObj, bool $includeArgs, ClassicFormatStackTraceFrame $dstFrame): void
     {
         $dstFrame->class = $this->getNullableStringValue(self::CLASS_KEY, $srcFrame);
         $dstFrame->function = $this->getNullableStringValue(self::FUNCTION_KEY, $srcFrame);
@@ -379,12 +363,8 @@ final class StackTraceUtil
      * @template TOutputFrame
      *
      * @param TOutputFrame    $frameToAdd
-     * @param ?int            $maxNumberOfFrames
+     * @param ?positive-int   $maxNumberOfFrames
      * @param TOutputFrame[] &$outputFrames
-     *
-     * @return bool
-     *
-     * @phpstan-param null|positive-int $maxNumberOfFrames
      */
     private static function addToOutputFrames($frameToAdd, ?int $maxNumberOfFrames, /* ref */ array &$outputFrames): bool
     {

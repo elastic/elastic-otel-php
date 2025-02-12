@@ -39,8 +39,7 @@ use ElasticOTelTests\Util\ArrayUtilForTests;
 use ElasticOTelTests\Util\BoolUtil;
 use ElasticOTelTests\Util\Config\OptionForProdName;
 use ElasticOTelTests\Util\Config\OptionsForProdDefaultValues;
-use ElasticOTelTests\Util\DataProviderForTestBuilder;
-use ElasticOTelTests\Util\DebugContextForTests;
+use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\IterableUtil;
 use ElasticOTelTests\Util\MixedMap;
 use OpenTelemetry\SemConv\TraceAttributes;
@@ -61,7 +60,7 @@ final class TransactionSpanTest extends ComponentTestCaseBase
     /**
      * @return iterable<string, array{MixedMap}>
      */
-    public function dataProviderForTestFeatureWithVariousEnabledConfigCombos(): iterable
+    public static function dataProviderForTestFeatureWithVariousEnabledConfigCombos(): iterable
     {
         /**
          * @return iterable<array<string, mixed>>
@@ -81,7 +80,7 @@ final class TransactionSpanTest extends ComponentTestCaseBase
             }
         };
 
-        return DataProviderForTestBuilder::convertEachDataSetToMixedMapAndAddDesc($generateDataSets);
+        return self::adaptDataSetsGeneratorToSmokeToDescToMixedMap($generateDataSets);
     }
 
     public static function appCodeForTestFeatureWithVariousEnabledConfigCombos(MixedMap $appCodeArgs): void
@@ -96,7 +95,7 @@ final class TransactionSpanTest extends ComponentTestCaseBase
 
     public function implTestFeatureWithVariousEnabledConfigCombos(MixedMap $testArgs): void
     {
-        DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
 
         $testCaseHandle = $this->getTestCaseHandle();
         $transactionSpanEnabled = $testArgs->getNullableBool(OptionForProdName::transaction_span_enabled->name);
@@ -197,8 +196,6 @@ final class TransactionSpanTest extends ComponentTestCaseBase
         if ($dummySpan !== null) {
             $expectationsForDummySpan->assertMatches($dummySpan);
         }
-
-        $dbgCtx->pop();
     }
 
 

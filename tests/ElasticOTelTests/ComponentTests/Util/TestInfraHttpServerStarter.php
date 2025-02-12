@@ -23,7 +23,10 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
+use ElasticOTelTests\Util\ArrayUtilForTests;
+use ElasticOTelTests\Util\BoolUtil;
 use ElasticOTelTests\Util\Config\ConfigException;
+use ElasticOTelTests\Util\Config\OptionForProdName;
 use ElasticOTelTests\Util\ExceptionUtil;
 use ElasticOTelTests\Util\FileUtil;
 use Override;
@@ -70,8 +73,16 @@ final class TestInfraHttpServerStarter extends HttpServerStarter
     #[Override]
     protected function buildEnvVarsForSpawnedProcess(string $spawnedProcessInternalId, array $ports): array
     {
+        $baseEnvVars = EnvVarUtilForTests::getAll();
+        $additionalEnvVars = [
+            OptionForProdName::autoload_enabled->toEnvVarName()          => BoolUtil::toString(false),
+            OptionForProdName::disabled_instrumentations->toEnvVarName() => ConfigUtilForTests::PROD_DISABLED_INSTRUMENTATIONS_ALL,
+            OptionForProdName::enabled->toEnvVarName()                   => BoolUtil::toString(false),
+        ];
+        ArrayUtilForTests::append(from: $additionalEnvVars, to: $baseEnvVars);
+
         return InfraUtilForTests::addTestInfraDataPerProcessToEnvVars(
-            EnvVarUtilForTests::getAll() /* <- baseEnvVars */,
+            $baseEnvVars,
             $spawnedProcessInternalId,
             $ports,
             $this->resourcesCleaner,

@@ -24,7 +24,6 @@ declare(strict_types=1);
 namespace ElasticOTelTests\ComponentTests\Util;
 
 use ElasticOTelTests\Util\AmbientContextForTests;
-use ElasticOTelTests\Util\DebugContextForTests;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
 use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LoggableTrait;
@@ -46,8 +45,6 @@ final class WaitForEventCounts implements IsEnoughExportedDataInterface, Loggabl
      */
     public static function spans(int $min, ?int $max = null): self
     {
-        DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
-
         Assert::assertGreaterThan(0, $min);
         if ($max !== null) {
             Assert::assertLessThanOrEqual($min, $max);
@@ -57,7 +54,6 @@ final class WaitForEventCounts implements IsEnoughExportedDataInterface, Loggabl
         $result->minSpanCount = $min;
         $result->maxSpanCount = $max ?? $min;
 
-        $dbgCtx->pop();
         return $result;
     }
 
@@ -68,14 +64,10 @@ final class WaitForEventCounts implements IsEnoughExportedDataInterface, Loggabl
 
     public function isEnough(array $spans): bool
     {
-        DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
-        $dbgCtx->add(compact('this'));
-
         $spansCount = count($spans);
         Assert::assertLessThanOrEqual($this->maxSpanCount, $spansCount);
 
         $result = $spansCount >= $this->minSpanCount;
-        $dbgCtx->pop();
 
         ($loggerProxy = $this->logger->ifDebugLevelEnabled(__LINE__, __FUNCTION__))
         && $loggerProxy->log('Checked if exported data events counts reached the waited for values', compact('result', 'spansCount', 'this'));

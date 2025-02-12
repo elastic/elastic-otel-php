@@ -51,9 +51,11 @@ class OTelUtil
     }
 
     /**
-     * @param non-empty-string $spanName
-     * @phpstan-param IntLimitedToOTelSpanKind $spanKind
+     * @param non-empty-string          $spanName
+     * @param IntLimitedToOTelSpanKind  $spanKind
      * @param OTelAttributesMapIterable $attributes
+     *
+     * @noinspection PhpDocSignatureInspection
      */
     public static function startSpan(TracerInterface $tracer, string $spanName, int $spanKind = OTelSpanKind::KIND_INTERNAL, iterable $attributes = []): OTelApiSpanInterface
     {
@@ -85,8 +87,7 @@ class OTelUtil
         }
 
         if ($throwable) {
-            $span->recordException($throwable, [TraceAttributes::EXCEPTION_ESCAPED => true]);
-            $span->setAttribute(TraceAttributes::EXCEPTION_TYPE, $throwable::class);
+            $span->recordException($throwable);
             $span->setStatus(StatusCode::STATUS_ERROR, $throwable->getMessage());
         }
 
@@ -94,9 +95,11 @@ class OTelUtil
     }
 
     /**
-     * @param non-empty-string $spanName
-     * @phpstan-param IntLimitedToOTelSpanKind $spanKind
+     * @param non-empty-string          $spanName
+     * @param IntLimitedToOTelSpanKind  $spanKind
      * @param OTelAttributesMapIterable $attributes
+     *
+     * @noinspection PhpDocSignatureInspection
      */
     public static function startEndSpan(
         TracerInterface $tracer,

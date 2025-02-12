@@ -32,16 +32,14 @@ use Closure;
  *
  * @internal
  *
- * @template   T
+ * @template T
  *
- * @extends    NullableOptionMetadata<T>
+ * @extends NullableOptionMetadata<T>
  */
 final class NullableCustomOptionMetadata extends NullableOptionMetadata
 {
     /**
-     * @param Closure $parseFunc
-     *
-     * @phpstan-param Closure(string): T $parseFunc
+     * @param Closure(string): T $parseFunc
      */
     public function __construct(Closure $parseFunc)
     {

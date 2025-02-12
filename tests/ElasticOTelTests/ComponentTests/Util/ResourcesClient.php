@@ -29,13 +29,12 @@ use ElasticOTelTests\Util\ClassNameUtil;
 use ElasticOTelTests\Util\FileUtil;
 use ElasticOTelTests\Util\HttpMethods;
 use ElasticOTelTests\Util\HttpStatusCodes;
-use ElasticOTelTests\Util\IterableUtil;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
 use ElasticOTelTests\Util\Log\Logger;
 
 final class ResourcesClient
 {
-    private readonly Logger $logger;
+    private Logger $logger;
 
     public function __construct(
         private readonly string $resourcesCleanerSpawnedProcessInternalId,
@@ -50,12 +49,13 @@ final class ResourcesClient
     }
 
     /**
-     * @return array<string, mixed>
+     * @return list<string>
      */
     public function __sleep(): array
     {
         $result = [];
-        foreach (IterableUtil::keys(get_object_vars($this)) as $propName) {
+        /** @var string $propName */
+        foreach ($this as $propName => $_) { // @phpstan-ignore foreach.nonIterable
             if ($propName === 'logger') {
                 continue;
             }
@@ -66,8 +66,7 @@ final class ResourcesClient
 
     public function __wakeup(): void
     {
-        /** @noinspection PhpSecondWriteToReadonlyPropertyInspection */
-        $this->logger = $this->buildLogger(); // @phpstan-ignore property.readOnlyAssignNotInConstructor
+        $this->logger = $this->buildLogger();
     }
 
     /** @noinspection PhpSameParameterValueInspection */

@@ -58,4 +58,12 @@ final class BoolUtil
     {
         return $stringVal === 'true';
     }
+
+    /**
+     * @return list<bool>
+     */
+    public static function allValuesStartingFrom(bool $startingValue): array
+    {
+        return [$startingValue, !$startingValue];
+    }
 }

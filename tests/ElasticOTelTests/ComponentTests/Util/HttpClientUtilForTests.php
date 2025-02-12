@@ -29,7 +29,7 @@ use Elastic\OTel\Util\StaticClassTrait;
 use ElasticOTelTests\Util\AmbientContextForTests;
 use ElasticOTelTests\Util\ArrayUtilForTests;
 use ElasticOTelTests\Util\Config\OptionForTestsName;
-use ElasticOTelTests\Util\DebugContextForTests;
+use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
 use ElasticOTelTests\Util\Log\Logger;
 use GuzzleHttp\Client;
@@ -59,7 +59,7 @@ final class HttpClientUtilForTests
 
     public static function sendRequestToAppCode(HttpAppCodeRequestParams $requestParams): ResponseInterface
     {
-        DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
 
         $localLogger = self::getLogger()->inherit()->addAllContext(compact('requestParams'));
         $loggerProxyDebug = $localLogger->ifDebugLevelEnabledNoLine(__FUNCTION__);
@@ -86,7 +86,7 @@ final class HttpClientUtilForTests
      */
     public static function sendRequest(string $httpMethod, UrlParts $urlParts, TestInfraDataPerRequest $dataPerRequest, array $headers = []): ResponseInterface
     {
-        $localLogger = self::getLogger()->inherit()->addAllContext(compact('httpMethod', 'dataPerRequest', 'headers'));
+        $localLogger = self::getLogger()->inherit()->addAllContext(compact('httpMethod', 'urlParts', 'dataPerRequest', 'headers'));
         ($loggerProxyDebug = $localLogger->ifDebugLevelEnabledNoLine(__FUNCTION__));
 
         $baseUrl = UrlUtil::buildRequestBaseUrl($urlParts);
@@ -153,12 +153,7 @@ final class HttpClientUtilForTests
      */
     public static function getSingleHeaderValue(string $headerName, array $headers): string
     {
-        DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
-
         Assert::assertTrue(ArrayUtil::getValueIfKeyExists($headerName, $headers, /* out */ $values));
-        $value = ArrayUtilForTests::getSingleValue($values);
-
-        $dbgCtx->pop();
-        return $value;
+        return ArrayUtilForTests::getSingleValue($values);
     }
 }

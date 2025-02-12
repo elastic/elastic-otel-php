@@ -25,6 +25,7 @@ namespace ElasticOTelTests\Util;
 
 use Elastic\OTel\Util\StaticClassTrait;
 use Elastic\OTel\Util\TextUtil;
+use UnexpectedValueException;
 
 final class TextUtilForTests
 {
@@ -115,9 +116,30 @@ final class TextUtilForTests
 
     /**
      * @param null|int|float|string $input
+     *
+     * @noinspection PhpUnused
      */
     public static function strvalEmptyIfNull(mixed $input): string
     {
         return $input === null ? '' : strval($input);
+    }
+
+    public static function removeIndentation(string $input): string
+    {
+        $indentationChars = " \t";
+        $indentationLen = strspn($input, $indentationChars);
+        if ($indentationLen === 0) {
+            return $input;
+        }
+        $indentation = substr($input, offset: 0, length: $indentationLen);
+
+        $result = '';
+        foreach (self::iterateLinesEx($input) as [$line, $endOfLine]) {
+            if ($line !== '' && !str_starts_with(haystack: $line, needle: $indentation)) {
+                throw new UnexpectedValueException(ExceptionUtil::buildMessage('Line does not start with expected indentation', compact('line', 'indentation', 'indentationLen', 'input')));
+            }
+            $result .= substr($line, offset: $indentationLen) . $endOfLine;
+        }
+        return $result;
     }
 }

@@ -44,7 +44,7 @@ final class JsonUtil
             throw new JsonException(
                 'json_encode() failed'
                 . '. json_last_error_msg(): ' . json_last_error_msg()
-                . '. dataType: ' . DbgUtil::getType($data)
+                . '. data type: ' . get_debug_type($data)
             );
         }
         return $encodedData;
@@ -61,5 +61,10 @@ final class JsonUtil
             );
         }
         return $decodedData;
+    }
+
+    public static function adaptStringToSearchInJson(string $input): string
+    {
+        return str_replace(search: '\\', replace: '\\\\', subject: $input);
     }
 }

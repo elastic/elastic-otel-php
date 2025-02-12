@@ -99,10 +99,10 @@ class WildcardListMatcherTest extends TestCase
         $this->testCaseImpl(' *A* ', 'A', '*A*');
 
         $this->testCaseImpl("\t /*/A/ /*\n, / /B/*", '/xyz/A/ /', '/*/A/ /*');
-        $this->testCaseImpl("\t /*/A/ /*\n, / /B/*", '/xyz/A/', null);
-        $this->testCaseImpl("\t /*/A/ /*\n, / /B/*", '/ /B/xyz', '/ /B/*');
-        $this->testCaseImpl("\t /*/A/ /*\n, / /B/*", '/ /B/', '/ /B/*');
-        $this->testCaseImpl("\t /*/A/ /*\n, / /B/*", '/B/', null);
+        $this->testCaseImpl("\t /*/A/ /*\r\n, / /B/*", '/xyz/A/', null);
+        $this->testCaseImpl("\t /*/A/ /*\t\n, / /B/*", '/ /B/xyz', '/ /B/*');
+        $this->testCaseImpl("\t /*/A/ /* \n, / /B/*", '/ /B/', '/ /B/*');
+        $this->testCaseImpl("\t /*/A/ /*\r\n, / /B/*", '/B/', null);
     }
 
     public function testToString(): void

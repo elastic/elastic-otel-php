@@ -36,19 +36,16 @@ use Override;
  */
 abstract class NumericOptionParser extends OptionParser
 {
-    /** @phpstan-var ?TParsedValue */
-    private null|int|float $minValidValue;
-    /** @phpstan-var ?TParsedValue */
-    private null|int|float $maxValidValue;
-
     /**
-     * @phpstan-param ?TParsedValue $minValidValue
-     * @phpstan-param ?TParsedValue $maxValidValue
+     * @param ?TParsedValue $minValidValue
+     * @param ?TParsedValue $maxValidValue
+     *
+     * @noinspection PhpDocSignatureInspection
      */
-    public function __construct(null|int|float $minValidValue, null|int|float $maxValidValue)
-    {
-        $this->minValidValue = $minValidValue;
-        $this->maxValidValue = $maxValidValue;
+    public function __construct(
+        private readonly null|int|float $minValidValue,
+        private readonly null|int|float $maxValidValue,
+    ) {
     }
 
     abstract protected function dbgValueTypeDesc(): string;

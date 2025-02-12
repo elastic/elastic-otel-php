@@ -45,9 +45,11 @@ final class TimeUtil
 
     /**
      * @template TimeWrapper of SystemTime|MonotonicTime
-
-     * @phpstan-param TimeWrapper $beginTime
-     * @phpstan-param TimeWrapper $endTime
+     *
+     * @param TimeWrapper $beginTime
+     * @param TimeWrapper $endTime
+     *
+     * @noinspection PhpDocSignatureInspection
      */
     public static function calcDurationInMicrosecondsClampNegativeToZero(SystemTime|MonotonicTime $beginTime, SystemTime|MonotonicTime $endTime): float
     {
@@ -57,10 +59,10 @@ final class TimeUtil
     /**
      * @template TimeWrapper of SystemTime|MonotonicTime
      *
-     * @phpstan-param TimeWrapper $beginTime
-     * @phpstan-param TimeWrapper $endTime
+     * @param TimeWrapper $beginTime
+     * @param TimeWrapper $endTime
      *
-     * @noinspection PhpUnused
+     * @noinspection PhpUnused, PhpDocSignatureInspection
      */
     public static function calcDurationInMillisecondsClampNegativeToZero(SystemTime|MonotonicTime $beginTime, SystemTime|MonotonicTime $endTime): float
     {
@@ -187,8 +189,6 @@ final class TimeUtil
     }
 
     /**
-     * @param float $timestamp
-     *
      * @return array<string, mixed>
      */
     public static function timestampToLoggable(float $timestamp): array

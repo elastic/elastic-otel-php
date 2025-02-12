@@ -89,8 +89,7 @@ final class CliScriptAppCodeHostHandle extends AppCodeHostHandle
             $this->resourcesCleaner,
             $this->appCodeHostParams->dbgProcessName
         );
-        $dataPerRequestEnvVarName = OptionForTestsName::data_per_request->toEnvVarName();
-        $envVars[$dataPerRequestEnvVarName] = PhpSerializationUtil::serializeToString($requestParams->dataPerRequest);
+        $envVars[OptionForTestsName::data_per_request->toEnvVarName()] = PhpSerializationUtil::serializeToString($requestParams->dataPerRequest);
         ksort(/* ref */ $envVars);
         $localLogger->addAllContext(compact('envVars'));
 

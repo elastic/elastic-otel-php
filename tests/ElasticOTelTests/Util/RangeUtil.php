@@ -24,6 +24,7 @@ declare(strict_types=1);
 namespace ElasticOTelTests\Util;
 
 use Elastic\OTel\Util\StaticClassTrait;
+use PHPUnit\Framework\Assert;
 
 /**
  * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
@@ -93,5 +94,43 @@ final class RangeUtil
     public static function generateFromToIncluding(int $first, int $last): iterable
     {
         return self::generate($first, $last + 1);
+    }
+
+    /**
+     * @param int $begin
+     * @param int $step
+     *
+     * @return iterable<int>
+     *
+     * @noinspection PhpUnused
+     */
+    public static function generateFrom(int $begin, int $step = 1): iterable
+    {
+        for ($i = $begin; $i <= PHP_INT_MAX; $i += $step) {
+            yield $i;
+        }
+    }
+
+    /**
+     * @template T of int|float
+     *
+     * @param T $rangeBegin
+     * @param T $actual
+     * @param T $rangeInclusiveEnd
+     *
+     * @noinspection PhpDocSignatureInspection
+     */
+    public static function isInClosedRange(int|float $rangeBegin, int|float $actual, int|float $rangeInclusiveEnd): bool
+    {
+        return ($rangeBegin <= $actual) && ($actual <= $rangeInclusiveEnd);
+    }
+
+    /**
+     * @phpstan-assert-if-true non-negative-int $index
+     */
+    public static function isValidIndexOfCountable(int $index, int $containerCount): bool
+    {
+        Assert::assertGreaterThanOrEqual(0, $containerCount);
+        return self::isInClosedRange(0, $index, $containerCount - 1);
     }
 }

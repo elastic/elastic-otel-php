@@ -87,10 +87,33 @@ final class IterableUtil
      */
     public static function getNthValue(iterable $iterable, int $n, /* out */ mixed &$valOut): bool
     {
+        Assert::assertGreaterThanOrEqual(0, $n);
         $i = 0;
         foreach ($iterable as $val) {
             if ($i === $n) {
                 $valOut = $val;
+                return true;
+            }
+            ++$i;
+        }
+        return false;
+    }
+
+    /**
+     * @template TKey
+     * @template TValue
+     *
+     * @param iterable<TKey, TValue> $iterable
+     * @param TKey                  &$keyOut
+     * @param-out TKey               $keyOut
+     */
+    public static function getNthKey(iterable $iterable, int $n, /* out */ mixed &$keyOut): bool
+    {
+        Assert::assertGreaterThanOrEqual(0, $n);
+        $i = 0;
+        foreach ($iterable as $key => $_) {
+            if ($i === $n) {
+                $keyOut = $key;
                 return true;
             }
             ++$i;
@@ -199,8 +222,11 @@ final class IterableUtil
      *
      * @noinspection PhpPluralMixedCanBeReplacedWithArrayInspection
      */
-    public static function zip(iterable ...$iterables): Generator
+    public static function zipWithOptionalIndex(bool $withIndex, iterable ...$iterables): Generator
     {
+        $expectedEndTupleCount = $withIndex ? 1 : 0;
+        $expectedTupleCount = count($iterables) + $expectedEndTupleCount;
+        $index = 0;
         if (ArrayUtilForTests::isEmpty($iterables)) {
             return;
         }
@@ -214,23 +240,48 @@ final class IterableUtil
         }
 
         while (true) {
-            $tuple = [];
+            $tuple = $withIndex ? [$index] : [];
             foreach ($iterators as $iterator) {
                 if ($iterator->valid()) {
                     $tuple[] = $iterator->current();
                     $iterator->next();
                 } else {
-                    Assert::assertTrue(ArrayUtilForTests::isEmpty($tuple));
+                    Assert::assertCount($expectedEndTupleCount, $tuple);
                 }
             }
 
-            if (ArrayUtilForTests::isEmpty($tuple)) {
+            if (count($tuple) === $expectedEndTupleCount) {
                 return;
             }
 
-            Assert::assertSame(count($iterables), count($tuple));
+            Assert::assertSame($expectedTupleCount, count($tuple));
             yield $tuple;
+            ++$index;
         }
+    }
+
+    /**
+     * @param iterable<mixed> $iterables
+     *
+     * @return Generator<mixed[]>
+     *
+     * @noinspection PhpPluralMixedCanBeReplacedWithArrayInspection
+     */
+    public static function zipWithIndex(iterable ...$iterables): Generator
+    {
+        return self::zipWithOptionalIndex(/* withIndex */ true, ...$iterables);
+    }
+
+    /**
+     * @param iterable<mixed> $iterables
+     *
+     * @return Generator<mixed[]>
+     *
+     * @noinspection PhpPluralMixedCanBeReplacedWithArrayInspection
+     */
+    public static function zip(iterable ...$iterables): Generator
+    {
+        return self::zipWithOptionalIndex(/* withIndex */ false, ...$iterables);
     }
 
     /**
@@ -313,6 +364,26 @@ final class IterableUtil
     }
 
     /**
+     * @template TValue
+     *
+     * @param iterable<TValue> $iterable
+     * @param non-negative-int $upTo
+     *
+     * @return iterable<TValue>
+     */
+    public static function takeUpTo(iterable $iterable, int $upTo): iterable
+    {
+        $index = 0;
+        foreach ($iterable as $value) {
+            if ($index >= $upTo) {
+                return;
+            }
+            yield $value;
+            ++$index;
+        }
+    }
+
+    /**
      * @template T
      *
      * @param iterable<T> $iterable
@@ -374,7 +445,7 @@ final class IterableUtil
      *
      * @return T
      */
-    public static function getSingleValue(iterable $iterable): mixed
+    public static function singleValue(iterable $iterable): mixed
     {
         $iterator = self::iterableToIterator($iterable);
         $iterator->rewind();
@@ -383,5 +454,37 @@ final class IterableUtil
         $iterator->next();
         Assert::assertFalse($iterator->valid());
         return $result;
+    }
+
+    /**
+     * @template T
+     *
+     * @param iterable<T> $input
+     *
+     * @return iterable<array{non-negative-int, T}>
+     */
+    public static function iterateListWithIndex(iterable $input): iterable
+    {
+        $index = 0;
+        foreach ($input as $value) {
+            yield [$index++, $value];
+        }
+    }
+
+    /**
+     * @template TValue
+     *
+     * @param iterable<TValue>       $iterable
+     * @param callable(TValue): bool $valuePredicate
+     *
+     * @return iterable<TValue>
+     */
+    public static function findByPredicateOnValue(iterable $iterable, callable $valuePredicate): iterable
+    {
+        foreach ($iterable as $value) {
+            if ($valuePredicate($value)) {
+                yield $value;
+            }
+        }
     }
 }

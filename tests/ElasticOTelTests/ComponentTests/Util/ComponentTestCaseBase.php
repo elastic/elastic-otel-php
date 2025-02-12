@@ -32,6 +32,7 @@ use ElasticOTelTests\Util\Config\EnvVarsRawSnapshotSource;
 use ElasticOTelTests\Util\Config\OptionForProdName;
 use ElasticOTelTests\Util\Config\OptionsForProdMetadata;
 use ElasticOTelTests\Util\Config\Parser as ConfigParser;
+use ElasticOTelTests\Util\DataProviderForTestBuilder;
 use ElasticOTelTests\Util\IterableUtil;
 use ElasticOTelTests\Util\Log\LoggableToString;
 use ElasticOTelTests\Util\Log\LogLevelUtil;
@@ -189,23 +190,6 @@ class ComponentTestCaseBase extends TestCaseBase
     }
 
     /**
-     * @return callable(iterable<mixed>): iterable<mixed>
-     */
-    public static function adaptToSmokeAsCallable(): callable
-    {
-        /**
-         * @template T
-         *
-         * @param iterable<T> $dataSets
-         *
-         * @return iterable<T>
-         */
-        return function (iterable $dataSets): iterable {
-            return self::adaptToSmoke($dataSets);
-        };
-    }
-
-    /**
      * @template TKey of array-key
      * @template TValue
      *
@@ -225,11 +209,46 @@ class ComponentTestCaseBase extends TestCaseBase
     }
 
     /**
+     * @return callable(iterable<mixed>): iterable<mixed>
+     */
+    public static function adaptToSmokeAsCallable(): callable
+    {
+        /**
+         * @template T
+         *
+         * @param iterable<T> $dataSets
+         *
+         * @return iterable<T>
+         */
+        return function (iterable $dataSets): iterable {
+            return self::adaptToSmoke($dataSets);
+        };
+    }
+
+    /**
+     * @param callable(): iterable<array<string, mixed>> $dataSetsGenerator
+     *
+     * @return iterable<string, array{MixedMap}>
+     */
+    public static function adaptDataSetsGeneratorToSmokeToDescToMixedMap(callable $dataSetsGenerator): iterable
+    {
+        return DataProviderForTestBuilder::convertEachDataSetToMixedMapAndAddDesc(fn() => self::adaptToSmoke($dataSetsGenerator()));
+    }
+
+    /**
+     * @return iterable<string, array{MixedMap}>
+     */
+    public static function adaptDataProviderForTestBuilderToSmokeToDescToMixedMap(DataProviderForTestBuilder $dataProviderForTestBuilder): iterable
+    {
+        return self::adaptDataSetsGeneratorToSmokeToDescToMixedMap(fn() => $dataProviderForTestBuilder->buildWithoutDataSetName()); // @phpstan-ignore argument.type
+    }
+
+    /**
      * @return iterable<array{bool}>
      */
-    public function boolDataProviderAdaptedToSmoke(): iterable
+    public static function dataProviderOneBoolArgAdaptedToSmoke(): iterable
     {
-        return self::adaptToSmoke(self::boolDataProvider());
+        return self::adaptToSmoke(self::dataProviderOneBoolArg());
     }
 
     /**

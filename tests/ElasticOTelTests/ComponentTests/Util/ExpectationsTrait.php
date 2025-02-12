@@ -23,8 +23,7 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
-use ElasticOTelTests\Util\DebugContextForTests;
-use ElasticOTelTests\Util\TestCaseBase;
+use ElasticOTelTests\Util\DebugContext;
 use Override;
 use PHPUnit\Framework\Assert;
 
@@ -38,53 +37,39 @@ trait ExpectationsTrait
 
     protected static function assertMatchesValue(mixed $expected, mixed $actual): void
     {
-        DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
-        try {
-            if ($expected === null) {
-                return;
-            }
-
-            if (is_object($expected)) {
-                self::assertObjectMatches($expected, $actual);
-                return;
-            }
-
-            Assert::assertSame($expected, $actual);
-        } finally {
-            $dbgCtx->pop();
+        if ($expected === null) {
+            return;
         }
+
+        if (is_object($expected)) {
+            self::assertObjectMatches($expected, $actual);
+            return;
+        }
+
+        Assert::assertSame($expected, $actual);
     }
 
     protected static function assertObjectMatches(object $expected, mixed $actual): void
     {
-        DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
-        try {
-            if ($expected instanceof ExpectationsInterface) {
-                $expected->assertMatchesMixed($actual);
-                return;
-            }
-
-            static::assertObjectMatchesTraitImpl($expected, $actual);
-        } finally {
-            $dbgCtx->pop();
+        if ($expected instanceof ExpectationsInterface) {
+            $expected->assertMatchesMixed($actual);
+            return;
         }
+
+        static::assertObjectMatchesTraitImpl($expected, $actual);
     }
 
     protected static function assertObjectMatchesTraitImpl(object $expected, mixed $actual): void
     {
-        DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
-        try {
-            TestCaseBase::assertIsObject($actual);
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
 
-            $dbgCtx->pushSubScope();
-            foreach (get_object_vars($expected) as $propName => $expectationsPropValue) {
-                $dbgCtx->clearCurrentSubScope(compact('propName', 'expectationsPropValue'));
-                Assert::assertTrue(property_exists($actual, $propName));
-                static::assertMatchesValue($expectationsPropValue, $actual->$propName);
-            }
-            $dbgCtx->popSubScope();
-        } finally {
-            $dbgCtx->pop();
+        Assert::assertIsObject($actual);
+
+        /** @var string $propName */
+        foreach ($expected as $propName => $expectationsPropValue) { // @phpstan-ignore foreach.nonIterable
+            $dbgCtx->add(compact('propName', 'expectationsPropValue'));
+            Assert::assertTrue(property_exists($actual, $propName));
+            static::assertMatchesValue($expectationsPropValue, $actual->$propName);
         }
     }
 }

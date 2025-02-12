@@ -24,7 +24,8 @@ declare(strict_types=1);
 namespace ElasticOTelTests\UnitTests\UtilTests;
 
 use ElasticOTelTests\TestsRootDir;
-use ElasticOTelTests\Util\DebugContextForTests;
+use ElasticOTelTests\Util\DebugContext;
+use ElasticOTelTests\Util\DisableDebugContextTestTrait;
 use ElasticOTelTests\Util\FileUtil;
 use ElasticOTelTests\Util\TestCaseBase;
 use Override;
@@ -37,6 +38,8 @@ use PHPUnit\Framework\AssertionFailedError;
  */
 final class PHPUnitFrameworkAssertionFailedErrorSubstituteTest extends TestCaseBase
 {
+    use DisableDebugContextTestTrait;
+
     /** @var ?PreProcessMessageCallback */
     private static mixed $preprocessMessageCallbackToRestore;
 
@@ -56,13 +59,14 @@ final class PHPUnitFrameworkAssertionFailedErrorSubstituteTest extends TestCaseB
         parent::tearDown();
     }
 
+    /** @noinspection PhpUnusedParameterInspection */
     public static function testMessageIsPreprocessed(): void
     {
         $textToAdd = ' dummy text added by preprocessMessage';
         $exceptionMsg = null;
 
-        AssertionFailedError::$preprocessMessage = function (string $message) use ($textToAdd): string {
-            return $message . $textToAdd;
+        AssertionFailedError::$preprocessMessage = function (AssertionFailedError $exceptionBeingConstructed, string $baseMessage, int $numberOfStackFramesToSkip) use ($textToAdd): string {
+            return $baseMessage . $textToAdd;
         };
         try {
             self::fail();
@@ -93,28 +97,24 @@ final class PHPUnitFrameworkAssertionFailedErrorSubstituteTest extends TestCaseB
      */
     public static function testOriginalMatchesVendor(string $pathToOriginalFile, string $pathToVendorFile): void
     {
-        DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
-        try {
-            $phpParser = (new PhpParserFactory())->createForHostVersion();
-            /**
-             * @return array{'PHP': string, 'AST': string}
-             */
-            $parsePhpAndDumpAst = function (string $pathToPhpFile) use ($phpParser): array {
-                $phpFileContent = file_get_contents($pathToPhpFile);
-                self::assertNotFalse($phpFileContent);
-                $ast = $phpParser->parse($phpFileContent);
-                self::assertNotNull($ast);
-                $dumper = new PhpParserNodeDumper(['dumpComments' => false, 'dumpPositions' => false]);
-                return ['PHP' => $phpFileContent, 'AST' => $dumper->dump($ast)];
-            };
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
+        $phpParser = (new PhpParserFactory())->createForHostVersion();
+        /**
+         * @return array{'PHP': string, 'AST': string}
+         */
+        $parsePhpAndDumpAst = function (string $pathToPhpFile) use ($phpParser): array {
+            $phpFileContent = file_get_contents($pathToPhpFile);
+            self::assertNotFalse($phpFileContent);
+            $ast = $phpParser->parse($phpFileContent);
+            self::assertNotNull($ast);
+            $dumper = new PhpParserNodeDumper(['dumpComments' => false, 'dumpPositions' => false]);
+            return ['PHP' => $phpFileContent, 'AST' => $dumper->dump($ast)];
+        };
 
-            $originalPhpAst = $parsePhpAndDumpAst($pathToOriginalFile);
-            $dbgCtx->add(compact('originalPhpAst'));
-            $vendorPhpAst = $parsePhpAndDumpAst($pathToVendorFile);
-            $dbgCtx->add(compact('vendorPhpAst'));
-            self::assertSame($originalPhpAst['AST'], $vendorPhpAst['AST']);
-        } finally {
-            $dbgCtx->pop();
-        }
+        $originalPhpAst = $parsePhpAndDumpAst($pathToOriginalFile);
+        $dbgCtx->add(compact('originalPhpAst'));
+        $vendorPhpAst = $parsePhpAndDumpAst($pathToVendorFile);
+        $dbgCtx->add(compact('vendorPhpAst'));
+        self::assertSame($originalPhpAst['AST'], $vendorPhpAst['AST']);
     }
 }

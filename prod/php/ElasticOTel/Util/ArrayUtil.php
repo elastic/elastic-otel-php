@@ -33,21 +33,21 @@ final class ArrayUtil
      * @template TKey of array-key
      * @template TValue
      *
-     * @phpstan-param TKey        $key
+     * @param TKey                    $key
+     * @param array<TKey, TValue>     $array
+     * @param-out TValue              $valueOut
      *
-     * @param array<TKey, TValue> $array
+     * @phpstan-assert-if-true TValue $valueOut
      *
-     * @param-out TValue          $valOut
-     *
-     * @phpstan-assert-if-true TValue $valOut
+     * @noinspection PhpDocSignatureInspection
      */
-    public static function getValueIfKeyExists(int|string $key, array $array, /* out */ mixed &$valOut): bool
+    public static function getValueIfKeyExists(int|string $key, array $array, /* out */ mixed &$valueOut): bool
     {
         if (!array_key_exists($key, $array)) {
             return false;
         }
 
-        $valOut = $array[$key];
+        $valueOut = $array[$key];
         return true;
     }
 
@@ -56,11 +56,13 @@ final class ArrayUtil
      * @template TArrayValue
      * @template TFallbackValue
      *
-     * @phpstan-param TKey             $key
+     * @param TKey                     $key
      * @param array<TKey, TArrayValue> $array
      * @param TFallbackValue           $fallbackValue
      *
      * @return TArrayValue|TFallbackValue
+     *
+     * @noinspection PhpDocSignatureInspection
      */
     public static function getValueIfKeyExistsElse(string|int $key, array $array, mixed $fallbackValue): mixed
     {
@@ -71,21 +73,21 @@ final class ArrayUtil
      * @template TKey of array-key
      * @template TValue
      *
-     * @phpstan-param TKey        $key
+     * @param TKey                    $key
+     * @param array<TKey, TValue>     $array
+     * @param-out TValue              $valueOut
      *
-     * @param array<TKey, TValue> $array
+     * @phpstan-assert-if-true TValue $valueOut
      *
-     * @param-out TValue          $valOut
-     *
-     * @phpstan-assert-if-true TValue $valOut
+     * @noinspection PhpDocSignatureInspection
      */
-    public static function removeValue(int|string $key, array $array, /* out */ mixed &$valOut): bool
+    public static function removeValue(int|string $key, array $array, /* out */ mixed &$valueOut): bool
     {
         if (!array_key_exists($key, $array)) {
             return false;
         }
 
-        $valOut = $array[$key];
+        $valueOut = $array[$key];
         unset($array[$key]);
         return true;
     }

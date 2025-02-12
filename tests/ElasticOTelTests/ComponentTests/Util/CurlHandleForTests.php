@@ -24,11 +24,10 @@ declare(strict_types=1);
 namespace ElasticOTelTests\ComponentTests\Util;
 
 use CurlHandle;
-use ElasticOTelTests\Util\DebugContextForTests;
+use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LoggableToString;
 use ElasticOTelTests\Util\Log\LoggableTrait;
-use ElasticOTelTests\Util\TestCaseBase;
 use PHPUnit\Framework\Assert;
 
 final class CurlHandleForTests implements LoggableInterface
@@ -62,7 +61,7 @@ final class CurlHandleForTests implements LoggableInterface
 
     public function exec(): string|bool
     {
-        DebugContextForTests::newScope(/* out */ $dbgCtx);
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
         Assert::assertNotNull($this->curlHandle);
 
         $verboseOutputFilePath = $this->resourcesClient->createTempFile('curl verbose output');
@@ -72,7 +71,7 @@ final class CurlHandleForTests implements LoggableInterface
         $isAfterCurlExec = false;
         try {
             $verboseOutputFile = fopen($verboseOutputFilePath, 'w'); // open file for write
-            TestCaseBase::assertIsResource($verboseOutputFile, 'Failed to open temp file for curl verbose output; ' . LoggableToString::convert(compact('verboseOutputFilePath')));
+            Assert::assertIsResource($verboseOutputFile, 'Failed to open temp file for curl verbose output; ' . LoggableToString::convert(compact('verboseOutputFilePath')));
             Assert::assertTrue($this->setOpt(CURLOPT_VERBOSE, true));
             Assert::assertTrue($this->setOpt(CURLOPT_STDERR, $verboseOutputFile));
             $retVal = curl_exec($this->curlHandle);

@@ -25,10 +25,15 @@ namespace ElasticOTelTests\ComponentTests\Util;
 
 use Elastic\OTel\Util\StaticClassTrait;
 use ElasticOTelTests\Util\AmbientContextForTests;
+use ElasticOTelTests\Util\ArrayUtilForTests;
 use ElasticOTelTests\Util\Config\IniRawSnapshotSource;
 use ElasticOTelTests\Util\Config\OptionForProdName;
 use ElasticOTelTests\Util\Config\OptionForTestsName;
+use ElasticOTelTests\Util\EnvVarUtil;
 
+/**
+ * @phpstan-import-type EnvVars from EnvVarUtil
+ */
 final class InfraUtilForTests
 {
     use StaticClassTrait;
@@ -58,10 +63,12 @@ final class InfraUtilForTests
     }
 
     /**
-     * @param array<string, string> $baseEnvVars
-     * @param int[]                 $targetServerPorts
+     * @param EnvVars $baseEnvVars
+     * @param int[]   $targetServerPorts
      *
-     * @return array<string, string>
+     * @return EnvVars
+     *
+     * @noinspection PhpDocSignatureInspection
      */
     public static function addTestInfraDataPerProcessToEnvVars(
         array $baseEnvVars,
@@ -72,10 +79,12 @@ final class InfraUtilForTests
     ): array {
         $dataPerProcessEnvVarName = OptionForTestsName::data_per_process->toEnvVarName();
         $dataPerProcess = self::buildTestInfraDataPerProcess($targetSpawnedProcessInternalId, $targetServerPorts, $resourcesCleaner);
-        $result = $baseEnvVars + [
-                SpawnedProcessBase::DBG_PROCESS_NAME_ENV_VAR_NAME => $dbgProcessName,
-                $dataPerProcessEnvVarName                         => PhpSerializationUtil::serializeToString($dataPerProcess),
-            ];
+        $result = $baseEnvVars;
+        $additionalEnvVars = [
+            SpawnedProcessBase::DBG_PROCESS_NAME_ENV_VAR_NAME => $dbgProcessName,
+            $dataPerProcessEnvVarName                         => PhpSerializationUtil::serializeToString($dataPerProcess),
+        ];
+        ArrayUtilForTests::append(from: $additionalEnvVars, to: $result);
         ksort(/* ref */ $result);
         return $result;
     }

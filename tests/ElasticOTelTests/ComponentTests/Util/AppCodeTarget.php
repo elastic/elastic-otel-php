@@ -24,14 +24,10 @@ declare(strict_types=1);
 namespace ElasticOTelTests\ComponentTests\Util;
 
 use ElasticOTelTests\Util\AssertEx;
-use ElasticOTelTests\Util\Log\LoggableInterface;
-use ElasticOTelTests\Util\Log\LoggableTrait;
 use PHPUnit\Framework\Assert;
 
-final class AppCodeTarget implements LoggableInterface
+final class AppCodeTarget
 {
-    use LoggableTrait;
-
     public ?string $appCodeClass = null;
     public ?string $appCodeMethod = null;
 

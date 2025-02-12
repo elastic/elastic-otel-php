@@ -47,12 +47,12 @@ final class GlobalUnderscoreServer
 
     public static function requestMethod(): string
     {
-        return AssertEx::isStringAndReturn(self::getValue('REQUEST_METHOD'));
+        return AssertEx::isString(self::getValue('REQUEST_METHOD'));
     }
 
     public static function requestUri(): string
     {
-        return AssertEx::isStringAndReturn(self::getValue('REQUEST_URI'));
+        return AssertEx::isString(self::getValue('REQUEST_URI'));
     }
 
     public static function getRequestHeaderValue(string $headerName): ?string

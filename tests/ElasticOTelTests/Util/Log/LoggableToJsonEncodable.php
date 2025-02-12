@@ -24,10 +24,9 @@ declare(strict_types=1);
 namespace ElasticOTelTests\Util\Log;
 
 use Elastic\OTel\Log\LogLevel;
-use Elastic\OTel\Util\ArrayUtil;
 use Elastic\OTel\Util\StaticClassTrait;
 use Elastic\OTel\Util\TextUtil;
-use ElasticOTelTests\Util\DbgUtil;
+use ElasticOTelTests\Util\LimitedSizeCache;
 use ReflectionClass;
 use ReflectionException;
 use Throwable;
@@ -49,9 +48,6 @@ final class LoggableToJsonEncodable
     private const IS_DTO_OBJECT_CACHE_MAX_COUNT_LOW_WATER_MARK = 10000;
     private const IS_DTO_OBJECT_CACHE_MAX_COUNT_HIGH_WATER_MARK = 2 * self::IS_DTO_OBJECT_CACHE_MAX_COUNT_LOW_WATER_MARK;
 
-    /** @var array<string, bool> */
-    private static array $isDtoObjectCache = [];
-
     private const ELASTIC_NAMESPACE_PREFIXES = ['Elastic\\OTel\\', 'ElasticOTelTests\\'];
 
     /**
@@ -61,7 +57,7 @@ final class LoggableToJsonEncodable
      */
     public static function convertArrayForMaxDepth(array $value, int $depth): array
     {
-        return [LogConsts::MAX_DEPTH_REACHED => $depth, LogConsts::TYPE_KEY => DbgUtil::getType($value), LogConsts::ARRAY_COUNT_KEY => count($value)];
+        return [LogConsts::MAX_DEPTH_REACHED => $depth, LogConsts::TYPE_KEY => get_debug_type($value), LogConsts::ARRAY_COUNT_KEY => count($value)];
     }
 
     /**
@@ -72,7 +68,7 @@ final class LoggableToJsonEncodable
      */
     public static function convertObjectForMaxDepth(object $value, int $depth): array
     {
-        return [LogConsts::MAX_DEPTH_REACHED => $depth, LogConsts::TYPE_KEY => DbgUtil::getType($value)];
+        return [LogConsts::MAX_DEPTH_REACHED => $depth, LogConsts::TYPE_KEY => get_debug_type($value)];
     }
 
     public static function convert(mixed $value, int $depth): mixed
@@ -105,7 +101,7 @@ final class LoggableToJsonEncodable
             return self::convertObject($value, $depth);
         }
 
-        return [LogConsts::TYPE_KEY => DbgUtil::getType($value), LogConsts::VALUE_AS_STRING_KEY => strval($value)]; /** @phpstan-ignore argument.type */
+        return [LogConsts::TYPE_KEY => get_debug_type($value), LogConsts::VALUE_AS_STRING_KEY => strval($value)]; /** @phpstan-ignore argument.type */
     }
 
     /**
@@ -271,9 +267,12 @@ final class LoggableToJsonEncodable
             return $object::class . '(' . $object->name . ')';
         }
 
-        $fqClassName = get_class($object);
-        if (self::isFromElasticNamespace($fqClassName) && self::isDtoObject($object)) {
+        if (self::isFromElasticNamespace(get_class($object)) && self::isDtoObject($object)) {
             return self::convertDtoObject($object, $depth);
+        }
+
+        if (($converterToLog = LogExternalClassesRegistry::singletonInstance()->finderConverterToLog($object)) !== null) {
+            return self::convert($converterToLog($object), $depth);
         }
 
         if (method_exists($object, '__debugInfo')) {
@@ -334,8 +333,7 @@ final class LoggableToJsonEncodable
         $class = get_class($object);
         try {
             $currentClass = new ReflectionClass($class);
-            /** @phpstan-ignore-next-line */
-        } catch (ReflectionException $ex) {
+        } catch (ReflectionException $ex) { // @phpstan-ignore catch.neverThrown
             return LoggingSubsystem::onInternalFailure('Failed to reflect', ['class' => $class], $ex);
         }
 
@@ -358,19 +356,32 @@ final class LoggableToJsonEncodable
         return $nameToValue;
     }
 
-    private static function isDtoObject(object $object): bool
+    /**
+     * @return LimitedSizeCache<class-string<object>, bool>
+     */
+    private static function isDtoObjectCacheSingleton(): LimitedSizeCache
     {
-        $class = get_class($object);
-        $valueInCache = ArrayUtil::getValueIfKeyExistsElse($class, self::$isDtoObjectCache, null);
-        if ($valueInCache !== null) {
-            return $valueInCache;
+        /**
+         * @var ?LimitedSizeCache<class-string<object>, bool>
+         *
+         * @noinspection PhpVarTagWithoutVariableNameInspection
+         */
+        static $isDtoObjectCache = null;
+
+        if ($isDtoObjectCache === null) {
+            $isDtoObjectCache = new LimitedSizeCache(
+                countLowWaterMark:  self::IS_DTO_OBJECT_CACHE_MAX_COUNT_LOW_WATER_MARK,
+                countHighWaterMark: self::IS_DTO_OBJECT_CACHE_MAX_COUNT_HIGH_WATER_MARK
+            );
+            /** @var LimitedSizeCache<class-string<object>, bool> $isDtoObjectCache */
         }
 
-        $value = self::detectIfDtoObject($class);
+        return $isDtoObjectCache;
+    }
 
-        self::addToIsDtoObjectCache($class, $value);
-
-        return $value;
+    private static function isDtoObject(object $object): bool
+    {
+        return self::isDtoObjectCacheSingleton()->getIfCachedElseCompute(get_class($object), self::detectIfDtoObject(...));
     }
 
     /**
@@ -384,8 +395,7 @@ final class LoggableToJsonEncodable
     {
         try {
             $currentClass = new ReflectionClass($className);
-            /** @phpstan-ignore-next-line */
-        } catch (ReflectionException $ex) {
+        } catch (ReflectionException $ex) { // @phpstan-ignore catch.neverThrown
             LoggingSubsystem::onInternalFailure('Failed to reflect', ['className' => $className], $ex);
             return false;
         }
@@ -407,18 +417,5 @@ final class LoggableToJsonEncodable
         }
 
         return true;
-    }
-
-    private static function addToIsDtoObjectCache(string $class, bool $value): void
-    {
-        $isDtoObjectCacheCount = count(self::$isDtoObjectCache);
-        if ($isDtoObjectCacheCount >= self::IS_DTO_OBJECT_CACHE_MAX_COUNT_HIGH_WATER_MARK) {
-            self::$isDtoObjectCache = array_slice(
-                self::$isDtoObjectCache,
-                $isDtoObjectCacheCount - self::IS_DTO_OBJECT_CACHE_MAX_COUNT_LOW_WATER_MARK
-            );
-        }
-
-        self::$isDtoObjectCache[$class] = $value;
     }
 }

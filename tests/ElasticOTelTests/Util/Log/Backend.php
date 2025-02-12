@@ -26,7 +26,6 @@ namespace ElasticOTelTests\Util\Log;
 use Elastic\OTel\Log\LogLevel;
 use ElasticOTelTests\Util\ArrayUtilForTests;
 use ElasticOTelTests\Util\ClassNameUtil;
-use ElasticOTelTests\Util\DbgUtil;
 
 /**
  * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
@@ -100,8 +99,7 @@ final class Backend implements LoggableInterface
 
     /**
      * @param array<string, mixed> $statementCtx
-     *
-     * @phpstan-param 0|positive-int $numberOfStackFramesToSkip
+     * @param non-negative-int     $numberOfStackFramesToSkip
      */
     public function log(
         LogLevel $statementLevel,
@@ -134,6 +132,6 @@ final class Backend implements LoggableInterface
 
     public function toLog(LogStreamInterface $stream): void
     {
-        $stream->toLogAs(['maxEnabledLevel' => $this->maxEnabledLevel, 'logSink' => DbgUtil::getType($this->logSink)]);
+        $stream->toLogAs(['maxEnabledLevel' => $this->maxEnabledLevel, 'logSink' => get_debug_type($this->logSink)]);
     }
 }

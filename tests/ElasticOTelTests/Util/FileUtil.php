@@ -50,9 +50,16 @@ final class FileUtil
 
     public static function adaptUnixDirectorySeparators(string $path): string
     {
+        /** @phpstan-var string $unixDirectorySeparator */
+        static $unixDirectorySeparator = '/';
+
+        if (DIRECTORY_SEPARATOR === $unixDirectorySeparator) {
+            return $path;
+        }
+
         static $unixDirectorySeparatorAsInt = null;
         if ($unixDirectorySeparatorAsInt === null) {
-            $unixDirectorySeparatorAsInt = ord('/');
+            $unixDirectorySeparatorAsInt = ord($unixDirectorySeparator);
         }
 
         $result = '';

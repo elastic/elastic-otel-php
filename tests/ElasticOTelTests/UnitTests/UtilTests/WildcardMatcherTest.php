@@ -32,17 +32,7 @@ class WildcardMatcherTest extends TestCaseBase
 {
     private function testCaseImpl(string $expr, string $text, bool $expectedResult): void
     {
-        self::assertSame(
-            $expectedResult,
-            (new WildcardMatcher($expr))->match($text),
-            LoggableToString::convert(
-                [
-                    'expr'           => $expr,
-                    'text'           => $text,
-                    'expectedResult' => $expectedResult,
-                ]
-            )
-        );
+        self::assertSame($expectedResult, (new WildcardMatcher($expr))->match($text), LoggableToString::convert(compact('expr', 'text', 'expectedResult')));
     }
 
     /**

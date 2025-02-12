@@ -23,8 +23,11 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\Util;
 
+use Countable;
+use Elastic\OTel\Util\ArrayUtil;
 use Elastic\OTel\Util\StaticClassTrait;
 use ElasticOTelTests\Util\Log\LoggableToString;
+use OutOfBoundsException;
 use PHPUnit\Framework\Assert;
 
 final class ArrayUtilForTests
@@ -77,40 +80,16 @@ final class ArrayUtilForTests
      * @template TKey of array-key
      * @template TValue
      *
-     * @phpstan-param TKey $key
-     * @param TValue $value
+     * @param TKey                 $key
+     * @param TValue               $value
      * @param array<TKey, TValue> &$result
+     *
+     * @noinspection PhpDocSignatureInspection
      */
-    public static function addUnique(string|int $key, mixed $value, array &$result): void
+    public static function addAssertingKeyNew(string|int $key, mixed $value, /* in,out */ array &$result): void
     {
-        Assert::assertArrayNotHasKey($key, $result, LoggableToString::convert(['key' => $key, 'value' => $value, 'result' => $result]));
+        Assert::assertArrayNotHasKey($key, $result, LoggableToString::convert(compact('key', 'value', 'result')));
         $result[$key] = $value;
-    }
-
-    /**
-     * @template        T
-     * @phpstan-param   iterable<T> $haystack
-     * @phpstan-param   callable $predicate
-     * @phpstan-param   T $default
-     * @phpstan-return  T|null
-     *
-     * @param iterable $haystack
-     * @param callable $predicate
-     * @param null     $default
-     *
-     * @return mixed
-     *
-     * @noinspection PhpUnused
-     */
-    public static function findByPredicate(iterable $haystack, callable $predicate, $default = null)
-    {
-        foreach ($haystack as $value) {
-            if ($predicate($value)) {
-                return $value;
-            }
-        }
-
-        return $default;
     }
 
     /**
@@ -208,10 +187,9 @@ final class ArrayUtilForTests
      * @template TKey of array-key
      * *
      * @param array<TKey, mixed> &$removeFromArray
+     * @param TKey                $keyToRemove
      *
-     * @phpstan-param TKey        $keyToRemove
-     *
-     * @noinspection PhpUnused
+     * @noinspection PhpUnused, PhpDocSignatureInspection
      */
     public static function removeByKey(/* in,out */ array &$removeFromArray, string|int $keyToRemove): bool
     {
@@ -268,5 +246,72 @@ final class ArrayUtilForTests
         for ($currentValue = end($array); ($currentKey = key($array)) !== null; $currentValue = prev($array)) {
             yield $currentKey => $currentValue; // @phpstan-ignore generator.valueType
         }
+    }
+
+    /**
+     * @template TKey of array-key
+     * @template TValue
+     *
+     * @param array<TKey, TValue> $lhs
+     * @param array<TKey, TValue> $rhs
+     *
+     * @noinspection PhpUnused
+     */
+    public static function haveTheSameContent(array $lhs, array $rhs): bool
+    {
+        if (count($lhs) !== count($rhs)) {
+            return false;
+        }
+
+        foreach ($lhs as $lhsKey => $lhsValue) {
+            if (!ArrayUtil::getValueIfKeyExists($lhsKey, $rhs, /**/ $rhsValue)) {
+                return false;
+            }
+            if ($lhsValue !== $rhsValue) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * @template T
+     *
+     * @param array<T>         $array
+     * @param non-negative-int $n
+     */
+    public static function popN(/* in,out */ array &$array, int $n): void
+    {
+        if ($n > count($array)) {
+            throw new OutOfBoundsException(
+                ExceptionUtil::buildMessage('n is out of bounds', compact('n') + ['array count' => count($array)]  + compact('array'))
+            );
+        }
+        array_splice(/* in,out */ $array, count($array) - $n);
+    }
+
+    /**
+     * @template T
+     *
+     * @param array<T>         $array
+     * @param non-negative-int $index
+     */
+    public static function popFromIndex(/* in,out */ array &$array, int $index): void
+    {
+        if ($index >= count($array)) {
+            throw new OutOfBoundsException(
+                ExceptionUtil::buildMessage('index is out of bounds', compact('index') + ['array count' => count($array)] + compact('array'))
+            );
+        }
+
+        array_splice(/* in,out */ $array, $index);
+    }
+
+    /**
+     * @param array<mixed>|Countable $container
+     */
+    public static function isValidIndexOf(int $index, array|Countable $container): bool
+    {
+        return RangeUtil::isValidIndexOfCountable($index, count($container));
     }
 }

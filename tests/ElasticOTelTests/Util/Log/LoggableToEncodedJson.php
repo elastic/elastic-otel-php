@@ -24,7 +24,6 @@ declare(strict_types=1);
 namespace ElasticOTelTests\Util\Log;
 
 use Elastic\OTel\Util\StaticClassTrait;
-use ElasticOTelTests\Util\DbgUtil;
 use ElasticOTelTests\Util\JsonUtil;
 use Exception;
 
@@ -54,7 +53,7 @@ final class LoggableToEncodedJson
         } catch (Exception $ex) {
             return LoggingSubsystem::onInternalFailure(
                 'LoggableToJsonEncodable::convert() failed',
-                ['value type' => DbgUtil::getType($value)],
+                ['value type' => get_debug_type($value)],
                 $ex
             );
         }
@@ -64,7 +63,7 @@ final class LoggableToEncodedJson
         } catch (Exception $ex) {
             return LoggingSubsystem::onInternalFailure(
                 'JsonUtil::encode() failed',
-                ['$jsonEncodable type' => DbgUtil::getType($jsonEncodable)],
+                ['$jsonEncodable type' => get_debug_type($jsonEncodable)],
                 $ex
             );
         }

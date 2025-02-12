@@ -209,7 +209,7 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
                         $this->fulfillTimedOutPendingDataRequest($pendingDataRequestId);
                     }
                 );
-                ArrayUtilForTests::addUnique($pendingDataRequestId, new MockOTelCollectorPendingDataRequest($fromIndex, $callToSendResponse, $timer), /* n,out */ $this->pendingDataRequests);
+                ArrayUtilForTests::addAssertingKeyNew($pendingDataRequestId, new MockOTelCollectorPendingDataRequest($fromIndex, $callToSendResponse, $timer), /* n,out */ $this->pendingDataRequests);
             }
         );
         return $promise;

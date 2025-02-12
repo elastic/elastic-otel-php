@@ -187,6 +187,9 @@ final class PhpPartFacade
         self::setEnvVar($envVarName, $envVarValue);
     }
 
+    /**
+     * @param non-empty-string $envVarName
+     */
     private static function setEnvVar(string $envVarName, string $envVarValue): void
     {
         if (!putenv($envVarName . '=' . $envVarValue)) {
@@ -265,9 +268,11 @@ final class PhpPartFacade
     }
 
     /**
-     * @noinspection PhpUnused, PhpUnusedParameterInspection
+     * Called by the extension
      *
-     * @phpstan-ignore-next-line
+     * @param array<mixed> $params
+     *
+     * @noinspection PhpUnused, PhpUnusedParameterInspection
      */
     public static function debugPreHook(mixed $object, array $params, ?string $class, string $function, ?string $filename, ?int $lineno): void
     {
@@ -282,25 +287,27 @@ final class PhpPartFacade
         );
 
         $parent = Context::getCurrent();
-        /** @phpstan-ignore-next-line */
-        $span = $tracer->spanBuilder($class ? $class . "::" . $function : $function)
-            ->setSpanKind(SpanKind::KIND_CLIENT)
-            ->setParent($parent)
-            ->setAttribute(TraceAttributes::CODE_NAMESPACE, $class)
-            ->setAttribute(TraceAttributes::CODE_FUNCTION, $function)
-            ->setAttribute(TraceAttributes::CODE_FILEPATH, $filename)
-            ->setAttribute(TraceAttributes::CODE_LINENO, $lineno)
-            ->setAttribute('call.arguments', print_r($params, true))
-            ->startSpan();
+        /** @noinspection PhpDeprecationInspection */
+        $span = $tracer->spanBuilder($class ? $class . "::" . $function : $function) // @phpstan-ignore argument.type
+                       ->setSpanKind(SpanKind::KIND_CLIENT)
+                       ->setParent($parent)
+                       ->setAttribute(TraceAttributes::CODE_NAMESPACE, $class)
+                       ->setAttribute(TraceAttributes::CODE_FUNCTION, $function)
+                       ->setAttribute(TraceAttributes::CODE_FILEPATH, $filename)
+                       ->setAttribute(TraceAttributes::CODE_LINENO, $lineno)
+                       ->setAttribute('call.arguments', print_r($params, true))
+                       ->startSpan();
 
         $context = $span->storeInContext($parent);
         Context::storage()->attach($context);
     }
 
     /**
-     * @noinspection PhpUnused, PhpUnusedParameterInspection
+     * Called by the extension
      *
-     * @phpstan-ignore-next-line
+     * @param array<mixed> $params
+     *
+     * @noinspection PhpUnused
      */
     public static function debugPostHook(mixed $object, array $params, mixed $retval, ?Throwable $exception): void
     {

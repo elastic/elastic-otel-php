@@ -90,7 +90,7 @@ trait LoggableTrait
                 if (in_array($propName, $propertiesExcludedFromLog, strict: true)) {
                     continue;
                 }
-                $nameToValue[$propName] = $reflectionProperty->getValue($this);
+                $nameToValue[$propName] = $reflectionProperty->isInitialized($this) ? $reflectionProperty->getValue($this) : LogConsts::UNINITIALIZED_PROPERTY_SUBSTITUTE;
             }
             $currentClass = $currentClass->getParentClass();
             if ($currentClass === false) {

@@ -27,15 +27,15 @@ use Countable;
 use Elastic\OTel\Util\ArrayUtil;
 use ElasticOTelTests\Util\ArrayReadInterface;
 use ElasticOTelTests\Util\AssertEx;
-use ElasticOTelTests\Util\DebugContextForTests;
+use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\IterableUtil;
 use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LoggableToString;
 use ElasticOTelTests\Util\Log\LogStreamInterface;
-use ElasticOTelTests\Util\TestCaseBase;
 use ElasticOTelTests\Util\TextUtilForTests;
 use Google\Protobuf\Internal\RepeatedField as ProtobufRepeatedField;
 use Opentelemetry\Proto\Common\V1\KeyValue as OTelProtoKeyValue;
+use Override;
 use PHPUnit\Framework\Assert;
 
 /**
@@ -96,7 +96,7 @@ final class SpanAttributes implements ArrayReadInterface, Countable, LoggableInt
             if (is_int($value)) {
                 return $value;
             }
-            return AssertEx::stringIsIntAndReturn($value);
+            return AssertEx::stringIsInt($value);
         }
 
         if ($anyValue->hasKvlistValue()) {
@@ -127,27 +127,26 @@ final class SpanAttributes implements ArrayReadInterface, Countable, LoggableInt
      */
     private static function convertProtobufRepeatedFieldToMap(ProtobufRepeatedField $protobufRepeatedField): array
     {
-        DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
 
         $result = [];
-        $dbgCtx->pushSubScope();
         foreach ($protobufRepeatedField as $keyValue) {
-            $dbgCtx->clearCurrentSubScope(compact('keyValue'));
+            $dbgCtx->add(compact('keyValue'));
             Assert::assertInstanceOf(OTelProtoKeyValue::class, $keyValue);
             Assert::assertArrayNotHasKey($keyValue->getKey(), $result);
             $result[$keyValue->getKey()] = self::extractValue($keyValue);
         }
-        $dbgCtx->popSubScope();
 
-        $dbgCtx->pop();
         return $result;
     }
 
+    #[Override]
     public function keyExists(int|string $key): bool
     {
         return array_key_exists($key, $this->keyToValueMap);
     }
 
+    #[Override]
     public function getValue(int|string $key): mixed
     {
         Assert::assertIsString($key);
@@ -155,36 +154,44 @@ final class SpanAttributes implements ArrayReadInterface, Countable, LoggableInt
         return $attributeValue;
     }
 
+    #[Override]
     public function count(): int
     {
         return count($this->keyToValueMap);
     }
 
+    /**
+     * @param AttributeValue  &$attributeValueOut
+     *
+     * @param-out AttributeValue $attributeValueOut
+     */
+    public function tryToGetValue(string $attributeName, array|bool|float|int|null|string &$attributeValueOut): bool
+    {
+        return ArrayUtil::getValueIfKeyExists($attributeName, $this->keyToValueMap, /* out */ $attributeValueOut); // @phpstan-ignore staticMethod.alreadyNarrowedType
+    }
+
     public function tryToGetBool(string $attributeName): ?bool
     {
-        if (!ArrayUtil::getValueIfKeyExists($attributeName, $this->keyToValueMap, /* out */ $attributeValue)) {
+        if (!$this->tryToGetValue($attributeName, /* out */ $attributeValue)) {
             return null;
         }
-        Assert::assertIsBool($attributeValue);
-        return $attributeValue;
+        return AssertEx::isBool($attributeValue);
     }
 
     public function tryToGetFloat(string $attributeName): ?float
     {
-        if (!ArrayUtil::getValueIfKeyExists($attributeName, $this->keyToValueMap, /* out */ $attributeValue)) {
+        if (!$this->tryToGetValue($attributeName, /* out */ $attributeValue)) {
             return null;
         }
-        TestCaseBase::assertIsFloat($attributeValue);
-        return $attributeValue;
+        return AssertEx::isFloat($attributeValue);
     }
 
     public function tryToGetInt(string $attributeName): ?int
     {
-        if (!ArrayUtil::getValueIfKeyExists($attributeName, $this->keyToValueMap, /* out */ $attributeValue)) {
+        if (!$this->tryToGetValue($attributeName, /* out */ $attributeValue)) {
             return null;
         }
-        Assert::assertIsInt($attributeValue);
-        return $attributeValue;
+        return AssertEx::isInt($attributeValue);
     }
 
     public function tryToGetString(string $attributeName): ?string
@@ -192,29 +199,27 @@ final class SpanAttributes implements ArrayReadInterface, Countable, LoggableInt
         if (!ArrayUtil::getValueIfKeyExists($attributeName, $this->keyToValueMap, /* out */ $attributeValue)) {
             return null;
         }
-        Assert::assertIsString($attributeValue);
-        return $attributeValue;
+        return AssertEx::isString($attributeValue);
     }
 
     public function getBool(string $attributeName): bool
     {
-        return AssertEx::notNullAndReturn($this->tryToGetBool($attributeName));
+        return AssertEx::notNull($this->tryToGetBool($attributeName));
     }
 
-    /** @noinspection PhpUnused */
     public function getFloat(string $attributeName): float
     {
-        return AssertEx::notNullAndReturn($this->tryToGetFloat($attributeName));
+        return AssertEx::notNull($this->tryToGetFloat($attributeName));
     }
 
     public function getInt(string $attributeName): int
     {
-        return AssertEx::notNullAndReturn($this->tryToGetInt($attributeName));
+        return AssertEx::notNull($this->tryToGetInt($attributeName));
     }
 
     public function getString(string $attributeName): string
     {
-        return AssertEx::notNullAndReturn($this->tryToGetString($attributeName));
+        return AssertEx::notNull($this->tryToGetString($attributeName));
     }
 
     public function toLog(LogStreamInterface $stream): void

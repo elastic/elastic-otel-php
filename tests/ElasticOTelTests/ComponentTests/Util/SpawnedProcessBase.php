@@ -28,7 +28,6 @@ use Elastic\OTel\Log\LogLevel;
 use ElasticOTelTests\Util\AmbientContextForTests;
 use ElasticOTelTests\Util\BoolUtil;
 use ElasticOTelTests\Util\ClassNameUtil;
-use ElasticOTelTests\Util\DbgUtil;
 use ElasticOTelTests\Util\HttpMethods;
 use ElasticOTelTests\Util\HttpStatusCodes;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
@@ -87,22 +86,16 @@ abstract class SpawnedProcessBase implements LoggableInterface
     {
         LoggingSubsystem::$isInTestingContext = true;
 
-        /** @var ?Logger $localLogger */
-        $localLogger = null;
         try {
             $dbgProcessName = EnvVarUtilForTests::get(self::DBG_PROCESS_NAME_ENV_VAR_NAME);
             TestCase::assertIsString($dbgProcessName);
 
             AmbientContextForTests::init($dbgProcessName);
-            $localLogger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__);
-            $loggerProxyDebug = $localLogger->ifDebugLevelEnabledNoLine(__FUNCTION__);
-            $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'After AmbientContextForTests::init()', ['testConfig' => AmbientContextForTests::testConfig()]);
 
             $thisObj = new static(); // @phpstan-ignore new.static
-            $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'After $thisObj = new static()', ['thisObj type' => DbgUtil::getType($thisObj), 'thisObj' => $thisObj]);
 
             if (!$thisObj->shouldTracingBeEnabled()) {
-                ConfigUtilForTests::assertTracingIsDisabled();
+                ConfigUtilForTests::verifyTracingIsDisabled();
             }
 
             $thisObj->processConfig();
@@ -111,9 +104,7 @@ abstract class SpawnedProcessBase implements LoggableInterface
                 $thisObj->registerWithResourcesCleaner();
             }
 
-            $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Before ' . '$runImpl($thisObj);');
             $runImpl($thisObj);
-            $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'After ' . '$runImpl($thisObj);');
         } catch (Throwable $throwable) {
             $level = LogLevel::critical;
             $isFromAppCode = false;
@@ -123,10 +114,9 @@ abstract class SpawnedProcessBase implements LoggableInterface
                 $level = LogLevel::info;
                 $throwableToLog = $throwable->wrappedException();
             }
-            if ($localLogger !== null) {
-                ($loggerProxy = $localLogger->ifLevelEnabled($level, __LINE__, __FUNCTION__))
-                && $loggerProxy->logThrowable($throwableToLog, 'Throwable escaped to the top of the script', ['isFromAppCode' => $isFromAppCode]);
-            }
+            $logger = isset($thisObj) ? $thisObj->logger : self::buildLogger();
+            ($loggerProxy = $logger->ifLevelEnabled($level, __LINE__, __FUNCTION__))
+            && $loggerProxy->logThrowable($throwableToLog, 'Throwable escaped to the top of the script', compact('isFromAppCode'));
             if ($isFromAppCode) {
                 /** @noinspection PhpUnhandledExceptionInspection */
                 throw $throwableToLog;

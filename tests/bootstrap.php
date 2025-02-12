@@ -28,7 +28,7 @@ use ElasticOTelTests\Util\ExceptionUtil;
 
 // Ensure that composer has installed all dependencies
 if (!file_exists(dirname(__DIR__) . '/composer.lock')) {
-    die("Dependencies must be installed using composer\n");
+    die("Dependencies must be installed using composer" . PHP_EOL);
 }
 
 // Disable deprecation notices starting from PHP 8.4
@@ -41,9 +41,11 @@ require __DIR__ . '/substitutes/load.php';
 
 ExceptionUtil::runCatchLogRethrow(
     function (): void {
-        require __DIR__ . '/polyfills/load.php';
-
         TestsRootDir::setFullPath(__DIR__);
+
+        require __DIR__ . '/polyfills/load.php';
+        require __DIR__ . '/dummyFuncForTestsWithoutNamespace.php';
+        require __DIR__ . '/ElasticOTelTests/dummyFuncForTestsWithNamespace.php';
     }
 );
 

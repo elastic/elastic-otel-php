@@ -24,8 +24,12 @@ declare(strict_types=1);
 namespace ElasticOTelTests\ComponentTests\Util;
 
 use Elastic\OTel\Util\StaticClassTrait;
+use ElasticOTelTests\Util\EnvVarUtil;
 use PHPUnit\Framework\Assert;
 
+/**
+ * @phpstan-import-type EnvVars from EnvVarUtil
+ */
 final class EnvVarUtilForTests
 {
     use StaticClassTrait;
@@ -59,10 +63,12 @@ final class EnvVarUtilForTests
     }
 
     /**
-     * @return array<string, string>
+     * @return EnvVars
      */
     public static function getAll(): array
     {
-        return getenv();
+        $result = getenv();
+        ksort(/* ref */ $result);
+        return $result;
     }
 }

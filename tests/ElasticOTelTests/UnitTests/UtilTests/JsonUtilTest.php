@@ -24,12 +24,11 @@ declare(strict_types=1);
 namespace ElasticOTelTests\UnitTests\UtilTests;
 
 use ElasticOTelTests\Util\AssertEx;
-use ElasticOTelTests\Util\DebugContextForTests;
 use ElasticOTelTests\Util\JsonUtil;
 use ElasticOTelTests\Util\TestCaseBase;
 use JsonException;
 
-class JsonUtilTest extends TestCaseBase
+final class JsonUtilTest extends TestCaseBase
 {
     private static function decode(string $encodedData, bool $asAssocArray): mixed
     {
@@ -46,11 +45,8 @@ class JsonUtilTest extends TestCaseBase
 
     public function testMapWithNumericKeys(): void
     {
-        DebugContextForTests::newScope(/* out */ $dbgCtx);
-
         $original = ['0' => 0];
         $serialized = JsonUtil::encode((object)$original);
-        $dbgCtx->add(['serialized' => $serialized]);
         self::assertSame(1, preg_match('/^\s*{\s*"0"\s*:\s*0\s*}\s*$/', $serialized));
         $decodedJson = self::decode($serialized, asAssocArray: true);
         self::assertIsArray($decodedJson);

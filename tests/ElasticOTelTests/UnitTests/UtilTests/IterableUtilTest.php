@@ -24,11 +24,16 @@ declare(strict_types=1);
 namespace ElasticOTelTests\UnitTests\UtilTests;
 
 use ElasticOTelTests\Util\AssertEx;
-use ElasticOTelTests\Util\DebugContextForTests;
+use ElasticOTelTests\Util\DataProviderForTestBuilder;
+use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\IterableUtil;
 use ElasticOTelTests\Util\TestCaseBase;
 use Generator;
 
+/**
+ * @phpstan-type TestTakeUpToInput array{'iterable': iterable<mixed>, 'upTo': non-negative-int}
+ * @phpstan-type TestTakeUpToArgs array{'input': TestTakeUpToInput, 'expectedOutput': array<mixed>}
+ */
 final class IterableUtilTest extends TestCaseBase
 {
     public static function testPrepend(): void
@@ -66,20 +71,18 @@ final class IterableUtilTest extends TestCaseBase
      * @param iterable<mixed>[] $inputIterables
      * @param mixed[][]         $expectedOutput
      */
-    private static function helperForTestZip(array $inputIterables, array $expectedOutput): void
+    private static function helperForTestZip(bool $withIndex, array $inputIterables, array $expectedOutput): void
     {
-        DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
         $dbgCtx->add(['count($inputIterables)' => count($inputIterables)]);
         $i = 0;
-        $dbgCtx->pushSubScope();
-        foreach (IterableUtil::zip(...$inputIterables) as $actualTuple) {
-            $dbgCtx->clearCurrentSubScope(['i' => $i, 'actualTuple' => $actualTuple]);
+        foreach (($withIndex ? IterableUtil::zipWithIndex(...$inputIterables) : IterableUtil::zip(...$inputIterables)) as $actualTuple) {
+            $dbgCtx->add(compact('i', 'actualTuple'));
             self::assertLessThan(count($expectedOutput), $i);
             $expectedTuple = $expectedOutput[$i];
             AssertEx::equalLists($expectedTuple, $actualTuple);
             ++$i;
         }
-        $dbgCtx->popSubScope();
         self::assertSame(count($expectedOutput), $i);
     }
 
@@ -91,9 +94,7 @@ final class IterableUtilTest extends TestCaseBase
      */
     public static function testZip(array $inputArrays, array $expectedOutput): void
     {
-        DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
-
-        self::helperForTestZip($inputArrays, $expectedOutput);
+        self::helperForTestZip(/* withIndex */ false, $inputArrays, $expectedOutput);
 
         /**
          * @param mixed[] $inputArray
@@ -106,9 +107,38 @@ final class IterableUtilTest extends TestCaseBase
             }
         };
 
-        self::helperForTestZip(array_map($arrayToGenerator(...), $inputArrays), $expectedOutput);
+        self::helperForTestZip(/* withIndex */ false, array_map($arrayToGenerator(...), $inputArrays), $expectedOutput);
     }
 
+    /**
+     * @dataProvider dataProviderForTestZip
+     *
+     * @param mixed[][] $inputArrays
+     * @param mixed[][] $expectedOutputWithoutIndex
+     */
+    public static function testZipWithIndex(array $inputArrays, array $expectedOutputWithoutIndex): void
+    {
+        $expectedOutput = [];
+        $index = 0;
+        foreach ($expectedOutputWithoutIndex as $expectedTupleWithoutIndex) {
+            $expectedOutput[] = [$index++, ...$expectedTupleWithoutIndex];
+        }
+
+        self::helperForTestZip(/* withIndex */ true, $inputArrays, $expectedOutput);
+
+        /**
+         * @param mixed[] $inputArray
+         *
+         * @return Generator<mixed>
+         */
+        $arrayToGenerator = function (array $inputArray): Generator {
+            foreach ($inputArray as $val) {
+                yield $val;
+            }
+        };
+
+        self::helperForTestZip(/* withIndex */ true, array_map($arrayToGenerator(...), $inputArrays), $expectedOutput);
+    }
 
     public static function testMap(): void
     {
@@ -130,8 +160,12 @@ final class IterableUtilTest extends TestCaseBase
 
         /**
          * @template T of number
-         * @phpstan-param T $x
-         * @phpstan-return T
+         *
+         * @param T $x
+         *
+         * @return T
+         *
+         * @noinspection PhpDocSignatureInspection
          */
         $x2Func = fn (int|float $x) => $x * 2;
 
@@ -160,5 +194,31 @@ final class IterableUtilTest extends TestCaseBase
         $impl([1, 3.4, 2], 3.4);
         $impl([5, 1.2, 3.4], 5);
         $impl([7, 7.7, 7.8], 7.8);
+    }
+
+    /**
+     * @return iterable<string, TestTakeUpToInput>
+     */
+    public static function dataProviderForTestTakeUpTo(): iterable
+    {
+        /**
+         * @return iterable<TestTakeUpToArgs>
+         */
+        $genDataSets = function (): iterable {
+            yield ['input' => ['iterable' => [], 'upTo' => 0], 'expectedOutput' => []];
+        };
+
+        return DataProviderForTestBuilder::keyEachDataSetWithDbgDesc($genDataSets);
+    }
+
+    /**
+     * @dataProvider dataProviderForTestTakeUpTo
+     *
+     * @param TestTakeUpToInput $input
+     * @param iterable<mixed>   $expectedOutput
+     */
+    public static function testTakeUpTo(array $input, iterable $expectedOutput): void
+    {
+        AssertEx::sameValuesListIterables($expectedOutput, IterableUtil::takeUpTo($input['iterable'], $input['upTo']));
     }
 }

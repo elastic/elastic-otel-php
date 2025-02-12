@@ -70,17 +70,17 @@ final class ConfigSnapshotForTests implements LoggableInterface
 
     public function appCodeHostKind(): AppCodeHostKind
     {
-        return AssertEx::notNullAndReturn($this->appCodeHostKind);
+        return AssertEx::notNull($this->appCodeHostKind);
     }
 
     public function dataPerProcess(): TestInfraDataPerProcess
     {
-        return AssertEx::notNullAndReturn($this->dataPerProcess);
+        return AssertEx::notNull($this->dataPerProcess);
     }
 
     public function dataPerRequest(): TestInfraDataPerRequest
     {
-        return AssertEx::notNullAndReturn($this->dataPerRequest);
+        return AssertEx::notNull($this->dataPerRequest);
     }
 
     public function isEnvVarToPassThrough(string $envVarName): bool

@@ -19,6 +19,8 @@
  * under the License.
  */
 
+/** @noinspection PhpUnused */
+
 declare(strict_types=1);
 
 namespace ElasticOTelTests\Util;

@@ -25,7 +25,7 @@ namespace ElasticOTelTests\ComponentTests\Util;
 
 use Elastic\OTel\Util\ArrayUtil;
 use Elastic\OTel\Util\StaticClassTrait;
-use ElasticOTelTests\Util\DebugContextForTests;
+use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\JsonUtil;
 use PHPUnit\Framework\Assert;
 
@@ -48,23 +48,19 @@ final class PhpSerializationUtil
 
     public static function unserializeFromString(string $serialized): mixed
     {
-        DebugContextForTests::newScope(/* out */ $dbgCtx, DebugContextForTests::funcArgs());
-        try {
-            $decodedJson = JsonUtil::decode($serialized, asAssocArray: true);
-            $dbgCtx->add(compact('decodedJson'));
-            Assert::assertIsArray($decodedJson);
-            Assert::assertTrue(ArrayUtil::getValueIfKeyExists(self::CHECKSUM_KEY, $decodedJson, /* out */ $receivedChecksum));
-            $dbgCtx->add(compact('receivedChecksum'));
-            Assert::assertTrue(ArrayUtil::getValueIfKeyExists(self::DATA_KEY, $decodedJson, /* out */ $data));
-            $dbgCtx->add(compact('data'));
-            Assert::assertIsString($data);
-            Assert::assertSame($receivedChecksum, crc32($data));
-            Assert::assertNotFalse($compressed = base64_decode($data, strict: true));
-            Assert::assertNotFalse($serialized = gzuncompress($compressed));
-            return unserialize($serialized);
-        } finally {
-            $dbgCtx->pop();
-        }
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
+        $decodedJson = JsonUtil::decode($serialized, asAssocArray: true);
+        $dbgCtx->add(compact('decodedJson'));
+        Assert::assertIsArray($decodedJson);
+        Assert::assertTrue(ArrayUtil::getValueIfKeyExists(self::CHECKSUM_KEY, $decodedJson, /* out */ $receivedChecksum));
+        $dbgCtx->add(compact('receivedChecksum'));
+        Assert::assertTrue(ArrayUtil::getValueIfKeyExists(self::DATA_KEY, $decodedJson, /* out */ $data));
+        $dbgCtx->add(compact('data'));
+        Assert::assertIsString($data);
+        Assert::assertSame($receivedChecksum, crc32($data));
+        Assert::assertNotFalse($compressed = base64_decode($data, strict: true));
+        Assert::assertNotFalse($serialized = gzuncompress($compressed));
+        return unserialize($serialized);
     }
 
     /**

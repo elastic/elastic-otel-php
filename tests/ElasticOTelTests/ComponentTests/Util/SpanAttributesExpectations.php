@@ -23,8 +23,6 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
-use ElasticOTelTests\Util\TestCaseBase;
-use OpenTelemetry\SemConv\TraceAttributes;
 use Override;
 use PHPUnit\Framework\Assert;
 
@@ -35,8 +33,7 @@ final class SpanAttributesExpectations implements ExpectationsInterface
 {
     use ExpectationsTrait;
 
-    /** @var ArrayExpectations<string, AttributeValue> */
-    private readonly ArrayExpectations $arrayExpectations;
+    private readonly SpanAttributesArrayExpectations $arrayExpectations;
 
     /**
      * @param array<string, AttributeValue> $attributes
@@ -47,17 +44,7 @@ final class SpanAttributesExpectations implements ExpectationsInterface
         bool $allowOtherKeysInActual = true,
         private readonly array $notAllowedAttributeNames = []
     ) {
-        $this->arrayExpectations = new class ($attributes, $allowOtherKeysInActual) extends ArrayExpectations {
-            #[Override]
-            protected function assertValueMatches(string|int $key, mixed $expectedValue, mixed $actualValue): void
-            {
-                if ($key === TraceAttributes::URL_SCHEME) {
-                    TestCaseBase::assertEqualsIgnoringCase($expectedValue, $actualValue);
-                } else {
-                    Assert::assertSame($expectedValue, $actualValue);
-                }
-            }
-        };
+        $this->arrayExpectations = new SpanAttributesArrayExpectations($attributes, $allowOtherKeysInActual);
     }
 
     #[Override]

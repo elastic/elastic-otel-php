@@ -56,11 +56,22 @@ final class ClassicFormatStackTraceFrame implements LoggableInterface
     ) {
     }
 
+    public function canBeSameCall(ClassicFormatStackTraceFrame $other): bool
+    {
+        return (
+            ($this->file === $other->file)
+            && ($this->class === $other->class)
+            && ($this->isStaticMethod === $other->isStaticMethod)
+            && ($this->function === $other->function)
+            && ($this->thisObj === $other->thisObj)
+        );
+    }
+
     #[Override]
     public function toLog(LogStreamInterface $stream): void
     {
         $nonNullProps = [];
-        foreach (get_object_vars($this) as $propName => $propVal) {
+        foreach ($this as $propName => $propVal) { // @phpstan-ignore foreach.nonIterable
             if ($propVal === null || $propName === 'isStaticMethod') {
                 continue;
             }

@@ -126,13 +126,9 @@ class LoggingVariousTypesTest extends TestCaseBase
     // }
 
     /**
-     * @param ?string $className
-     * @param bool    $isPropExcluded
-     * @param ?string $lateInitPropVal
-     *
      * @return array<string, mixed>
      */
-    private static function expectedSimpleObject(?string $className = null, bool $isPropExcluded = true, ?string $lateInitPropVal = null): array
+    private static function expectedSimpleObject(?string $className = null, bool $isPropExcluded = true, mixed $lateInitPropVal = LogConsts::UNINITIALIZED_PROPERTY_SUBSTITUTE): array
     {
         return ($className === null ? [] : [LogConsts::TYPE_KEY => $className])
                + [
@@ -277,7 +273,7 @@ class LoggingVariousTypesTest extends TestCaseBase
         self::logValueAndVerify($obj, self::expectedSimpleObject());
         $lateInitPropVal = 'late inited value';
         $obj->lateInitProp = $lateInitPropVal;
-        self::logValueAndVerify($obj, self::expectedSimpleObject(/* className */ null, /* isPropExcluded */ true, 'late inited value'));
+        self::logValueAndVerify($obj, self::expectedSimpleObject(lateInitPropVal: 'late inited value'));
     }
 
     private const MAX_DEPTH_KEY = 'max_depth';
@@ -285,7 +281,7 @@ class LoggingVariousTypesTest extends TestCaseBase
     /**
      * @return iterable<string, array{MixedMap}>
      */
-    public function dataProviderForTestMaxDepth(): iterable
+    public static function dataProviderForTestMaxDepth(): iterable
     {
         /**
          * @return iterable<array<string, mixed>>
@@ -369,8 +365,8 @@ class LoggingVariousTypesTest extends TestCaseBase
                 break;
             }
 
-            AssertEx::hasKeyWithSameValue('depth ' . $depth . ' int', $depth * 10, $currentLoggedArray);
-            AssertEx::hasKeyWithSameValue('depth ' . $depth . ' string', strval($depth * 10), $currentLoggedArray);
+            AssertEx::arrayHasKeyWithSameValue('depth ' . $depth . ' int', $depth * 10, $currentLoggedArray);
+            AssertEx::arrayHasKeyWithSameValue('depth ' . $depth . ' string', strval($depth * 10), $currentLoggedArray);
 
             $key = 'depth ' . $depth . ' array';
             self::assertArrayHasKey($key, $currentLoggedArray);
@@ -415,8 +411,8 @@ class LoggingVariousTypesTest extends TestCaseBase
                 break;
             }
 
-            AssertEx::hasKeyWithSameValue('intProp', $depth, $currentLoggedObject);
-            AssertEx::hasKeyWithSameValue('stringProp', 'depth: ' . $depth . ', maxDepth: ' . $maxDepth, $currentLoggedObject);
+            AssertEx::arrayHasKeyWithSameValue('intProp', $depth, $currentLoggedObject);
+            AssertEx::arrayHasKeyWithSameValue('stringProp', 'depth: ' . $depth . ', maxDepth: ' . $maxDepth, $currentLoggedObject);
 
             $key = 'recursiveProp';
             self::assertArrayHasKey($key, $currentLoggedObject);

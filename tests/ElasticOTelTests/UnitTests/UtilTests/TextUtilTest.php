@@ -24,8 +24,11 @@ declare(strict_types=1);
 namespace ElasticOTelTests\UnitTests\UtilTests;
 
 use Elastic\OTel\Util\TextUtil;
+use ElasticOTelTests\Util\AssertEx;
+use ElasticOTelTests\Util\IterableUtil;
 use ElasticOTelTests\Util\TestCaseBase;
 use ElasticOTelTests\Util\TextUtilForTests;
+use UnexpectedValueException;
 
 class TextUtilTest extends TestCaseBase
 {
@@ -230,5 +233,88 @@ class TextUtilTest extends TestCaseBase
     {
         $actualOutputText = TextUtilForTests::prefixEachLine($inputText, $prefix);
         self::assertSame($expectedOutputText, $actualOutputText);
+    }
+
+    /**
+     * @return iterable<array{string, string}>
+     */
+    public static function dataProviderForTestRemoveIndentationValidInput(): iterable
+    {
+        /**
+         * @param list<string> $lines
+         *
+         * @return iterable<array{string, string}>
+         */
+        $genFromOneIndentationAndLines = function (string $indentation, array $lines): iterable {
+            AssertEx::countAtLeast(1, $lines);
+            $input = '';
+            $expectedOutput = '';
+            foreach ([true, false] as $shouldAppendEmptyLine) {
+                /** @var non-negative-int $i */
+                /** @var string $line */
+                foreach (IterableUtil::iterateListWithIndex($lines) as [$i, $line]) {
+                    /** @var string $line */
+                    $lineSuffix = ($shouldAppendEmptyLine && ($i === (count($lines) - 1))) ? PHP_EOL : '';
+                    $input = $indentation . $line . $lineSuffix;
+                    $expectedOutput = $line . $lineSuffix;
+                }
+                yield [$input, $expectedOutput];
+            }
+        };
+
+        yield from $genFromOneIndentationAndLines(indentation: "", lines: ['']);
+        yield from $genFromOneIndentationAndLines(indentation: " ", lines: ['']);
+        yield from $genFromOneIndentationAndLines(indentation: "\t", lines: ['']);
+        yield from $genFromOneIndentationAndLines(indentation: "\t ", lines: ['']);
+        yield from $genFromOneIndentationAndLines(indentation: " \t", lines: ['']);
+        yield from $genFromOneIndentationAndLines(indentation: "\t\t", lines: ['a', 'b']);
+
+        yield [
+            " " . "a" . "\r\n" .
+            " " . "b",
+
+            "a" . "\r\n" .
+            "b",
+        ];
+
+        yield [
+            "\t" . "a" . "\r\n" .
+            "\t" . "b",
+
+            "a" . "\r\n" .
+            "b",
+        ];
+    }
+
+    /**
+     * @dataProvider dataProviderForTestRemoveIndentationValidInput
+     */
+    public function testRemoveIndentationValidInput(string $input, string $expectedOutput): void
+    {
+        $actualOutput = TextUtilForTests::removeIndentation($input);
+        self::assertSame($expectedOutput, $actualOutput);
+    }
+
+    /**
+     * @return iterable<array{string}>
+     */
+    public static function dataProviderForTestRemoveIndentationInvalidInput(): iterable
+    {
+        yield [
+            "\t" . "a" . "\r\n" .
+            "b"
+        ];
+        yield [
+            " " . "abc" . "\n" .
+            "abc"
+        ];
+    }
+
+    /**
+     * @dataProvider dataProviderForTestRemoveIndentationInvalidInput
+     */
+    public function testRemoveIndentationInvalidInput(string $input): void
+    {
+        AssertEx::throws(UnexpectedValueException::class, fn() => TextUtilForTests::removeIndentation($input));
     }
 }

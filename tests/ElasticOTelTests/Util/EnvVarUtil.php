@@ -26,6 +26,9 @@ namespace ElasticOTelTests\Util;
 use Elastic\OTel\Util\StaticClassTrait;
 use PHPUnit\Framework\Assert;
 
+/**
+ * @phpstan-type EnvVars array<string, string>
+ */
 final class EnvVarUtil
 {
     use StaticClassTrait;
@@ -48,8 +51,7 @@ final class EnvVarUtil
         Assert::assertNull(self::get($envVarName));
     }
 
-    /** @noinspection PhpUnused */
-    public static function flipSetUnset(string $envVarName, ?string $envVarValue): void
+    public static function setOrUnsetIfValueNull(string $envVarName, ?string $envVarValue): void
     {
         if ($envVarValue === null) {
             self::unset($envVarName);
@@ -59,7 +61,7 @@ final class EnvVarUtil
     }
 
     /**
-     * @return array<string, string>
+     * @return EnvVars
      */
     public static function getAll(): array
     {
