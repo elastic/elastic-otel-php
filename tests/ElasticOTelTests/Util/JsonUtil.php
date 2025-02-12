@@ -37,7 +37,7 @@ final class JsonUtil
 
     public static function encode(mixed $data, bool $prettyPrint = false): string
     {
-        $options = JSON_INVALID_UTF8_SUBSTITUTE;
+        $options = JSON_INVALID_UTF8_SUBSTITUTE | JSON_UNESCAPED_SLASHES;
         $options |= $prettyPrint ? JSON_PRETTY_PRINT : 0;
         $encodedData = json_encode($data, $options);
         if ($encodedData === false) {
