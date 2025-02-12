@@ -90,7 +90,6 @@ class InferredSpans
 
             array_splice($stackTrace, 0, InferredSpans::FRAMES_TO_SKIP); // skip PhpFacade/Inferred spans logic frames
             $apmFramesFilteredOutCount = $this->filterOutAPMFrames($stackTrace);
-            $apmFramesFilteredOutCount = null;
 
             $this->compareStackTraces($stackTrace, $durationMs, $topFrameIsInternalFunction, $apmFramesFilteredOutCount);
         } catch (\Throwable $throwable) {
@@ -229,7 +228,6 @@ class InferredSpans
 
         $count = min($stackTraceCount, $lastStackTraceCount);
 
-        $index = 0;
         for ($index = 1; $index <= $count; $index++) {
             $stFrame = &$stackTrace[$stackTraceCount - $index];
             $lastStFrame = &$this->lastStackTrace[$lastStackTraceCount - $index];
@@ -279,7 +277,7 @@ class InferredSpans
                 /** @noinspection PhpFullyQualifiedNameUsageInspection, PhpUndefinedFunctionInspection
                  * @phpstan-ignore function.notFound
                 */
-                $forceParentChangeFailed = !force_set_object_propety_value($span, "parentSpanContext", $lastSpanParent);
+                $forceParentChangeFailed = !force_set_object_property_value($span, "parentSpanContext", $lastSpanParent);
             }
         }
 
