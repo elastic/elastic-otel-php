@@ -19,33 +19,29 @@
  * under the License.
  */
 
-/** @noinspection PhpIllegalPsrClassPathInspection */
-
 declare(strict_types=1);
 
-namespace ElasticOTelTests\substitutes;
+/**
+ * This function is implemented by the extension
+ */
+function elastic_otel_log_feature(
+    int $isForced,
+    int $level,
+    int $feature,
+    string $category,
+    string $file,
+    ?int $line,
+    string $func,
+    string $message
+): void {
+}
 
-use PHPUnit\Framework\AssertionFailedError;
-
-final class PHPUnitFrameworkAssertionFailedErrorAutoloader
+/**
+ * This function is implemented by the extension
+ *
+ * @noinspection PhpUnusedParameterInspection
+ */
+function elastic_otel_get_config_option_by_name(string $optionName): mixed
 {
-    private static bool $isClassLoaded = false;
-
-    public static function register(): void
-    {
-        spl_autoload_register(
-            static function (string $fqClassName): void {
-                // Example of $fqClassName: PHPUnit\Framework\AssertionFailedError
-
-                if (self::$isClassLoaded || $fqClassName !== AssertionFailedError::class) {
-                    return;
-                }
-
-                require __DIR__ . '/patched/AssertionFailedError.php';
-
-                self::$isClassLoaded = true;
-            },
-            prepend: true
-        );
-    }
+    return null;
 }

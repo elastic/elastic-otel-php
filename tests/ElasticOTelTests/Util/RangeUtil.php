@@ -114,11 +114,9 @@ final class RangeUtil
     /**
      * @template T of int|float
      *
-     * @param T $rangeBegin
-     * @param T $actual
-     * @param T $rangeInclusiveEnd
-     *
-     * @noinspection PhpDocSignatureInspection
+     * @phpstan-param T $rangeBegin
+     * @phpstan-param T $actual
+     * @phpstan-param T $rangeInclusiveEnd
      */
     public static function isInClosedRange(int|float $rangeBegin, int|float $actual, int|float $rangeInclusiveEnd): bool
     {

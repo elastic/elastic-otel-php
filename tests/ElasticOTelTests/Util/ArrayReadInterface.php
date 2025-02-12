@@ -30,18 +30,14 @@ namespace ElasticOTelTests\Util;
 interface ArrayReadInterface
 {
     /**
-     * @param TKey $key
-     *
-     * @noinspection PhpDocSignatureInspection
+     * @phpstan-param TKey $key
      */
     public function keyExists(string|int $key): bool;
 
     /**
-     * @param TKey $key
+     * @phpstan-param TKey $key
      *
      * @return TValue
-     *
-     * @noinspection PhpDocSignatureInspection
      */
     public function getValue(string|int $key): mixed;
 }

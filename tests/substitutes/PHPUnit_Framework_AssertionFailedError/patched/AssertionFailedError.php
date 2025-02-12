@@ -1,5 +1,5 @@
 <?php
-declare(strict_types=1);
+
 /*
  * This file is part of PHPUnit.
  *
@@ -10,6 +10,8 @@ declare(strict_types=1);
  */
 
 /** @noinspection PhpIllegalPsrClassPathInspection */
+
+declare(strict_types=1);
 
 namespace PHPUnit\Framework;
 

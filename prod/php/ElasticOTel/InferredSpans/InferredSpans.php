@@ -19,27 +19,34 @@
  * under the License.
  */
 
+/** @noinspection PhpIllegalPsrClassPathInspection */
+
 declare(strict_types=1);
 
 namespace Elastic\OTel\InferredSpans;
 
 use OpenTelemetry\API\Globals;
 use OpenTelemetry\API\Behavior\LogsMessagesTrait;
+use OpenTelemetry\API\Trace\SpanInterface;
 use OpenTelemetry\API\Trace\SpanKind;
 use OpenTelemetry\API\Trace\TracerInterface;
 use OpenTelemetry\Context\Context;
+use OpenTelemetry\Context\ContextStorageScopeInterface;
+use OpenTelemetry\SDK\Trace\Span;
 use OpenTelemetry\SemConv\TraceAttributes;
 use OpenTelemetry\API\Common\Time\Clock;
 use OpenTelemetry\SemConv\Version;
 use OpenTelemetry\Context\ContextInterface;
+use Throwable;
 use WeakReference;
 
 /**
- * @phpstan-type ExtendedStackTraceFrame array{function: string, line?: int, file?: string, class?: class-string, type?: '->'|'::', span: \WeakReference<\OpenTelemetry\API\Trace\SpanInterface>,
- *  context: \WeakReference<\OpenTelemetry\Context\ContextInterface>, scope: \WeakReference<\OpenTelemetry\Context\ContextStorageScopeInterface>, stackTraceId: int }
+ * @phpstan-type StackTraceFrameCallType '->'|'::'
+ * @phpstan-type ExtendedStackTraceFrame array{function: string, line?: int, file?: string, class?: class-string, type?: StackTraceFrameCallType, span: WeakReference<SpanInterface>,
+ *  context: WeakReference<ContextInterface>, scope: WeakReference<ContextStorageScopeInterface>, stackTraceId: int}
  * @phpstan-type ExtendedStackTrace array<string|int, ExtendedStackTraceFrame>
- * @phpstan-type DebugBackTraceFrame array{function: string, line?: int, file?: string, class?: class-string, type?: '->'|'::', args?: array<mixed>, object?: object}
- * @phpstan-type DebugBackTrace array<int<0, max>, DebugBackTraceFrame>
+ * @phpstan-type DebugBackTraceFrame array{function: string, line?: int, file?: string, class?: class-string, type?: StackTraceFrameCallType, args?: array<mixed>, object?: object}
+ * @phpstan-type DebugBackTrace array<non-negative-int, DebugBackTraceFrame>
  */
 class InferredSpans
 {
@@ -75,7 +82,7 @@ class InferredSpans
         $this->shutdown = false;
     }
 
-    // $durationMs - duration between interrupt request and interrupt occurence
+    // $durationMs - duration between interrupt request and interrupt occurrence
     public function captureStackTrace(int $durationMs, bool $topFrameIsInternalFunction): void
     {
         self::logDebug("captureStackTrace topFrameInternal: $topFrameIsInternalFunction, duration: $durationMs ms shutdown: " . $this->shutdown);
@@ -93,7 +100,7 @@ class InferredSpans
             $apmFramesFilteredOutCount = null;
 
             $this->compareStackTraces($stackTrace, $durationMs, $topFrameIsInternalFunction, $apmFramesFilteredOutCount);
-        } catch (\Throwable $throwable) {
+        } catch (Throwable $throwable) {
             self::logError($throwable->__toString());
         }
     }
@@ -125,7 +132,7 @@ class InferredSpans
 
         for ($index = 0; $index < $oldFramesCount; $index++) {
             $endEpochNanos = null;
-             // if last frame was internal function, so duraton contains it's time, previous ones ended between sampling interval - they're shorter
+             // if last frame was internal function, so duration contains it's time, previous ones ended between sampling interval - they're shorter
             if ($topFrameIsInternalFunction) {
                 $endEpochNanos = $this->getStartTime($durationMs);
             }
@@ -168,7 +175,8 @@ class InferredSpans
             }
 
             if ($index == 0 && $topFrameIsInternalFunction) {
-                $this->endFrameSpan($newFrame, false, null); // we don't need to save newest internal frame, it ended
+                /** @noinspection PhpRedundantOptionalArgumentInspection */
+                $this->endFrameSpan($newFrame, false, null); // we don't need to save the newest internal frame, it ended
             } else {
                 array_unshift($this->lastStackTrace, $newFrame); // push-copy frame in front of last stack trace for next interruption processing
             }
@@ -189,7 +197,6 @@ class InferredSpans
        // Filter out Elastic and Otel stack frames
         $cutIndex = null;
         for ($index = count($stackTrace) - 1; $index >= 0; $index--) {
-            /** @var DebugBackTraceFrame $frame */
             $frame = $stackTrace[$index];
             if (
                 array_key_exists('class', $frame) &&
@@ -210,11 +217,13 @@ class InferredSpans
     /** @param DebugBackTrace $stackTrace */
     private function getHowManyStackFramesAreIdenticalFromStackBottom(array $stackTrace): int
     {
-        // Helper function to check if two frames are identical
-        /** @param DebugBackTraceFrame $frame1
-         *  @param DebugBackTraceFrame $frame2
+        /**
+         * Helper function to check if two frames are identical
+         *
+         * @phpstan-param DebugBackTraceFrame $frame1
+         * @phpstan-param DebugBackTraceFrame $frame2
          */
-        $isSameFrame = function (array $frame1, array $frame2) {
+        $isSameFrame = function (array $frame1, array $frame2): bool {
             $keysToCompare = ['class', 'function', 'file', 'line', 'type'];
             foreach ($keysToCompare as $key) {
                 if (($frame1[$key] ?? null) !== ($frame2[$key] ?? null)) {
@@ -234,7 +243,7 @@ class InferredSpans
             $stFrame = &$stackTrace[$stackTraceCount - $index];
             $lastStFrame = &$this->lastStackTrace[$lastStackTraceCount - $index];
 
-            if ($isSameFrame($stFrame, $lastStFrame) == false) {
+            if (!$isSameFrame($stFrame, $lastStFrame)) {
                 return $index - 1;
             }
         }
@@ -258,7 +267,7 @@ class InferredSpans
                 }
 
                 $span = $this->lastStackTrace[$i][self::METADATA_SPAN]->get();
-                if (! $span instanceof \OpenTelemetry\SDK\Trace\Span) {
+                if (!$span instanceof Span) {
                     break;
                 }
 
@@ -267,7 +276,7 @@ class InferredSpans
 
             if ($lastSpanParent) {
                 $span = $this->lastStackTrace[$index][self::METADATA_SPAN]->get();
-                if (! $span instanceof \OpenTelemetry\SDK\Trace\Span) {
+                if (!$span instanceof Span) {
                     return false;
                 }
 
@@ -276,9 +285,6 @@ class InferredSpans
                     ['new', $lastSpanParent, 'old', $span->getParentContext()]
                 );
 
-                /** @noinspection PhpFullyQualifiedNameUsageInspection, PhpUndefinedFunctionInspection
-                 * @phpstan-ignore function.notFound
-                */
                 $forceParentChangeFailed = !force_set_object_propety_value($span, "parentSpanContext", $lastSpanParent);
             }
         }
@@ -291,7 +297,7 @@ class InferredSpans
     }
 
     /**
-     *  @param ExtendedStackTraceFrame $frame
+     * @phpstan-param ExtendedStackTraceFrame $frame
      */
     private function shouldDropTooShortSpan(array $frame, ?int $endEpochNanos = null): bool
     {
@@ -300,11 +306,10 @@ class InferredSpans
         }
 
         $span = $frame[self::METADATA_SPAN]->get();
-        if (! $span instanceof \OpenTelemetry\SDK\Trace\Span) {
+        if (!$span instanceof Span) {
             return false;
         }
 
-        /** @var int */
         $duration = 0;
         if ($endEpochNanos) {
             $duration = $endEpochNanos - $span->getStartEpochNanos();
@@ -323,7 +328,7 @@ class InferredSpans
     /**
      *  @param ExtendedStackTrace $stackTrace
      */
-    private function getStackTrace($stackTrace): string
+    private function getStackTrace(array $stackTrace): string
     {
         $str = "#0 {main}\n";
         $id = 1;
@@ -341,26 +346,26 @@ class InferredSpans
     }
 
     /**
-      *  @param DebugBackTraceFrame $frame
-      *  @return ExtendedStackTraceFrame
-      */
+     * @phpstan-param DebugBackTraceFrame $frame
+     *
+     * @phpstan-return ExtendedStackTraceFrame
+     */
     private function startFrameSpan(array $frame, int $durationMs, ?ContextInterface $parentContext, int $stackTraceId): array
     {
-        $parent = $parentContext ? $parentContext : Context::getCurrent();
+        $parent = $parentContext ?? Context::getCurrent();
         $builder = $this->tracer->spanBuilder(!empty($frame['function']) ? $frame['function'] : '[unknown]')
             ->setParent($parent)
             ->setStartTimestamp($this->getStartTime($durationMs))
             ->setSpanKind(SpanKind::KIND_INTERNAL)
-            ->setAttribute(TraceAttributes::CODE_FUNCTION, $frame['function'])
+            ->setAttribute(TraceAttributes::CODE_FUNCTION_NAME, $frame['function'])
             ->setAttribute(TraceAttributes::CODE_FILEPATH, $frame['file'] ?? null)
-            ->setAttribute(TraceAttributes::CODE_LINENO, $frame['line'] ?? null)
+            ->setAttribute(TraceAttributes::CODE_LINE_NUMBER, $frame['line'] ?? null)
             ->setAttribute('is_inferred', true);
 
         $span = $builder->startSpan(); //OpenTelemetry\API\Trace\SpanInterface
         $context = $span->storeInContext($parent); //OpenTelemetry\Context\ContextInterface
         $scope = Context::storage()->attach($context); //OpenTelemetry\Context\ContextStorageScopeInterface
 
-        /* @var ExtendedStackTraceFrame $newFrame */
         $newFrame = $frame;
         $newFrame[self::METADATA_SPAN] = WeakReference::create($span);
         $newFrame[self::METADATA_CONTEXT] = WeakReference::create($context);
@@ -372,12 +377,11 @@ class InferredSpans
     }
 
     /**
-      *  @param ExtendedStackTraceFrame $frame
-      */
+     * @phpstan-param ExtendedStackTraceFrame $frame
+     */
     private function endFrameSpan(array $frame, bool $dropSpan, ?int $endEpochNanos = null): void
     {
-        /** @phpstan-ignore-next-line  */
-        if (!array_key_exists(self::METADATA_SPAN, $frame)) {
+        if (!array_key_exists(self::METADATA_SPAN, $frame)) { // @phpstan-ignore function.alreadyNarrowedType
             self::logError("endFrameSpan missing metadata.", [$frame]);
             return;
         }
@@ -387,7 +391,7 @@ class InferredSpans
         }
 
         $span = $frame[self::METADATA_SPAN]->get();
-        if (! $span instanceof \OpenTelemetry\SDK\Trace\Span) {
+        if (!$span instanceof Span) {
             self::logDebug("Span in frame is not instanceof Trace\Span", [$span, $frame]);
             return;
         }

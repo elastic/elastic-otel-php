@@ -44,6 +44,7 @@ ExceptionUtil::runCatchLogRethrow(
         TestsRootDir::setFullPath(__DIR__);
 
         require __DIR__ . '/polyfills/load.php';
+        require __DIR__ . '/elastic_otel_extension_stubs/load.php';
         require __DIR__ . '/dummyFuncForTestsWithoutNamespace.php';
         require __DIR__ . '/ElasticOTelTests/dummyFuncForTestsWithNamespace.php';
     }

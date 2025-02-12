@@ -40,11 +40,9 @@ use ElasticOTelTests\Util\TestCaseBase;
 final class ComponentTestsEnvVarsForAppCodeTest extends TestCaseBase
 {
     /**
-     * @param EnvVars           $inheritedEnvVars
-     * @param OptionsForProdMap $prodOptions
-     * @param EnvVars           $expectedBuiltEnvVars
-     *
-     * @noinspection PhpDocSignatureInspection
+     * @phpstan-param EnvVars           $inheritedEnvVars
+     * @phpstan-param OptionsForProdMap $prodOptions
+     * @phpstan-param EnvVars           $expectedBuiltEnvVars
      */
     private static function buildAndAssertAsExpected(array $inheritedEnvVars, Map $prodOptions, array $expectedBuiltEnvVars): void
     {
@@ -100,8 +98,6 @@ final class ComponentTestsEnvVarsForAppCodeTest extends TestCaseBase
      *
      * @param string[]            $inheritedEnvVarNames
      * @param OptionForProdName[] $prodOptionNames
-     *
-     * @noinspection PhpDocSignatureInspection
      */
     public static function testInheritedEnvVarsAutoPass(array $inheritedEnvVarNames, array $prodOptionNames): void
     {
@@ -136,8 +132,6 @@ final class ComponentTestsEnvVarsForAppCodeTest extends TestCaseBase
 
     /**
      * @dataProvider dataProviderForTestLogLevelRelatedProdOverridesInheritedEnvVars
-     *
-     * @noinspection PhpDocSignatureInspection
      */
     public static function testLogLevelRelatedProdOptionOverridesInheritedEnvVars(OptionForProdName $prodOptName): void
     {

@@ -69,9 +69,7 @@ final class ProcessUtil
     }
 
     /**
-     * @param EnvVars $envVars
-     *
-     * @noinspection PhpDocSignatureInspection
+     * @phpstan-param EnvVars $envVars
      */
     public static function startBackgroundProcess(string $cmd, array $envVars): void
     {
@@ -79,9 +77,7 @@ final class ProcessUtil
     }
 
     /**
-     * @param EnvVars $envVars
-     *
-     * @noinspection PhpDocSignatureInspection
+     * @phpstan-param EnvVars $envVars
      */
     public static function startProcessAndWaitUntilExit(string $cmd, array $envVars, bool $shouldCaptureStdOutErr = false, ?int $expectedExitCode = null): int
     {
@@ -125,10 +121,8 @@ final class ProcessUtil
     }
 
     /**
-     * @param EnvVars                              $envVars
-     * @param array<array{string, string, string}> $descriptorSpec
-     *
-     * @noinspection PhpDocSignatureInspection
+     * @phpstan-param EnvVars                              $envVars
+     * @phpstan-param array<array{string, string, string}> $descriptorSpec
      */
     private static function startProcessImpl(string $adaptedCmd, array $envVars, array $descriptorSpec, bool $isBackground): int
     {

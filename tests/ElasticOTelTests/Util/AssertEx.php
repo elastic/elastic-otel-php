@@ -81,11 +81,9 @@ final class AssertEx
      * @template TKey of array-key
      * @template TValue
      *
-     * @param TKey                                          $expectedKey
-     * @param TValue                                        $expectedValue
-     * @param array<TKey, TValue>|ArrayAccess<TKey, TValue> $actualArray
-     *
-     * @noinspection PhpDocSignatureInspection
+     * @phpstan-param TKey                                          $expectedKey
+     * @phpstan-param TValue                                        $expectedValue
+     * @phpstan-param array<TKey, TValue>|ArrayAccess<TKey, TValue> $actualArray
      */
     public static function arrayHasKeyWithSameValue(string|int $expectedKey, mixed $expectedValue, array|ArrayAccess $actualArray, string $message = ''): void
     {
@@ -97,11 +95,11 @@ final class AssertEx
      * @template TKey of array-key
      * @template TValue
      *
-     * @param TKey                                          $expectedKey
-     * @param TValue                                        $expectedValue
-     * @param array<TKey, TValue>|ArrayAccess<TKey, TValue> $actualArray
+     * @phpstan-param TKey                                          $expectedKey
+     * @phpstan-param TValue                                        $expectedValue
+     * @phpstan-param array<TKey, TValue>|ArrayAccess<TKey, TValue> $actualArray
      *
-     * @noinspection PhpUnused, PhpDocSignatureInspection
+     * @noinspection PhpUnused
      */
     public static function arrayHasKeyWithEqualValue(string|int $expectedKey, mixed $expectedValue, array|ArrayAccess $actualArray): void
     {
@@ -417,11 +415,9 @@ final class AssertEx
     /**
      * @template T of int|float
      *
-     * @param T $rangeBegin
-     * @param T $actual
-     * @param T $rangeInclusiveEnd
-     *
-     * @noinspection PhpDocSignatureInspection
+     * @phpstan-param T $rangeBegin
+     * @phpstan-param T $actual
+     * @phpstan-param T $rangeInclusiveEnd
      */
     public static function inClosedRange(int|float $rangeBegin, int|float $actual, int|float $rangeInclusiveEnd): void
     {

@@ -161,11 +161,9 @@ final class IterableUtilTest extends TestCaseBase
         /**
          * @template T of number
          *
-         * @param T $x
+         * @phpstan-param T $x
          *
-         * @return T
-         *
-         * @noinspection PhpDocSignatureInspection
+         * @phpstan-return T
          */
         $x2Func = fn (int|float $x) => $x * 2;
 

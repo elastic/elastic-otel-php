@@ -100,11 +100,9 @@ class DebugContextTest extends TestCaseBase
     }
 
     /**
-     * @param Context $actualCtx
-     * @param Context $args
-     * @param Context $addedCtx
-     *
-     * @noinspection PhpDocSignatureInspection
+     * @phpstan-param Context $actualCtx
+     * @phpstan-param Context $args
+     * @phpstan-param Context $addedCtx
      */
     private static function assertScopeContext(array $actualCtx, ?object $thisObj, array $args, array $addedCtx): void
     {
@@ -187,12 +185,10 @@ class DebugContextTest extends TestCaseBase
     }
 
     /**
-     * @param Context               $initialCtx
-     * @param ExpectedContextsStack $expectedContextsStackFromCaller
+     * @phpstan-param Context               $initialCtx
+     * @phpstan-param ExpectedContextsStack $expectedContextsStackFromCaller
      *
      * @return ExpectedContextsStack
-     *
-     * @noinspection PhpDocSignatureInspection
      */
     private static function newExpectedScope(string $funcName, array $initialCtx = [], array $expectedContextsStackFromCaller = []): array
     {
@@ -204,10 +200,8 @@ class DebugContextTest extends TestCaseBase
     }
 
     /**
-     * @param ExpectedContextsStack $expectedContextsStack
-     * @param Context               $ctx
-     *
-     * @noinspection PhpDocSignatureInspection
+     * @phpstan-param ExpectedContextsStack $expectedContextsStack
+     * @phpstan-param Context               $ctx
      */
     private static function addToTopExpectedScope(/* ref */ array $expectedContextsStack, array $ctx): void
     {
@@ -603,10 +597,8 @@ class DebugContextTest extends TestCaseBase
         $dbgCtx->add(['dummy key' => 'dummy value']);
 
         /**
-         * @param positive-int  $expectedLine
-         * @param ContextsStack $contextsStack
-         *
-         * @noinspection PhpDocSignatureInspection
+         * @phpstan-param positive-int  $expectedLine
+         * @phpstan-param ContextsStack $contextsStack
          */
         $assertTopScopeLine = function (int $expectedLine): void {
             $contextsStack = DebugContext::getContextsStack();
@@ -812,8 +804,6 @@ class DebugContextTest extends TestCaseBase
      *
      * @param-out positive-int $actualNonVendorCallDepth
      * @param-out positive-int $lineNumber
-     *
-     * @noinspection PhpDocSignatureInspection
      */
     private static function helperFuncForTestTrimVendorFrames(MixedMap $testArgs, /* out */ ?int &$lineNumber, /* in,out */ int &$actualNonVendorCallDepth): void
     {

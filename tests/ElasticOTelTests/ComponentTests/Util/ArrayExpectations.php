@@ -75,10 +75,8 @@ class ArrayExpectations implements ExpectationsInterface
     }
 
     /**
-     * @param TKey      $key
-     * @param ArrayLike $array
-     *
-     * @noinspection PhpDocSignatureInspection
+     * @phpstan-param TKey      $key
+     * @phpstan-param ArrayLike $array
      */
     private static function keyExists(string|int $key, array|ArrayReadInterface $array): bool
     {
@@ -86,12 +84,10 @@ class ArrayExpectations implements ExpectationsInterface
     }
 
     /**
-     * @param TKey      $key
-     * @param ArrayLike $array
+     * @phpstan-param TKey      $key
+     * @phpstan-param ArrayLike $array
      *
      * @return TValue
-     *
-     * @noinspection PhpDocSignatureInspection
      */
     private static function getValue(string|int $key, array|ArrayReadInterface $array): mixed
     {
@@ -103,11 +99,9 @@ class ArrayExpectations implements ExpectationsInterface
     }
 
     /**
-     * @param TKey   $key
-     * @param TValue $expectedValue
-     * @param TValue $actualValue
-     *
-     * @noinspection PhpDocSignatureInspection
+     * @phpstan-param TKey   $key
+     * @phpstan-param TValue $expectedValue
+     * @phpstan-param TValue $actualValue
      */
     protected function assertValueMatches(string|int $key, mixed $expectedValue, mixed $actualValue): void
     {

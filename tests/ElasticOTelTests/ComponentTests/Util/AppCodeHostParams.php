@@ -104,11 +104,9 @@ class AppCodeHostParams implements LoggableInterface
     }
 
     /**
-     * @param EnvVars $inputEnvVars
+     * @phpstan-param EnvVars $inputEnvVars
      *
      * @return EnvVars
-     *
-     * @noinspection PhpDocSignatureInspection
      */
     private static function removeProdLogLevelRelatedEnvVars(array $inputEnvVars): array
     {
@@ -124,12 +122,10 @@ class AppCodeHostParams implements LoggableInterface
     }
 
     /**
-     * @param EnvVars           $baseEnvVars
-     * @param OptionsForProdMap $prodOptions
+     * @phpstan-param EnvVars           $baseEnvVars
+     * @phpstan-param OptionsForProdMap $prodOptions
      *
      * @return EnvVars
-     *
-     * @noinspection PhpDocSignatureInspection
      */
     private static function filterBaseEnvVars(array $baseEnvVars, Map $prodOptions): array
     {
@@ -197,12 +193,10 @@ class AppCodeHostParams implements LoggableInterface
     }
 
     /**
-     * @param EnvVars           $inheritedEnvVars
-     * @param OptionsForProdMap $prodOptions
+     * @phpstan-param EnvVars           $inheritedEnvVars
+     * @phpstan-param OptionsForProdMap $prodOptions
      *
      * @return EnvVars
-     *
-     * @noinspection PhpDocSignatureInspection
      */
     public static function buildEnvVarsForAppCodeProcessImpl(array $inheritedEnvVars, Map $prodOptions): array
     {

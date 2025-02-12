@@ -56,9 +56,7 @@ final class DebugContextScopeRef
     }
 
     /**
-     * @param Context $ctx
-     *
-     * @noinspection PhpDocSignatureInspection
+     * @phpstan-param Context $ctx
      */
     public function add(array $ctx): void
     {

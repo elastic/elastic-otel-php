@@ -82,8 +82,6 @@ final class DebugContextScope implements LoggableInterface
      *
      * @phpstan-assert-if-true non-negative-int $matchingFrameIndex
      * @phpstan-assert-if-true bool $matchingFrameHasSameLine
-     *
-     * @noinspection PhpDocSignatureIsNotCompleteInspection
      */
     public function syncWithCallStack(ListSlice $currentStackTraceTopSegment, /* out */ ?int &$matchingFrameIndex, /* out */ ?bool &$matchingFrameHasSameLine): bool
     {

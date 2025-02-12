@@ -30,6 +30,7 @@ use Elastic\OTel\InferredSpans\InferredSpans;
 use Elastic\OTel\Log\ElasticLogWriter;
 use Elastic\OTel\Util\HiddenConstructorTrait;
 use OpenTelemetry\API\Globals;
+use OpenTelemetry\SDK\Registry;
 use OpenTelemetry\SDK\SdkAutoloader;
 use OpenTelemetry\API\Trace\Span;
 use OpenTelemetry\API\Trace\SpanKind;
@@ -39,6 +40,8 @@ use OpenTelemetry\SemConv\TraceAttributes;
 use OpenTelemetry\SemConv\Version;
 use RuntimeException;
 use Throwable;
+
+use function elastic_otel_get_config_option_by_name;
 
 /**
  * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
@@ -135,15 +138,11 @@ final class PhpPartFacade
 
             self::$singletonInstance = new self();
 
-            /**
-             * @noinspection PhpFullyQualifiedNameUsageInspection, PhpUndefinedFunctionInspection
-             * @phpstan-ignore function.notFound
-             */
-            if (\elastic_otel_get_config_option_by_name('inferred_spans_enabled')) {
+            if (elastic_otel_get_config_option_by_name('inferred_spans_enabled')) {
                 self::$singletonInstance->inferredSpans = new InferredSpans(
-                    (bool)\elastic_otel_get_config_option_by_name('inferred_spans_reduction_enabled'), // @phpstan-ignore-line
-                    (bool)\elastic_otel_get_config_option_by_name('inferred_spans_stacktrace_enabled'), // @phpstan-ignore-line
-                    \elastic_otel_get_config_option_by_name('inferred_spans_min_duration') // @phpstan-ignore-line
+                    (bool)elastic_otel_get_config_option_by_name('inferred_spans_reduction_enabled'),
+                    (bool)elastic_otel_get_config_option_by_name('inferred_spans_stacktrace_enabled'),
+                    elastic_otel_get_config_option_by_name('inferred_spans_min_duration') // @phpstan-ignore argument.type
                 );
             }
         } catch (Throwable $throwable) {
@@ -155,15 +154,20 @@ final class PhpPartFacade
         return true;
     }
 
+    /**
+     * Called by the extension
+     *
+     * @noinspection PhpUnused
+     */
     public static function inferredSpans(int $durationMs, bool $internalFunction): bool
     {
         if (self::$singletonInstance === null) {
-            BootstrapStageLogger::logDebug('Missig facade', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
+            BootstrapStageLogger::logDebug('Missing facade', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
             return true;
         }
 
         if (self::$singletonInstance->inferredSpans === null) {
-            BootstrapStageLogger::logDebug('Missig inferred spans instance', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
+            BootstrapStageLogger::logDebug('Missing inferred spans instance', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
             return true;
         }
         self::$singletonInstance->inferredSpans->captureStackTrace($durationMs, $internalFunction);
@@ -255,18 +259,12 @@ final class PhpPartFacade
 
     private static function registerAsyncTransportFactory(): void
     {
-        /**
-         * elastic_otel_* functions are provided by the extension
-         *
-         * @noinspection PhpFullyQualifiedNameUsageInspection, PhpUndefinedFunctionInspection
-         */
-        if (\elastic_otel_get_config_option_by_name('async_transport') === false) { // @phpstan-ignore function.notFound
+        if (elastic_otel_get_config_option_by_name('async_transport') === false) {
             BootstrapStageLogger::logDebug('ELASTIC_OTEL_ASYNC_TRANSPORT set to false', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
             return;
         }
 
-        /** @noinspection PhpFullyQualifiedNameUsageInspection */
-        \OpenTelemetry\SDK\Registry::registerTransportFactory('http', ElasticHttpTransportFactory::class, true);
+        Registry::registerTransportFactory('http', ElasticHttpTransportFactory::class, true);
     }
 
     private static function registerOtelLogWriter(): void
@@ -340,7 +338,7 @@ final class PhpPartFacade
      *
      * @param array<mixed> $params
      *
-     * @noinspection PhpUnused
+     * @noinspection PhpUnused, PhpUnusedParameterInspection
      */
     public static function debugPostHook(mixed $object, array $params, mixed $retval, ?Throwable $exception): void
     {
@@ -358,6 +356,7 @@ final class PhpPartFacade
         $span->setAttribute('call.return_value', print_r($retval, true));
 
         if ($exception) {
+            /** @noinspection PhpDeprecationInspection */
             $span->recordException($exception, [TraceAttributes::EXCEPTION_ESCAPED => true]);
             $span->setStatus(StatusCode::STATUS_ERROR, $exception->getMessage());
         }

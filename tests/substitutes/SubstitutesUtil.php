@@ -19,6 +19,8 @@
  * under the License.
  */
 
+/** @noinspection PhpIllegalPsrClassPathInspection */
+
 declare(strict_types=1);
 
 namespace ElasticOTelTests\substitutes;
@@ -34,7 +36,7 @@ final class SubstitutesUtil
 {
     private static function appendStackTraceToMessage(string $msg): string
     {
-        return $msg . '; stack trace: ' . json_encode(debug_backtrace(), flags: JSON_PRETTY_PRINT|JSON_THROW_ON_ERROR);
+        return $msg . '; stack trace: ' . json_encode(debug_backtrace(), flags: JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR);
     }
 
     /**

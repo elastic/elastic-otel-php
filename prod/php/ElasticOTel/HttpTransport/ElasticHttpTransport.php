@@ -19,6 +19,8 @@
  * under the License.
  */
 
+/** @noinspection PhpIllegalPsrClassPathInspection */
+
 declare(strict_types=1);
 
 namespace Elastic\OTel\HttpTransport;
@@ -59,12 +61,8 @@ final class ElasticHttpTransport implements TransportInterface
         $this->endpoint = $endpoint;
         $this->contentType = $contentType;
 
-        /**
-         * \Elastic\OTel\HttpTransport\* functions are provided by the extension
-         *
-         * @noinspection PhpUnnecessaryFullyQualifiedNameInspection, PhpUndefinedFunctionInspection
-         */
-        \Elastic\OTel\HttpTransport\initialize($endpoint, $contentType, $headers, $timeout, $retryDelay, $maxRetries); // @phpstan-ignore function.notFound
+        // \Elastic\OTel\HttpTransport\initialize is provided by the extension
+        initialize($endpoint, $contentType, $headers, $timeout, $retryDelay, $maxRetries);
     }
 
     public function contentType(): string
@@ -77,12 +75,8 @@ final class ElasticHttpTransport implements TransportInterface
      */
     public function send(string $payload, ?CancellationInterface $cancellation = null): FutureInterface
     {
-        /**
-         * \Elastic\OTel\HttpTransport\* functions are provided by the extension
-         *
-         * @noinspection PhpUnnecessaryFullyQualifiedNameInspection, PhpUndefinedFunctionInspection
-         */
-        \Elastic\OTel\HttpTransport\enqueue($this->endpoint, $payload); // @phpstan-ignore function.notFound
+        // \Elastic\OTel\HttpTransport\enqueue is provided by the extension
+        enqueue($this->endpoint, $payload);
 
         return new CompletedFuture(null);
     }

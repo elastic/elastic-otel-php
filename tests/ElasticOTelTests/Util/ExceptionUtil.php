@@ -44,8 +44,6 @@ final class ExceptionUtil
     /**
      * @param array<string, mixed> $context
      * @param ?non-negative-int    $numberOfStackFramesToSkip PHP_INT_MAX means no stack trace
-     *
-     * @noinspection PhpDocSignatureIsNotCompleteInspection
      */
     public static function buildMessage(string $messagePrefix, array $context = [], ?int $numberOfStackFramesToSkip = null): string
     {

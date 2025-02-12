@@ -21,6 +21,7 @@
 
 declare(strict_types=1);
 
+use ElasticOTelTests\substitutes\PHPUnitFrameworkAssertionFailedErrorAutoloader;
 use ElasticOTelTests\substitutes\SubstitutesUtil;
 use PHPUnit\Framework\AssertionFailedError;
 

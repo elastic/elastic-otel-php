@@ -33,13 +33,12 @@ final class ArrayUtil
      * @template TKey of array-key
      * @template TValue
      *
-     * @param TKey                    $key
-     * @param array<TKey, TValue>     $array
-     * @param-out TValue              $valueOut
+     * @phpstan-param TKey                $key
+     * @phpstan-param array<TKey, TValue> $array
      *
-     * @phpstan-assert-if-true TValue $valueOut
+     * @param-out TValue                  $valueOut
      *
-     * @noinspection PhpDocSignatureInspection
+     * @phpstan-assert-if-true TValue     $valueOut
      */
     public static function getValueIfKeyExists(int|string $key, array $array, /* out */ mixed &$valueOut): bool
     {
@@ -56,13 +55,11 @@ final class ArrayUtil
      * @template TArrayValue
      * @template TFallbackValue
      *
-     * @param TKey                     $key
-     * @param array<TKey, TArrayValue> $array
-     * @param TFallbackValue           $fallbackValue
+     * @phpstan-param TKey                     $key
+     * @phpstan-param array<TKey, TArrayValue> $array
+     * @phpstan-param TFallbackValue           $fallbackValue
      *
      * @return TArrayValue|TFallbackValue
-     *
-     * @noinspection PhpDocSignatureInspection
      */
     public static function getValueIfKeyExistsElse(string|int $key, array $array, mixed $fallbackValue): mixed
     {
@@ -73,13 +70,12 @@ final class ArrayUtil
      * @template TKey of array-key
      * @template TValue
      *
-     * @param TKey                    $key
-     * @param array<TKey, TValue>     $array
-     * @param-out TValue              $valueOut
+     * @phpstan-param TKey                $key
+     * @phpstan-param array<TKey, TValue> $array
      *
-     * @phpstan-assert-if-true TValue $valueOut
+     * @param-out TValue                  $valueOut
      *
-     * @noinspection PhpDocSignatureInspection
+     * @phpstan-assert-if-true TValue     $valueOut
      */
     public static function removeValue(int|string $key, array $array, /* out */ mixed &$valueOut): bool
     {

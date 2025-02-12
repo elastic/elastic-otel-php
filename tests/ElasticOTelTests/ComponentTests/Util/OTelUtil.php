@@ -51,11 +51,9 @@ class OTelUtil
     }
 
     /**
-     * @param non-empty-string          $spanName
-     * @param IntLimitedToOTelSpanKind  $spanKind
-     * @param OTelAttributesMapIterable $attributes
-     *
-     * @noinspection PhpDocSignatureInspection
+     * @phpstan-param non-empty-string          $spanName
+     * @phpstan-param IntLimitedToOTelSpanKind  $spanKind
+     * @phpstan-param OTelAttributesMapIterable $attributes
      */
     public static function startSpan(TracerInterface $tracer, string $spanName, int $spanKind = OTelSpanKind::KIND_INTERNAL, iterable $attributes = []): OTelApiSpanInterface
     {
@@ -95,11 +93,9 @@ class OTelUtil
     }
 
     /**
-     * @param non-empty-string          $spanName
-     * @param IntLimitedToOTelSpanKind  $spanKind
-     * @param OTelAttributesMapIterable $attributes
-     *
-     * @noinspection PhpDocSignatureInspection
+     * @phpstan-param non-empty-string          $spanName
+     * @phpstan-param IntLimitedToOTelSpanKind  $spanKind
+     * @phpstan-param OTelAttributesMapIterable $attributes
      */
     public static function startEndSpan(
         TracerInterface $tracer,

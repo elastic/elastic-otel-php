@@ -63,12 +63,10 @@ final class InfraUtilForTests
     }
 
     /**
-     * @param EnvVars $baseEnvVars
-     * @param int[]   $targetServerPorts
+     * @phpstan-param EnvVars $baseEnvVars
+     * @phpstan-param int[]   $targetServerPorts
      *
      * @return EnvVars
-     *
-     * @noinspection PhpDocSignatureInspection
      */
     public static function addTestInfraDataPerProcessToEnvVars(
         array $baseEnvVars,

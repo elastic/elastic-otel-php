@@ -19,33 +19,28 @@
  * under the License.
  */
 
-/** @noinspection PhpIllegalPsrClassPathInspection */
-
 declare(strict_types=1);
 
-namespace ElasticOTelTests\substitutes;
+namespace Elastic\OTel\HttpTransport;
 
-use PHPUnit\Framework\AssertionFailedError;
+/**
+ * This function is implemented by the extension
+ *
+ * @param array<string,string|string[]> $headers
+ */
+function initialize(
+    string $endpoint,
+    string $contentType,
+    array $headers,
+    float $timeout,
+    int $retryDelay,
+    int $maxRetries,
+): void {
+}
 
-final class PHPUnitFrameworkAssertionFailedErrorAutoloader
+/**
+ * This function is implemented by the extension
+ */
+function enqueue(string $endpoint, string $payload): void
 {
-    private static bool $isClassLoaded = false;
-
-    public static function register(): void
-    {
-        spl_autoload_register(
-            static function (string $fqClassName): void {
-                // Example of $fqClassName: PHPUnit\Framework\AssertionFailedError
-
-                if (self::$isClassLoaded || $fqClassName !== AssertionFailedError::class) {
-                    return;
-                }
-
-                require __DIR__ . '/patched/AssertionFailedError.php';
-
-                self::$isClassLoaded = true;
-            },
-            prepend: true
-        );
-    }
 }

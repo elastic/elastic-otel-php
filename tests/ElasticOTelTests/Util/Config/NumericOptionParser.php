@@ -37,10 +37,8 @@ use Override;
 abstract class NumericOptionParser extends OptionParser
 {
     /**
-     * @param ?TParsedValue $minValidValue
-     * @param ?TParsedValue $maxValidValue
-     *
-     * @noinspection PhpDocSignatureInspection
+     * @phpstan-param ?TParsedValue $minValidValue
+     * @phpstan-param ?TParsedValue $maxValidValue
      */
     public function __construct(
         private readonly null|int|float $minValidValue,

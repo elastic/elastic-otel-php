@@ -51,10 +51,8 @@ final class LimitedSizeCache
     }
 
     /**
-     * @param TKey   $key
-     * @param TValue $value
-     *
-     * @noinspection PhpDocSignatureInspection
+     * @phpstan-param TKey   $key
+     * @phpstan-param TValue $value
      */
     public function put(string|int $key, mixed $value): void
     {
@@ -72,12 +70,10 @@ final class LimitedSizeCache
     }
 
     /**
-     * @param TKey                   $key
-     * @param callable(TKey): TValue $computeValue
+     * @phpstan-param TKey                   $key
+     * @phpstan-param callable(TKey): TValue $computeValue
      *
      * @return TValue
-     *
-     * @noinspection PhpDocSignatureInspection
      */
     public function getIfCachedElseCompute(string|int $key, callable $computeValue): mixed
     {

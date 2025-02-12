@@ -80,11 +80,9 @@ final class ArrayUtilForTests
      * @template TKey of array-key
      * @template TValue
      *
-     * @param TKey                 $key
-     * @param TValue               $value
-     * @param array<TKey, TValue> &$result
-     *
-     * @noinspection PhpDocSignatureInspection
+     * @phpstan-param TKey                 $key
+     * @phpstan-param TValue               $value
+     * @phpstan-param array<TKey, TValue> &$result
      */
     public static function addAssertingKeyNew(string|int $key, mixed $value, /* in,out */ array &$result): void
     {
@@ -186,10 +184,10 @@ final class ArrayUtilForTests
     /**
      * @template TKey of array-key
      * *
-     * @param array<TKey, mixed> &$removeFromArray
-     * @param TKey                $keyToRemove
+     * @phpstan-param array<TKey, mixed> &$removeFromArray
+     * @phpstan-param TKey                $keyToRemove
      *
-     * @noinspection PhpUnused, PhpDocSignatureInspection
+     * @noinspection PhpUnused
      */
     public static function removeByKey(/* in,out */ array &$removeFromArray, string|int $keyToRemove): bool
     {

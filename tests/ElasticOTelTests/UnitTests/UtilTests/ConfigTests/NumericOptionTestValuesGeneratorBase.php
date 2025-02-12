@@ -69,11 +69,7 @@ abstract class NumericOptionTestValuesGeneratorBase implements OptionTestValuesG
     }
 
     /**
-     * @param T $value
-     *
-     * @return bool
-     *
-     * @noinspection PhpDocSignatureInspection
+     * @phpstan-param T $value
      */
     public function isInValidRange(float|int $value): bool
     {
@@ -153,21 +149,17 @@ abstract class NumericOptionTestValuesGeneratorBase implements OptionTestValuesG
     }
 
     /**
-     * @param  T $min
-     * @param  T $max
+     * @phpstan-param T $min
+     * @phpstan-param T $max
      *
      * @return T
-     *
-     * @noinspection PhpDocSignatureInspection
      */
     abstract protected static function randomValue(float|int $min, float|int $max);
 
     /**
-     * @param T $value
+     * @phpstan-param T $value
      *
      * @return OptionTestValidValue<T>
-     *
-     * @noinspection PhpDocSignatureInspection
      */
     abstract protected static function createOptionTestValidValue(float|int $value): OptionTestValidValue;
 

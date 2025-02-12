@@ -84,9 +84,7 @@ class ParsedExportedData
     }
 
     /**
-     * @return Span
-     *
-     * @noinspection PhpUnused, PhpDocSignatureIsNotCompleteInspection
+     * @noinspection PhpUnused
      */
     public function singleSpanByName(string $name): Span
     {

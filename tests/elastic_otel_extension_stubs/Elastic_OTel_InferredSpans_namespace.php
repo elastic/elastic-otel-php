@@ -19,33 +19,16 @@
  * under the License.
  */
 
-/** @noinspection PhpIllegalPsrClassPathInspection */
-
 declare(strict_types=1);
 
-namespace ElasticOTelTests\substitutes;
+namespace Elastic\OTel\InferredSpans;
 
-use PHPUnit\Framework\AssertionFailedError;
-
-final class PHPUnitFrameworkAssertionFailedErrorAutoloader
+/**
+ * This function is implemented by the extension
+ *
+ * @noinspection PhpUnusedParameterInspection, SpellCheckingInspection
+ */
+function force_set_object_propety_value(object $object, string $property_name, mixed $value): bool
 {
-    private static bool $isClassLoaded = false;
-
-    public static function register(): void
-    {
-        spl_autoload_register(
-            static function (string $fqClassName): void {
-                // Example of $fqClassName: PHPUnit\Framework\AssertionFailedError
-
-                if (self::$isClassLoaded || $fqClassName !== AssertionFailedError::class) {
-                    return;
-                }
-
-                require __DIR__ . '/patched/AssertionFailedError.php';
-
-                self::$isClassLoaded = true;
-            },
-            prepend: true
-        );
-    }
+    return false;
 }

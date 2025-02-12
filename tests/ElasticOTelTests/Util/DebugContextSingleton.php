@@ -93,9 +93,7 @@ final class DebugContextSingleton implements LoggableInterface
     }
 
     /**
-     * @param ConfigOptionName $optionName
-     *
-     * @noinspection PhpDocSignatureInspection
+     * @phpstan-param ConfigOptionName $optionName
      */
     public function readWriteConfigOption(string $optionName, ?bool $newValue = null): bool
     {

@@ -19,6 +19,8 @@
  * under the License.
  */
 
+/** @noinspection PhpIllegalPsrClassPathInspection */
+
 declare(strict_types=1);
 
 namespace Elastic\OTel\Log;
@@ -41,25 +43,20 @@ class ElasticLogWriter implements LogWriterInterface
      */
     public function write(mixed $level, string $message, array $context): void
     {
-        $edotLevel = is_string($level) ? Level::getFromPsrLevel($level) : Level::OFF;
+        $edotLevel = is_string($level) ? (LogLevel::fromPsrLevel($level) ?? LogLevel::off) : LogLevel::off;
 
         $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 4)[3];
 
         $func = ($caller['class'] ?? '') . ($caller['type'] ?? '') . $caller['function'];
         $logContext = $this->attachLogContext ? (' context: ' . var_export($context, true)) : '';
 
-        /**
-         * elastic_otel_* functions are provided by the extension
-         *
-         * @noinspection PhpFullyQualifiedNameUsageInspection, PhpUndefinedFunctionInspection
-         */
-        \elastic_otel_log_feature( // @phpstan-ignore function.notFound
-            0 /* isForced */,
-            $edotLevel,
+        elastic_otel_log_feature(
+            0 /* <- isForced */,
+            $edotLevel->value,
             LogFeature::OTEL,
-            'OpenTelemetry',
+            'OpenTelemetry' /* <- category */,
             $caller['file'] ?? '',
-            $caller['line'] ?? '',
+            $caller['line'] ?? null,
             $func,
             $message . $logContext
         );
