@@ -21,6 +21,7 @@
 
 #include "LogLevel.h"
 #include <chrono>
+#include <functional>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -59,6 +60,11 @@ public:
     virtual bool isScriptRestricedByOpcacheAPI() const = 0;
     virtual bool detectOpcacheRestartPending() const = 0;
     virtual bool isOpcacheEnabled() const = 0;
+
+    virtual void getCompiledFiles(std::function<void(std::string_view)> recordFile) const = 0;
+    virtual std::pair<std::size_t, std::size_t> getNewlyCompiledFiles(std::function<void(std::string_view)> recordFile, std::size_t lastClassIndex, std::size_t lastFunctionIndex) const = 0;
+
+    virtual std::pair<int, int> getPhpVersionMajorMinor() const = 0;
 };
 
 }

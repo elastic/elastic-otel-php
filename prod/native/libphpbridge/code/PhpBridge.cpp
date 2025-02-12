@@ -27,6 +27,7 @@
 #include <Zend/zend_alloc.h>
 #include <Zend/zend_exceptions.h>
 #include <Zend/zend_globals.h>
+#include <Zend/zend_hash.h>
 #include <Zend/zend_stream.h>
 #include <Zend/zend_types.h>
 
@@ -401,6 +402,61 @@ void getCurrentException(zval *zv, zend_object *exception) {
     } else {
         ZVAL_NULL(zv);
     }
+}
+
+void PhpBridge::getCompiledFiles(std::function<void(std::string_view)> recordFile) const {
+
+    void *ptr = nullptr;
+    ZEND_HASH_FOREACH_PTR(EG(class_table), ptr) {
+        zend_class_entry *ce = static_cast<zend_class_entry *>(ptr);
+        if (ce && ce->type == ZEND_USER_CLASS) {
+            auto filename = ce->info.user.filename;
+            if (filename) {
+                recordFile(std::string_view(ZSTR_VAL(filename), ZSTR_LEN(filename)));
+            }
+        }
+    }
+    ZEND_HASH_FOREACH_END();
+
+    ZEND_HASH_FOREACH_PTR(EG(function_table), ptr) {
+        zend_function *func = static_cast<zend_function *>(ptr);
+        if (func->type == ZEND_USER_FUNCTION && func->op_array.filename) {
+            recordFile(std::string_view(ZSTR_VAL(func->op_array.filename), ZSTR_LEN(func->op_array.filename)));
+        }
+    }
+    ZEND_HASH_FOREACH_END();
+}
+
+std::pair<std::size_t, std::size_t> PhpBridge::getNewlyCompiledFiles(std::function<void(std::string_view)> recordFile, std::size_t lastClassIndex, std::size_t lastFunctionIndex) const {
+
+    void *ptr = nullptr;
+
+    ZEND_HASH_FOREACH_PTR_FROM(EG(class_table), ptr, lastClassIndex) {
+        lastClassIndex++;
+        zend_class_entry *ce = static_cast<zend_class_entry *>(ptr);
+        if (ce && ce->type == ZEND_USER_CLASS) {
+            auto filename = ce->info.user.filename;
+            if (filename) {
+                recordFile(std::string_view(ZSTR_VAL(filename), ZSTR_LEN(filename)));
+            }
+        }
+    }
+    ZEND_HASH_FOREACH_END();
+
+    ZEND_HASH_FOREACH_PTR_FROM(EG(function_table), ptr, lastFunctionIndex) {
+        lastFunctionIndex++;
+        zend_function *func = static_cast<zend_function *>(ptr);
+        if (func->type == ZEND_USER_FUNCTION && func->op_array.filename) {
+            recordFile(std::string_view(ZSTR_VAL(func->op_array.filename), ZSTR_LEN(func->op_array.filename)));
+        }
+    }
+    ZEND_HASH_FOREACH_END();
+
+    return {lastClassIndex, lastFunctionIndex};
+}
+
+std::pair<int, int> PhpBridge::getPhpVersionMajorMinor() const {
+    return {PHP_MAJOR_VERSION, PHP_MINOR_VERSION};
 }
 
 } // namespace elasticapm::php

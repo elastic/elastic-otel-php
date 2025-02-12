@@ -111,13 +111,37 @@ static void elastic_execute_internal(INTERNAL_FUNCTION_PARAMETERS) {
     ELASTICAPM_G(globals)->inferredSpans_->attachBacktraceIfInterrupted();
 }
 
-void Hooking::replaceHooks(bool enableInferredSpansHooks) {
+static zend_op_array *elastic_compile_file(zend_file_handle *file_handle, int type) {
+    std::string_view file = file_handle->opened_path ? std::string_view(ZSTR_VAL(file_handle->opened_path), ZSTR_LEN(file_handle->opened_path)) : std::string_view(ZSTR_VAL(file_handle->filename), ZSTR_LEN(file_handle->filename));
+
+    if (ELASTICAPM_G(globals)->dependencyAutoLoaderGuard_->shouldDiscardFileCompilation(file)) {
+        return nullptr;
+    }
+
+    zend_try {
+        if (Hooking::getInstance().getOriginalZendCompileFile()) {
+            return Hooking::getInstance().getOriginalZendCompileFile()(file_handle, type);
+        }
+    }
+    zend_catch {
+        ELOGF_DEBUG(ELASTICAPM_G(globals)->logger_, HOOKS, "%s: original call error", __FUNCTION__);
+    }
+    zend_end_try();
+    return nullptr;
+}
+
+void Hooking::replaceHooks(bool enableInferredSpansHooks, bool enableDepenecyAutoloaderGuard) {
     zend_observer_error_register(elastic_observer_error_cb);
 
     if (enableInferredSpansHooks) {
         ELOGF_DEBUG(ELASTICAPM_G(globals)->logger_, HOOKS, "Hooked into zend_execute_internal and zend_interrupt_function");
         zend_execute_internal = elastic_execute_internal;
         zend_interrupt_function = elastic_interrupt_function;
+    }
+
+    if (enableDepenecyAutoloaderGuard) {
+        ELOGF_DEBUG(ELASTICAPM_G(globals)->logger_, HOOKS, "Hooked into zend_compile_file, original ptr: %p, new ptr: %p", zend_compile_file, elastic_compile_file);
+        zend_compile_file = elastic_compile_file;
     }
 }
 

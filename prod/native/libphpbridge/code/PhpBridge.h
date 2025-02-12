@@ -58,6 +58,10 @@ public:
     bool detectOpcacheRestartPending() const final;
     bool isOpcacheEnabled() const final;
 
+    void getCompiledFiles(std::function<void(std::string_view)> recordFile) const final;
+    std::pair<std::size_t, std::size_t> getNewlyCompiledFiles(std::function<void(std::string_view)> recordFile, std::size_t lastClassIndex, std::size_t lastFunctionIndex) const final;
+
+    std::pair<int, int> getPhpVersionMajorMinor() const final;
 
 private:
     std::shared_ptr<elasticapm::php::LoggerInterface> log_;

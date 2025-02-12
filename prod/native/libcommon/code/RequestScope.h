@@ -21,6 +21,7 @@
 
 #include "ConfigurationStorage.h"
 #include "CommonUtils.h"
+#include "DependencyAutoLoaderGuard.h"
 #include "Diagnostics.h"
 #include "InferredSpans.h"
 #include "LoggerInterface.h"
@@ -39,7 +40,7 @@ public:
     using clearHooks_t = std::function<void()>;
     using getPeriodicTaskExecutor_t = std::function<std::shared_ptr<PeriodicTaskExecutor>()>;
 
-    RequestScope(std::shared_ptr<LoggerInterface> log, std::shared_ptr<PhpBridgeInterface> bridge, std::shared_ptr<PhpSapi> sapi, std::shared_ptr<SharedMemoryState> sharedMemory, std::shared_ptr<InferredSpans> inferredSpans, std::shared_ptr<ConfigurationStorage> config, clearHooks_t clearHooks, getPeriodicTaskExecutor_t getPeriodicTaskExecutor) : log_(log), bridge_(std::move(bridge)), sapi_(std::move(sapi)), sharedMemory_(sharedMemory), inferredSpans_(std::move(inferredSpans)), config_(config), clearHooks_(std::move(clearHooks)), getPeriodicTaskExecutor_(std::move(getPeriodicTaskExecutor)) {
+    RequestScope(std::shared_ptr<LoggerInterface> log, std::shared_ptr<PhpBridgeInterface> bridge, std::shared_ptr<PhpSapi> sapi, std::shared_ptr<SharedMemoryState> sharedMemory, std::shared_ptr<DependencyAutoLoaderGuard> dependencyGuard, std::shared_ptr<InferredSpans> inferredSpans, std::shared_ptr<ConfigurationStorage> config, clearHooks_t clearHooks, getPeriodicTaskExecutor_t getPeriodicTaskExecutor) : log_(log), bridge_(std::move(bridge)), sapi_(std::move(sapi)), sharedMemory_(sharedMemory), dependencyGuard_(dependencyGuard), inferredSpans_(std::move(inferredSpans)), config_(config), clearHooks_(std::move(clearHooks)), getPeriodicTaskExecutor_(std::move(getPeriodicTaskExecutor)) {
     }
 
     void onRequestInit() {
@@ -61,11 +62,17 @@ public:
 
         requestCounter_++;
 
+        if (requestCounter_ == 1) {
+            dependencyGuard_->setBootstrapPath((*config_)->bootstrap_php_part_file);
+        }
+
         auto requestStartTime = std::chrono::system_clock::now();
 
         bridge_->enableAccessToServerGlobal();
 
         preloadDetected_ = requestCounter_ == 1 ? bridge_->detectOpcachePreload() : false;
+
+        dependencyGuard_->onRequestInit();
 
         if (requestCounter_ == 1 && preloadDetected_) {
             ELOGF_DEBUG(log_, REQUEST, "opcache.preload request detected on init");
@@ -134,6 +141,7 @@ public:
     void onRequestPostDeactivate() {
         ELOGF_DEBUG(log_, REQUEST, "%s", __FUNCTION__);
 
+        dependencyGuard_->onRequestShutdown();
         resetRequest();
 
         if (!bootstrapSuccessfull_) {
@@ -177,6 +185,7 @@ private:
     std::shared_ptr<PhpBridgeInterface> bridge_;
     std::shared_ptr<PhpSapi> sapi_;
     std::shared_ptr<SharedMemoryState> sharedMemory_;
+    std::shared_ptr<DependencyAutoLoaderGuard> dependencyGuard_;
     std::shared_ptr<InferredSpans> inferredSpans_;
     std::shared_ptr<ConfigurationStorage> config_;
     clearHooks_t clearHooks_;

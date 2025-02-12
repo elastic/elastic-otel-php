@@ -31,6 +31,7 @@
 #include "InstrumentedFunctionHooksStorage.h"
 #include "CommonUtils.h"
 #include "transport/HttpTransportAsync.h"
+#include "DependencyAutoLoaderGuard.h"
 
 #include "LogFeature.h"
 #include <signal.h>
@@ -49,13 +50,14 @@ AgentGlobals::AgentGlobals(std::shared_ptr<LoggerInterface> logger,
     config_(std::make_shared<elasticapm::php::ConfigurationStorage>(std::move(updateConfigurationSnapshot))),
     logger_(std::move(logger)),
     bridge_(std::move(bridge)),
+    dependencyAutoLoaderGuard_(std::make_shared<DependencyAutoLoaderGuard>(bridge_, logger_)),
     hooksStorage_(std::move(hooksStorage)),
     sapi_(std::make_shared<elasticapm::php::PhpSapi>(bridge_->getPhpSapiName())),
     inferredSpans_(std::move(inferredSpans)),
     periodicTaskExecutor_(),
     httpTransportAsync_(std::make_unique<elasticapm::php::transport::HttpTransportAsync<>>(logger_, config_)),
     sharedMemory_(std::make_shared<elasticapm::php::SharedMemoryState>()),
-    requestScope_(std::make_shared<elasticapm::php::RequestScope>(logger_, bridge_, sapi_, sharedMemory_, inferredSpans_, config_, [hs = hooksStorage_]() { hs->clear(); }, [this]() { return getPeriodicTaskExecutor();})),
+    requestScope_(std::make_shared<elasticapm::php::RequestScope>(logger_, bridge_, sapi_, sharedMemory_, dependencyAutoLoaderGuard_, inferredSpans_, config_, [hs = hooksStorage_]() { hs->clear(); }, [this]() { return getPeriodicTaskExecutor();})),
     logSinkStdErr_(std::move(logSinkStdErr)),
     logSinkSysLog_(std::move(logSinkSysLog)),
     logSinkFile_(std::move(logSinkFile))

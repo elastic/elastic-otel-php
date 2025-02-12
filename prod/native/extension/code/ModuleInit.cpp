@@ -85,7 +85,7 @@ void elasticApmModuleInit(int moduleType, int moduleNumber) {
 
     ELOGF_DEBUG(globals->logger_, MODULE, "MINIT Replacing hooks");
     elasticapm::php::Hooking::getInstance().fetchOriginalHooks();
-    elasticapm::php::Hooking::getInstance().replaceHooks(globals->config_->get().inferred_spans_enabled);
+    elasticapm::php::Hooking::getInstance().replaceHooks(globals->config_->get().inferred_spans_enabled, globals->config_->get().dependency_autoloader_guard_enabled);
 
     zend_observer_activate();
     zend_observer_fcall_register(elasticapm::php::elasticRegisterObserver);
