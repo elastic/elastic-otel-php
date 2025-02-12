@@ -13,7 +13,7 @@ jobs:
   generate-php-versions:
     uses: ./.github/workflows/generate-php-versions.yml
 
-  static-check:
+  static-check-and-unit-tests:
     runs-on: ubuntu-latest
     needs: generate-php-versions
     timeout-minutes: 30
