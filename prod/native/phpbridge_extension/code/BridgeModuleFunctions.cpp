@@ -350,6 +350,39 @@ PHP_FUNCTION(getCurrentException) {
     RETURN_COPY(zv.get());
 }
 
+PHP_FUNCTION(getCompiledFiles) {
+    BRIDGE_G(globals)->bridge.getCompiledFiles([](std::string_view file) { BRIDGE_G(globals)->logger->printf(LogLevel::logLevel_info, PRsv, PRsvArg(file)); });
+    RETURN_NULL();
+}
+
+PHP_FUNCTION(getNewlyCompiledFiles) {
+    long lastClass = 0;
+    long lastFunction = 0;
+
+    ZEND_PARSE_PARAMETERS_START(2, 2)
+    Z_PARAM_LONG(lastClass)
+    Z_PARAM_LONG(lastFunction)
+    ZEND_PARSE_PARAMETERS_END();
+
+    auto [retLastClass, retLastFunc] = BRIDGE_G(globals)->bridge.getNewlyCompiledFiles([](std::string_view file) { BRIDGE_G(globals)->logger->printf(LogLevel::logLevel_info, PRsv, PRsvArg(file)); }, lastClass, lastFunction);
+
+    zval zlastClass, zlastFunc;
+    ZVAL_LONG(&zlastClass, retLastClass);
+    ZVAL_LONG(&zlastFunc, retLastFunc);
+
+    RETURN_ARR(zend_new_pair(&zlastClass, &zlastFunc));
+}
+
+PHP_FUNCTION(getPhpVersionMajorMinor) {
+    auto [major, minor] = BRIDGE_G(globals)->bridge.getPhpVersionMajorMinor();
+
+    zval zMajor, zMinor;
+    ZVAL_LONG(&zMajor, major);
+    ZVAL_LONG(&zMinor, minor);
+
+    RETURN_ARR(zend_new_pair(&zMajor, &zMinor));
+}
+
 ZEND_BEGIN_ARG_INFO(no_paramters_arginfo, 0)
 ZEND_END_ARG_INFO()
 
@@ -376,6 +409,10 @@ const zend_function_entry phpbridge_functions[] = {
     PHP_FE( getScopeNameOrThis, no_paramters_arginfo )
     PHP_FE( getExceptionName, no_paramters_arginfo )
     PHP_FE( getCurrentException, no_paramters_arginfo )
+
+    PHP_FE( getCompiledFiles, no_paramters_arginfo )
+    PHP_FE( getNewlyCompiledFiles, no_paramters_arginfo )
+    PHP_FE( getPhpVersionMajorMinor, no_paramters_arginfo )
 
     PHP_FE_END
 };
