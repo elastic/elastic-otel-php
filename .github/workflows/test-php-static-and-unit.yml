@@ -1,6 +1,6 @@
 ---
 
-name: php-static-check-and-unit-tests
+name: test-php-static-and-unit
 
 on:
   workflow_call: ~
@@ -24,5 +24,5 @@ jobs:
       PHP_VERSION: ${{ matrix.php-version }}
     steps:
       - uses: actions/checkout@v4
-      - name: Invoke php_static_check_and_unit_tests.sh
-        run: ./tools/build/php_static_check_and_unit_tests.sh --php_versions "${PHP_VERSION}"
+      - name: Invoke test_php_static_and_unit.sh
+        run: ./tools/build/test_php_static_and_unit.sh --php_versions "${PHP_VERSION}"
