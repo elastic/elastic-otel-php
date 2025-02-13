@@ -33,24 +33,15 @@ final class WildcardMatcher
     private const CASE_SENSITIVE_PREFIX = '(?-i)';
     private const WILDCARD = '*';
 
-    /** @var int */
-    private static $wildcardLen;
-
-    /** @var bool */
-    private $isCaseSensitive;
-
-    /** @var bool */
-    private $startsWithWildcard;
-
-    /** @var bool */
-    private $endsWithWildcard;
-
+    private static int $wildcardLen;
+    private bool $isCaseSensitive;
+    private bool $startsWithWildcard;
+    private bool $endsWithWildcard;
     /** @var string[] */
-    private $literalParts;
+    private array $literalParts;
 
     public function __construct(string $expr)
     {
-        /** @phpstan-ignore-next-line */
         if (!isset(self::$wildcardLen)) {
             self::$wildcardLen = strlen(self::WILDCARD);
         }
@@ -75,21 +66,13 @@ final class WildcardMatcher
             $lastPartWasWildcard = false;
             $literalPartEndPos = ($nextWildcardPos === false) ? $exprLen : $nextWildcardPos;
             $literalPartLen = $literalPartEndPos - $exprPos;
-            $this->literalParts[] = substr($expr, /* offset */ $exprPos, /* length */ $literalPartLen);
+            $this->literalParts[] = substr($expr, offset: $exprPos, length: $literalPartLen);
             $exprPos += $literalPartLen;
         }
         $this->endsWithWildcard = $lastPartWasWildcard;
     }
 
-    /**
-     * @param string $haystack
-     * @param string $needle
-     * @param int    $offset
-     * @param bool   $isCaseSensitive
-     *
-     * @return false|int
-     */
-    private static function findSubString(string $haystack, string $needle, int $offset, bool $isCaseSensitive)
+    private static function findSubString(string $haystack, string $needle, int $offset, bool $isCaseSensitive): false|int
     {
         return $isCaseSensitive ? strpos($haystack, $needle, $offset) : stripos($haystack, $needle, $offset);
     }

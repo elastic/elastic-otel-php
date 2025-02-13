@@ -165,13 +165,16 @@ protected:
     bool bootstrapPHPSideInstrumentation(std::chrono::system_clock::time_point requestStartTime) {
         using namespace std::string_view_literals;
         try {
+			ELOGF_DEBUG(log_, REQUEST, "Loading bootstrap_php_part_file: '%s' ...", (*config_)->bootstrap_php_part_file.c_str());
             bridge_->compileAndExecuteFile((*config_)->bootstrap_php_part_file);
+			ELOGF_DEBUG(log_, REQUEST, "Executing entry point in bootstrap_php_part_file: '%s' ...", (*config_)->bootstrap_php_part_file.c_str());
             bridge_->callPHPSideEntryPoint(log_->getMaxLogLevel(), requestStartTime);
         } catch (std::exception const &e) {
             ELOGF_CRITICAL(log_, REQUEST, "Unable to bootstrap PHP-side instrumentation '%s'", e.what());
             return false;
         }
 
+		ELOGF_DEBUG(log_, REQUEST, "Executed entry point in bootstrap_php_part_file: %s", (*config_)->bootstrap_php_part_file.data());
         return true;
     }
 

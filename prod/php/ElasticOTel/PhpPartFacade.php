@@ -19,6 +19,8 @@
  * under the License.
  */
 
+/** @noinspection PhpIllegalPsrClassPathInspection */
+
 declare(strict_types=1);
 
 namespace Elastic\OTel;
@@ -28,6 +30,7 @@ use Elastic\OTel\InferredSpans\InferredSpans;
 use Elastic\OTel\Log\ElasticLogWriter;
 use Elastic\OTel\Util\HiddenConstructorTrait;
 use OpenTelemetry\API\Globals;
+use OpenTelemetry\SDK\Registry;
 use OpenTelemetry\SDK\SdkAutoloader;
 use OpenTelemetry\API\Trace\Span;
 use OpenTelemetry\API\Trace\SpanKind;
@@ -38,14 +41,14 @@ use OpenTelemetry\SemConv\Version;
 use RuntimeException;
 use Throwable;
 
+use function elastic_otel_get_config_option_by_name;
+
 /**
  * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
  *
  * @internal
  *
  * Called by the extension
- *
- * @noinspection PhpUnused, PhpMultipleClassDeclarationsInspection
  */
 final class PhpPartFacade
 {
@@ -54,9 +57,25 @@ final class PhpPartFacade
      */
     use HiddenConstructorTrait;
 
+    public static bool $wasBootstrapCalled = false;
+
     private static ?self $singletonInstance = null;
     private static bool $rootSpanEnded = false;
     private ?InferredSpans $inferredSpans = null;
+
+    public const CONFIG_ENV_VAR_NAME_DEV_INTERNAL_MODE_IS_DEV = 'ELASTIC_OTEL_PHP_DEV_INTERNAL_MODE_IS_DEV';
+
+    /**
+     * We need to use TELEMETRY_DISTRO_NAME and TELEMETRY_DISTRO_VERSION attribute names before OTel SDK is loaded by composer
+     * so we copy those values to local constants
+     *
+     * @see \OpenTelemetry\SemConv\TraceAttributes::TELEMETRY_DISTRO_NAME
+     * @see \OpenTelemetry\SemConv\TraceAttributes::TELEMETRY_DISTRO_VERSION
+     *
+     * @noinspection PhpUnnecessaryFullyQualifiedNameInspection
+     */
+    public const OTEL_ATTR_NAME_TELEMETRY_DISTRO_NAME = 'telemetry.distro.name';
+    public const OTEL_ATTR_NAME_TELEMETRY_DISTRO_VERSION = 'telemetry.distro.version';
 
     /**
      * Called by the extension
@@ -69,6 +88,8 @@ final class PhpPartFacade
      */
     public static function bootstrap(string $elasticOTelNativePartVersion, int $maxEnabledLogLevel, float $requestInitStartTime): bool
     {
+        self::$wasBootstrapCalled = true;
+
         require __DIR__ . DIRECTORY_SEPARATOR . 'BootstrapStageLogger.php';
 
         BootstrapStageLogger::configure($maxEnabledLogLevel, __DIR__, __NAMESPACE__);
@@ -117,15 +138,11 @@ final class PhpPartFacade
 
             self::$singletonInstance = new self();
 
-            /**
-             * @noinspection PhpFullyQualifiedNameUsageInspection, PhpUndefinedFunctionInspection
-             * @phpstan-ignore function.notFound
-             */
-            if (\elastic_otel_get_config_option_by_name('inferred_spans_enabled')) {
+            if (elastic_otel_get_config_option_by_name('inferred_spans_enabled')) {
                 self::$singletonInstance->inferredSpans = new InferredSpans(
-                    (bool)\elastic_otel_get_config_option_by_name('inferred_spans_reduction_enabled'), // @phpstan-ignore-line
-                    (bool)\elastic_otel_get_config_option_by_name('inferred_spans_stacktrace_enabled'), // @phpstan-ignore-line
-                    \elastic_otel_get_config_option_by_name('inferred_spans_min_duration') // @phpstan-ignore-line
+                    (bool)elastic_otel_get_config_option_by_name('inferred_spans_reduction_enabled'),
+                    (bool)elastic_otel_get_config_option_by_name('inferred_spans_stacktrace_enabled'),
+                    elastic_otel_get_config_option_by_name('inferred_spans_min_duration') // @phpstan-ignore argument.type
                 );
             }
         } catch (Throwable $throwable) {
@@ -137,15 +154,20 @@ final class PhpPartFacade
         return true;
     }
 
+    /**
+     * Called by the extension
+     *
+     * @noinspection PhpUnused
+     */
     public static function inferredSpans(int $durationMs, bool $internalFunction): bool
     {
         if (self::$singletonInstance === null) {
-            BootstrapStageLogger::logDebug('Missig facade', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
+            BootstrapStageLogger::logDebug('Missing facade', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
             return true;
         }
 
         if (self::$singletonInstance->inferredSpans === null) {
-            BootstrapStageLogger::logDebug('Missig inferred spans instance', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
+            BootstrapStageLogger::logDebug('Missing inferred spans instance', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
             return true;
         }
         self::$singletonInstance->inferredSpans->captureStackTrace($durationMs, $internalFunction);
@@ -171,7 +193,7 @@ final class PhpPartFacade
 
     private static function isInDevMode(): bool
     {
-        $modeIsDevEnvVarVal = getenv('ELASTIC_OTEL_PHP_DEV_INTERNAL_MODE_IS_DEV');
+        $modeIsDevEnvVarVal = getenv(self::CONFIG_ENV_VAR_NAME_DEV_INTERNAL_MODE_IS_DEV);
         if (is_string($modeIsDevEnvVarVal)) {
             /**
              * @var string[] $trueStringValues
@@ -194,11 +216,17 @@ final class PhpPartFacade
         $envVarValue = (is_string($envVarValueOnEntry) && strlen($envVarValueOnEntry) !== 0) ? ($envVarValueOnEntry . ',') : '';
 
         // https://opentelemetry.io/docs/specs/semconv/resource/#telemetry-distribution-experimental
-        $envVarValue .= 'telemetry.distro.name=elastic,telemetry.distro.version=' . self::buildElasticOTelVersion($elasticOTelNativePartVersion);
+        $envVarValue .=
+            self::OTEL_ATTR_NAME_TELEMETRY_DISTRO_NAME . '=elastic'
+            . ','
+            . self::OTEL_ATTR_NAME_TELEMETRY_DISTRO_VERSION . '=' . self::buildElasticOTelVersion($elasticOTelNativePartVersion);
 
         self::setEnvVar($envVarName, $envVarValue);
     }
 
+    /**
+     * @param non-empty-string $envVarName
+     */
     private static function setEnvVar(string $envVarName, string $envVarValue): void
     {
         if (!putenv($envVarName . '=' . $envVarValue)) {
@@ -214,7 +242,11 @@ final class PhpPartFacade
 
     private static function registerAutoloader(): void
     {
-        $vendorDir = ProdPhpDir::$fullPath . '/vendor' . (self::isInDevMode() ? '' : '_' . PHP_MAJOR_VERSION . PHP_MINOR_VERSION);
+        $vendorDir = ProdPhpDir::$fullPath . DIRECTORY_SEPARATOR . (
+            self::isInDevMode()
+                ? ('..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'vendor')
+                : ('vendor_' . PHP_MAJOR_VERSION . PHP_MINOR_VERSION)
+            );
         $vendorAutoloadPhp = $vendorDir . '/autoload.php';
         if (!file_exists($vendorAutoloadPhp)) {
             throw new RuntimeException("File $vendorAutoloadPhp does not exist");
@@ -227,18 +259,12 @@ final class PhpPartFacade
 
     private static function registerAsyncTransportFactory(): void
     {
-        /**
-         * elastic_otel_* functions are provided by the extension
-         *
-         * @noinspection PhpFullyQualifiedNameUsageInspection, PhpUndefinedFunctionInspection
-         */
-        if (\elastic_otel_get_config_option_by_name('async_transport') === false) { // @phpstan-ignore function.notFound
+        if (elastic_otel_get_config_option_by_name('async_transport') === false) {
             BootstrapStageLogger::logDebug('ELASTIC_OTEL_ASYNC_TRANSPORT set to false', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
             return;
         }
 
-        /** @noinspection PhpFullyQualifiedNameUsageInspection */
-        \OpenTelemetry\SDK\Registry::registerTransportFactory('http', ElasticHttpTransportFactory::class, true);
+        Registry::registerTransportFactory('http', ElasticHttpTransportFactory::class, true);
     }
 
     private static function registerOtelLogWriter(): void
@@ -272,7 +298,13 @@ final class PhpPartFacade
         self::$singletonInstance = null;
     }
 
-    /** @phpstan-ignore-next-line */
+    /**
+     * Called by the extension
+     *
+     * @param array<mixed> $params
+     *
+     * @noinspection PhpUnused, PhpUnusedParameterInspection
+     */
     public static function debugPreHook(mixed $object, array $params, ?string $class, string $function, ?string $filename, ?int $lineno): void
     {
         if (self::$rootSpanEnded) {
@@ -286,22 +318,28 @@ final class PhpPartFacade
         );
 
         $parent = Context::getCurrent();
-        /** @phpstan-ignore-next-line */
-        $span = $tracer->spanBuilder($class ? $class . "::" . $function : $function)
-            ->setSpanKind(SpanKind::KIND_CLIENT)
-            ->setParent($parent)
-            ->setAttribute(TraceAttributes::CODE_NAMESPACE, $class)
-            ->setAttribute(TraceAttributes::CODE_FUNCTION, $function)
-            ->setAttribute(TraceAttributes::CODE_FILEPATH, $filename)
-            ->setAttribute(TraceAttributes::CODE_LINENO, $lineno)
-            ->setAttribute('call.arguments', print_r($params, true))
-            ->startSpan();
+        /** @noinspection PhpDeprecationInspection */
+        $span = $tracer->spanBuilder($class ? $class . "::" . $function : $function) // @phpstan-ignore argument.type
+                       ->setSpanKind(SpanKind::KIND_CLIENT)
+                       ->setParent($parent)
+                       ->setAttribute(TraceAttributes::CODE_NAMESPACE, $class)
+                       ->setAttribute(TraceAttributes::CODE_FUNCTION, $function)
+                       ->setAttribute(TraceAttributes::CODE_FILEPATH, $filename)
+                       ->setAttribute(TraceAttributes::CODE_LINENO, $lineno)
+                       ->setAttribute('call.arguments', print_r($params, true))
+                       ->startSpan();
 
         $context = $span->storeInContext($parent);
         Context::storage()->attach($context);
     }
 
-    /** @phpstan-ignore-next-line */
+    /**
+     * Called by the extension
+     *
+     * @param array<mixed> $params
+     *
+     * @noinspection PhpUnused, PhpUnusedParameterInspection
+     */
     public static function debugPostHook(mixed $object, array $params, mixed $retval, ?Throwable $exception): void
     {
         if (self::$rootSpanEnded) {
@@ -318,6 +356,7 @@ final class PhpPartFacade
         $span->setAttribute('call.return_value', print_r($retval, true));
 
         if ($exception) {
+            /** @noinspection PhpDeprecationInspection */
             $span->recordException($exception, [TraceAttributes::EXCEPTION_ESCAPED => true]);
             $span->setStatus(StatusCode::STATUS_ERROR, $exception->getMessage());
         }

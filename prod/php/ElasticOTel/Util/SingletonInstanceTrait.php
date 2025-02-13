@@ -19,6 +19,8 @@
  * under the License.
  */
 
+/** @noinspection PhpIllegalPsrClassPathInspection */
+
 declare(strict_types=1);
 
 namespace Elastic\OTel\Util;
@@ -40,7 +42,7 @@ trait SingletonInstanceTrait
     public static function singletonInstance(): self
     {
         if (self::$singletonInstance === null) {
-            self::$singletonInstance = new static(); // @phpstan-ignore-line
+            self::$singletonInstance = new static();
         }
         return self::$singletonInstance;
     }

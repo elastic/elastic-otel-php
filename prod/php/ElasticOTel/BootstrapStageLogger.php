@@ -19,11 +19,15 @@
  * under the License.
  */
 
+/** @noinspection PhpIllegalPsrClassPathInspection */
+
 declare(strict_types=1);
 
 namespace Elastic\OTel;
 
 use Throwable;
+
+use function elastic_otel_log_feature;
 
 /**
  * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
@@ -114,7 +118,6 @@ final class BootstrapStageLogger
             . '; maxEnabledLevel: ' . self::levelToString($maxEnabledLevel)
             . '; phpSrcCodePathPrefixToRemove: ' . self::$phpSrcCodePathPrefixToRemove
             . '; classNamePrefixToRemove: ' . self::$classNamePrefixToRemove
-            . '; maxEnabledLevel: ' . self::levelToString($maxEnabledLevel)
             . '; pid: ' . self::nullableToLog(self::$pid),
             __FILE__,
             __LINE__,
@@ -235,12 +238,7 @@ final class BootstrapStageLogger
             return;
         }
 
-        /**
-         * elastic_otel_* functions are provided by the extension
-         *
-         * @noinspection PhpFullyQualifiedNameUsageInspection, PhpUndefinedFunctionInspection
-         */
-        \elastic_otel_log_feature( // @phpstan-ignore function.notFound
+        elastic_otel_log_feature(
             0 /* $isForced */,
             $statementLevel,
             Log\LogFeature::BOOTSTRAP,

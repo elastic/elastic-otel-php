@@ -28,4 +28,9 @@
 
     <exclude-pattern>*/prod/php/ElasticOTel/Log/LogFeature.php</exclude-pattern>
     <exclude-pattern>*/prod/php/ElasticOTel/PhpPartVersion.php</exclude-pattern>
+
+    <exclude-pattern>*/tests/polyfills/AllowDynamicProperties.php</exclude-pattern>
+    <exclude-pattern>*/tests/polyfills/Override.php</exclude-pattern>
+
+    <exclude-pattern>*/tests/substitutes/*/original/*</exclude-pattern>
 </ruleset>

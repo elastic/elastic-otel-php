@@ -60,7 +60,7 @@ struct ConfigurationSnapshot {
     LogLevel ELASTIC_OTEL_CFG_OPT_NAME_LOG_LEVEL = LogLevel::logLevel_off;
     LogLevel ELASTIC_OTEL_CFG_OPT_NAME_LOG_LEVEL_FILE = LogLevel::logLevel_off;
     LogLevel ELASTIC_OTEL_CFG_OPT_NAME_LOG_LEVEL_STDERR = LogLevel::logLevel_off;
-    LogLevel ELASTIC_OTEL_CFG_OPT_NAME_LOG_LEVEL_SYSLOG = LogLevel::logLevel_off;
+    LogLevel ELASTIC_OTEL_CFG_OPT_NAME_LOG_LEVEL_SYSLOG = LogLevel::logLevel_info;
     std::string ELASTIC_OTEL_CFG_OPT_NAME_LOG_FEATURES;
     std::string ELASTIC_OTEL_CFG_OPT_NAME_DEBUG_DIAGNOSTICS_FILE;
     bool ELASTIC_OTEL_CFG_OPT_NAME_VERIFY_SERVER_CERT = true;

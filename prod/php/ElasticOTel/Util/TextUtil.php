@@ -19,6 +19,8 @@
  * under the License.
  */
 
+/** @noinspection PhpIllegalPsrClassPathInspection */
+
 declare(strict_types=1);
 
 namespace Elastic\OTel\Util;
@@ -27,6 +29,7 @@ final class TextUtil
 {
     use StaticClassTrait;
 
+    /** @noinspection PhpUnused */
     public static function ensureMaxLength(string $text, int $maxLength): string
     {
         if (strlen($text) <= $maxLength) {
@@ -43,6 +46,7 @@ final class TextUtil
         return $str === '';
     }
 
+    /** @noinspection PhpUnused */
     public static function isNullOrEmptyString(?string $str): bool
     {
         return $str === null || self::isEmptyString($str);
@@ -184,7 +188,6 @@ final class TextUtil
             return true;
         }
 
-        /** @noinspection PhpStrictComparisonWithOperandsOfDifferentTypesInspection */
         return substr_compare(
             $text /* <- haystack */,
             $prefix /* <- needle */,
@@ -213,10 +216,5 @@ final class TextUtil
             $suffixLen /* <- length */,
             !$isCaseSensitive /* <- case_insensitivity */
         ) == 0;
-    }
-
-    public static function contains(string $haystack, string $needle): bool
-    {
-        return strpos($haystack, $needle) !== false;
     }
 }

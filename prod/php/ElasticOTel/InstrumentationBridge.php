@@ -24,14 +24,24 @@ declare(strict_types=1);
 namespace Elastic\OTel;
 
 use Closure;
+use Elastic\OTel\Log\LogLevel;
 use Throwable;
 use Elastic\OTel\Util\SingletonInstanceTrait;
+
+use function elastic_otel_get_config_option_by_name;
+use function elastic_otel_hook;
+use function elastic_otel_log_feature;
 
 /**
  * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
  *
  * @internal
  *
+ * @phpstan-type PreHook Closure(?object $thisObj, array<mixed> $params, string $class, string $function, ?string $filename, ?int $lineno): (void|array<mixed>)
+ *                  return value is modified parameters
+ *
+ * @phpstan-type PostHook Closure(?object $thisObj, array<mixed> $params, mixed $returnValue, ?Throwable $throwable): mixed
+ *                  return value is modified return value
  */
 final class InstrumentationBridge
 {
@@ -49,15 +59,19 @@ final class InstrumentationBridge
 
     public function bootstrap(): void
     {
-        self::elasticOTelHook(null, 'spl_autoload_register', null, Closure::fromCallable([$this, 'retryDelayedHooks']));
+        self::elasticOTelHook(null, 'spl_autoload_register', null, $this->retryDelayedHooks(...));
 
         require ProdPhpDir::$fullPath . DIRECTORY_SEPARATOR . 'OpenTelemetry' . DIRECTORY_SEPARATOR . 'Instrumentation' . DIRECTORY_SEPARATOR . 'hook.php';
 
-        $this->enableDebugHooks = (bool)\elastic_otel_get_config_option_by_name('debug_php_hooks_enabled'); // @phpstan-ignore function.notFound
+        $this->enableDebugHooks = (bool)elastic_otel_get_config_option_by_name('debug_php_hooks_enabled');
 
         BootstrapStageLogger::logDebug('Finished successfully', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
     }
 
+    /**
+     * @phpstan-param PreHook  $pre
+     * @phpstan-param PostHook $post
+     */
     public function hook(?string $class, string $function, ?Closure $pre = null, ?Closure $post = null): bool
     {
         BootstrapStageLogger::logTrace('Entered. class: ' . $class .  ' function: ' . $function, __FILE__, __LINE__, __CLASS__, __FUNCTION__);
@@ -76,6 +90,10 @@ final class InstrumentationBridge
         return $success;
     }
 
+    /**
+     * @phpstan-param PreHook  $pre
+     * @phpstan-param PostHook $post
+     */
     private function addToDelayedHooks(string $class, string $function, ?Closure $pre = null, ?Closure $post = null): void
     {
         BootstrapStageLogger::logTrace('Adding to delayed hooks. class: ' . $class . ', function: ' . $function, __FILE__, __LINE__, __CLASS__, __FUNCTION__);
@@ -83,17 +101,17 @@ final class InstrumentationBridge
         $this->delayedHooks[] = [$class, $function, $pre, $post];
     }
 
+    /**
+     * @phpstan-param PreHook  $pre
+     * @phpstan-param PostHook $post
+     */
     private static function elasticOTelHook(?string $class, string $function, ?Closure $pre = null, ?Closure $post = null): void
     {
         $dbgClassAsString = BootstrapStageLogger::nullableToLog($class);
         BootstrapStageLogger::logTrace('Entered. class: ' . $dbgClassAsString . ', function: ' . $function, __FILE__, __LINE__, __CLASS__, __FUNCTION__);
 
-        /**
-         * \elastic_otel_* functions are provided by the extension
-         *
-         * @noinspection PhpFullyQualifiedNameUsageInspection, PhpUndefinedFunctionInspection
-         */
-        $retVal = \elastic_otel_hook($class, $function, $pre, $post); // @phpstan-ignore function.notFound
+        // elastic_otel_hook function is provided by the extension
+        $retVal = elastic_otel_hook($class, $function, $pre, $post);
         if ($retVal) {
             BootstrapStageLogger::logTrace('Successfully hooked. class: ' . $dbgClassAsString . ', function: ' . $function, __FILE__, __LINE__, __CLASS__, __FUNCTION__);
             return;
@@ -102,6 +120,10 @@ final class InstrumentationBridge
         BootstrapStageLogger::logDebug('elastic_otel_hook returned false: ' . $dbgClassAsString . ', function: ' . $function, __FILE__, __LINE__, __CLASS__, __FUNCTION__);
     }
 
+    /**
+     * @phpstan-param PreHook  $pre
+     * @phpstan-param PostHook $post
+     */
     private static function elasticOTelHookNoThrow(?string $class, string $function, ?Closure $pre = null, ?Closure $post = null): bool
     {
         try {
@@ -151,38 +173,33 @@ final class InstrumentationBridge
         }
         $func .= $function . '\'';
 
-        self::elasticOTelHookNoThrow($class, $function, function () use ($func) {
-          /**
-             * elastic_otel_* functions are provided by the extension
-             *
-             * @noinspection PhpFullyQualifiedNameUsageInspection, PhpUndefinedFunctionInspection
-             */
-            \elastic_otel_log_feature( // @phpstan-ignore function.notFound
-                0,
-                Log\Level::DEBUG,
-                Log\LogFeature::INSTRUMENTATION,
-                'PRE HOOK',
-                '',
-                null,
-                $func,
-                ('pre-hook data: ' . var_export(func_get_args(), true))
-            );
-        }, function () use ($func) {
-            /**
-             * elastic_otel_* functions are provided by the extension
-             *
-             * @noinspection PhpFullyQualifiedNameUsageInspection, PhpUndefinedFunctionInspection
-             */
-            \elastic_otel_log_feature( // @phpstan-ignore function.notFound
-                0,
-                Log\Level::DEBUG,
-                Log\LogFeature::INSTRUMENTATION,
-                'POST HOOK',
-                '',
-                null,
-                $func,
-                ('post-hook data: ' . var_export(func_get_args(), true))
-            );
-        });
+        self::elasticOTelHookNoThrow(
+            $class,
+            $function,
+            function () use ($func) {
+                elastic_otel_log_feature(
+                    0,
+                    LogLevel::debug->value,
+                    Log\LogFeature::INSTRUMENTATION,
+                    'PRE HOOK',
+                    '',
+                    null,
+                    $func,
+                    ('pre-hook data: ' . var_export(func_get_args(), true))
+                );
+            },
+            function () use ($func) {
+                elastic_otel_log_feature(
+                    0,
+                    LogLevel::debug->value,
+                    Log\LogFeature::INSTRUMENTATION,
+                    'POST HOOK',
+                    '',
+                    null,
+                    $func,
+                    ('post-hook data: ' . var_export(func_get_args(), true))
+                );
+            }
+        );
     }
 }

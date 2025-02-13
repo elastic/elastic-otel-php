@@ -1,5 +1,5 @@
 includes:
-    - vendor/phpstan/phpstan-phpunit/extension.neon
+    - ./vendor/phpstan/phpstan-phpunit/extension.neon
 
 parameters:
     bootstrapFiles:
@@ -8,3 +8,6 @@ parameters:
     level: max
 
     reportUnmatchedIgnoredErrors: true
+
+    excludePaths:
+        - ./tests/substitutes/*/original/*

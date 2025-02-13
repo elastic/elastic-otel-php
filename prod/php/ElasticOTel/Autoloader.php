@@ -19,6 +19,8 @@
  * under the License.
  */
 
+/** @noinspection PhpIllegalPsrClassPathInspection */
+
 declare(strict_types=1);
 
 namespace Elastic\OTel;
@@ -32,11 +34,8 @@ final class Autoloader
 {
     private const AUTOLOAD_FQ_CLASS_NAME_PREFIX = 'Elastic\\OTel\\';
 
-    /** @var int */
-    private static $autoloadFqClassNamePrefixLength;
-
-    /** @var string */
-    private static $srcRootDir;
+    private static int $autoloadFqClassNamePrefixLength;
+    private static string $srcRootDir;
 
     public static function register(string $rootDir): void
     {
@@ -54,7 +53,7 @@ final class Autoloader
 
     public static function autoloadCodeForClass(string $fqClassName): void
     {
-        // Example of $fqClassName: Elastic\Apm\Impl\Util\Assert
+        // Example of $fqClassName: Elastic\OTel\Autoloader
 
         BootstrapStageLogger::logTrace("Entered with fqClassName: `$fqClassName'", __FILE__, __LINE__, __CLASS__, __FUNCTION__);
 
