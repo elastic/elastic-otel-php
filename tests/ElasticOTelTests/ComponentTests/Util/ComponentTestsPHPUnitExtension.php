@@ -84,16 +84,4 @@ final class ComponentTestsPHPUnitExtension extends PHPUnitExtensionBase
     {
         return LogLevel::info;
     }
-
-    #[Override]
-    protected function logLevelForBeforeTestCaseIsRun(): LogLevel
-    {
-        return LogLevel::info;
-    }
-
-    #[Override]
-    protected function logLevelForAfterTestCasePassed(): LogLevel
-    {
-        return LogLevel::info;
-    }
 }

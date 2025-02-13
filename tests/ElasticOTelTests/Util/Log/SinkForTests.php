@@ -34,25 +34,9 @@ use ElasticOTelTests\Util\TextUtilForTests;
  */
 final class SinkForTests extends SinkBase
 {
-    private static ?bool $isStderrDefined = null;
-
     public function __construct(
         private readonly string $dbgProcessName
     ) {
-    }
-
-    private static function ensureStdErrIsDefined(): bool
-    {
-        if (self::$isStderrDefined === null) {
-            if (defined('STDERR')) {
-                self::$isStderrDefined = true;
-            } else {
-                define('STDERR', fopen('php://stderr', 'w'));
-                self::$isStderrDefined = defined('STDERR');
-            }
-        }
-
-        return self::$isStderrDefined;
     }
 
     protected function consumePreformatted(
@@ -76,10 +60,7 @@ final class SinkForTests extends SinkBase
 
     public static function writeLineToStdErr(string $text): void
     {
-        if (self::ensureStdErrIsDefined()) {
-            fwrite(STDERR, $text . PHP_EOL);
-            fflush(STDERR);
-        }
+        StdError::singletonInstance()->writeLine($text);
     }
 
     private function consumeFormatted(LogLevel $statementLevel, string $statementText): void
