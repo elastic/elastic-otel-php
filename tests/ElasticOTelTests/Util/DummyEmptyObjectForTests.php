@@ -25,29 +25,6 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\Util;
 
-<<<<<<<< HEAD:tests/ElasticOTelTests/Util/DummyEmptyObjectForTests.php
 final class DummyEmptyObjectForTests
 {
-========
-use Elastic\OTel\Util\StaticClassTrait;
-use PHPUnit\Framework\Assert;
-
-final class TestsRootDir
-{
-    use StaticClassTrait;
-
-    private static ?string $fullPath = null;
-
-    public static function setFullPath(string $fullPath): void
-    {
-        Assert::assertNull(self::$fullPath);
-        self::$fullPath = $fullPath;
-    }
-
-    public static function getFullPath(): string
-    {
-        Assert::assertNotNull(self::$fullPath);
-        return self::$fullPath;
-    }
->>>>>>>> main:tests/ElasticOTelTests/TestsRootDir.php
 }
