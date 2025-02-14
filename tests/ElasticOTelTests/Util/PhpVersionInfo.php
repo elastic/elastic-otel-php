@@ -48,6 +48,13 @@ final class PhpVersionInfo
         return new self(AssertEx::stringIsInt($major), AssertEx::stringIsInt($minor));
     }
 
+    public static function fromMajorDotMinor(string $majorDotMinor): self
+    {
+        $versionParts = explode('.', $majorDotMinor);
+        Assert::assertCount(2, $versionParts);
+        return new self(AssertEx::stringIsInt($versionParts[0]), AssertEx::stringIsInt($versionParts[1]));
+    }
+
     /**
      * @return int[]
      */

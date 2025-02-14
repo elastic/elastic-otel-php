@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-set -xe -o pipefail
+set -e -o pipefail
+#set -x
 
 this_script_dir="$( dirname "${BASH_SOURCE[0]}" )"
 this_script_dir="$( realpath "${this_script_dir}" )"
@@ -80,12 +81,12 @@ function unpack_row_optional_parts_to_env_vars () {
     esac
 }
 
-function main () {
+function unpack_row_parts_to_env_vars () {
     #
     # Expected format (see generate_component_tests_matrix.sh)
     #
     #       php_version,package_type,test_app_host_kind_short_name,test_group[,<optional tail>]
-    #       [0]         [1]          [2]                           [3]
+    #       [0]         [1]          [2]                           [3]         [4]
     #
     local matrix_row_as_string="$1"
     if [ -z "${matrix_row_as_string}" ] ; then
@@ -96,31 +97,32 @@ function main () {
     local matrix_row_parts
     IFS=',' read -ra matrix_row_parts <<< "${matrix_row_as_string}"
 
-    local last_mandatory_arg_index=0
-    local php_version=${matrix_row_parts[((last_mandatory_arg_index++))]}
-    assert_value_is_in_array "${php_version}" "${supported_php_versions[@]:?}"
-    export ELASTIC_OTEL_PHP_TESTS_PHP_VERSION="${php_version}"
+    local php_version_dot_separated=${matrix_row_parts[0]}
+    local php_version_no_dot
+    php_version_no_dot=$(convert_dot_separated_to_no_dot_version "${php_version_dot_separated}")
+    assert_value_is_in_array "${php_version_no_dot}" "${supported_php_versions[@]:?}"
+    export ELASTIC_OTEL_PHP_TESTS_PHP_VERSION="${php_version_dot_separated}"
 
-    local package_type=${matrix_row_parts[((last_mandatory_arg_index++))]}
+    local package_type=${matrix_row_parts[1]}
     assert_value_is_in_array "${package_type}" "${supported_package_types[@]:?}"
     export ELASTIC_OTEL_PHP_TESTS_PACKAGE_TYPE="${package_type}"
 
-    local test_app_code_host_kind_short_name=${matrix_row_parts[((last_mandatory_arg_index++))]}
+    local test_app_code_host_kind_short_name=${matrix_row_parts[2]}
     assert_value_is_in_array "${test_app_code_host_kind_short_name}" "${test_app_code_host_kinds_short_names[@]:?}"
     local test_app_code_host_kind
     test_app_code_host_kind=$(convert_test_app_host_kind_short_to_long_name "${test_app_code_host_kind_short_name}")
     export ELASTIC_OTEL_PHP_TESTS_APP_CODE_HOST_KIND="${test_app_code_host_kind}"
 
-    local test_group_short_name=${matrix_row_parts[((last_mandatory_arg_index++))]}
+    local test_group_short_name=${matrix_row_parts[3]}
     assert_value_is_in_array "${test_group_short_name}" "${test_groups_short_names[@]:?}"
     local test_group
     test_group=$(convert_test_group_short_to_long_name "${test_group_short_name}")
     export ELASTIC_OTEL_PHP_TESTS_GROUP="${test_group}"
 
-    for optional_part in "${matrix_row_parts[@]:((last_mandatory_arg_index + 1))}" ; do
+    for optional_part in "${matrix_row_parts[@]:4}" ; do
         IFS='=' read -ra optional_part_key_value <<< "${optional_part}"
         unpack_row_optional_parts_to_env_vars "${optional_part_key_value[0]}" "${optional_part_key_value[1]}"
     done
 }
 
-main "$@"
+unpack_row_parts_to_env_vars "$@"

@@ -31,3 +31,8 @@ convert_no_dot_to_dot_separated_version() {
 
     echo "${no_dot_version:0:1}.${no_dot_version:1:1}"
 }
+
+convert_dot_separated_to_no_dot_version() {
+    local dot_separated_version=${1:?}
+    echo "${dot_separated_version/\./}"
+}

@@ -154,4 +154,14 @@ final class ElasticOTelProjectProperties
         }
         return AssertEx::notNull($result);
     }
+
+    public function isSupportedPhpVersion(PhpVersionInfo $phpVersion): bool
+    {
+        foreach ($this->supportedPhpVersions as $current) {
+            if ($current->isEqual($phpVersion)) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
