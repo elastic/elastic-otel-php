@@ -19,35 +19,24 @@
  * under the License.
  */
 
-/** @noinspection PhpUnused */
-
 declare(strict_types=1);
 
-namespace ElasticOTelTests\Util;
+namespace ElasticOTelTests;
 
-<<<<<<<< HEAD:tests/ElasticOTelTests/Util/DummyEmptyObjectForTests.php
-final class DummyEmptyObjectForTests
-{
-========
 use Elastic\OTel\Util\StaticClassTrait;
-use PHPUnit\Framework\Assert;
+use ElasticOTelTests\Util\FileUtil;
 
-final class TestsRootDir
+final class VendorDir
 {
     use StaticClassTrait;
 
     private static ?string $fullPath = null;
 
-    public static function setFullPath(string $fullPath): void
+    public static function get(): string
     {
-        Assert::assertNull(self::$fullPath);
-        self::$fullPath = $fullPath;
-    }
-
-    public static function getFullPath(): string
-    {
-        Assert::assertNotNull(self::$fullPath);
+        if (self::$fullPath === null) {
+            self::$fullPath = FileUtil::normalizePath(TestsRootDir::getFullPath() . FileUtil::adaptUnixDirectorySeparators('/../vendor'));
+        }
         return self::$fullPath;
     }
->>>>>>>> main:tests/ElasticOTelTests/TestsRootDir.php
 }
