@@ -25,7 +25,7 @@ convert_no_dot_to_dot_separated_version() {
     local no_dot_version_str_len=${#no_dot_version}
 
     if [ "${no_dot_version_str_len}" -ne 2 ]; then
-        echo "Dot version should "
+        echo "Dot version should have length 2"
         exit 1
     fi
 

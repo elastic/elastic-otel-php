@@ -103,6 +103,9 @@ main() {
 
     echo "Dummy log line" > "${logs_path}/dummy.log"
 
+    mkdir -p "${logs_path}/sub_dir"
+    echo "Dummy log line" > "${logs_path}/sub_dir/dummy_in_sub_dir.log"
+
 #    local matrix_row=${1:?}
 
 # TODO: Sergey Kleyman: UNCOMMENT

@@ -22,7 +22,6 @@ jobs:
     timeout-minutes: 300
     strategy:
       fail-fast: false
-      max-parallel: 20
       matrix: ${{ fromJson(needs.generate-component-tests-matrix.outputs.matrix) }}
     env:
       MATRIX_ROW: ${{ matrix.row }}
@@ -35,12 +34,12 @@ jobs:
           path: ${{ env.BUILD_PACKAGES }}
 
       - name: Run component tests
-        continue-on-error: true
+        continue-on-error: false
         run: |
           ./tools/test/test_packages_component_tests_one_matrix_row.sh --matrix_row "${MATRIX_ROW}" --packages_path ${{ env.BUILD_PACKAGES }} --logs_path "build/component_tests_logs"
       - uses: actions/upload-artifact@v4
         if: always()
-        continue-on-error: true
+        continue-on-error: false
         with:
           name: component-tests-${{ matrix.row }}
           path: |
