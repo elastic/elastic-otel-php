@@ -22,7 +22,8 @@ jobs:
     timeout-minutes: 300
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.generate-php-versions.outputs.matrix) }}
+      max-parallel: 20
+      matrix: ${{ fromJson(needs.generate-component-tests-matrix.outputs.matrix) }}
     env:
       MATRIX_ROW: ${{ matrix.row }}
     steps:
