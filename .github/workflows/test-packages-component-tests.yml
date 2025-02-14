@@ -1,0 +1,39 @@
+---
+
+name: test-packages-component-tests
+
+on:
+  workflow_call: ~
+
+permissions:
+  contents: read
+
+env:
+  BUILD_PACKAGES: build/packages
+
+jobs:
+  generate-component-tests-matrix:
+    uses: ./.github/workflows/generate-component-tests-matrix.yml
+
+  test-packages-component-tests:
+    name: test-packages-component-tests
+    runs-on: 'ubuntu-latest'
+    needs: generate-component-tests-matrix
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.generate-php-versions.outputs.matrix) }}
+    env:
+      MATRIX_ROW: ${{ matrix.row }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download package artifacts for Debian AMD64
+        uses: actions/download-artifact@v4
+        with:
+          pattern: packages-linux-x86-64
+          path: ${{ env.BUILD_PACKAGES }}
+
+      - name: Run component tests
+        continue-on-error: true
+        run: |
+          ./tools/test/test_packages_component_tests_one_matrix_row.sh --matrix_row "${MATRIX_ROW}" --packages_path ${{ env.BUILD_PACKAGES }}

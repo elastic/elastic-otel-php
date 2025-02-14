@@ -63,7 +63,7 @@ if [[ -z "$PACKAGE_VERSION" ]] || [[ -z "$BUILD_ARCHITECUTRE" ]] || [[ -z "$PACK
 fi
 
 test_package() {
-    local PHP_VERSION=8.3
+    local PHP_VERSION=8.4
     local PKG_TYPE=$1
     local PKG_FILENAME=$2
     local DOCKER_PLATFORM=$3

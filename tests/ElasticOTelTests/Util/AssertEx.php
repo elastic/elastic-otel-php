@@ -121,6 +121,21 @@ final class AssertEx
     }
 
     /**
+     * @template T
+     *
+     * @param T $actual
+     *
+     * @return T
+     *
+     * @phpstan-assert !empty $actual
+     */
+    public static function notEmpty(mixed $actual, string $message = ''): mixed
+    {
+        Assert::assertNotEmpty($actual, $message);
+        return $actual;
+    }
+
+    /**
      * @param Countable|array<array-key, mixed> $expected
      * @param Countable|array<array-key, mixed> $actual
      */

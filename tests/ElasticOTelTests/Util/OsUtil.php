@@ -21,22 +21,21 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTests;
+namespace ElasticOTelTests\Util;
 
 use Elastic\OTel\Util\StaticClassTrait;
-use ElasticOTelTests\Util\FileUtil;
 
-final class VendorDir
+/**
+ * Code in this file is part of implementation internals and thus it is not covered by the backward compatibility.
+ *
+ * @internal
+ */
+final class OsUtil
 {
     use StaticClassTrait;
 
-    private static ?string $fullPath = null;
-
-    public static function get(): string
+    public static function isWindows(): bool
     {
-        if (self::$fullPath === null) {
-            self::$fullPath = FileUtil::normalizePath(TestsRootDir::getFullPath() . FileUtil::adaptUnixDirectorySeparators('/../vendor'));
-        }
-        return self::$fullPath;
+        return strnatcasecmp(PHP_OS_FAMILY, 'Windows') === 0;
     }
 }

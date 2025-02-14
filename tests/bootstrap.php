@@ -23,7 +23,7 @@
 
 declare(strict_types=1);
 
-use ElasticOTelTests\TestsRootDir;
+use ElasticOTelTests\Util\RepoRootDir;
 use ElasticOTelTests\Util\ExceptionUtil;
 
 // Ensure that composer has installed all dependencies
@@ -41,7 +41,7 @@ require __DIR__ . '/substitutes/load.php';
 
 ExceptionUtil::runCatchLogRethrow(
     function (): void {
-        TestsRootDir::setFullPath(__DIR__);
+        RepoRootDir::setFullPath(__DIR__ . '/..');
 
         require __DIR__ . '/polyfills/load.php';
         require __DIR__ . '/elastic_otel_extension_stubs/load.php';

@@ -345,7 +345,7 @@ final class LoggableToJsonEncodable
                 }
 
                 $propName = $reflectionProperty->name;
-                $propValue = $reflectionProperty->getValue($object);
+                $propValue = $reflectionProperty->isInitialized($object) ? $reflectionProperty->getValue($object) : LogConsts::UNINITIALIZED_PROPERTY_SUBSTITUTE;
                 $nameToValue[$propName] = self::convert($propValue, $depth);
             }
             $currentClass = $currentClass->getParentClass();

@@ -26,7 +26,7 @@ jobs:
   test-sources-license:
     uses: ./.github/workflows/test-sources-license.yml
 
-  test-php-static-check:
+  test-php-static-and-unit:
     uses: ./.github/workflows/test-php-static-and-unit.yml
 
   build-native:
@@ -57,15 +57,20 @@ jobs:
       - build-packages
     uses: ./.github/workflows/test-otel-unit.yml
 
+  test-packages-component-tests:
+    needs:
+      - build-packages
+    uses: ./.github/workflows/test-packages-component-tests.yml
 
   # The very last job to report whether the Workflow passed.
   # This will act as the Branch Protection gatekeeper
   ci:
     needs:
       - test-sources-license
-      - test-php-static-check
+      - test-php-static-and-unit
       - tests-phpt
       - build-packages
+      - test-packages-component-tests
     runs-on: ubuntu-latest
     steps:
       - name: report

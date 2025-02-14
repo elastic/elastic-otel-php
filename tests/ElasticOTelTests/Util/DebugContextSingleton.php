@@ -28,7 +28,6 @@ use Elastic\OTel\Util\SingletonInstanceTrait;
 use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LoggableToString;
 use ElasticOTelTests\Util\Log\LoggableTrait;
-use ElasticOTelTests\VendorDir;
 use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\AssertionFailedError;
 use ReflectionClass;
@@ -461,7 +460,7 @@ final class DebugContextSingleton implements LoggableInterface
         /** @var ?string $vendorDirPathPrefix */
         static $vendorDirPathPrefix = null;
         if ($vendorDirPathPrefix === null) {
-            $vendorDirPathPrefix = VendorDir::get() . DIRECTORY_SEPARATOR;
+            $vendorDirPathPrefix = VendorDir::getFullPath() . DIRECTORY_SEPARATOR;
         }
 
         return str_starts_with($filePath, $vendorDirPathPrefix);

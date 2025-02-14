@@ -30,7 +30,6 @@ use ElasticOTelTests\Util\DataProviderForTestBuilder;
 use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\DebugContextConfig;
 use ElasticOTelTests\Util\DebugContextScope;
-use ElasticOTelTests\Util\FileUtil;
 use ElasticOTelTests\Util\IterableUtil;
 use ElasticOTelTests\Util\JsonUtil;
 use ElasticOTelTests\Util\Log\LoggableToString;
@@ -38,7 +37,7 @@ use ElasticOTelTests\Util\MixedMap;
 use ElasticOTelTests\Util\Pair;
 use ElasticOTelTests\Util\RangeUtil;
 use ElasticOTelTests\Util\TestCaseBase;
-use ElasticOTelTests\VendorDir;
+use ElasticOTelTests\Util\VendorDir;
 use Override;
 use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\AssertionFailedError;
@@ -1140,7 +1139,7 @@ class DebugContextTest extends TestCaseBase
         self::assertNotNull($helperFuncLine); // @phpstan-ignore staticMethod.impossibleType
         $actualAddedText = self::extractTextAddedToAssertionMessage($assertionMsg);
 
-        $phpUnitFrameworkAssertPhpFileFullPath = FileUtil::normalizePath(VendorDir::get() . FileUtil::adaptUnixDirectorySeparators('/phpunit/phpunit/src/Framework/Assert.php'));
+        $phpUnitFrameworkAssertPhpFileFullPath = VendorDir::adaptRelativeUnixStylePath('phpunit/phpunit/src/Framework/Assert.php');
 
         // Extract line number in Framework/Assert.php
         $strBeforeAssertPhpLine = JsonUtil::adaptStringToSearchInJson($phpUnitFrameworkAssertPhpFileFullPath . ':');

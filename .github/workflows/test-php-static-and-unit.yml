@@ -25,4 +25,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Invoke test_php_static_and_unit.sh
-        run: ./tools/build/test_php_static_and_unit.sh --php_versions "${PHP_VERSION}"
+        run: ./tools/test/test_php_static_and_unit.sh --php_versions "${PHP_VERSION}"
