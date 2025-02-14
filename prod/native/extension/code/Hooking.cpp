@@ -118,16 +118,18 @@ static zend_op_array *elastic_compile_file(zend_file_handle *file_handle, int ty
         return nullptr;
     }
 
+    zend_op_array *ret = nullptr;
     zend_try {
         if (Hooking::getInstance().getOriginalZendCompileFile()) {
-            return Hooking::getInstance().getOriginalZendCompileFile()(file_handle, type);
+            ret = Hooking::getInstance().getOriginalZendCompileFile()(file_handle, type);
         }
     }
     zend_catch {
         ELOGF_DEBUG(ELASTICAPM_G(globals)->logger_, HOOKS, "%s: original call error", __FUNCTION__);
+        ret = nullptr;
     }
     zend_end_try();
-    return nullptr;
+    return ret;
 }
 
 void Hooking::replaceHooks(bool enableInferredSpansHooks, bool enableDepenecyAutoloaderGuard) {
