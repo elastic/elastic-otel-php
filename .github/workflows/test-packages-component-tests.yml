@@ -9,7 +9,8 @@ permissions:
   contents: read
 
 env:
-  BUILD_PACKAGES: build/packages
+  BUILD_PACKAGES_SUB_DIR: build/packages
+  COMPONENT_TESTS_LOGS_SUB_DIR: build/component_tests_logs
 
 jobs:
   generate-component-tests-matrix:
@@ -30,17 +31,17 @@ jobs:
       - name: Download built packages
         uses: actions/download-artifact@v4
         with:
-          pattern: packages-
-          path: ${{ env.BUILD_PACKAGES }}
+          pattern: packages-linux-x86-64
+          path: ${{ env.BUILD_PACKAGES_SUB_DIR }}
 
       - name: Run component tests
         continue-on-error: false
         run: |
-          ./tools/test/test_packages_component_tests_one_matrix_row.sh --matrix_row "${MATRIX_ROW}" --packages_path ${{ env.BUILD_PACKAGES }} --logs_path "build/component_tests_logs"
+          ./tools/test/test_packages_component_tests_one_matrix_row.sh --matrix_row "${MATRIX_ROW}" --packages_path "${PWD}/${{ env.BUILD_PACKAGES_SUB_DIR }}" --logs_path "${PWD}/${{ env.COMPONENT_TESTS_LOGS_SUB_DIR }}"
       - uses: actions/upload-artifact@v4
         if: always()
         continue-on-error: false
         with:
           name: component-tests-${{ matrix.row }}
           path: |
-            build/component_tests_logs/*
+            ${{ env.COMPONENT_TESTS_LOGS_SUB_DIR }}/*

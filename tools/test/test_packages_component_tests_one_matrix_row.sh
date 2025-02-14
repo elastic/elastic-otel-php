@@ -94,10 +94,17 @@ main() {
     echo "packages_path: ${packages_path}"
     echo "logs_path: ${logs_path}"
 
+    echo "Current directory: ${PWD}"
+
+    echo "Content of ./build:"
+    ls -l "./build" || true
+
     if [ ! -d "${packages_path}" ]; then
         echo "Directory ${packages_path} does not exists"
         exit 1
     fi
+    echo "List of packages (in ${packages_path}):"
+    ls -l "${packages_path}"
 
     ensure_dir_exists_and_empty "${logs_path}"
 
