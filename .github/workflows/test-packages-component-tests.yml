@@ -28,10 +28,10 @@ jobs:
       MATRIX_ROW: ${{ matrix.row }}
     steps:
       - uses: actions/checkout@v4
-      - name: Download package artifacts for Debian AMD64
+      - name: Download built packages
         uses: actions/download-artifact@v4
         with:
-          pattern: packages-linux-x86-64
+          pattern: packages-
           path: ${{ env.BUILD_PACKAGES }}
 
       - name: Run component tests

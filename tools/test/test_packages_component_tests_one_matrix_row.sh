@@ -15,7 +15,7 @@ show_help() {
     echo "  --packages_path     Required. Full path to directory with built packages to test"
     echo
     echo "Example:"
-    echo "  $0 --matrix_row '8.1,deb,cli,no_ext_svc,prod_log_level_syslog=TRACE' --packages_path '/some/directory'"
+    echo "  $0 --matrix_row '8.4,deb,cli,no_ext_svc,prod_log_level_syslog=TRACE' --packages_path '/some/directory'"
 }
 
 main() {
