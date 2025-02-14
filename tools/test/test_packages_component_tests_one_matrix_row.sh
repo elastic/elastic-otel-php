@@ -97,21 +97,17 @@ main() {
     echo "Current directory: ${PWD}"
 
     echo "Content of ./build:"
-    ls -l "./build" || true
+    ls -l -R "./build" || true
 
     if [ ! -d "${packages_path}" ]; then
         echo "Directory ${packages_path} does not exists"
         exit 1
     fi
-    echo "List of packages (in ${packages_path}):"
-    ls -l "${packages_path}"
+    echo "Content of ${packages_path}:"
+    ls -l -R "${packages_path}"
 
     ensure_dir_exists_and_empty "${logs_path}"
-
-    echo "Dummy log line" > "${logs_path}/dummy.log"
-
-    mkdir -p "${logs_path}/sub_dir"
-    echo "Dummy log line" > "${logs_path}/sub_dir/dummy_in_sub_dir.log"
+    touch "${logs_path}/z_dummy_file_to_make_directory_non-empty"
 
 #    local matrix_row=${1:?}
 
