@@ -38,6 +38,7 @@ convert_dot_separated_to_no_dot_version() {
 }
 
 adapt_architecture_to_package_type() {
+    # architecture must be either arm64 or x86_64 regardless of package_type
     local architecture=${1:?}
     local package_type=${2:?}
 
@@ -88,8 +89,8 @@ adapt_architecture_to_package_type() {
 select_elastic_otel_package_file() {
     local packages_dir=${1:?}
     local package_type=${2:?}
-    local architecture=${3:?}
     # architecture must be either arm64 or x86_64 regardless of package_type
+    local architecture=${3:?}
 
     # Example for package file names:
     #    elastic-otel-php-0.3.0-1.aarch64.rpm
