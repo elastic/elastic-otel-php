@@ -102,9 +102,7 @@ function print_last_test_case () {
 }
 
 function on_script_exit () {
-# TODO: Sergey Kleyman: UNCOMMENT
-#    exitCode=$?
-    exitCode=1
+    exitCode=$?
 
     echo "::group::Copying syslog files"
     local var_log_dst_dir=/elastic_otel_php_tests/logs/var_log
