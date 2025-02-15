@@ -33,7 +33,8 @@ RUN dnf -y install \
                 php-mbstring \
                 php-pdo_sqlite \
                 php-xml \
-                php-zip
+                php-zip \
+                procps
 
 ADD . /repo_root
 WORKDIR /repo_root
