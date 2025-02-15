@@ -80,17 +80,19 @@ function print_last_test_case () {
             last_starting_test_case_line_index="${line_index}"
         fi
     done < "${composer_run_component_tests_log_file}"
-    echo "::endgroup::Log from the last test case"
+    echo "::endgroup::Looking for the last test case log"
 
-    echo "::group::Looking for the last test case log"
-    line_index=0
-    while IFS= read -r line ; do
-        ((++line_index))
-        if [[ "${line_index}" -ge "${last_starting_test_case_line_index}" ]]; then
-            echo "${line}"
-        fi
-    done < "${composer_run_component_tests_log_file}"
-    echo "::endgroup::Log from the last test case"
+    if [[ "${last_starting_test_case_line_index}" -ne 0 ]]; then
+        echo "::group::Log from the last test case"
+        line_index=0
+        while IFS= read -r line ; do
+            ((++line_index))
+            if [[ "${line_index}" -ge "${last_starting_test_case_line_index}" ]]; then
+                echo "${line}"
+            fi
+        done < "${composer_run_component_tests_log_file}"
+        echo "::endgroup::Log from the last test case"
+    fi
 }
 
 function on_script_exit () {
