@@ -16,8 +16,8 @@ jobs:
   generate-component-tests-matrix:
     uses: ./.github/workflows/generate-component-tests-matrix.yml
 
-  test-packages-component-tests:
-    name: test-packages-component-tests
+  component-tests:
+    name: component tests
     runs-on: 'ubuntu-latest'
     needs: generate-component-tests-matrix
     timeout-minutes: 300
