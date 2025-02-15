@@ -7,8 +7,23 @@ this_script_dir="$( realpath "${this_script_dir}" )"
 repo_root_dir="$( realpath "${this_script_dir}/../../.." )"
 source "${repo_root_dir}/tools/shared.sh"
 
-main() {
+function print_info_about_environment () {
     echo "Current directory: ${PWD}"
+
+    echo 'PHP version:'
+    php -v
+
+    echo 'Installed PHP extensions:'
+    php -m
+
+    echo 'Set environment variables:'
+    env | sort
+}
+
+main() {
+    echo "::group::Running component tests"
+
+    print_info_about_environment
 
     source "${this_script_dir}/unpack_matrix_row.sh" "${ELASTIC_OTEL_PHP_TESTS_MATRIX_ROW:?}"
     env | grep ELASTIC_OTEL_PHP_TESTS_ | sort
@@ -32,6 +47,8 @@ main() {
     env | sort
 
     "${composer_command[@]}"
+
+    echo "::endgroup::"
 }
 
 main "$@"

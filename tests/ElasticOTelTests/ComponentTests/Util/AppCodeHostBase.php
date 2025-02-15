@@ -23,6 +23,7 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
+use Elastic\OTel\PhpPartFacade;
 use ElasticOTelTests\Util\AmbientContextForTests;
 use ElasticOTelTests\Util\ElasticOTelExtensionUtil;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
@@ -72,6 +73,9 @@ abstract class AppCodeHostBase extends SpawnedProcessBase
                         . ElasticOTelExtensionUtil::EXTENSION_NAME . ' extension loaded.'
                         . ' php_ini_loaded_file(): ' . php_ini_loaded_file() . '.'
                     );
+                }
+                if (!PhpPartFacade::$wasBootstrapCalled) {
+                    throw new ComponentTestsInfraException('PhpPartFacade::$wasBootstrapCalled is false while it should be true for the process with app code');
                 }
 
                 AmbientContextForTests::testConfig()->validateForAppCodeRequest();
