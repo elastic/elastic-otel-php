@@ -5,7 +5,7 @@ set -e -o pipefail
 this_script_dir="$( dirname "${BASH_SOURCE[0]}" )"
 this_script_dir="$( realpath "${this_script_dir}" )"
 
-repo_root_dir="$( realpath "${this_script_dir}/../.." )"
+repo_root_dir="$( realpath "${this_script_dir}/../../.." )"
 source "${repo_root_dir}/tools/shared.sh"
 
 function is_value_in_array () {
@@ -83,7 +83,7 @@ function unpack_row_optional_parts_to_env_vars () {
 
 function unpack_row_parts_to_env_vars () {
     #
-    # Expected format (see generate_component_tests_matrix.sh)
+    # Expected format (see generate_matrix.sh)
     #
     #       php_version,package_type,test_app_host_kind_short_name,test_group[,<optional tail>]
     #       [0]         [1]          [2]                           [3]         [4]

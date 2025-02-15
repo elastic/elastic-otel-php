@@ -156,7 +156,7 @@ final class ComponentTestsGenerateUnpackMatrixTest extends TestCaseBase implemen
      */
     private static function generateMatrix(): array
     {
-        $generateMatrixScriptFullPath = RepoRootDir::adaptRelativeUnixStylePath('tools/test/generate_component_tests_matrix.sh');
+        $generateMatrixScriptFullPath = RepoRootDir::adaptRelativeUnixStylePath('tools/test/component/generate_matrix.sh');
         self::assertFileExists($generateMatrixScriptFullPath);
 
         return self::execCommand($generateMatrixScriptFullPath);
@@ -219,7 +219,7 @@ final class ComponentTestsGenerateUnpackMatrixTest extends TestCaseBase implemen
     private static function unpackRowToEnvVars(string $matrixRow): array
     {
         /*
-         * Expected format (see generate_component_tests_matrix.sh)
+         * Expected format (see generate_matrix.sh)
          *
          *      php_version,package_type,test_app_host_kind_short_name,test_group[,<optional tail>]
          *      [0]         [1]          [2]                           [3]         [4]

@@ -6,6 +6,6 @@ this_script_dir="$( dirname "${BASH_SOURCE[0]}" )"
 this_script_dir="$( realpath "${this_script_dir}" )"
 repo_root_dir="$( realpath "${this_script_dir}/../../../.." )"
 
-source "${repo_root_dir}/tools/test/unpack_component_tests_matrix_row.sh" "$@" &> /dev/null
+source "${repo_root_dir}/tools/test/component/unpack_matrix_row.sh" "$@" &> /dev/null
 
 env | sort 2> /dev/null

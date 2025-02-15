@@ -24,6 +24,6 @@ jobs:
       - uses: actions/checkout@v4
       - id: generate
         run: |
-          MATRIX_JSON=$(./tools/test/generate_component_tests_matrix.sh | jq --raw-input --slurp -c 'split("\n") | map(select(length > 0)) | map({ "row": . } )')
+          MATRIX_JSON=$(./tools/test/component/generate_matrix.sh | jq --raw-input --slurp -c 'split("\n") | map(select(length > 0)) | map({ "row": . } )')
           echo "matrix={\"include\":${MATRIX_JSON}}"
           echo "matrix={\"include\":${MATRIX_JSON}}" >> $GITHUB_OUTPUT

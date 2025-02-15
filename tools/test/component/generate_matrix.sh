@@ -12,7 +12,7 @@ set -e -o pipefail
 this_script_dir="$( dirname "${BASH_SOURCE[0]}" )"
 this_script_dir="$( realpath "${this_script_dir}" )"
 
-repo_root_dir="$( realpath "${this_script_dir}/../.." )"
+repo_root_dir="$( realpath "${this_script_dir}/../../.." )"
 source "${repo_root_dir}/tools/shared.sh"
 
 function generate_rows_to_test_increased_log_level () {
