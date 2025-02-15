@@ -19,21 +19,6 @@ show_help() {
     echo "  $0 --matrix_row '8.4,deb,cli,no_ext_svc,prod_log_level_syslog=TRACE' --packages_dir '/directory/with/packages' --logs_dir '/directory/to/store/logs'"
 }
 
-ensure_dir_exists_and_empty() {
-    local dir_to_clean="${1:?}"
-
-    if [ -d "${dir_to_clean}" ]; then
-        rm -rf "${dir_to_clean}"
-        if [ -d "${dir_to_clean}" ]; then
-            echo "Directory ${dir_to_clean} still exists. Directory content:"
-            ls -l "${dir_to_clean}"
-            exit 1
-        fi
-    fi
-
-    mkdir -p "${dir_to_clean}"
-}
-
 parse_args() {
     echo "arguments: $*"
 

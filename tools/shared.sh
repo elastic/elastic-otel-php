@@ -101,7 +101,7 @@ select_elastic_otel_package_file() {
     #    elastic-otel-php_0.3.0_x86_64.apk
 
     local architecture_adapted_to_package_type
-    architecture_adapted_to_package_type=$(adapt_architecture_to_package_type "${architecture}")
+    architecture_adapted_to_package_type=$(adapt_architecture_to_package_type "${architecture}" "${package_type}")
 
     local found_files
     local found_files_count=0
@@ -123,27 +123,17 @@ select_elastic_otel_package_file() {
     echo "${found_files}"
 }
 
-install_package_file() {
-    local package_file_full_path=${1:?}
+ensure_dir_exists_and_empty() {
+    local dir_to_clean="${1:?}"
 
-    local package_file_name_with_ext
-    package_file_name_with_ext=$(basename "${package_file_full_path}")
-    local package_file_extension
-    package_file_extension="${package_file_name_with_ext##*.}"
-
-    case "${package_file_extension}" in
-        apk)
-            apk add --allow-untrusted "${package_file_full_path}"
-            ;;
-        deb)
-            dpkg -i "${package_file_full_path}"
-            ;;
-        rpm)
-            rpm -ivh "${package_file_full_path}"
-            ;;
-        *)
-            echo "Unknown package type: ${package_type}"
+    if [ -d "${dir_to_clean}" ]; then
+        rm -rf "${dir_to_clean}"
+        if [ -d "${dir_to_clean}" ]; then
+            echo "Directory ${dir_to_clean} still exists. Directory content:"
+            ls -l "${dir_to_clean}"
             exit 1
-            ;;
-    esac
+        fi
+    fi
+
+    mkdir -p "${dir_to_clean}"
 }

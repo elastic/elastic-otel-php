@@ -10,6 +10,31 @@ this_script_name="${this_script_name%.*}"
 repo_root_dir="$( realpath "${this_script_dir}/../../.." )"
 source "${repo_root_dir}/tools/shared.sh"
 
+install_package_file() {
+    local package_file_full_path=${1:?}
+
+    local package_file_name_with_ext
+    package_file_name_with_ext=$(basename "${package_file_full_path}")
+    local package_file_extension
+    package_file_extension="${package_file_name_with_ext##*.}"
+
+    case "${package_file_extension}" in
+        apk)
+            apk add --allow-untrusted "${package_file_full_path}"
+            ;;
+        deb)
+            dpkg -i "${package_file_full_path}"
+            ;;
+        rpm)
+            rpm -ivh "${package_file_full_path}"
+            ;;
+        *)
+            echo "Unknown package file extension: ${package_file_extension}, package_file_full_path: ${package_file_full_path}"
+            exit 1
+            ;;
+    esac
+}
+
 function install_elastic_otel_package () {
     # Until we add testing for ARM architecture is hardcoded as x86_64
     local architecture="x86_64"
