@@ -46,7 +46,7 @@ main() {
 
     env | sort
 
-    "${composer_command[@]}"
+    "${composer_command[@]}" 2>&1 | tee "/elastic_otel_php_tests/logs/composer_run_component_tests.log"
 
     echo "::endgroup::"
 }

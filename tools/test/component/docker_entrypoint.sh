@@ -68,11 +68,15 @@ function on_script_exit () {
     exitCode=$?
 
     echo "::group::Copying syslog files"
-    # Copy syslog files
     local var_log_dst_dir=/elastic_otel_php_tests/logs/var_log
     mkdir -p "${var_log_dst_dir}"
     cp -r /var/log/syslog* "${var_log_dst_dir}" || true
     cp -r /var/log/messages* "${var_log_dst_dir}" || true
+    echo "::endgroup::"
+
+    local number_of_lines=100
+    echo "::group::Last ${number_of_lines} lines of /elastic_otel_php_tests/logs/composer_run_component_tests.log"
+    tail -n ${number_of_lines} /elastic_otel_php_tests/logs/composer_run_component_tests.log || true
     echo "::endgroup::"
 
     exit ${exitCode}
@@ -88,6 +92,7 @@ main() {
     repo_root_dir="$( realpath "${this_script_dir}/../../.." )"
     source "${repo_root_dir}/tools/shared.sh"
 
+# TODO: Sergey Kleyman: UNCOMMENT
 #    local start_syslog_started
 #    start_syslog_started=$(start_syslog)
 #    if [ "${start_syslog_started}" != "true" ]; then

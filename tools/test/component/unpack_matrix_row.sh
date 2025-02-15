@@ -100,21 +100,21 @@ function unpack_row_parts_to_env_vars () {
     local php_version_dot_separated=${matrix_row_parts[0]}
     local php_version_no_dot
     php_version_no_dot=$(convert_dot_separated_to_no_dot_version "${php_version_dot_separated}")
-    assert_value_is_in_array "${php_version_no_dot}" "${supported_php_versions[@]:?}"
+    assert_value_is_in_array "${php_version_no_dot}" "${elastic_otel_php_supported_php_versions[@]:?}"
     export ELASTIC_OTEL_PHP_TESTS_PHP_VERSION="${php_version_dot_separated}"
 
     local package_type=${matrix_row_parts[1]}
-    assert_value_is_in_array "${package_type}" "${supported_package_types[@]:?}"
+    assert_value_is_in_array "${package_type}" "${elastic_otel_php_supported_package_types[@]:?}"
     export ELASTIC_OTEL_PHP_TESTS_PACKAGE_TYPE="${package_type}"
 
     local test_app_code_host_kind_short_name=${matrix_row_parts[2]}
-    assert_value_is_in_array "${test_app_code_host_kind_short_name}" "${test_app_code_host_kinds_short_names[@]:?}"
+    assert_value_is_in_array "${test_app_code_host_kind_short_name}" "${elastic_otel_php_test_app_code_host_kinds_short_names[@]:?}"
     local test_app_code_host_kind
     test_app_code_host_kind=$(convert_test_app_host_kind_short_to_long_name "${test_app_code_host_kind_short_name}")
     export ELASTIC_OTEL_PHP_TESTS_APP_CODE_HOST_KIND="${test_app_code_host_kind}"
 
     local test_group_short_name=${matrix_row_parts[3]}
-    assert_value_is_in_array "${test_group_short_name}" "${test_groups_short_names[@]:?}"
+    assert_value_is_in_array "${test_group_short_name}" "${elastic_otel_php_test_groups_short_names[@]:?}"
     local test_group
     test_group=$(convert_test_group_short_to_long_name "${test_group_short_name}")
     export ELASTIC_OTEL_PHP_TESTS_GROUP="${test_group}"

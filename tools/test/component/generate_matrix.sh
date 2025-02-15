@@ -21,22 +21,22 @@ function generate_rows_to_test_increased_log_level () {
     local php_version_dot_separated
     php_version_dot_separated=$(convert_no_dot_to_dot_separated_version "${php_version_no_dot}")
     local package_type="${test_all_php_versions_with_package_type:?}"
-    local test_app_code_host_kind="${test_app_code_host_kinds_short_names[0]:?}"
-    local test_group="${test_groups_short_names[0]:?}"
+    local test_app_code_host_kind="${elastic_otel_php_test_app_code_host_kinds_short_names[0]:?}"
+    local test_group="${elastic_otel_php_test_groups_short_names[0]:?}"
     echo "${php_version_dot_separated},${package_type},${test_app_code_host_kind},${test_group},prod_log_level_syslog=TRACE"
 
     php_version_no_dot=$(get_highest_supported_php_version)
     php_version_dot_separated=$(convert_no_dot_to_dot_separated_version "${php_version_no_dot}")
     package_type=apk
-    test_app_code_host_kind="${test_app_code_host_kinds_short_names[1]:?}"
-    test_group="${test_groups_short_names[1]:?}"
+    test_app_code_host_kind="${elastic_otel_php_test_app_code_host_kinds_short_names[1]:?}"
+    test_group="${elastic_otel_php_test_groups_short_names[1]:?}"
     echo "${php_version_dot_separated},${package_type},${test_app_code_host_kind},${test_group},prod_log_level_syslog=DEBUG"
 }
 
 function append_test_app_code_host_kind_and_group () {
     local row_so_far="${1:?}"
-    for test_app_code_host_kind_short_name in "${test_app_code_host_kinds_short_names[@]:?}" ; do
-        for test_group in "${test_groups_short_names[@]:?}" ; do
+    for test_app_code_host_kind_short_name in "${elastic_otel_php_test_app_code_host_kinds_short_names[@]:?}" ; do
+        for test_group in "${elastic_otel_php_test_groups_short_names[@]:?}" ; do
             echo "${row_so_far},${test_app_code_host_kind_short_name},${test_group}"
         done
     done
@@ -49,7 +49,7 @@ function generate_rows_to_test_highest_supported_php_version_with_other_package_
     local php_version_dot_separated
     php_version_dot_separated=$(convert_no_dot_to_dot_separated_version "${php_version_no_dot}")
 
-    for package_type in "${supported_package_types[@]:?}" ; do
+    for package_type in "${elastic_otel_php_supported_package_types[@]:?}" ; do
         if [[ "${package_type}" == "${package_type_to_exclude}" ]] ; then
             continue
         fi
@@ -59,7 +59,7 @@ function generate_rows_to_test_highest_supported_php_version_with_other_package_
 
 function generate_rows_to_test_all_php_versions_with_one_package_type () {
     local package_type="${test_all_php_versions_with_package_type:?}"
-    for php_version_no_dot in "${supported_php_versions[@]:?}" ; do
+    for php_version_no_dot in "${elastic_otel_php_supported_php_versions[@]:?}" ; do
         local php_version_dot_separated
         php_version_dot_separated=$(convert_no_dot_to_dot_separated_version "${php_version_no_dot}")
         append_test_app_code_host_kind_and_group "${php_version_dot_separated},${package_type}"

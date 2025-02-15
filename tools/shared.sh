@@ -3,18 +3,35 @@ set -e -o pipefail
 #set -x
 
 source "${repo_root_dir:?}/elastic-otel-php.properties"
+export elastic_otel_php_version="${version:?}"
+export elastic_otel_php_supported_php_versions=("${supported_php_versions[@]:?}")
+export elastic_otel_php_supported_package_types=("${supported_package_types[@]:?}")
+export elastic_otel_php_test_app_code_host_kinds_short_names=("${test_app_code_host_kinds_short_names[@]:?}")
+export elastic_otel_php_test_groups_short_names=("${test_groups_short_names[@]:?}")
+
+get_supported_php_versions_as_string() {
+    local supported_php_versions_as_string
+    for current_supported_php_version in "${elastic_otel_php_supported_php_versions[@]:?}" ; do
+        if [[ -n "${supported_php_versions_as_string}" ]]; then # -n is true if string is not empty
+            supported_php_versions_as_string="${supported_php_versions_as_string} ${current_supported_php_version}"
+        else
+            supported_php_versions_as_string="${current_supported_php_version}"
+        fi
+    done
+    echo "${supported_php_versions_as_string}"
+}
 
 get_lowest_supported_php_version() {
-    local min_supported_php_version=${supported_php_versions[0]:?}
-    for current_supported_php_version in "${supported_php_versions[@]:?}" ; do
+    local min_supported_php_version=${elastic_otel_php_supported_php_versions[0]:?}
+    for current_supported_php_version in "${elastic_otel_php_supported_php_versions[@]:?}" ; do
         ((current_supported_php_version < min_supported_php_version)) && min_supported_php_version=${current_supported_php_version}
     done
     echo "${min_supported_php_version}"
 }
 
 get_highest_supported_php_version() {
-    local max_supported_php_version=${supported_php_versions[0]:?}
-    for current_supported_php_version in "${supported_php_versions[@]:?}" ; do
+    local max_supported_php_version=${elastic_otel_php_supported_php_versions[0]:?}
+    for current_supported_php_version in "${elastic_otel_php_supported_php_versions[@]:?}" ; do
         ((current_supported_php_version > max_supported_php_version)) && max_supported_php_version=${current_supported_php_version}
     done
     echo "${max_supported_php_version}"
@@ -106,8 +123,7 @@ select_elastic_otel_package_file() {
     local found_files
     local found_files_count=0
     for current_file in "${packages_dir}"/*"${architecture_adapted_to_package_type}.${package_type}"; do
-        # -n is true if string is not empty
-        if [[ -n "${found_files}" ]]; then
+        if [[ -n "${found_files}" ]]; then # -n is true if string is not empty
             found_files="${found_files} ${current_file}"
         else
             found_files="${current_file}"
