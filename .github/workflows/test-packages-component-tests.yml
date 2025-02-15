@@ -17,7 +17,7 @@ jobs:
     uses: ./.github/workflows/generate-component-tests-matrix.yml
 
   component-tests:
-    name: component tests
+    name: matrix row
     runs-on: 'ubuntu-latest'
     needs: generate-component-tests-matrix
     timeout-minutes: 300
@@ -44,6 +44,6 @@ jobs:
         if: always()
         continue-on-error: false
         with:
-          name: component-tests-${{ matrix.row }}
+          name: test-packages-component-tests-${{ matrix.row }}
           path: |
             ${{ env.COMPONENT_TESTS_LOGS_SUB_DIR }}/*
