@@ -71,6 +71,10 @@ function print_last_test_case () {
         return
     fi
 
+    local set_x_setting
+    set_x_setting=$(get_current_set_x_setting)
+    set +x
+
     echo "::group::Looking for the last test case log"
     local line_index=0
     local last_starting_test_case_line_index=0
@@ -93,10 +97,14 @@ function print_last_test_case () {
         done < "${composer_run_component_tests_log_file}"
         echo "::endgroup::Log from the last test case"
     fi
+
+    set_set_x_setting "${set_x_setting}"
 }
 
 function on_script_exit () {
-    exitCode=$?
+# TODO: Sergey Kleyman: UNCOMMENT
+#    exitCode=$?
+    exitCode=1
 
     echo "::group::Copying syslog files"
     local var_log_dst_dir=/elastic_otel_php_tests/logs/var_log

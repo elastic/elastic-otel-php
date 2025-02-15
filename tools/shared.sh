@@ -153,3 +153,21 @@ ensure_dir_exists_and_empty() {
 
     mkdir -p "${dir_to_clean}"
 }
+
+function get_current_set_x_setting() {
+    local current_setting=${-//[^x]/}
+    if [[ -n "${current_setting}" ]] ; then
+        echo "on"
+    else
+        echo "off"
+    fi
+}
+
+function set_set_x_setting() {
+    local set_x_setting="$1"
+    if [ "${set_x_setting}" == "on" ] ; then
+        set -x
+    else
+        set +x
+    fi
+}
