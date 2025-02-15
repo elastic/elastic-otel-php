@@ -21,7 +21,7 @@ function print_info_about_environment () {
 }
 
 main() {
-    echo "::group::Running component tests"
+    echo "::group::Preparing composer command to run component tests"
 
     print_info_about_environment
 
@@ -45,10 +45,11 @@ main() {
     fi
 
     env | sort
+    echo "::endgroup::Preparing composer command to run component tests"
 
+    echo "::group::Running component tests"
     "${composer_command[@]}" 2>&1 | tee "/elastic_otel_php_tests/logs/composer_run_component_tests.log"
-
-    echo "::endgroup::"
+    echo "::endgroup::Running component tests"
 }
 
 main "$@"

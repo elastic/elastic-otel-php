@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 set -xe -o pipefail
 
+echo "::group::source ./tools/shared.sh"
 this_script_dir="$( dirname "${BASH_SOURCE[0]}" )"
 this_script_dir="$( realpath "${this_script_dir}" )"
 
 repo_root_dir="$( realpath "${this_script_dir}/../../.." )"
 source "${repo_root_dir}/tools/shared.sh"
+echo "::endgroup::"
 
 show_help() {
     echo "Usage: $0 --matrix_row <matrix row> --packages_dir <full path to a directory> --logs_dir <full path to a directory>"
@@ -105,6 +107,7 @@ function select_Dockerfile_based_on_package_type () {
 }
 
 main() {
+    echo "::group::Preparing to build docker image"
     parse_args "$@"
 
     echo "Current directory: ${PWD}"
@@ -134,6 +137,7 @@ main() {
     echo "Selected Dockerfile: ${dockerfile}"
 
     local docker_image_tag="elastic-otel-php-tests-component-${ELASTIC_OTEL_PHP_TESTS_PACKAGE_TYPE:?}-${ELASTIC_OTEL_PHP_TESTS_PHP_VERSION:?}"
+    echo "::endgroup::"
     echo "::group::Building docker image"
     docker build --file "${this_script_dir}/${dockerfile}" --build-arg "PHP_VERSION=${ELASTIC_OTEL_PHP_TESTS_PHP_VERSION:?}" --tag "${docker_image_tag}" .
     echo "::endgroup::"

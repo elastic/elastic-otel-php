@@ -64,6 +64,35 @@ function start_syslog () {
     echo 'false'
 }
 
+function print_last_test_case () {
+    local composer_run_component_tests_log_file=/elastic_otel_php_tests/logs/composer_run_component_tests.log
+
+    if [ ! -f "${composer_run_component_tests_log_file}" ]; then
+        return
+    fi
+
+    echo "::group::Looking for the last test case log"
+    local line_index=0
+    local last_starting_test_case_line_index=0
+    while IFS= read -r line ; do
+        ((++line_index))
+        if [[ "${line}" = "Starting test case: "* ]]; then
+            last_starting_test_case_line_index="${line_index}"
+        fi
+    done < "${composer_run_component_tests_log_file}"
+    echo "::endgroup::Log from the last test case"
+
+    echo "::group::Looking for the last test case log"
+    line_index=0
+    while IFS= read -r line ; do
+        ((++line_index))
+        if [[ "${line_index}" -ge "${last_starting_test_case_line_index}" ]]; then
+            echo "${line}"
+        fi
+    done < "${composer_run_component_tests_log_file}"
+    echo "::endgroup::Log from the last test case"
+}
+
 function on_script_exit () {
     exitCode=$?
 
@@ -72,17 +101,17 @@ function on_script_exit () {
     mkdir -p "${var_log_dst_dir}"
     cp -r /var/log/syslog* "${var_log_dst_dir}" || true
     cp -r /var/log/messages* "${var_log_dst_dir}" || true
-    echo "::endgroup::"
+    echo "::endgroup::Copying syslog files"
 
-    local number_of_lines=100
-    echo "::group::Last ${number_of_lines} lines of /elastic_otel_php_tests/logs/composer_run_component_tests.log"
-    tail -n ${number_of_lines} /elastic_otel_php_tests/logs/composer_run_component_tests.log || true
-    echo "::endgroup::"
+    if [[ "${exitCode}" -ne 0 ]]; then
+        print_last_test_case
+    fi
 
     exit ${exitCode}
 }
 
 main() {
+    echo "::group::Preparing environment to run component tests"
     echo "pwd"
     pwd
 
@@ -124,7 +153,8 @@ main() {
     cat /repo_root/composer.json
 
     composer install
-    echo "::endgroup::"
+    echo "::endgroup::Installing PHP dependencies using composer"
+    echo "::endgroup::Preparing environment to run component tests"
 
     /repo_root/tools/test/component/test_installed_package_one_matrix_row.sh
 }

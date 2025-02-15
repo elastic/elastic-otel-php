@@ -92,8 +92,7 @@ convert_matrix_row_file_name_suitable_string() {
 main() {
     parse_args "$@"
 
-    while read -r matrix_row
-    do
+    while read -r matrix_row ; do
         local matrix_row_file_name_suitable_string
         matrix_row_file_name_suitable_string=$(convert_matrix_row_file_name_suitable_string "${matrix_row}")
         local logs_sub_dir="${logs_dir}/${matrix_row_file_name_suitable_string}"
