@@ -32,6 +32,7 @@ final class TestInfraDataPerRequest
         public readonly string $spawnedProcessInternalId,
         public readonly ?AppCodeTarget $appCodeTarget = null,
         public ?array $appCodeArguments = null,
+        public bool $isAppCodeExpectedToThrow = false,
     ) {
     }
 }

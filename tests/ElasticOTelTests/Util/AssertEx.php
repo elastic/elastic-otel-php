@@ -163,6 +163,15 @@ final class AssertEx
     }
 
     /**
+     * @return array<array-key, mixed>
+     */
+    public static function isArray(mixed $actual, string $message = ''): array
+    {
+        Assert::assertIsArray($actual, $message);
+        return $actual;
+    }
+
+    /**
      * @template TKey of array-key
      * @template TValue
      *

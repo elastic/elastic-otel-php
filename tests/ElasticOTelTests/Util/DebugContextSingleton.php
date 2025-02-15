@@ -49,6 +49,9 @@ final class DebugContextSingleton implements LoggableInterface
     use LoggableTrait;
     use SingletonInstanceTrait;
 
+    private const TEXT_ADDED_TO_ASSERTION_MESSAGE_PREFIX = 'DebugContext begin';
+    private const TEXT_ADDED_TO_ASSERTION_MESSAGE_SUFFIX = 'DebugContext end';
+
     /** @var ConfigStore */
     private array $config = DebugContextConfig::DEFAULT_VALUES;
 
@@ -217,9 +220,9 @@ final class DebugContextSingleton implements LoggableInterface
             ? $this->getFormattedContextsStack($exceptionBeingConstructed, $numberOfStackFramesToSkip + 1)
             : DebugContext::TEXT_ADDED_TO_ASSERTION_MESSAGE_WHEN_DISABLED;
         return $baseMessage . PHP_EOL .
-               DebugContext::TEXT_ADDED_TO_ASSERTION_MESSAGE_PREFIX . PHP_EOL .
+               self::TEXT_ADDED_TO_ASSERTION_MESSAGE_PREFIX . PHP_EOL .
                $formattedContextsStack . PHP_EOL .
-               DebugContext::TEXT_ADDED_TO_ASSERTION_MESSAGE_SUFFIX;
+               self::TEXT_ADDED_TO_ASSERTION_MESSAGE_SUFFIX;
     }
 
     /**
@@ -464,5 +467,41 @@ final class DebugContextSingleton implements LoggableInterface
         }
 
         return str_starts_with($filePath, $vendorDirPathPrefix);
+    }
+
+    public function extractAddedTextFromMessage(string $message): ?string
+    {
+        $prefixPos = strpos($message, self::TEXT_ADDED_TO_ASSERTION_MESSAGE_PREFIX);
+        if ($prefixPos === false) {
+            return null;
+        }
+
+        $afterPrefixPos = $prefixPos + strlen(self::TEXT_ADDED_TO_ASSERTION_MESSAGE_PREFIX);
+        $suffixPos = strpos($message, self::TEXT_ADDED_TO_ASSERTION_MESSAGE_SUFFIX, offset: $afterPrefixPos);
+        if ($suffixPos === false) {
+            return null;
+        }
+
+        return trim(substr($message, $afterPrefixPos, $suffixPos - $afterPrefixPos));
+    }
+
+    /**
+     * @return ?ContextsStack
+     *
+     * @noinspection PhpDocMissingThrowsInspection
+     */
+    public function extractContextsStackFromMessage(string $message): ?array
+    {
+        if (!$this->config[DebugContextConfig::ENABLED_OPTION_NAME]) {
+            return null;
+        }
+
+        $addedText = self::extractAddedTextFromMessage($message);
+        if ($addedText === null) {
+            return null;
+        }
+
+        $decodedContextsStack = JsonUtil::decode($addedText, asAssocArray: true);
+        return AssertEx::isArray($decodedContextsStack); // @phpstan-ignore return.type
     }
 }

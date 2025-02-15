@@ -16,8 +16,8 @@ jobs:
   generate-component-tests-matrix:
     uses: ./.github/workflows/generate-component-tests-matrix.yml
 
-  component-tests:
-    name: matrix row
+  run-component-tests-in-docker-for-one-matrix-row:
+    name: row
     runs-on: 'ubuntu-latest'
     needs: generate-component-tests-matrix
     timeout-minutes: 300
@@ -39,7 +39,7 @@ jobs:
         run: |
           mv "${PWD}/${{ env.BUILD_PACKAGES_SUB_DIR }}/"*/* "${PWD}/${{ env.BUILD_PACKAGES_SUB_DIR }}/"
           rm -rf "${PWD}/${{ env.BUILD_PACKAGES_SUB_DIR }}/packages-"*
-          ./tools/test/component/test_packages_one_matrix_row.sh --matrix_row "${MATRIX_ROW}" --packages_path "${PWD}/${{ env.BUILD_PACKAGES_SUB_DIR }}" --logs_path "${PWD}/${{ env.COMPONENT_TESTS_LOGS_SUB_DIR }}"
+          ./tools/test/component/test_packages_one_matrix_row_in_docker.sh --matrix_row "${MATRIX_ROW}" --packages_path "${PWD}/${{ env.BUILD_PACKAGES_SUB_DIR }}" --logs_path "${PWD}/${{ env.COMPONENT_TESTS_LOGS_SUB_DIR }}"
       - uses: actions/upload-artifact@v4
         if: always()
         continue-on-error: false

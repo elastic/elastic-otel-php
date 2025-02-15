@@ -110,8 +110,9 @@ abstract class AppCodeHostBase extends SpawnedProcessBase
                 call_user_func($methodToCall, new MixedMap($appCodeArguments));
             }
         } catch (Throwable $throwable) {
-            $loggerProxyDebug && $loggerProxyDebug->logThrowable(__LINE__, $throwable, 'Call to application code exited by exception');
-            throw new WrappedAppCodeException($throwable);
+            $loggerProxy = ($dataPerRequest->isAppCodeExpectedToThrow) ? $loggerProxyDebug : $this->logger->ifCriticalLevelEnabledNoLine(__FUNCTION__);
+            $loggerProxy && $loggerProxy->logThrowable(__LINE__, $throwable, 'Call to application code exited by exception');
+            throw $dataPerRequest->isAppCodeExpectedToThrow ? new WrappedAppCodeException($throwable) : $throwable;
         }
 
         $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Call to application code completed');
