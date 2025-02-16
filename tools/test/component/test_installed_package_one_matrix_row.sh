@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -e -o pipefail
-set -x
+#set -x
 
 function print_info_about_environment () {
     echo "Current directory: ${PWD}"

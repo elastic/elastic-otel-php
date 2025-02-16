@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -e -o pipefail
-set -x
+#set -x
 
 function install_package_file() {
     local package_file_full_path=${1:?}
@@ -70,8 +70,8 @@ function start_syslog_and_set_related_config () {
     fi
 }
 
-function extract_log_related_to_failure () {
-    local current_github_workflow_log_group_name="Extracting parts of composer run_component_tests log related to failure"
+function extract_log_ending () {
+    local current_github_workflow_log_group_name="Extracting ending part of composer run_component_tests log"
     start_github_workflow_log_group "${current_github_workflow_log_group_name}"
     local composer_run_component_tests_log_file=/elastic_otel_php_tests/logs/composer_-_run_component_tests.log
 
@@ -108,9 +108,9 @@ function extract_log_related_to_failure () {
 
     if [ -f "${last_test_case_log_file}" ] ; then
         if [[ "${last_test_case_log_lines_count}" -gt "${small_tail_lines_count}" ]]; then
-            echo "The last test case's part of composer run_component_tests log (${last_test_case_log_lines_count} lines) extracted to ${last_test_case_log_file}"
+            echo "The last test case part of composer run_component_tests log (${last_test_case_log_lines_count} lines) extracted to ${last_test_case_log_file}"
         else
-            local current_github_workflow_log_group_name="The last test case's part of composer run_component_tests log (${last_test_case_log_lines_count} lines)"
+            local current_github_workflow_log_group_name="The last test case part of composer run_component_tests log (${last_test_case_log_lines_count} lines)"
             start_github_workflow_log_group "${current_github_workflow_log_group_name}"
             cat "${last_test_case_log_file}"
             end_github_workflow_log_group "${current_github_workflow_log_group_name}"
@@ -150,9 +150,7 @@ function on_script_exit () {
 
     copy_syslog
 
-    if [[ "${exit_code}" -ne 0 ]]; then
-        extract_log_related_to_failure
-    fi
+    extract_log_ending
 
     current_github_workflow_log_group_name="Setting ownership/permissions to allow docker host to read files copied to /elastic_otel_php_tests/logs/"
     start_github_workflow_log_group "${current_github_workflow_log_group_name}"
