@@ -151,7 +151,7 @@ function gather_logs () {
     start_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
     chown -R "${ELASTIC_OTEL_PHP_TESTS_DOCKER_RUNNING_USER_ID:?}:${ELASTIC_OTEL_PHP_TESTS_DOCKER_RUNNING_USER_GROUP_ID:?}" /elastic_otel_php_tests/logs/*
-    chmod -R u+rw,a+r /elastic_otel_php_tests/logs/*
+    chmod -R +r,u+w /elastic_otel_php_tests/logs/*
 
     end_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
