@@ -126,8 +126,10 @@ function main() {
     # All environment variables matching ELASTIC_OTEL_PHP_TESTS_* are passed to the docker container
     # SC2034: <env var> appears unused. Verify use (or export if used externally).
     # shellcheck disable=SC2034
+    export ELASTIC_OTEL_PHP_TESTS_DOCKER_RUNNING_USER_ID
     ELASTIC_OTEL_PHP_TESTS_DOCKER_RUNNING_USER_ID="$(id -u)"
     # shellcheck disable=SC2034
+    export ELASTIC_OTEL_PHP_TESTS_DOCKER_RUNNING_USER_GROUP_ID
     ELASTIC_OTEL_PHP_TESTS_DOCKER_RUNNING_USER_GROUP_ID="$(id -g)"
 
     export ELASTIC_OTEL_PHP_TESTS_MATRIX_ROW="${matrix_row}"
