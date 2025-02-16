@@ -9,7 +9,7 @@ export elastic_otel_php_supported_package_types=("${supported_package_types[@]:?
 export elastic_otel_php_test_app_code_host_kinds_short_names=("${test_app_code_host_kinds_short_names[@]:?}")
 export elastic_otel_php_test_groups_short_names=("${test_groups_short_names[@]:?}")
 
-get_supported_php_versions_as_string() {
+function get_supported_php_versions_as_string() {
     local supported_php_versions_as_string
     for current_supported_php_version in "${elastic_otel_php_supported_php_versions[@]:?}" ; do
         if [[ -n "${supported_php_versions_as_string}" ]]; then # -n is true if string is not empty
@@ -21,7 +21,7 @@ get_supported_php_versions_as_string() {
     echo "${supported_php_versions_as_string}"
 }
 
-get_lowest_supported_php_version() {
+function get_lowest_supported_php_version() {
     local min_supported_php_version=${elastic_otel_php_supported_php_versions[0]:?}
     for current_supported_php_version in "${elastic_otel_php_supported_php_versions[@]:?}" ; do
         ((current_supported_php_version < min_supported_php_version)) && min_supported_php_version=${current_supported_php_version}
@@ -29,7 +29,7 @@ get_lowest_supported_php_version() {
     echo "${min_supported_php_version}"
 }
 
-get_highest_supported_php_version() {
+function get_highest_supported_php_version() {
     local max_supported_php_version=${elastic_otel_php_supported_php_versions[0]:?}
     for current_supported_php_version in "${elastic_otel_php_supported_php_versions[@]:?}" ; do
         ((current_supported_php_version > max_supported_php_version)) && max_supported_php_version=${current_supported_php_version}
@@ -37,7 +37,7 @@ get_highest_supported_php_version() {
     echo "${max_supported_php_version}"
 }
 
-convert_no_dot_to_dot_separated_version() {
+function convert_no_dot_to_dot_separated_version() {
     local no_dot_version=${1:?}
     local no_dot_version_str_len=${#no_dot_version}
 
@@ -49,12 +49,12 @@ convert_no_dot_to_dot_separated_version() {
     echo "${no_dot_version:0:1}.${no_dot_version:1:1}"
 }
 
-convert_dot_separated_to_no_dot_version() {
+    function convert_dot_separated_to_no_dot_version() {
     local dot_separated_version=${1:?}
     echo "${dot_separated_version/\./}"
 }
 
-adapt_architecture_to_package_type() {
+function adapt_architecture_to_package_type() {
     # architecture must be either arm64 or x86_64 regardless of package_type
     local architecture=${1:?}
     local package_type=${2:?}
@@ -103,7 +103,7 @@ adapt_architecture_to_package_type() {
     esac
 }
 
-select_elastic_otel_package_file() {
+function select_elastic_otel_package_file() {
     local packages_dir=${1:?}
     local package_type=${2:?}
     # architecture must be either arm64 or x86_64 regardless of package_type
@@ -139,7 +139,7 @@ select_elastic_otel_package_file() {
     echo "${found_files}"
 }
 
-ensure_dir_exists_and_empty() {
+function ensure_dir_exists_and_empty() {
     local dir_to_clean="${1:?}"
 
     if [ -d "${dir_to_clean}" ]; then

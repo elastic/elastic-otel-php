@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-set -xe -o pipefail
+set -e -o pipefail
+#set -x
 
-show_help() {
+function show_help() {
     echo "Usage: $0 --matrix_row <matrix row> --packages_dir <full path to a directory> --logs_dir <full path to a directory>"
     echo
     echo "Arguments:"
@@ -13,7 +14,7 @@ show_help() {
     echo "  $0 --matrix_row '8.4,deb,cli,no_ext_svc,prod_log_level_syslog=TRACE' --packages_dir '/directory/with/packages' --logs_dir '/directory/to/store/logs'"
 }
 
-parse_args() {
+function parse_args() {
     echo "arguments: $*"
 
     while [[ "$#" -gt 0 ]]; do
@@ -98,7 +99,7 @@ function select_Dockerfile_based_on_package_type () {
     echo "Dockerfile_${package_type}"
 }
 
-main() {
+function main() {
     local current_workflow_group_name="Setting the environment for ${BASH_SOURCE[0]}"
     echo "::group::${current_workflow_group_name}"
 

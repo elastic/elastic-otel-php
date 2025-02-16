@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-set -xe -o pipefail
+set -e -o pipefail
+#set -x
 
-install_package_file() {
+function install_package_file() {
     local package_file_full_path=${1:?}
 
     local package_file_name_with_ext
@@ -50,6 +51,8 @@ function start_syslog () {
         fi
     fi
 
+    # SC2009: Consider using pgrep instead of grepping ps output.
+    # shellcheck disable=SC2009
     if ps -ef | grep syslogd | grep -v grep ; then
         echo 'true'
     else
@@ -116,18 +119,27 @@ function extract_log_related_to_failure () {
     fi
 }
 
-function on_script_exit () {
-    exitCode=$?
-
+function copy_syslog () {
     local current_workflow_group_name="Copying syslog files"
     start_github_workflow_log_group "${current_workflow_group_name}"
 
-    local var_log_dst_dir=/elastic_otel_php_tests/logs/var_log
-    mkdir -p "${var_log_dst_dir}"
-    cp -r /var/log/syslog* "${var_log_dst_dir}" || true
-    cp -r /var/log/messages* "${var_log_dst_dir}" || true
+    local copy_syslog_to_dir=/elastic_otel_php_tests/logs/var_log
+    mkdir -p "${copy_syslog_to_dir}"
+
+    local -a syslog_prefix_candidates=(/var/log/syslog /var/log/messages)
+    for syslog_prefix_candidate in "${syslog_prefix_candidates[@]}" ; do
+        if ls "${syslog_prefix_candidate}"* 1> /dev/null 2>&1 ; then
+            cp -r "${syslog_prefix_candidate}"* "${copy_syslog_to_dir}"
+        fi
+    done
 
     end_github_workflow_log_group "${current_workflow_group_name}"
+}
+
+function on_script_exit () {
+    exitCode=$?
+
+    copy_syslog
 
     if [[ "${exitCode}" -ne 0 ]]; then
         extract_log_related_to_failure
@@ -136,7 +148,7 @@ function on_script_exit () {
     exit ${exitCode}
 }
 
-main() {
+function main() {
     local current_workflow_group_name="Setting the environment for ${BASH_SOURCE[0]}"
     echo "::group::${current_workflow_group_name}"
 

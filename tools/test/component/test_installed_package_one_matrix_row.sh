@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-set -xe -o pipefail
+set -e -o pipefail
+#set -x
 
 function print_info_about_environment () {
     echo "Current directory: ${PWD}"
@@ -14,7 +15,7 @@ function print_info_about_environment () {
     env | sort
 }
 
-main() {
+function main() {
     local current_workflow_group_name="Setting the environment for ${BASH_SOURCE[0]}"
     echo "::group::${current_workflow_group_name}"
 
