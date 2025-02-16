@@ -145,6 +145,13 @@ function on_script_exit () {
         extract_log_related_to_failure
     fi
 
+    local current_workflow_group_name="Content of /elastic_otel_php_tests/logs/"
+    start_github_workflow_log_group "${current_workflow_group_name}"
+
+    ls -l -R /elastic_otel_php_tests/logs/
+
+    end_github_workflow_log_group "${current_workflow_group_name}"
+
     exit ${exitCode}
 }
 
