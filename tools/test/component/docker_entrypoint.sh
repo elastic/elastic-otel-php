@@ -142,12 +142,7 @@ function copy_syslog () {
     end_github_workflow_log_group "${current_github_workflow_log_group_name}"
 }
 
-function on_script_exit () {
-    local exit_code=$?
-
-    # End the workflow log group started in main()
-    end_github_workflow_log_group "${current_github_workflow_log_group_name}"
-
+function gather_logs () {
     copy_syslog
 
     extract_log_ending
@@ -156,7 +151,7 @@ function on_script_exit () {
     start_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
     chown -R "${ELASTIC_OTEL_PHP_TESTS_DOCKER_RUNNING_USER_ID:?}:${ELASTIC_OTEL_PHP_TESTS_DOCKER_RUNNING_USER_GROUP_ID:?}" /elastic_otel_php_tests/logs/*
-    chmod -R u+rw /elastic_otel_php_tests/logs/*
+    chmod -R u+rw,a+r /elastic_otel_php_tests/logs/*
 
     end_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
@@ -166,6 +161,15 @@ function on_script_exit () {
     ls -l -R /elastic_otel_php_tests/logs/
 
     end_github_workflow_log_group "${current_github_workflow_log_group_name}"
+}
+
+function on_script_exit () {
+    local exit_code=$?
+
+    # End the workflow log group started in main()
+    end_github_workflow_log_group "${current_github_workflow_log_group_name}"
+
+    gather_logs
 
     exit ${exit_code}
 }
