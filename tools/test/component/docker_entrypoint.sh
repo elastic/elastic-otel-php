@@ -94,7 +94,8 @@ function extract_log_ending () {
         last_starting_test_case_line_number="$(echo "${last_starting_test_case_line}" | cut -d':' -f1)"
         local composer_run_component_tests_log_lines_count
         composer_run_component_tests_log_lines_count="$(wc -l < "${composer_run_component_tests_log_file}")"
-        last_test_case_log_lines_count="$((composer_run_component_tests_log_lines_count-last_starting_test_case_line_number))"
+        # grep starts line numbers from 1 so we need to add 1
+        last_test_case_log_lines_count="$((composer_run_component_tests_log_lines_count - last_starting_test_case_line_number + 1))"
         tail -n "${last_test_case_log_lines_count}" "${composer_run_component_tests_log_file}" > "${last_test_case_log_file}"
     fi
 
