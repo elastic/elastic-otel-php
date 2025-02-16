@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -e -o pipefail
-#set -x
+set -x
 
 function print_info_about_environment () {
     echo "Current directory: ${PWD}"
@@ -15,14 +15,7 @@ function print_info_about_environment () {
     env | sort
 }
 
-function on_script_exit () {
-    end_github_workflow_log_group "${current_workflow_group_name}"
-}
-
 function main() {
-    current_workflow_group_name="Setting the environment for ${BASH_SOURCE[0]}"
-    echo "::group::${current_workflow_group_name}"
-
     this_script_dir="$( dirname "${BASH_SOURCE[0]}" )"
     this_script_dir="$( realpath "${this_script_dir}" )"
 
@@ -51,11 +44,6 @@ function main() {
     fi
 
     env | sort
-
-    end_github_workflow_log_group "${current_workflow_group_name}"
-
-    current_workflow_group_name="Running component tests"
-    start_github_workflow_log_group "${current_workflow_group_name}"
 
     "${composer_command[@]}" 2>&1 | tee "/elastic_otel_php_tests/logs/composer_-_run_component_tests.log"
 }

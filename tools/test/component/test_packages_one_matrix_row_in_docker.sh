@@ -100,8 +100,8 @@ function select_Dockerfile_based_on_package_type () {
 }
 
 function main() {
-    local current_workflow_group_name="Setting the environment for ${BASH_SOURCE[0]}"
-    echo "::group::${current_workflow_group_name}"
+    local current_github_workflow_log_group_name="Setting the environment for ${BASH_SOURCE[0]}"
+    echo "::group::${current_github_workflow_log_group_name}"
 
     this_script_dir="$( dirname "${BASH_SOURCE[0]}" )"
     this_script_dir="$( realpath "${this_script_dir}" )"
@@ -142,17 +142,17 @@ function main() {
 
     local docker_image_tag="elastic-otel-php-tests-component-${ELASTIC_OTEL_PHP_TESTS_PACKAGE_TYPE:?}-${ELASTIC_OTEL_PHP_TESTS_PHP_VERSION:?}"
 
-    end_github_workflow_log_group "${current_workflow_group_name}"
+    end_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
-    local current_workflow_group_name="Building docker image with tag ${docker_image_tag} using ${this_script_dir}/${dockerfile} with PHP_VERSION=${ELASTIC_OTEL_PHP_TESTS_PHP_VERSION:?}"
-    start_github_workflow_log_group "${current_workflow_group_name}"
+    local current_github_workflow_log_group_name="Building docker image with tag ${docker_image_tag} using ${this_script_dir}/${dockerfile} with PHP_VERSION=${ELASTIC_OTEL_PHP_TESTS_PHP_VERSION:?}"
+    start_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
     docker build --file "${this_script_dir}/${dockerfile}" --build-arg "PHP_VERSION=${ELASTIC_OTEL_PHP_TESTS_PHP_VERSION:?}" --tag "${docker_image_tag}" .
 
-    end_github_workflow_log_group "${current_workflow_group_name}"
+    end_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
-    local current_workflow_group_name="Preparing to run docker container using image image with tag ${docker_image_tag}"
-    start_github_workflow_log_group "${current_workflow_group_name}"
+    local current_github_workflow_log_group_name="Preparing to run docker container using image image with tag ${docker_image_tag}"
+    start_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
     build_docker_env_vars_command_line_part docker_run_cmd_line_args
 
@@ -160,7 +160,7 @@ function main() {
     docker_run_cmd_line_args=("${docker_run_cmd_line_args[@]}" -v "${logs_dir}:/elastic_otel_php_tests/logs")
     echo "docker_run_cmd_line_args: ${docker_run_cmd_line_args[*]}"
 
-    end_github_workflow_log_group "${current_workflow_group_name}"
+    end_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
     docker run --rm --tty "${docker_run_cmd_line_args[@]}" "${docker_image_tag}"
 }

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -e -o pipefail
-#set -x
+set -x
 
 function install_package_file() {
     local package_file_full_path=${1:?}
@@ -28,8 +28,8 @@ function install_package_file() {
 }
 
 function install_elastic_otel_package () {
-    local current_workflow_group_name="Installing package with Elastic OTel for PHP distro"
-    start_github_workflow_log_group "${current_workflow_group_name}"
+    local current_github_workflow_log_group_name="Installing package with Elastic OTel for PHP distro"
+    start_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
     # Until we add testing for ARM architecture is hardcoded as x86_64
     local architecture="x86_64"
@@ -39,7 +39,7 @@ function install_elastic_otel_package () {
 
     install_package_file "${package_file_full_path}"
 
-    end_github_workflow_log_group "${current_workflow_group_name}"
+    end_github_workflow_log_group "${current_github_workflow_log_group_name}"
 }
 
 function start_syslog () {
@@ -71,57 +71,63 @@ function start_syslog_and_set_related_config () {
 }
 
 function extract_log_related_to_failure () {
-    local current_workflow_group_name="Extracting part of log related to failure"
-    start_github_workflow_log_group "${current_workflow_group_name}"
+    local current_github_workflow_log_group_name="Extracting parts of composer run_component_tests log related to failure"
+    start_github_workflow_log_group "${current_github_workflow_log_group_name}"
     local composer_run_component_tests_log_file=/elastic_otel_php_tests/logs/composer_-_run_component_tests.log
 
     if [ ! -f "${composer_run_component_tests_log_file}" ]; then
-        end_github_workflow_log_group "${current_workflow_group_name}"
+        end_github_workflow_log_group "${current_github_workflow_log_group_name}"
         return
     fi
 
+    # If we find at least one test case start line then we extract log lines from the last test case start line
+    # If the number of lines extracted above is no more than ${small_tail_lines_count} we print them and return
+    # If there are no test case start lines or the number of lines extracted above is more than ${small_tail_lines_count}
+    # then we print only the last ${small_tail_lines_count} lines of the log
+
+    local last_test_case_log_lines_count=-1
+    local last_test_case_log_file=/elastic_otel_php_tests/logs/composer_-_run_component_tests_-_last_test_case.log
     local last_starting_test_case_line
     last_starting_test_case_line="$(grep -n -E "^Starting test case: " "${composer_run_component_tests_log_file}" | tail -1)"
-    if [[ -z "${last_starting_test_case_line}" ]]; then # -z is true if string is empty
-        end_github_workflow_log_group "${current_workflow_group_name}"
-        return
+    if [[ -n "${last_starting_test_case_line}" ]]; then # -n is true if string is not empty
+        local last_starting_test_case_line_number
+        last_starting_test_case_line_number="$(echo "${last_starting_test_case_line}" | cut -d':' -f1)"
+        local composer_run_component_tests_log_lines_count
+        composer_run_component_tests_log_lines_count="$(wc -l < "${composer_run_component_tests_log_file}")"
+        last_test_case_log_lines_count="$((composer_run_component_tests_log_lines_count-last_starting_test_case_line_number))"
+        tail -n "${last_test_case_log_lines_count}" "${composer_run_component_tests_log_file}" > "${last_test_case_log_file}"
     fi
-
-    local last_starting_test_case_line_number
-    last_starting_test_case_line_number="$(echo "${last_starting_test_case_line}" | cut -d':' -f1)"
-    local composer_run_component_tests_log_lines_count
-    composer_run_component_tests_log_lines_count="$(wc -l < "${composer_run_component_tests_log_file}")"
-    local last_test_case_log_lines_count="$((composer_run_component_tests_log_lines_count-last_starting_test_case_line_number))"
-    local last_test_case_log_file=/elastic_otel_php_tests/logs/composer_-_run_component_tests_-_last_test_case.log
-    tail -n "${last_test_case_log_lines_count}" "${composer_run_component_tests_log_file}" > "${last_test_case_log_file}"
 
     local small_tail_lines_count=100
     local small_tail_log_file="/elastic_otel_php_tests/logs/composer_-_run_component_tests_-_last_${small_tail_lines_count}_lines.log"
-    if [[ "${last_test_case_log_lines_count}" -gt "${small_tail_lines_count}" ]]; then
-        tail -n "${small_tail_lines_count}" "${last_test_case_log_file}" > "${small_tail_log_file}"
-    fi
-    end_github_workflow_log_group "${current_workflow_group_name}"
 
-    if [ -f "${last_test_case_log_file}" ]; then
-        local current_workflow_group_name="The last test case's part of composer run_component_tests log (${last_test_case_log_lines_count} lines)"
-        start_github_workflow_log_group "${current_workflow_group_name}"
-        cat "${last_test_case_log_file}"
-        end_github_workflow_log_group "${current_workflow_group_name}"
-        return
+    if [[ "${last_test_case_log_lines_count}" -eq -1 ]] || [[ "${last_test_case_log_lines_count}" -gt "${small_tail_lines_count}" ]]; then
+        tail -n "${small_tail_lines_count}" "${composer_run_component_tests_log_file}" > "${small_tail_log_file}"
+    fi
+    end_github_workflow_log_group "${current_github_workflow_log_group_name}"
+
+    if [ -f "${last_test_case_log_file}" ] ; then
+        if [[ "${last_test_case_log_lines_count}" -gt "${small_tail_lines_count}" ]]; then
+            echo "The last test case's part of composer run_component_tests log (${last_test_case_log_lines_count} lines) extracted to ${last_test_case_log_file}"
+        else
+            local current_github_workflow_log_group_name="The last test case's part of composer run_component_tests log (${last_test_case_log_lines_count} lines)"
+            start_github_workflow_log_group "${current_github_workflow_log_group_name}"
+            cat "${last_test_case_log_file}"
+            end_github_workflow_log_group "${current_github_workflow_log_group_name}"
+        fi
     fi
 
-    if [ -f "${small_tail_log_file}" ]; then
-        local current_workflow_group_name="The last ${small_tail_lines_count} lines of composer run_component_tests log"
-        start_github_workflow_log_group "${current_workflow_group_name}"
+    if [ -f "${small_tail_log_file}" ] ; then
+        local current_github_workflow_log_group_name="The last ${small_tail_lines_count} lines of composer run_component_tests log"
+        start_github_workflow_log_group "${current_github_workflow_log_group_name}"
         cat "${small_tail_log_file}"
-        end_github_workflow_log_group "${current_workflow_group_name}"
-        return
+        end_github_workflow_log_group "${current_github_workflow_log_group_name}"
     fi
 }
 
 function copy_syslog () {
-    local current_workflow_group_name="Copying syslog files"
-    start_github_workflow_log_group "${current_workflow_group_name}"
+    local current_github_workflow_log_group_name="Copying syslog files"
+    start_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
     local copy_syslog_to_dir=/elastic_otel_php_tests/logs/var_log
     mkdir -p "${copy_syslog_to_dir}"
@@ -133,39 +139,42 @@ function copy_syslog () {
         fi
     done
 
-    end_github_workflow_log_group "${current_workflow_group_name}"
+    end_github_workflow_log_group "${current_github_workflow_log_group_name}"
 }
 
 function on_script_exit () {
-    exitCode=$?
+    local exit_code=$?
+
+    # End the workflow log group started in main()
+    end_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
     copy_syslog
 
-    if [[ "${exitCode}" -ne 0 ]]; then
+    if [[ "${exit_code}" -ne 0 ]]; then
         extract_log_related_to_failure
     fi
 
-    local current_workflow_group_name="Setting ownership/permissions to allow docker host to read files copied to /elastic_otel_php_tests/logs/"
-    start_github_workflow_log_group "${current_workflow_group_name}"
+    current_github_workflow_log_group_name="Setting ownership/permissions to allow docker host to read files copied to /elastic_otel_php_tests/logs/"
+    start_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
     chown -R "${ELASTIC_OTEL_PHP_TESTS_DOCKER_RUNNING_USER_ID:?}:${ELASTIC_OTEL_PHP_TESTS_DOCKER_RUNNING_USER_GROUP_ID:?}" /elastic_otel_php_tests/logs/*
     chmod -R u+rw /elastic_otel_php_tests/logs/*
 
-    end_github_workflow_log_group "${current_workflow_group_name}"
+    end_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
-    local current_workflow_group_name="Content of /elastic_otel_php_tests/logs/"
-    start_github_workflow_log_group "${current_workflow_group_name}"
+    current_github_workflow_log_group_name="Content of /elastic_otel_php_tests/logs/"
+    start_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
     ls -l -R /elastic_otel_php_tests/logs/
 
-    end_github_workflow_log_group "${current_workflow_group_name}"
+    end_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
-    exit ${exitCode}
+    exit ${exit_code}
 }
 
 function main() {
-    local current_workflow_group_name="Setting the environment for ${BASH_SOURCE[0]}"
-    echo "::group::${current_workflow_group_name}"
+    current_github_workflow_log_group_name="Setting the environment for ${BASH_SOURCE[0]}"
+    echo "::group::${current_github_workflow_log_group_name}"
 
     this_script_full_path="${BASH_SOURCE[0]}"
     this_script_dir="$( dirname "${this_script_full_path}" )"
@@ -191,12 +200,12 @@ function main() {
     export OTEL_PHP_DISABLED_INSTRUMENTATIONS=all
     export OTEL_PHP_AUTOLOAD_ENABLED=false
 
-    end_github_workflow_log_group "${current_workflow_group_name}"
+    end_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
     install_elastic_otel_package
 
-    local current_workflow_group_name="Installing PHP dependencies using composer"
-    start_github_workflow_log_group "${current_workflow_group_name}"
+    local current_github_workflow_log_group_name="Installing PHP dependencies using composer"
+    start_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
     if [ -f /repo_root/composer.lock ]; then
         rm -f /repo_root/composer.lock
@@ -210,7 +219,10 @@ function main() {
 
     composer install
 
-    end_github_workflow_log_group "${current_workflow_group_name}"
+    end_github_workflow_log_group "${current_github_workflow_log_group_name}"
+
+    current_github_workflow_log_group_name="Running component tests for matrix row ${ELASTIC_OTEL_PHP_TESTS_MATRIX_ROW:?}"
+    start_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
     /repo_root/tools/test/component/test_installed_package_one_matrix_row.sh
 }

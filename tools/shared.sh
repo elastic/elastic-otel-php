@@ -157,15 +157,16 @@ function ensure_dir_exists_and_empty() {
 #
 # How to use set_set_x_setting and get_current_set_x_setting
 #
-#   Before the section for which you would like to disable tracing:
+#   Before the section for which you would like to enable/disable tracing:
 #
-#       local set_x_setting
-#       set_x_setting=$(get_current_set_x_setting)
-#       set +x
+#       local saved_set_x_setting
+#       saved_set_x_setting=$(get_current_set_x_setting)
+#       set -x # to enable tracing
+#       set +x # to disable tracing
 #
 #   After the section:
 #
-#       set_set_x_setting "${set_x_setting}"
+#       set_set_x_setting "${saved_set_x_setting}"
 #
 function get_current_set_x_setting() {
     local current_setting=${-//[^x]/}
