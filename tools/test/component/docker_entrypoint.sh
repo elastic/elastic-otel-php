@@ -145,6 +145,14 @@ function on_script_exit () {
         extract_log_related_to_failure
     fi
 
+    local current_workflow_group_name="Setting ownership/permissions to allow docker host to read files copied to /elastic_otel_php_tests/logs/"
+    start_github_workflow_log_group "${current_workflow_group_name}"
+
+    chown -R "${ELASTIC_OTEL_PHP_TESTS_DOCKER_RUNNING_USER_ID:?}:${ELASTIC_OTEL_PHP_TESTS_DOCKER_RUNNING_USER_GROUP_ID:?}" /elastic_otel_php_tests/logs/*
+    chmod -R u+rw /elastic_otel_php_tests/logs/*
+
+    end_github_workflow_log_group "${current_workflow_group_name}"
+
     local current_workflow_group_name="Content of /elastic_otel_php_tests/logs/"
     start_github_workflow_log_group "${current_workflow_group_name}"
 

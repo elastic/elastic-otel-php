@@ -95,6 +95,9 @@ function main() {
 
     parse_args "$@"
 
+    ensure_dir_exists_and_empty "${logs_dir}"
+    touch "${logs_dir}/z_dummy_file_to_make_directory_non-empty"
+
     env | sort
 
     end_github_workflow_log_group "${current_workflow_group_name}"
