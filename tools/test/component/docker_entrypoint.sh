@@ -53,7 +53,7 @@ function start_syslog () {
 
     # SC2009: Consider using pgrep instead of grepping ps output.
     # shellcheck disable=SC2009
-    if ps -ef | grep syslogd | grep -v grep ; then
+    if ps -ef | grep syslogd | grep -v grep &> /dev/null ; then
         echo 'true'
     else
         echo 'false'
@@ -84,7 +84,7 @@ function extract_log_ending () {
     last_test_case_log_lines_count=-1
     last_test_case_log_file=/elastic_otel_php_tests/logs/composer_-_run_component_tests_-_last_test_case.log
     local last_starting_test_case_line=''
-    if grep -n -E "^Starting test case: " "${composer_run_component_tests_log_file}" ; then
+    if grep -n -E "^Starting test case: " "${composer_run_component_tests_log_file}" &> /dev/null ; then
         last_starting_test_case_line="$(grep -n -E "^Starting test case: " "${composer_run_component_tests_log_file}" | tail -1)"
     fi
 
