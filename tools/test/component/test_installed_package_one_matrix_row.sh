@@ -22,6 +22,10 @@ function main() {
     repo_root_dir="$( realpath "${this_script_dir}/../../.." )"
     source "${repo_root_dir}/tools/shared.sh"
 
+    if [ -z "${composer_run_component_tests_log_file}" ]; then
+        composer_run_component_tests_log_file=/elastic_otel_php_tests/logs/composer_-_run_component_tests.log
+    fi
+
     print_info_about_environment
 
     source "${this_script_dir}/unpack_matrix_row.sh" "${ELASTIC_OTEL_PHP_TESTS_MATRIX_ROW:?}"
@@ -32,8 +36,8 @@ function main() {
     if [ -n "${ELASTIC_OTEL_PHP_TESTS_GROUP}" ]; then
 
         if [ "${ELASTIC_OTEL_PHP_TESTS_GROUP}" == "requires_external_services" ]; then
-            echo "There no tests in requires_external_services group yet"
-            exit 0
+            echo "There no tests in requires_external_services group yet" | tee "${composer_run_component_tests_log_file}"
+            return
         fi
 
         composer_command=("${composer_command[@]}" --group "${ELASTIC_OTEL_PHP_TESTS_GROUP}")
@@ -45,7 +49,7 @@ function main() {
 
     env | sort
 
-    "${composer_command[@]}" 2>&1 | tee "/elastic_otel_php_tests/logs/composer_-_run_component_tests.log"
+    "${composer_command[@]}" 2>&1 | tee "${composer_run_component_tests_log_file}"
 }
 
 main "$@"
