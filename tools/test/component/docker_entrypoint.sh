@@ -1,15 +1,6 @@
 #!/usr/bin/env bash
 set -xe -o pipefail
 
-this_script_full_path="${BASH_SOURCE[0]}"
-this_script_dir="$( dirname "${this_script_full_path}" )"
-this_script_dir="$( realpath "${this_script_dir}" )"
-this_script_name="$(basename -- "${this_script_full_path}")"
-this_script_name="${this_script_name%.*}"
-
-repo_root_dir="$( realpath "${this_script_dir}/../../.." )"
-source "${repo_root_dir}/tools/shared.sh"
-
 install_package_file() {
     local package_file_full_path=${1:?}
 
@@ -36,7 +27,8 @@ install_package_file() {
 }
 
 function install_elastic_otel_package () {
-    echo "::group::Installing package with Elastic OTel for PHP distro"
+    local current_workflow_group_name="Installing package with Elastic OTel for PHP distro"
+    start_github_workflow_log_group "${current_workflow_group_name}"
 
     # Until we add testing for ARM architecture is hardcoded as x86_64
     local architecture="x86_64"
@@ -46,7 +38,7 @@ function install_elastic_otel_package () {
 
     install_package_file "${package_file_full_path}"
 
-    echo "::endgroup::"
+    end_github_workflow_log_group "${current_workflow_group_name}"
 }
 
 function start_syslog () {
@@ -55,73 +47,107 @@ function start_syslog () {
     else
         if which rsyslogd; then
             rsyslogd
-        else
-            echo 'false'
-            return
         fi
     fi
 
-    echo 'false'
+    if ps -ef | grep syslogd | grep -v grep ; then
+        echo 'true'
+    else
+        echo 'false'
+    fi
 }
 
-function print_last_test_case () {
-    local composer_run_component_tests_log_file=/elastic_otel_php_tests/logs/composer_run_component_tests.log
+function start_syslog_and_set_related_config () {
+    local start_syslog_started
+    start_syslog_started=$(start_syslog)
+    if [ "${start_syslog_started}" != "true" ]; then
+        # By default tests log level escalation mechanism uses log_level_syslog production option
+        # If there is not syslog running then let's use log_level_stderr
+        export ELASTIC_OTEL_PHP_TESTS_ESCALATED_RERUNS_PROD_CODE_LOG_LEVEL_OPTION_NAME=log_level_stderr
+    fi
+}
+
+function extract_log_related_to_failure () {
+    local current_workflow_group_name="Extracting part of log related to failure"
+    start_github_workflow_log_group "${current_workflow_group_name}"
+    local composer_run_component_tests_log_file=/elastic_otel_php_tests/logs/composer_-_run_component_tests.log
 
     if [ ! -f "${composer_run_component_tests_log_file}" ]; then
+        end_github_workflow_log_group "${current_workflow_group_name}"
         return
     fi
 
-    local set_x_setting
-    set_x_setting=$(get_current_set_x_setting)
-    set +x
-
-    echo "::group::Looking for the last test case log"
-    local line_index=0
-    local last_starting_test_case_line_index=0
-    while IFS= read -r line ; do
-        ((++line_index))
-        if [[ "${line}" = "Starting test case: "* ]]; then
-            last_starting_test_case_line_index="${line_index}"
-        fi
-    done < "${composer_run_component_tests_log_file}"
-    echo "::endgroup::Looking for the last test case log"
-
-    if [[ "${last_starting_test_case_line_index}" -ne 0 ]]; then
-        echo "::group::Log from the last test case"
-        line_index=0
-        while IFS= read -r line ; do
-            ((++line_index))
-            if [[ "${line_index}" -ge "${last_starting_test_case_line_index}" ]]; then
-                echo "${line}"
-            fi
-        done < "${composer_run_component_tests_log_file}"
-        echo "::endgroup::Log from the last test case"
+    local last_starting_test_case_line
+    last_starting_test_case_line="$(grep -n -E "^Starting test case: " "${composer_run_component_tests_log_file}" | tail -1)"
+    if [[ -z "${last_starting_test_case_line}" ]]; then # -z is true if string is empty
+        end_github_workflow_log_group "${current_workflow_group_name}"
+        return
     fi
 
-    set_set_x_setting "${set_x_setting}"
+    local last_starting_test_case_line_number
+    last_starting_test_case_line_number="$(echo "${last_starting_test_case_line}" | cut -d':' -f1)"
+    local composer_run_component_tests_log_lines_count
+    composer_run_component_tests_log_lines_count="$(wc -l < "${composer_run_component_tests_log_file}")"
+    local last_test_case_log_lines_count="$((composer_run_component_tests_log_lines_count-last_starting_test_case_line_number))"
+    local last_test_case_log_file=/elastic_otel_php_tests/logs/composer_-_run_component_tests_-_last_test_case.log
+    tail -n "${last_test_case_log_lines_count}" "${composer_run_component_tests_log_file}" > "${last_test_case_log_file}"
+
+    local small_tail_lines_count=100
+    local small_tail_log_file="/elastic_otel_php_tests/logs/composer_-_run_component_tests_-_last_${small_tail_lines_count}_lines.log"
+    if [[ "${last_test_case_log_lines_count}" -gt "${small_tail_lines_count}" ]]; then
+        tail -n "${small_tail_lines_count}" "${last_test_case_log_file}" > "${small_tail_log_file}"
+    fi
+    end_github_workflow_log_group "${current_workflow_group_name}"
+
+    if [ -f "${last_test_case_log_file}" ]; then
+        local current_workflow_group_name="The last test case's part of composer run_component_tests log (${last_test_case_log_lines_count} lines)"
+        start_github_workflow_log_group "${current_workflow_group_name}"
+        cat "${last_test_case_log_file}"
+        end_github_workflow_log_group "${current_workflow_group_name}"
+        return
+    fi
+
+    if [ -f "${small_tail_log_file}" ]; then
+        local current_workflow_group_name="The last ${small_tail_lines_count} lines of composer run_component_tests log"
+        start_github_workflow_log_group "${current_workflow_group_name}"
+        cat "${small_tail_log_file}"
+        end_github_workflow_log_group "${current_workflow_group_name}"
+        return
+    fi
 }
 
 function on_script_exit () {
     exitCode=$?
 
-    echo "::group::Copying syslog files"
+    local current_workflow_group_name="Copying syslog files"
+    start_github_workflow_log_group "${current_workflow_group_name}"
+
     local var_log_dst_dir=/elastic_otel_php_tests/logs/var_log
     mkdir -p "${var_log_dst_dir}"
     cp -r /var/log/syslog* "${var_log_dst_dir}" || true
     cp -r /var/log/messages* "${var_log_dst_dir}" || true
-    echo "::endgroup::Copying syslog files"
+
+    end_github_workflow_log_group "${current_workflow_group_name}"
 
     if [[ "${exitCode}" -ne 0 ]]; then
-        print_last_test_case
+        extract_log_related_to_failure
     fi
 
     exit ${exitCode}
 }
 
 main() {
-    echo "::group::Preparing environment to run component tests"
-    echo "pwd"
-    pwd
+    local current_workflow_group_name="Setting the environment for ${BASH_SOURCE[0]}"
+    echo "::group::${current_workflow_group_name}"
+
+    this_script_full_path="${BASH_SOURCE[0]}"
+    this_script_dir="$( dirname "${this_script_full_path}" )"
+    this_script_dir="$( realpath "${this_script_dir}" )"
+
+    repo_root_dir="$( realpath "${this_script_dir}/../../.." )"
+    source "${repo_root_dir}/tools/shared.sh"
+
+    echo "Current directory: ${PWD}"
 
     echo "ls -l"
     ls -l
@@ -129,16 +155,7 @@ main() {
     repo_root_dir="$( realpath "${this_script_dir}/../../.." )"
     source "${repo_root_dir}/tools/shared.sh"
 
-# TODO: Sergey Kleyman: UNCOMMENT
-#    local start_syslog_started
-#    start_syslog_started=$(start_syslog)
-#    if [ "${start_syslog_started}" != "true" ]; then
-#        # By default tests log level escalation mechanism uses log_level_syslog production option
-#        # If there is not syslog running then let's use log_level_stderr
-#        export ELASTIC_OTEL_PHP_TESTS_ESCALATED_RERUNS_PROD_CODE_LOG_LEVEL_OPTION_NAME=log_level_stderr
-#    fi
-    # It seems productions code writes to syslog so let's use stderr for now
-    export ELASTIC_OTEL_PHP_TESTS_ESCALATED_RERUNS_PROD_CODE_LOG_LEVEL_OPTION_NAME=log_level_stderr
+    start_syslog_and_set_related_config
 
     trap on_script_exit EXIT
 
@@ -147,9 +164,13 @@ main() {
     export OTEL_PHP_DISABLED_INSTRUMENTATIONS=all
     export OTEL_PHP_AUTOLOAD_ENABLED=false
 
+    end_github_workflow_log_group "${current_workflow_group_name}"
+
     install_elastic_otel_package
 
-    echo "::group::Installing PHP dependencies using composer"
+    local current_workflow_group_name="Installing PHP dependencies using composer"
+    start_github_workflow_log_group "${current_workflow_group_name}"
+
     if [ -f /repo_root/composer.lock ]; then
         rm -f /repo_root/composer.lock
     fi
@@ -161,8 +182,8 @@ main() {
     cat /repo_root/composer.json
 
     composer install
-    echo "::endgroup::Installing PHP dependencies using composer"
-    echo "::endgroup::Preparing environment to run component tests"
+
+    end_github_workflow_log_group "${current_workflow_group_name}"
 
     /repo_root/tools/test/component/test_installed_package_one_matrix_row.sh
 }

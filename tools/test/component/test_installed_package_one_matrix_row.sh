@@ -1,12 +1,6 @@
 #!/usr/bin/env bash
 set -xe -o pipefail
 
-this_script_dir="$( dirname "${BASH_SOURCE[0]}" )"
-this_script_dir="$( realpath "${this_script_dir}" )"
-
-repo_root_dir="$( realpath "${this_script_dir}/../../.." )"
-source "${repo_root_dir}/tools/shared.sh"
-
 function print_info_about_environment () {
     echo "Current directory: ${PWD}"
 
@@ -21,7 +15,14 @@ function print_info_about_environment () {
 }
 
 main() {
-    echo "::group::Preparing composer command to run component tests"
+    local current_workflow_group_name="Setting the environment for ${BASH_SOURCE[0]}"
+    echo "::group::${current_workflow_group_name}"
+
+    this_script_dir="$( dirname "${BASH_SOURCE[0]}" )"
+    this_script_dir="$( realpath "${this_script_dir}" )"
+
+    repo_root_dir="$( realpath "${this_script_dir}/../../.." )"
+    source "${repo_root_dir}/tools/shared.sh"
 
     print_info_about_environment
 
@@ -45,11 +46,14 @@ main() {
     fi
 
     env | sort
-    echo "::endgroup::Preparing composer command to run component tests"
+    end_github_workflow_log_group "${current_workflow_group_name}"
 
-    echo "::group::Running component tests"
-    "${composer_command[@]}" 2>&1 | tee "/elastic_otel_php_tests/logs/composer_run_component_tests.log"
-    echo "::endgroup::Running component tests"
+    local current_workflow_group_name="Running component tests"
+    start_github_workflow_log_group "${current_workflow_group_name}"
+
+    "${composer_command[@]}" 2>&1 | tee "/elastic_otel_php_tests/logs/composer_-_run_component_tests.log"
+
+    end_github_workflow_log_group "${current_workflow_group_name}"
 }
 
 main "$@"

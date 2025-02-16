@@ -2,12 +2,6 @@
 set -e -o pipefail
 #set -x
 
-this_script_dir="$( dirname "${BASH_SOURCE[0]}" )"
-this_script_dir="$( realpath "${this_script_dir}" )"
-
-repo_root_dir="$( realpath "${this_script_dir}/../../.." )"
-source "${repo_root_dir}/tools/shared.sh"
-
 function is_value_in_array () {
     # The first argument is the element that should be in array
     local value_to_check="$1"
@@ -81,7 +75,13 @@ function unpack_row_optional_parts_to_env_vars () {
     esac
 }
 
-function unpack_row_parts_to_env_vars () {
+function main () {
+    this_script_dir="$( dirname "${BASH_SOURCE[0]}" )"
+    this_script_dir="$( realpath "${this_script_dir}" )"
+
+    repo_root_dir="$( realpath "${this_script_dir}/../../.." )"
+    source "${repo_root_dir}/tools/shared.sh"
+
     #
     # Expected format (see generate_matrix.sh)
     #
@@ -125,4 +125,4 @@ function unpack_row_parts_to_env_vars () {
     done
 }
 
-unpack_row_parts_to_env_vars "$@"
+main "$@"

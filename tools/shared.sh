@@ -154,6 +154,19 @@ ensure_dir_exists_and_empty() {
     mkdir -p "${dir_to_clean}"
 }
 
+#
+# How to use set_set_x_setting and get_current_set_x_setting
+#
+#   Before the section for which you would like to disable tracing:
+#
+#       local set_x_setting
+#       set_x_setting=$(get_current_set_x_setting)
+#       set +x
+#
+#   After the section:
+#
+#       set_set_x_setting "${set_x_setting}"
+#
 function get_current_set_x_setting() {
     local current_setting=${-//[^x]/}
     if [[ -n "${current_setting}" ]] ; then
@@ -170,4 +183,14 @@ function set_set_x_setting() {
     else
         set +x
     fi
+}
+
+function start_github_workflow_log_group() {
+    local group_name="${1:?}"
+    echo "::group::${group_name}"
+}
+
+function end_github_workflow_log_group() {
+    local group_name="${1:?}"
+    echo "::endgroup::${group_name}"
 }

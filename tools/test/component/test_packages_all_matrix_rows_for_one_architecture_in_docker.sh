@@ -2,12 +2,6 @@
 set -e -o pipefail
 set -x
 
-this_script_dir="$( dirname "${BASH_SOURCE[0]}" )"
-this_script_dir="$( realpath "${this_script_dir}" )"
-
-repo_root_dir="$( realpath "${this_script_dir}/../../.." )"
-source "${repo_root_dir}/tools/shared.sh"
-
 show_help() {
     echo "Usage: $0 --architecture <architecture> --packages_dir <full path to a directory> --logs_dir <full path to a directory>"
     echo
@@ -90,8 +84,23 @@ convert_matrix_row_file_name_suitable_string() {
 }
 
 main() {
+    local current_workflow_group_name="Setting the environment for ${BASH_SOURCE[0]}"
+    echo "::group::${current_workflow_group_name}"
+
+    this_script_dir="$( dirname "${BASH_SOURCE[0]}" )"
+    this_script_dir="$( realpath "${this_script_dir}" )"
+
+    repo_root_dir="$( realpath "${this_script_dir}/../../.." )"
+    source "${repo_root_dir}/tools/shared.sh"
+
     parse_args "$@"
 
+    env | sort
+
+    end_github_workflow_log_group "${current_workflow_group_name}"
+
+    local current_workflow_group_name="Testing packages on generated matrix rows one at a time"
+    start_github_workflow_log_group "${current_workflow_group_name}"
     while read -r matrix_row ; do
         local matrix_row_file_name_suitable_string
         matrix_row_file_name_suitable_string=$(convert_matrix_row_file_name_suitable_string "${matrix_row}")
@@ -99,6 +108,7 @@ main() {
         "${this_script_dir}/test_packages_one_matrix_row_in_docker.sh" --matrix_row "${matrix_row}" --packages_dir "${packages_dir}" --logs_dir "${logs_sub_dir}"
         echo "$matrix_row"
     done < <("${this_script_dir}/generate_matrix.sh")
+    end_github_workflow_log_group "${current_workflow_group_name}"
 }
 
 main "$@"

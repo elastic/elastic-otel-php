@@ -9,12 +9,6 @@ set -e -o pipefail
 #       [0]         [1]          [2]                           [3]
 #
 
-this_script_dir="$( dirname "${BASH_SOURCE[0]}" )"
-this_script_dir="$( realpath "${this_script_dir}" )"
-
-repo_root_dir="$( realpath "${this_script_dir}/../../.." )"
-source "${repo_root_dir}/tools/shared.sh"
-
 function generate_rows_to_test_increased_log_level () {
     local php_version_no_dot
     php_version_no_dot=$(get_lowest_supported_php_version)
@@ -67,6 +61,12 @@ function generate_rows_to_test_all_php_versions_with_one_package_type () {
 }
 
 function main () {
+    this_script_dir="$( dirname "${BASH_SOURCE[0]}" )"
+    this_script_dir="$( realpath "${this_script_dir}" )"
+
+    repo_root_dir="$( realpath "${this_script_dir}/../../.." )"
+    source "${repo_root_dir}/tools/shared.sh"
+
     generate_rows_to_test_all_php_versions_with_one_package_type
     generate_rows_to_test_highest_supported_php_version_with_other_package_types
 
