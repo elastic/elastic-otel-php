@@ -1,5 +1,11 @@
 #!/bin/bash
 
+this_script_dir="$( dirname "${BASH_SOURCE[0]}" )"
+this_script_dir="$( realpath "${this_script_dir}" )"
+
+repo_root_dir="$( realpath "${this_script_dir}/../.." )"
+source "${repo_root_dir}/tools/shared.sh"
+
 PACKAGE_SHA="unknown"
 
 show_help() {
@@ -63,7 +69,11 @@ if [[ -z "$PACKAGE_VERSION" ]] || [[ -z "$BUILD_ARCHITECUTRE" ]] || [[ -z "$PACK
 fi
 
 test_package() {
-    local PHP_VERSION=8.3
+    local highest_supported_php_version_no_dot
+    highest_supported_php_version_no_dot=$(get_highest_supported_php_version)
+    local highest_supported_php_version_dot_separated
+    highest_supported_php_version_dot_separated=$(convert_no_dot_to_dot_separated_version "${highest_supported_php_version_no_dot}")
+    local PHP_VERSION="${highest_supported_php_version_dot_separated}"
     local PKG_TYPE=$1
     local PKG_FILENAME=$2
     local DOCKER_PLATFORM=$3

@@ -1,0 +1,31 @@
+ARG PHP_VERSION
+FROM php:${PHP_VERSION}-cli-alpine
+
+RUN ls -1 /etc/*release | xargs -i sh -c 'echo {} && cat {}'
+
+RUN apk update \
+  && apk add \
+        bash \
+        curl \
+        curl-dev \
+        git \
+        libzip-dev \
+        logrotate \
+        perl-utils \
+        procps \
+        rsyslog \
+        sqlite-dev \
+        unzip \
+        wget
+
+RUN docker-php-ext-install \
+        curl \
+        pdo_sqlite \
+        zip
+
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+ADD . /repo_root
+WORKDIR /repo_root
+
+ENTRYPOINT /repo_root/tools/test/component/docker_entrypoint.sh

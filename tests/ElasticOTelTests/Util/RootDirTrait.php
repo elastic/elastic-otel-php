@@ -21,18 +21,14 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTests\ComponentTests\Util;
+namespace ElasticOTelTests\Util;
 
-final class TestInfraDataPerRequest
+trait RootDirTrait
 {
-    /**
-     * @param ?array<string, mixed> $appCodeArguments
-     */
-    public function __construct(
-        public readonly string $spawnedProcessInternalId,
-        public readonly ?AppCodeTarget $appCodeTarget = null,
-        public ?array $appCodeArguments = null,
-        public bool $isAppCodeExpectedToThrow = false,
-    ) {
+    private static ?string $fullPath = null;
+
+    public static function adaptRelativeUnixStylePath(string $pathRelativeToRootDir): string
+    {
+        return FileUtil::normalizePath(self::getFullPath() . DIRECTORY_SEPARATOR . FileUtil::adaptUnixDirectorySeparators($pathRelativeToRootDir));
     }
 }

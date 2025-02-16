@@ -52,7 +52,7 @@ main() {
             && apt-get update && apt-get install -y unzip \
             && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
             && composer --ignore-platform-req=ext-opentelemetry --ignore-platform-req=php install \
-            && composer run-script -- static_check \
+            && composer run-script -- static_check_and_run_unit_tests \
             && rm -rf ./vendor composer.lock ./prod/php \
             && mv ./prod_php_backup ./prod/php \
             "

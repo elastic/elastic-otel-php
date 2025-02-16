@@ -1,0 +1,29 @@
+---
+
+# Generates matrix for component tests
+name: generate-component-tests-matrix
+
+on:
+  workflow_call:
+    outputs:
+      matrix:
+        description: "Matrix for component tests"
+        value: ${{ jobs.generate-component-tests-matrix.outputs.matrix }}
+
+permissions:
+  contents: read
+
+jobs:
+  generate-component-tests-matrix:
+    name: generate-component-tests-matrix
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.generate.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: generate
+        run: |
+          MATRIX_JSON=$(./tools/test/component/generate_matrix.sh | jq --raw-input --slurp -c 'split("\n") | map(select(length > 0)) | map({ "row": . } )')
+          echo "matrix={\"include\":${MATRIX_JSON}}"
+          echo "matrix={\"include\":${MATRIX_JSON}}" >> $GITHUB_OUTPUT

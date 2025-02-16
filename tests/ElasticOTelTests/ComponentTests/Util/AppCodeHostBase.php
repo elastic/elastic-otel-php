@@ -23,6 +23,7 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
+use Elastic\OTel\PhpPartFacade;
 use ElasticOTelTests\Util\AmbientContextForTests;
 use ElasticOTelTests\Util\ElasticOTelExtensionUtil;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
@@ -73,6 +74,9 @@ abstract class AppCodeHostBase extends SpawnedProcessBase
                         . ' php_ini_loaded_file(): ' . php_ini_loaded_file() . '.'
                     );
                 }
+                if (!PhpPartFacade::$wasBootstrapCalled) {
+                    throw new ComponentTestsInfraException('PhpPartFacade::$wasBootstrapCalled is false while it should be true for the process with app code');
+                }
 
                 AmbientContextForTests::testConfig()->validateForAppCodeRequest();
 
@@ -110,8 +114,9 @@ abstract class AppCodeHostBase extends SpawnedProcessBase
                 call_user_func($methodToCall, new MixedMap($appCodeArguments));
             }
         } catch (Throwable $throwable) {
-            $loggerProxyDebug && $loggerProxyDebug->logThrowable(__LINE__, $throwable, 'Call to application code exited by exception');
-            throw new WrappedAppCodeException($throwable);
+            $loggerProxy = ($dataPerRequest->isAppCodeExpectedToThrow) ? $loggerProxyDebug : $this->logger->ifCriticalLevelEnabledNoLine(__FUNCTION__);
+            $loggerProxy && $loggerProxy->logThrowable(__LINE__, $throwable, 'Call to application code exited by exception');
+            throw $dataPerRequest->isAppCodeExpectedToThrow ? new WrappedAppCodeException($throwable) : $throwable;
         }
 
         $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Call to application code completed');

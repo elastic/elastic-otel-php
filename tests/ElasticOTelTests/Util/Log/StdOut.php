@@ -21,18 +21,21 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTests\ComponentTests\Util;
+namespace ElasticOTelTests\Util\Log;
 
-final class TestInfraDataPerRequest
+use Elastic\OTel\Util\SingletonInstanceTrait;
+
+/**
+ * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
+ *
+ * @internal
+ */
+final class StdOut extends StdWriteStreamBase
 {
-    /**
-     * @param ?array<string, mixed> $appCodeArguments
-     */
-    public function __construct(
-        public readonly string $spawnedProcessInternalId,
-        public readonly ?AppCodeTarget $appCodeTarget = null,
-        public ?array $appCodeArguments = null,
-        public bool $isAppCodeExpectedToThrow = false,
-    ) {
+    use SingletonInstanceTrait;
+
+    private function __construct()
+    {
+        parent::__construct('stdout');
     }
 }

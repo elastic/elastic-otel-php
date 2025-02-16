@@ -23,11 +23,12 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\UnitTests\UtilTests;
 
-use ElasticOTelTests\TestsRootDir;
 use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\DisableDebugContextTestTrait;
 use ElasticOTelTests\Util\FileUtil;
 use ElasticOTelTests\Util\TestCaseBase;
+use ElasticOTelTests\Util\TestsRootDir;
+use ElasticOTelTests\Util\VendorDir;
 use Override;
 use PhpParser\NodeDumper as PhpParserNodeDumper;
 use PhpParser\ParserFactory as PhpParserFactory;
@@ -83,12 +84,12 @@ final class PHPUnitFrameworkAssertionFailedErrorSubstituteTest extends TestCaseB
      */
     public static function dataProviderForTestOriginalMatchesVendor(): iterable
     {
-        $pathToOriginalDir = FileUtil::normalizePath(TestsRootDir::getFullPath() . FileUtil::adaptUnixDirectorySeparators('/substitutes/PHPUnit_Framework_AssertionFailedError/original'));
-        $pathToVendorDir = FileUtil::normalizePath(TestsRootDir::getFullPath() . FileUtil::adaptUnixDirectorySeparators('/../vendor/phpunit/phpunit/src'));
+        $pathToOriginalSubDir = TestsRootDir::adaptRelativeUnixStylePath('substitutes/PHPUnit_Framework_AssertionFailedError/original');
+        $pathToVendorSubDir = VendorDir::adaptRelativeUnixStylePath('phpunit/phpunit/src');
 
         yield [
-            FileUtil::listToPath([$pathToOriginalDir, FileUtil::adaptUnixDirectorySeparators('AssertionFailedError.php')]),
-            FileUtil::listToPath([$pathToVendorDir, FileUtil::adaptUnixDirectorySeparators('Framework/Exception/AssertionFailedError.php')]),
+            FileUtil::listToPath([$pathToOriginalSubDir, FileUtil::adaptUnixDirectorySeparators('AssertionFailedError.php')]),
+            FileUtil::listToPath([$pathToVendorSubDir, FileUtil::adaptUnixDirectorySeparators('Framework/Exception/AssertionFailedError.php')]),
         ];
     }
 

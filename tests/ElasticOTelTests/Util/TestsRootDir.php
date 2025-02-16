@@ -21,26 +21,20 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTests;
+namespace ElasticOTelTests\Util;
 
 use Elastic\OTel\Util\StaticClassTrait;
-use PHPUnit\Framework\Assert;
 
 final class TestsRootDir
 {
     use StaticClassTrait;
-
-    private static ?string $fullPath = null;
-
-    public static function setFullPath(string $fullPath): void
-    {
-        Assert::assertNull(self::$fullPath);
-        self::$fullPath = $fullPath;
-    }
+    use RootDirTrait;
 
     public static function getFullPath(): string
     {
-        Assert::assertNotNull(self::$fullPath);
+        if (self::$fullPath === null) {
+            self::$fullPath = RepoRootDir::adaptRelativeUnixStylePath('tests');
+        }
         return self::$fullPath;
     }
 }

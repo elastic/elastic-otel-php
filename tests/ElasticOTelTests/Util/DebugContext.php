@@ -41,9 +41,6 @@ final class DebugContext
 
     public const THIS_CONTEXT_KEY = 'this';
 
-    public const TEXT_ADDED_TO_ASSERTION_MESSAGE_PREFIX = 'DebugContext begin';
-    public const TEXT_ADDED_TO_ASSERTION_MESSAGE_SUFFIX = 'DebugContext end';
-
     public const TEXT_ADDED_TO_ASSERTION_MESSAGE_WHEN_DISABLED = 'DebugContext is DISABLED!';
 
     /**
@@ -76,5 +73,18 @@ final class DebugContext
     public static function ensureInited(): void
     {
         DebugContextSingleton::singletonInstance();
+    }
+
+    public static function extractAddedTextFromMessage(string $message): ?string
+    {
+        return DebugContextSingleton::singletonInstance()->extractAddedTextFromMessage($message);
+    }
+
+    /**
+     * @return ?ContextsStack
+     */
+    public static function extractContextsStackFromMessage(string $message): ?array
+    {
+        return DebugContextSingleton::singletonInstance()->extractContextsStackFromMessage($message);
     }
 }

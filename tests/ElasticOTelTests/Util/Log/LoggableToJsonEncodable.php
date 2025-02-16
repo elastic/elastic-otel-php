@@ -26,6 +26,7 @@ namespace ElasticOTelTests\Util\Log;
 use Elastic\OTel\Log\LogLevel;
 use Elastic\OTel\Util\StaticClassTrait;
 use Elastic\OTel\Util\TextUtil;
+use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\LimitedSizeCache;
 use ReflectionClass;
 use ReflectionException;
@@ -317,9 +318,31 @@ final class LoggableToJsonEncodable
      */
     private static function convertThrowable(Throwable $throwable, int $depth): array
     {
+        // First try to log each property separately, if it throws then fallback on logging as one string
+        try {
+            $message = $throwable->getMessage();
+            $result = [
+                LogConsts::TYPE_KEY => get_class($throwable),
+                'file:line'         => $throwable->getFile() . ':' . $throwable->getLine(),
+                'trace'             => self::convert($throwable->getTrace(), $depth),
+                'previous'          => self::convert($throwable->getPrevious(), $depth),
+            ];
+
+            if (($extractedContextsStack = DebugContext::extractContextsStackFromMessage($message)) !== null) {
+                $result['DebugContext'] = self::convert($extractedContextsStack, $depth);
+            }
+
+            $result['message'] = $message;
+
+            return $result;
+        } catch (Throwable $throwable) {
+            $thrownWhenTryingToLogByProperty = $throwable;
+        }
+
         return [
-            LogConsts::TYPE_KEY            => get_class($throwable),
-            LogConsts::VALUE_AS_STRING_KEY => self::convert($throwable->__toString(), $depth),
+            LogConsts::TYPE_KEY               => get_class($throwable),
+            LogConsts::VALUE_AS_STRING_KEY    => self::convert($throwable->__toString(), $depth),
+            'thrownWhenTryingToLogByProperty' => self::convert($thrownWhenTryingToLogByProperty->__toString(), $depth),
         ];
     }
 
@@ -345,7 +368,7 @@ final class LoggableToJsonEncodable
                 }
 
                 $propName = $reflectionProperty->name;
-                $propValue = $reflectionProperty->getValue($object);
+                $propValue = $reflectionProperty->isInitialized($object) ? $reflectionProperty->getValue($object) : LogConsts::UNINITIALIZED_PROPERTY_SUBSTITUTE;
                 $nameToValue[$propName] = self::convert($propValue, $depth);
             }
             $currentClass = $currentClass->getParentClass();

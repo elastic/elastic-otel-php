@@ -1,6 +1,6 @@
 ---
 
-name: test-php-static-check
+name: test-php-static-and-unit
 
 on:
   workflow_call: ~
@@ -13,7 +13,8 @@ jobs:
   generate-php-versions:
     uses: ./.github/workflows/generate-php-versions.yml
 
-  static-check:
+  static-check-and-unit-tests:
+    name: static check and unit tests
     runs-on: ubuntu-latest
     needs: generate-php-versions
     timeout-minutes: 30
@@ -24,5 +25,5 @@ jobs:
       PHP_VERSION: ${{ matrix.php-version }}
     steps:
       - uses: actions/checkout@v4
-      - name: Invoke test_php_static_check.sh
-        run: ./tools/build/test_php_static_check.sh --php_versions "${PHP_VERSION}"
+      - name: Invoke test_php_static_and_unit.sh
+        run: ./tools/test/test_php_static_and_unit.sh --php_versions "${PHP_VERSION}"

@@ -28,8 +28,10 @@ use ElasticOTelTests\ComponentTests\Util\ConfigUtilForTests;
 use ElasticOTelTests\ComponentTests\Util\EnvVarUtilForTests;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
 use ElasticOTelTests\Util\Log\Logger;
+use ElasticOTelTests\Util\Log\StdOut;
 use Override;
 use PHPUnit\Event\Code\Test as PHPUnitEventCodeTest;
+use PHPUnit\Event\Code\TestMethod as PHPUnitEventCodeTestMethod;
 use PHPUnit\Event\Event as PHPUnitEvent;
 use PHPUnit\Event\Test\ErrorTriggered as PHPUnitEventTestErrorTriggered;
 use PHPUnit\Event\Test\ErrorTriggeredSubscriber as PHPUnitEventTestErrorTriggeredSubscriber;
@@ -284,34 +286,66 @@ abstract class PHPUnitExtensionBase implements Extension
         );
     }
 
-    protected function logLevelForBeforeTestCaseIsRun(): LogLevel
+    private static function formatTestForText(PHPUnitEventCodeTest $object): string
     {
-        return LogLevel::debug;
+        if (!($object instanceof PHPUnitEventCodeTestMethod)) {
+            return $object->id();
+        }
+
+        $result = $object->className() . '::' . $object->methodName();
+        if ($object->testData()->hasDataFromDataProvider()) {
+            $dataSetName = $object->testData()->dataFromDataProvider()->dataSetName();
+            $dataSetDesc = is_int($dataSetName) ? "#$dataSetName" : $dataSetName;
+            $result .= ' ' . $dataSetDesc;
+        }
+        return $result;
+    }
+
+    /**
+     * @return ($forLog is true ? array<string, mixed> : string)
+     */
+    private static function formatTelemetry(PHPUnitEvent $event, bool $forLog): array|string
+    {
+        $prevEvent = self::$lastEvent;
+        self::$lastEvent = $event;
+
+        $durationSinceStart = $event->telemetryInfo()->durationSinceStart()->asString();
+        $memoryUsageSinceStart = $event->telemetryInfo()->memoryUsageSinceStart()->bytes();
+        if ($forLog) {
+            $result = ["Since start" => ['duration' => $durationSinceStart, 'memory usage (bytes)' => $memoryUsageSinceStart]];
+        } else {
+            $result = PHP_EOL . "Since start:    [duration: $durationSinceStart, memory usage (bytes): $memoryUsageSinceStart]";
+        }
+
+        if ($prevEvent !== null) {
+            $durationSincePrevious = $event->telemetryInfo()->time()->duration($prevEvent->telemetryInfo()->time())->asString();
+            $memoryUsageSincePrevious = $event->telemetryInfo()->memoryUsage()->bytes() - $prevEvent->telemetryInfo()->memoryUsage()->bytes();
+            if ($forLog) {
+                $result += ['Since previous' => ['duration' => $durationSincePrevious, 'memory usage (bytes)' => $memoryUsageSincePrevious]];
+            } else {
+                $result .= PHP_EOL . "Since previous: [duration: $durationSincePrevious, memory usage (bytes): $memoryUsageSincePrevious]";
+            }
+        }
+
+        return $result;
+    }
+
+    private static function formatTelemetryForText(PHPUnitEvent $event): string
+    {
+        return self::formatTelemetry($event, forLog: false);
     }
 
     /**
      * @return array<string, mixed>
      */
-    private static function formatFormatTelemetryInfoSincePrevious(PHPUnitEvent $event): array
+    private static function formatTelemetryForLog(PHPUnitEvent $event): array
     {
-        $prevEvent = self::$lastEvent;
-        self::$lastEvent = $event;
-        if ($prevEvent === null) {
-            return [
-                'Since start' => [
-                    'duration'             => $event->telemetryInfo()->durationSinceStart()->asString(),
-                    'memory usage (bytes)' => $event->telemetryInfo()->memoryUsageSinceStart()->bytes(),
-                ],
-            ];
-        }
+        return self::formatTelemetry($event, forLog: true);
+    }
 
-        $durationSincePrevious = $event->telemetryInfo()->time()->duration($prevEvent->telemetryInfo()->time());
-        return [
-            'Since previous' => [
-                'duration'             => $durationSincePrevious->asString(),
-                'memory usage (bytes)' => ($event->telemetryInfo()->memoryUsageSinceStart()->bytes() - $prevEvent->telemetryInfo()->memoryUsageSinceStart()->bytes()),
-            ],
-        ];
+    private static function printProgress(string $text): void
+    {
+        StdOut::singletonInstance()->writeLine(PHP_EOL . PHP_EOL . $text . PHP_EOL);
     }
 
     public function beforeTestCaseIsRun(PHPUnitEventTestPrepared $event): void
@@ -322,30 +356,22 @@ abstract class PHPUnitExtensionBase implements Extension
 
         self::$lastBeforeTestCaseEvent = $event;
 
-        ($loggerProxy = $this->logger->ifLevelEnabled($this->logLevelForBeforeTestCaseIsRun(), __LINE__, __FUNCTION__))
-        && $loggerProxy->log('Before running test case...', ['test' => $event->test()] + self::formatFormatTelemetryInfoSincePrevious($event));
-    }
-
-    protected function logLevelForAfterTestCasePassed(): LogLevel
-    {
-        return LogLevel::debug;
+        $testDesc = self::formatTestForText($event->test());
+        $telemetryDesc = self::formatTelemetryForText($event);
+        self::printProgress("Starting test case: $testDesc. $telemetryDesc ...");
     }
 
     public function afterTestCasePassed(PHPUnitEventTestPassed $event): void
     {
-        ($loggerProxy = $this->logger->ifLevelEnabled($this->logLevelForAfterTestCasePassed(), __LINE__, __FUNCTION__))
-        && $loggerProxy->log('Test case passed', ['test' => $event->test()] + self::formatFormatTelemetryInfoSincePrevious($event));
-    }
-
-    protected function logLevelForAfterTestCaseDidNotPass(): LogLevel
-    {
-        return LogLevel::critical;
+        $testDesc = self::formatTestForText($event->test());
+        $telemetryDesc = self::formatTelemetryForText($event);
+        self::printProgress("Test case passed: $testDesc...$telemetryDesc");
     }
 
     private function afterTestCaseDidNotPass(PHPUnitEvent $event, PHPUnitEventCodeTest $test): void
     {
-        ($loggerProxy = $this->logger->ifLevelEnabled($this->logLevelForAfterTestCaseDidNotPass(), __LINE__, __FUNCTION__))
-        && $loggerProxy->includeStackTrace()->log('Test case did not pass', compact('test', 'event') + self::formatFormatTelemetryInfoSincePrevious($event));
+        ($loggerProxy = $this->logger->ifCriticalLevelEnabled(__LINE__, __FUNCTION__))
+        && $loggerProxy->includeStackTrace()->log('Test case did not pass', compact('test', 'event') + self::formatTelemetryForLog($event));
     }
 
     public function afterTestCaseConsideredRisky(PHPUnitEventTestConsideredRisky $event): void

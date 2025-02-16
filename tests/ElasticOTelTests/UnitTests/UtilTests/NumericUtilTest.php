@@ -24,9 +24,11 @@ declare(strict_types=1);
 namespace ElasticOTelTests\UnitTests\UtilTests;
 
 use Elastic\OTel\Util\NumericUtil;
+use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\FloatLimits;
 use ElasticOTelTests\Util\NumericUtilForTests;
 use ElasticOTelTests\Util\TestCaseBase;
+use InvalidArgumentException;
 
 class NumericUtilTest extends TestCaseBase
 {
@@ -109,5 +111,48 @@ class NumericUtilTest extends TestCaseBase
         $impl(5, '>', 4.3);
         $impl(7.3, '>', 6);
         $impl(9.2, '>', 9.1);
+    }
+
+    public function testCompareSequencesValidInput(): void
+    {
+        /**
+         * @template TNumber of int|float
+         *
+         * @phpstan-param array<TNumber> $lhs
+         * @phpstan-param array<TNumber> $rhs
+         */
+        $impl = function (array $lhs, array $rhs, int $expectedRetVal): void {
+            /** @var array<int|float> $lhs */
+            /** @var array<int|float> $rhs */
+            $actualRetVal = NumericUtilForTests::compareSequences($lhs, $rhs);
+            self::assertSame($expectedRetVal, $actualRetVal);
+        };
+
+        $impl([], [], 0);
+        $impl([1], [1], 0);
+        $impl([1, 2], [1, 2], 0);
+        $impl([1.1, 2.2, 3.3], [1.1, 2.2, 3.3], 0);
+
+        $impl([1], [2], -1);
+        $impl([2], [1], 1);
+        $impl([1, 1], [1, 2], -1);
+        $impl([1, 2], [1, 1], 1);
+    }
+
+    public function testCompareSequencesInvalidInput(): void
+    {
+        /**
+         * @template TNumber of int|float
+         *
+         * @param array<TNumber> $lhs
+         * @param array<TNumber> $rhs
+         */
+        $impl = function (array $lhs, array $rhs): void {
+            /** @var array<int|float> $lhs */
+            /** @var array<int|float> $rhs */
+            AssertEx::throws(InvalidArgumentException::class, fn() => NumericUtilForTests::compareSequences($lhs, $rhs));
+        };
+
+        $impl([1], []);
     }
 }

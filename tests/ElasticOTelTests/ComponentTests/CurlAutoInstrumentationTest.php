@@ -117,8 +117,8 @@ final class CurlAutoInstrumentationTest extends ComponentTestCaseBase
             self::assertSame($expectedHeaderValue, GlobalUnderscoreServer::getRequestHeaderValue($expectedHeaderName));
         }
 
-        echo self::SERVER_RESPONSE_BODY;
         http_response_code(self::SERVER_RESPONSE_HTTP_STATUS);
+        echo self::SERVER_RESPONSE_BODY;
     }
 
     public static function appCodeClient(MixedMap $appCodeArgs): void
@@ -179,6 +179,8 @@ final class CurlAutoInstrumentationTest extends ComponentTestCaseBase
 
     public function implTestLocalClientServer(MixedMap $testArgs): void
     {
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
+
         $testCaseHandle = $this->getTestCaseHandle();
 
         $enableCurlInstrumentationForServer = $testArgs->getBool(self::ENABLE_CURL_INSTRUMENTATION_FOR_SERVER_KEY);
@@ -249,6 +251,7 @@ final class CurlAutoInstrumentationTest extends ComponentTestCaseBase
         $expectationsForServerTxSpan = new SpanExpectations($expectedServerTxSpanName, SpanKind::server, $serverTxSpanAttributesExpectations);
 
         $exportedData = $testCaseHandle->waitForEnoughExportedData(WaitForEventCounts::spans($enableCurlInstrumentationForClient ? 3 : 2));
+        $dbgCtx->add(compact('exportedData'));
 
         //
         // Assert

@@ -25,7 +25,6 @@ namespace ElasticOTelTests\Util;
 
 use Elastic\OTel\Util\StaticClassTrait;
 use Elastic\OTel\Util\TextUtil;
-use ElasticOTelTests\TestsRootDir;
 
 final class ExternalTestData
 {

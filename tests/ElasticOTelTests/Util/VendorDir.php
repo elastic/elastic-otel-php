@@ -21,18 +21,20 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTests\ComponentTests\Util;
+namespace ElasticOTelTests\Util;
 
-final class TestInfraDataPerRequest
+use Elastic\OTel\Util\StaticClassTrait;
+
+final class VendorDir
 {
-    /**
-     * @param ?array<string, mixed> $appCodeArguments
-     */
-    public function __construct(
-        public readonly string $spawnedProcessInternalId,
-        public readonly ?AppCodeTarget $appCodeTarget = null,
-        public ?array $appCodeArguments = null,
-        public bool $isAppCodeExpectedToThrow = false,
-    ) {
+    use StaticClassTrait;
+    use RootDirTrait;
+
+    public static function getFullPath(): string
+    {
+        if (self::$fullPath === null) {
+            self::$fullPath = RepoRootDir::adaptRelativeUnixStylePath('vendor');
+        }
+        return self::$fullPath;
     }
 }

@@ -45,4 +45,10 @@ class AppCodeRequestParams implements LoggableInterface
     {
         $this->dataPerRequest->appCodeArguments = $appCodeArgs instanceof MixedMap ? $appCodeArgs->cloneAsArray() : $appCodeArgs;
     }
+
+    /** @noinspection PhpUnused */
+    public function setIsAppCodeExpectedToThrow(bool $isAppCodeExpectedToThrow): void
+    {
+        $this->dataPerRequest->isAppCodeExpectedToThrow = $isAppCodeExpectedToThrow;
+    }
 }

@@ -121,6 +121,21 @@ final class AssertEx
     }
 
     /**
+     * @template T
+     *
+     * @param T $actual
+     *
+     * @return T
+     *
+     * @phpstan-assert !empty $actual
+     */
+    public static function notEmpty(mixed $actual, string $message = ''): mixed
+    {
+        Assert::assertNotEmpty($actual, $message);
+        return $actual;
+    }
+
+    /**
      * @param Countable|array<array-key, mixed> $expected
      * @param Countable|array<array-key, mixed> $actual
      */
@@ -144,6 +159,15 @@ final class AssertEx
     public static function isFloat(mixed $actual, string $message = ''): float
     {
         Assert::assertIsFloat($actual, $message);
+        return $actual;
+    }
+
+    /**
+     * @return array<array-key, mixed>
+     */
+    public static function isArray(mixed $actual, string $message = ''): array
+    {
+        Assert::assertIsArray($actual, $message);
         return $actual;
     }
 

@@ -1,0 +1,42 @@
+#ARG FEDORA_VERSION_ID=41
+#FROM fedora:${FEDORA_VERSION_ID}
+FROM fedora:latest
+
+RUN ls -1 /etc/*release | xargs -i sh -c 'echo {} && cat {}'
+
+RUN dnf -y update && dnf -y install unzip
+RUN FEDORA_VERSION_ID=$(cat /etc/*release | grep VERSION_ID | cut -d '=' -f 2) && echo "FEDORA_VERSION_ID: ${FEDORA_VERSION_ID}" \
+    && dnf -y install https://rpms.remirepo.net/fedora/remi-release-${FEDORA_VERSION_ID}.rpm
+
+# https://blog.remirepo.net/post/2022/02/07/Install-PHP-8.1-on-Fedora-RHEL-CentOS-Alma-Rocky-or-other-clone
+# https://blog.remirepo.net/post/2023/04/19/Install-PHP-8.2-on-Fedora-RHEL-CentOS-Alma-Rocky-or-other-clone
+# https://blog.remirepo.net/post/2024/05/17/Install-PHP-8.3-on-Fedora-RHEL-CentOS-Alma-Rocky-or-other-clone
+# https://blog.remirepo.net/post/2024/12/18/Install-PHP-8.4-on-Fedora-RHEL-CentOS-Alma-Rocky-or-other-clone
+ARG PHP_VERSION
+ENV PHP_VERSION="${PHP_VERSION}"
+RUN echo "PHP_VERSION: ${PHP_VERSION}"
+RUN dnf -y module reset php \
+    &&  if [[ ${PHP_VERSION} < "8.4" ]] ; then \
+            echo "PHP version (${PHP_VERSION}) is before 8.4" \
+            dnf -y module install php:remi-${PHP_VERSION} ; \
+        else \
+            echo "PHP version (${PHP_VERSION}) is or after 8.4" \
+            dnf -y module enable php:remi-${PHP_VERSION} \
+        ; fi
+
+RUN dnf -y install \
+                composer \
+                curl \
+                php-cli \
+                php-curl \
+                php-json \
+                php-mbstring \
+                php-pdo_sqlite \
+                php-xml \
+                php-zip \
+                procps
+
+ADD . /repo_root
+WORKDIR /repo_root
+
+ENTRYPOINT /repo_root/tools/test/component/docker_entrypoint.sh

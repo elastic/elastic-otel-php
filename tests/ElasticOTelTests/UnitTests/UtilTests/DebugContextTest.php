@@ -30,7 +30,6 @@ use ElasticOTelTests\Util\DataProviderForTestBuilder;
 use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\DebugContextConfig;
 use ElasticOTelTests\Util\DebugContextScope;
-use ElasticOTelTests\Util\FileUtil;
 use ElasticOTelTests\Util\IterableUtil;
 use ElasticOTelTests\Util\JsonUtil;
 use ElasticOTelTests\Util\Log\LoggableToString;
@@ -38,7 +37,7 @@ use ElasticOTelTests\Util\MixedMap;
 use ElasticOTelTests\Util\Pair;
 use ElasticOTelTests\Util\RangeUtil;
 use ElasticOTelTests\Util\TestCaseBase;
-use ElasticOTelTests\VendorDir;
+use ElasticOTelTests\Util\VendorDir;
 use Override;
 use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\AssertionFailedError;
@@ -768,16 +767,6 @@ class DebugContextTest extends TestCaseBase
         }
     }
 
-    private static function extractTextAddedToAssertionMessage(string $exceptionMsg): string
-    {
-        $prefixPos = strpos($exceptionMsg, DebugContext::TEXT_ADDED_TO_ASSERTION_MESSAGE_PREFIX);
-        self::assertNotFalse($prefixPos);
-        $afterPrefixPos = $prefixPos + strlen(DebugContext::TEXT_ADDED_TO_ASSERTION_MESSAGE_PREFIX);
-        $suffixPos = strpos($exceptionMsg, DebugContext::TEXT_ADDED_TO_ASSERTION_MESSAGE_SUFFIX, offset: $afterPrefixPos);
-        self::assertNotFalse($suffixPos);
-        return trim(substr($exceptionMsg, $afterPrefixPos, $suffixPos - $afterPrefixPos));
-    }
-
     /**
      * @return iterable<string, array{MixedMap}>
      */
@@ -948,15 +937,15 @@ class DebugContextTest extends TestCaseBase
         self::assertNotNull($testFuncLine);
         self::assertSame($nonVendorCallsDepth, $actualNonVendorCallDepth);
 
-        $addedText = self::extractTextAddedToAssertionMessage($assertionMsg);
+        $addedText = DebugContext::extractAddedTextFromMessage($assertionMsg);
 
         if (!DebugContextConfig::enabled()) {
             self::assertSame(DebugContext::TEXT_ADDED_TO_ASSERTION_MESSAGE_WHEN_DISABLED, $addedText);
             return;
         }
 
-        $decodedContextsStack = JsonUtil::decode($addedText, asAssocArray: true);
-        self::assertIsArray($decodedContextsStack);
+        $decodedContextsStack = DebugContext::extractContextsStackFromMessage($assertionMsg);
+        self::assertNotNull($decodedContextsStack);
 
         // Contexts in $decodedContextsStack is the order of the top call being at index 0
         if (DebugContextConfig::trimVendorFrames()) {
@@ -1138,9 +1127,10 @@ class DebugContextTest extends TestCaseBase
         $dbgCtx->add(compact('assertionMsg'));
         self::assertNotNull($assertionMsg);
         self::assertNotNull($helperFuncLine); // @phpstan-ignore staticMethod.impossibleType
-        $actualAddedText = self::extractTextAddedToAssertionMessage($assertionMsg);
+        $actualAddedText = DebugContext::extractAddedTextFromMessage($assertionMsg);
+        self::assertNotNull($actualAddedText);
 
-        $phpUnitFrameworkAssertPhpFileFullPath = FileUtil::normalizePath(VendorDir::get() . FileUtil::adaptUnixDirectorySeparators('/phpunit/phpunit/src/Framework/Assert.php'));
+        $phpUnitFrameworkAssertPhpFileFullPath = VendorDir::adaptRelativeUnixStylePath('phpunit/phpunit/src/Framework/Assert.php');
 
         // Extract line number in Framework/Assert.php
         $strBeforeAssertPhpLine = JsonUtil::adaptStringToSearchInJson($phpUnitFrameworkAssertPhpFileFullPath . ':');

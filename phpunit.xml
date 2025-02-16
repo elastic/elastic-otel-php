@@ -52,8 +52,6 @@
          stopOnSkipped="true"
          stopOnRisky="true"
          stopOnWarning="false"
-
-         testdox="true"
 >
     <testsuites>
         <testsuite name="Tests">

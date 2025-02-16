@@ -21,18 +21,25 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTests\ComponentTests\Util;
+namespace ElasticOTelTests\Util;
 
-final class TestInfraDataPerRequest
+use Elastic\OTel\Util\StaticClassTrait;
+use PHPUnit\Framework\Assert;
+
+final class RepoRootDir
 {
-    /**
-     * @param ?array<string, mixed> $appCodeArguments
-     */
-    public function __construct(
-        public readonly string $spawnedProcessInternalId,
-        public readonly ?AppCodeTarget $appCodeTarget = null,
-        public ?array $appCodeArguments = null,
-        public bool $isAppCodeExpectedToThrow = false,
-    ) {
+    use StaticClassTrait;
+    use RootDirTrait;
+
+    public static function setFullPath(string $fullPath): void
+    {
+        Assert::assertNull(self::$fullPath);
+        self::$fullPath = FileUtil::normalizePath($fullPath);
+    }
+
+    public static function getFullPath(): string
+    {
+        Assert::assertNotNull(self::$fullPath);
+        return self::$fullPath;
     }
 }
