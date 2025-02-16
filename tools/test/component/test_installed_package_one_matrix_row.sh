@@ -15,8 +15,12 @@ function print_info_about_environment () {
     env | sort
 }
 
+function on_script_exit () {
+    end_github_workflow_log_group "${current_workflow_group_name}"
+}
+
 function main() {
-    local current_workflow_group_name="Setting the environment for ${BASH_SOURCE[0]}"
+    current_workflow_group_name="Setting the environment for ${BASH_SOURCE[0]}"
     echo "::group::${current_workflow_group_name}"
 
     this_script_dir="$( dirname "${BASH_SOURCE[0]}" )"
@@ -47,14 +51,13 @@ function main() {
     fi
 
     env | sort
+
     end_github_workflow_log_group "${current_workflow_group_name}"
 
-    local current_workflow_group_name="Running component tests"
+    current_workflow_group_name="Running component tests"
     start_github_workflow_log_group "${current_workflow_group_name}"
 
     "${composer_command[@]}" 2>&1 | tee "/elastic_otel_php_tests/logs/composer_-_run_component_tests.log"
-
-    end_github_workflow_log_group "${current_workflow_group_name}"
 }
 
 main "$@"
