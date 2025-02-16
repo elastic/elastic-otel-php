@@ -1,7 +1,6 @@
 ---
 
-# Runs the build based on the provided files in test.yml
-name: build
+name: test-phpt
 
 on:
   workflow_call:
