@@ -5,18 +5,18 @@ set -x
 SKIP_CONFIGURE=false
 
 show_help() {
-    echo "Usage: $0 --build_architecture <architecture> [--ncpu <num_cpus>] [--conan_user_home <cache_path>] [--skip_configure] [--skip_unit_tests]"
+    echo "Usage: $0 --build_architecture <architecture> [--ncpu <num_cpus>] [--conan_cache_path <conan_cache_path>] [--skip_configure] [--skip_unit_tests]"
     echo
     echo "Arguments:"
-    echo "  --build_architecture     Required. Build architecture (e.g., 'linux-x86-64')."
-    echo "  --ncpu                   Optional. Number of CPUs to use for building. Default is one less than the installed CPUs."
-    echo "  --conan_user_home        Optional. Path to local user cache for Conan."
-    echo "  --skip_configure         Optional. Skip the configuration step."
-    echo "  --interactive            Optional. Run container in interactive mode."
-    echo "  --skip_unit_tests        Optional. Skip unit tests. Default is to run unit tests."
+    echo "  --build_architecture    Required. Build architecture (e.g., 'linux-x86-64')."
+    echo "  --ncpu                  Optional. Number of CPUs to use for building. Default is one less than the installed CPUs."
+    echo "  --conan_cache_path      Optional. Path to local cache for Conan."
+    echo "  --skip_configure        Optional. Skip the configuration step."
+    echo "  --interactive           Optional. Run container in interactive mode."
+    echo "  --skip_unit_tests       Optional. Skip unit tests. Default is to run unit tests."
     echo
     echo "Example:"
-    echo "  $0 --build_architecture linux-x86-64 --ncpu 4 --conan_user_home ~/ --skip_configure"
+    echo "  $0 --build_architecture linux-x86-64 --ncpu 4 --conan_cache_path ~/.conan_cache --skip_configure"
 }
 
 parse_args() {
@@ -30,8 +30,8 @@ parse_args() {
                 NCPU=" -j$2 "
                 shift
                 ;;
-            --conan_user_home)
-                REPLACE_CONAN_USER_HOME="$2"
+            --conan_cache_path)
+                CONAN_CACHE_PATH="$2"
                 shift
                 ;;
             --skip_configure)
@@ -65,13 +65,13 @@ if [[ -z "$BUILD_ARCHITECTURE" ]]; then
     exit 1
 fi
 
-# Building mount point and environment if $REPLACE_CONAN_USER_HOME not empty
-if [[ -n "$REPLACE_CONAN_USER_HOME" ]]; then
-    echo "CONAN_USER_HOME: ${REPLACE_CONAN_USER_HOME}"
+# Building mount point and environment if ${CONAN_CACHE_PATH} not empty
+if [[ -n "${CONAN_CACHE_PATH}" ]]; then
+    echo "CONAN_CACHE_PATH: ${CONAN_CACHE_PATH}"
     # due safety not mounting user home folder but only .conan
-    mkdir -p ${REPLACE_CONAN_USER_HOME}/.conan
+    mkdir -p "${CONAN_CACHE_PATH}"
     # https://docs.conan.io/2/reference/environment.html#conan-home
-    CONAN_HOME_MP=(-e "CONAN_HOME=/conan_home" -v "${REPLACE_CONAN_USER_HOME}/.conan:/conan_home")
+    CONAN_HOME_MP=(-e "CONAN_HOME=/conan_home" -v "${CONAN_CACHE_PATH}:/conan_home")
 fi
 
 echo "BUILD_ARCHITECTURE: $BUILD_ARCHITECTURE"
