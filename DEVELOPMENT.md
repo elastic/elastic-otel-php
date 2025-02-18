@@ -16,8 +16,13 @@ cd elastic-otel-php
 ```
 
 This script will configure the project and build the libraries for the linux-x86-64 architecture. Adding the interactive argument allows you to interrupt the build using the `Ctrl + C` combination, and with the ncpu option, you can build in parallel using the specified number of processor threads.
-If you are not adding new files to the project and just want to rebuild your changes, you can provide the `--skip_configure` argument - this will save time on reconfiguring the project. You can also save a lot of time by creating a local cache for Conan packages; the files will then be stored outside the container and reused repeatedly. To do this, provide a path to the `--conan_user_home` argument, e.g., `~/.conan`. The scipt will automatically execute native unit tests just after the build.
-
+If you are not adding new files to the project and just want to rebuild your changes,
+you can provide the `--skip_configure` argument - this will save time on reconfiguring the project.
+You can also save a lot of time by creating a local cache for Conan packages;
+the files will then be stored outside the container and reused repeatedly.
+To do this, provide a path to the `--conan_cache_path` argument, e.g., `~/.conan_cache`.
+The script will automatically execute native unit tests just after the build.
+If you would like to skip native unit tests you can use `--skip_unit_tests` command line option. 
 
 Currently, we support the following architectures:
 
