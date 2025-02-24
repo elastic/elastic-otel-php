@@ -35,5 +35,5 @@ final class MYSQLiAutoInstrumentationTest extends ComponentTestCaseBase
     public function test(): void
     {
         self::dummyAssert();
-   }
+    }
 }
