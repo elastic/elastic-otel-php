@@ -35,5 +35,5 @@ final class InferredSpansComponentTest extends ComponentTestCaseBase
     public function test(): void
     {
         self::dummyAssert();
-   }
+    }
 }
