@@ -40,6 +40,11 @@ enum OptionForProdName
     case disabled_instrumentations;
     case enabled;
     case exporter_otlp_endpoint;
+    case inferred_spans_enabled;
+    case inferred_spans_min_duration;
+    case inferred_spans_reduction_enabled;
+    case inferred_spans_sampling_interval;
+    case inferred_spans_stacktrace_enabled;
     case log_file;
     case log_level_file;
     case log_level_stderr;
