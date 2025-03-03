@@ -21,19 +21,13 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTests\ComponentTests;
+namespace ElasticOTelTests\ComponentTests\Util;
 
-use ElasticOTelTests\ComponentTests\Util\ComponentTestCaseBase;
-
-/**
- * @group smoke
- * @group requires_external_services
- * @group requires_mysql_external_service
- */
-final class MYSQLiAutoInstrumentationTest extends ComponentTestCaseBase
+class DbSpanExpectationsBuilder extends SpanExpectationsBuilder
 {
-    public function test(): void
+    public function setNameUsingDbStatement(string $dbStatement): self
     {
-        self::dummyAssert();
+        $this->name = $dbStatement;
+        return $this;
     }
 }

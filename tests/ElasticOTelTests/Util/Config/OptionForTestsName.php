@@ -45,6 +45,11 @@ enum OptionForTestsName
     case escalated_reruns_max_count;
     case group;
     case log_level;
+    case mysql_host;
+    case mysql_port;
+    case mysql_user;
+    case mysql_password;
+    case mysql_db;
 
     public const ENV_VAR_NAME_PREFIX = 'ELASTIC_OTEL_PHP_TESTS_';
 
