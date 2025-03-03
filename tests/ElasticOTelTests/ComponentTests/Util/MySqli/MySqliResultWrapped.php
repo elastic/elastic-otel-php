@@ -23,6 +23,10 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util\MySqli;
 
+use ElasticOTelTests\Util\Log\LoggableInterface;
+use ElasticOTelTests\Util\Log\LoggableTrait;
+use mysqli_result;
+
 /**
  * Code in this file is part of implementation internals and thus it is not covered by the backward compatibility.
  *
@@ -32,23 +36,13 @@ final class MySqliResultWrapped implements LoggableInterface
 {
     use LoggableTrait;
 
-    /** @var mysqli_result */
-    private $wrappedObj;
-
-    /** @var bool */
-    private $isOOPApi;
-
-    public function __construct(mysqli_result $wrappedObj, bool $isOOPApi)
-    {
-        $this->wrappedObj = $wrappedObj;
-        $this->isOOPApi = $isOOPApi;
+    public function __construct(
+        private readonly mysqli_result $wrappedObj,
+        private readonly bool $isOOPApi
+    ) {
     }
 
-    /**
-     * @return int|string
-     * @noinspection PhpReturnDocTypeMismatchInspection
-     */
-    public function numRows()
+    public function numRows(): int|string
     {
         return $this->isOOPApi ? $this->wrappedObj->num_rows : mysqli_num_rows($this->wrappedObj);
     }
@@ -63,10 +57,8 @@ final class MySqliResultWrapped implements LoggableInterface
      *      - false on failure
      *
      * @return array<mixed>|null|false
-     *
-     * @noinspection PhpReturnDocTypeMismatchInspection
      */
-    public function fetchAssoc()
+    public function fetchAssoc(): array|null|false
     {
         return $this->isOOPApi ? $this->wrappedObj->fetch_assoc() : mysqli_fetch_assoc($this->wrappedObj);
     }

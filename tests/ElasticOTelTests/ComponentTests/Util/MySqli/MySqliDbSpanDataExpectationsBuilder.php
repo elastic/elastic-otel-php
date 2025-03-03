@@ -32,13 +32,9 @@ use ElasticOTelTests\ComponentTests\Util\DbSpanExpectationsBuilder;
  */
 final class MySqliDbSpanDataExpectationsBuilder extends DbSpanExpectationsBuilder
 {
-    /** @var bool */
-    private $isOOPApi;
-
-    public function __construct(string $dbType, ?string $dbName, bool $isOOPApi)
-    {
-        parent::__construct($dbType, $dbName);
-        $this->isOOPApi = $isOOPApi;
+    public function __construct(
+        private readonly bool $isOOPApi
+    ) {
     }
 
     private static function buildFuncName(string $className, string $methodName): string
@@ -46,17 +42,11 @@ final class MySqliDbSpanDataExpectationsBuilder extends DbSpanExpectationsBuilde
         return $className . '_' . $methodName;
     }
 
-    /**
-     * @param string $className
-     * @param string $methodName
-     * @param ?string $funcName
-     *
-     * @return SpanExpectations
-     */
-    public function fromNames(string $className, string $methodName, ?string $funcName = null): SpanExpectations
+    public function setNameUsingApiNames(string $className, string $methodName, ?string $funcName = null): self
     {
-        return $this->isOOPApi
-            ? $this->fromClassMethodNames($className, $methodName)
-            : $this->fromFuncName($funcName ?? self::buildFuncName($className, $methodName));
+        $this->isOOPApi
+            ? $this->setNameUsingClassMethod($className, /* isStaticMethod */ false, $methodName)
+            : $this->setNameUsingFuncName($funcName ?? self::buildFuncName($className, $methodName));
+        return $this;
     }
 }

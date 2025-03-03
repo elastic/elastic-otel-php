@@ -482,4 +482,8 @@ class ComponentTestCaseBase extends TestCaseBase
             ? HttpAppCodeRequestParams::DEFAULT_HTTP_REQUEST_METHOD . ' ' . HttpAppCodeRequestParams::DEFAULT_HTTP_REQUEST_URL_PATH
             : CliScriptAppCodeHostHandle::getRunScriptNameFullPath();
     }
+
+    protected static function disableTimingDependentFeatures(AppCodeHostParams $appCodeParams): void
+    {
+    }
 }

@@ -23,6 +23,10 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util\MySqli;
 
+use ElasticOTelTests\Util\Log\LoggableInterface;
+use ElasticOTelTests\Util\Log\LoggableTrait;
+use mysqli_stmt;
+
 /**
  * Code in this file is part of implementation internals and thus it is not covered by the backward compatibility.
  *
@@ -32,26 +36,13 @@ final class MySqliStmtWrapped implements LoggableInterface
 {
     use LoggableTrait;
 
-    /** @var mysqli_stmt */
-    private $wrappedObj;
-
-    /** @var bool */
-    private $isOOPApi;
-
-    public function __construct(mysqli_stmt $wrappedObj, bool $isOOPApi)
-    {
-        $this->wrappedObj = $wrappedObj;
-        $this->isOOPApi = $isOOPApi;
+    public function __construct(
+        private readonly mysqli_stmt $wrappedObj,
+        private readonly bool $isOOPApi
+    ) {
     }
 
-    /**
-     * @param string $types
-     * @param mixed  $var
-     * @param mixed  ...$vars
-     *
-     * @return bool
-     */
-    public function bindParam(string $types, &$var, &...$vars): bool
+    public function bindParam(string $types, mixed &$var, &...$vars): bool
     {
         return $this->isOOPApi
             ? $this->wrappedObj->bind_param($types, $var, ...$vars)

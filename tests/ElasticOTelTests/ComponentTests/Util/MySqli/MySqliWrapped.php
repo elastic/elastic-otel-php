@@ -23,6 +23,11 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util\MySqli;
 
+use ElasticOTelTests\Util\Log\LoggableInterface;
+use ElasticOTelTests\Util\Log\LoggableTrait;
+use mysqli;
+use PHPUnit\Framework\Assert;
+
 /**
  * Code in this file is part of implementation internals and thus it is not covered by the backward compatibility.
  *
@@ -32,16 +37,10 @@ final class MySqliWrapped implements LoggableInterface
 {
     use LoggableTrait;
 
-    /** @var mysqli */
-    private $wrappedObj;
-
-    /** @var bool */
-    private $isOOPApi;
-
-    public function __construct(mysqli $wrappedObj, bool $isOOPApi)
-    {
-        $this->wrappedObj = $wrappedObj;
-        $this->isOOPApi = $isOOPApi;
+    public function __construct(
+        private readonly mysqli $wrappedObj,
+        private readonly bool $isOOPApi
+    ) {
     }
 
     public function ping(): bool
@@ -58,15 +57,10 @@ final class MySqliWrapped implements LoggableInterface
             : mysqli_select_db($this->wrappedObj, $dbName);
     }
 
-    /**
-     * @param string $query
-     *
-     * @return bool|MySQLiResultWrapped
-     */
-    public function query(string $query)
+    public function query(string $query): bool|MySqliResultWrapped
     {
         $result = $this->isOOPApi ? $this->wrappedObj->query($query) : mysqli_query($this->wrappedObj, $query);
-        return is_bool($result) ? $result : new MySQLiResultWrapped($result, $this->isOOPApi);
+        return is_bool($result) ? $result : new MySqliResultWrapped($result, $this->isOOPApi);
     }
 
     public function realQuery(string $query): bool
@@ -93,13 +87,10 @@ final class MySqliWrapped implements LoggableInterface
         return $this->isOOPApi ? $this->wrappedObj->next_result() : mysqli_next_result($this->wrappedObj);
     }
 
-    /**
-     * @return false|MySQLiResultWrapped
-     */
-    public function storeResult()
+    public function storeResult(): false|MySqliResultWrapped
     {
         $result = $this->isOOPApi ? $this->wrappedObj->store_result() : mysqli_store_result($this->wrappedObj);
-        return $result === false ? false : new MySQLiResultWrapped($result, $this->isOOPApi);
+        return $result === false ? false : new MySqliResultWrapped($result, $this->isOOPApi);
     }
 
     public function beginTransaction(): bool
@@ -117,23 +108,18 @@ final class MySqliWrapped implements LoggableInterface
         return $this->isOOPApi ? $this->wrappedObj->rollback() : mysqli_rollback($this->wrappedObj);
     }
 
-    /**
-     * @param string $query
-     *
-     * @return false|MySQLiStmtWrapped
-     */
-    public function prepare(string $query)
+    public function prepare(string $query): false|MySqliStmtWrapped
     {
         $result = $this->isOOPApi
             ? $this->wrappedObj->prepare($query)
             : mysqli_prepare($this->wrappedObj, $query);
-        return $result === false ? false : new MySQLiStmtWrapped($result, $this->isOOPApi);
+        return $result === false ? false : new MySqliStmtWrapped($result, $this->isOOPApi);
     }
 
     public function error(): string
     {
         $result = $this->isOOPApi ? $this->wrappedObj->error : mysqli_error($this->wrappedObj);
-        TestCase::assertNotNull($result);
+        Assert::assertNotNull($result);
         return $result;
     }
 

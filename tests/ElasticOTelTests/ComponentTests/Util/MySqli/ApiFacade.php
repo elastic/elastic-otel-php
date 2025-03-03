@@ -28,6 +28,8 @@ use ElasticOTelTests\Util\Log\LogCategoryForTests;
 use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LoggableTrait;
 use ElasticOTelTests\Util\Log\Logger;
+use mysqli;
+use PHPUnit\Framework\Assert;
 
 /**
  * Code in this file is part of implementation internals and thus it is not covered by the backward compatibility.
@@ -51,26 +53,18 @@ final class ApiFacade implements LoggableInterface
         return version_compare(PHP_VERSION, '7.4.0') >= 0;
     }
 
-    public function connect(
-        string $host,
-        int $port,
-        string $username,
-        string $password,
-        ?string $dbName
-    ): ?MySqliWrapped {
+    public function connect(string $host, int $port, string $username, string $password, ?string $dbName): ?MySqliWrapped
+    {
         ($loggerProxy = $this->logger->ifTraceLevelEnabled(__LINE__, __FUNCTION__))
-        && $loggerProxy->log(
-            'Entered',
-            ['host' => $host, 'port' => $port, 'username' => $username, 'password' => $password, 'dbName' => $dbName]
-        );
+        && $loggerProxy->log('Entered', compact('host', 'port', 'username', 'password', 'dbName'));
 
         if (!self::canDbNameBeNull()) {
-            TestCase::assertNotNull($dbName);
+            Assert::assertNotNull($dbName);
         }
 
         $wrappedObj = $this->isOOPApi
             ? new mysqli($host, $username, $password, $dbName, $port)
             : mysqli_connect($host, $username, $password, $dbName, $port);
-        return ($wrappedObj instanceof mysqli) ? new MySQLiWrapped($wrappedObj, $this->isOOPApi) : null;
+        return ($wrappedObj instanceof mysqli) ? new MySqliWrapped($wrappedObj, $this->isOOPApi) : null;
     }
 }
