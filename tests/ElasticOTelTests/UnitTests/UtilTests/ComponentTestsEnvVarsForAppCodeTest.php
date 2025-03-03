@@ -26,7 +26,6 @@ namespace ElasticOTelTests\UnitTests\UtilTests;
 use Ds\Map;
 use Elastic\OTel\PhpPartFacade;
 use ElasticOTelTests\ComponentTests\Util\AppCodeHostParams;
-use ElasticOTelTests\UnitTests\UtilTests\ConfigTests\OptionNamesAndSnapshotPropertiesTest;
 use ElasticOTelTests\Util\AmbientContextForTests;
 use ElasticOTelTests\Util\ArrayUtilForTests;
 use ElasticOTelTests\Util\Config\OptionForProdName;
