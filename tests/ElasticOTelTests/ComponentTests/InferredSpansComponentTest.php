@@ -26,7 +26,9 @@ namespace ElasticOTelTests\ComponentTests;
 use ElasticOTelTests\ComponentTests\Util\AppCodeHostParams;
 use ElasticOTelTests\ComponentTests\Util\AppCodeTarget;
 use ElasticOTelTests\ComponentTests\Util\ComponentTestCaseBase;
+use ElasticOTelTests\ComponentTests\Util\SpanSequenceValidator;
 use ElasticOTelTests\ComponentTests\Util\WaitForEventCounts;
+use ElasticOTelTests\Util\ClassNameUtil;
 use ElasticOTelTests\Util\Config\OptionForProdName;
 use ElasticOTelTests\Util\DataProviderForTestBuilder;
 use ElasticOTelTests\Util\DebugContext;
@@ -34,6 +36,7 @@ use ElasticOTelTests\Util\MixedMap;
 
 /**
  * @group smoke
+ * @group does_not_require_external_services
  */
 final class InferredSpansComponentTest extends ComponentTestCaseBase
 {
@@ -47,6 +50,7 @@ final class InferredSpansComponentTest extends ComponentTestCaseBase
     private const SLEEP_FUNC_NAME = 'sleep';
     private const USLEEP_FUNC_NAME = 'usleep';
     private const TIME_NANOSLEEP_FUNC_NAME = 'time_nanosleep';
+    private const SLEEP_FUNC_NAMES = [self::SLEEP_FUNC_NAME, self::USLEEP_FUNC_NAME, self::TIME_NANOSLEEP_FUNC_NAME];
 
     /**
      * @return iterable<array{MixedMap}>
@@ -124,51 +128,39 @@ final class InferredSpansComponentTest extends ComponentTestCaseBase
         $expectedSpanCount = ($shouldCaptureSleeps ? 3 : 0) + 1 + 1;
         $exportedData = $testCaseHandle->waitForEnoughExportedData(WaitForEventCounts::spans($expectedSpanCount));
         $dbgCtx->add(compact('exportedData'));
-        ///////////////////////////////////////////////////////////////////////////
-        // TODO: Sergey Kleyman: BEGIN: REMOVE: ::
-        ///////////////////////////////////////
-        self::fail('Dummy failure to see capture inferred spans');
-        ///////////////////////////////////////
-        // END: REMOVE
-        ////////////////////////////////////////////////////////////////////////////
 
-        // $tx = $dataFromAgent->singleTransaction();
-        // self::assertNotNull($tx->context);
-        // /** @var array<string, StackTraceFrame[]> $stackTraces */
-        // $stackTraces = self::getContextCustom($tx->context, self::STACK_TRACES_KEY);
-        //
-        // $expectationsBuilder = new InferredSpanExpectationsBuilder();
-        //
-        // $appCodeSpanExpectations = $expectationsBuilder->fromClassMethodNamesAndStackTrace(
-        //     ClassNameUtil::fqToShort(__CLASS__),
-        //     $appCodeMethod,
-        //     true /* <- isStatic */,
-        //     $stackTraces[self::APP_CODE_SPAN_STACK_TRACE],
-        //     true /* <- allowExpectedStackTraceToBePrefix */
-        // );
-        // $appCodeSpan = $dataFromAgent->singleSpanByName($appCodeSpanExpectations->name->getValue());
-        // self::assertSame($tx->id, $appCodeSpan->parentId, $ctxStr);
-        // $appCodeSpan->assertMatches($appCodeSpanExpectations);
-        //
-        // if (!$shouldCaptureSleeps) {
-        //     return;
-        // }
-        //
-        // $expectedSleepSpans = [];
-        // $actualSleepSpans = [];
-        // foreach (self::SLEEP_FUNC_NAMES as $sleepFunc) {
-        //     $stackTrace = $stackTraces[$sleepFunc];
-        //     $expectedSleepSpans[] = $expectationsBuilder->fromFuncNameAndStackTrace(
-        //         $sleepFunc,
-        //         $stackTrace,
-        //         true /* <- allowExpectedStackTraceToBePrefix */
-        //     );
-        //     $sleepSpan = $dataFromAgent->singleSpanByName($sleepFunc);
-        //     $actualSleepSpans[] = $sleepSpan;
-        //     self::assertSame($appCodeSpan->id, $sleepSpan->parentId);
-        // }
-        //
-        // SpanSequenceValidator::assertSequenceAsExpected($expectedSleepSpans, $actualSleepSpans);
+        $spanExpectationsBuilder = new InferredSpanExpectationsBuilder();
+
+        $appCodeSpanExpectations = $expectationsBuilder->fromClassMethodNamesAndStackTrace(
+            ClassNameUtil::fqToShort(__CLASS__),
+            $appCodeMethod,
+            true /* <- isStatic */,
+            $stackTraces[self::APP_CODE_SPAN_STACK_TRACE],
+            true /* <- allowExpectedStackTraceToBePrefix */
+        );
+        $appCodeSpan = $dataFromAgent->singleSpanByName($appCodeSpanExpectations->name->getValue());
+        self::assertSame($tx->id, $appCodeSpan->parentId, $ctxStr);
+        $appCodeSpan->assertMatches($appCodeSpanExpectations);
+
+        if (!$shouldCaptureSleeps) {
+            return;
+        }
+
+        $expectedSleepSpans = [];
+        $actualSleepSpans = [];
+        foreach (self::SLEEP_FUNC_NAMES as $sleepFunc) {
+            $stackTrace = $stackTraces[$sleepFunc];
+            $expectedSleepSpans[] = $expectationsBuilder->fromFuncNameAndStackTrace(
+                $sleepFunc,
+                $stackTrace,
+                true /* <- allowExpectedStackTraceToBePrefix */
+            );
+            $sleepSpan = $dataFromAgent->singleSpanByName($sleepFunc);
+            $actualSleepSpans[] = $sleepSpan;
+            self::assertSame($appCodeSpan->id, $sleepSpan->parentId);
+        }
+
+        SpanSequenceValidator::assertSequenceAsExpected($expectedSleepSpans, $actualSleepSpans);
     }
 
     /**

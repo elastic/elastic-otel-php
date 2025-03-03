@@ -25,8 +25,8 @@ namespace ElasticOTelTests\Util\Config;
 
 use Elastic\OTel\Log\LogLevel;
 use Elastic\OTel\Util\WildcardListMatcher;
+use ElasticOTelTests\Util\Duration;
 use ElasticOTelTests\Util\Log\LoggableInterface;
-use PHPUnit\Event\Telemetry\Duration;
 
 /**
  * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
