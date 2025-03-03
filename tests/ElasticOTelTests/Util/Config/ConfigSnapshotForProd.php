@@ -26,6 +26,7 @@ namespace ElasticOTelTests\Util\Config;
 use Elastic\OTel\Log\LogLevel;
 use Elastic\OTel\Util\WildcardListMatcher;
 use ElasticOTelTests\Util\Log\LoggableInterface;
+use PHPUnit\Event\Telemetry\Duration;
 
 /**
  * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
@@ -41,6 +42,11 @@ final class ConfigSnapshotForProd implements LoggableInterface
     private readonly ?WildcardListMatcher $disabledInstrumentations; // @phpstan-ignore property.uninitializedReadonly
     private readonly bool $enabled; // @phpstan-ignore property.uninitializedReadonly
     private readonly ?string $exporterOtlpEndpoint; // @phpstan-ignore property.uninitializedReadonly
+    private readonly bool $inferredSpansEnabled; // @phpstan-ignore property.uninitializedReadonly
+    private readonly Duration $inferredSpansMinDuration; // @phpstan-ignore property.uninitializedReadonly
+    private readonly bool $inferredSpansReductionEnabled; // @phpstan-ignore property.uninitializedReadonly
+    private readonly Duration $inferredSpansSamplingInterval; // @phpstan-ignore property.uninitializedReadonly
+    private readonly bool $inferredSpansStacktraceEnabled; // @phpstan-ignore property.uninitializedReadonly
     private readonly ?string $logFile; // @phpstan-ignore property.uninitializedReadonly
     private readonly LogLevel $logLevelFile; // @phpstan-ignore property.uninitializedReadonly
     private readonly LogLevel $logLevelStderr; // @phpstan-ignore property.uninitializedReadonly

@@ -26,14 +26,17 @@ namespace ElasticOTelTests\UnitTests\UtilTests;
 use Ds\Map;
 use Elastic\OTel\PhpPartFacade;
 use ElasticOTelTests\ComponentTests\Util\AppCodeHostParams;
+use ElasticOTelTests\UnitTests\UtilTests\ConfigTests\OptionNamesAndSnapshotPropertiesTest;
 use ElasticOTelTests\Util\AmbientContextForTests;
 use ElasticOTelTests\Util\ArrayUtilForTests;
 use ElasticOTelTests\Util\Config\OptionForProdName;
 use ElasticOTelTests\Util\Config\OptionForTestsName;
 use ElasticOTelTests\Util\EnvVarUtil;
 use ElasticOTelTests\Util\TestCaseBase;
+use PHPUnit\Framework\Attributes\Depends;
 
 /**
+ *
  * @phpstan-import-type EnvVars from EnvVarUtil
  * @phpstan-import-type OptionsForProdMap from AppCodeHostParams
  */
@@ -99,6 +102,7 @@ final class ComponentTestsEnvVarsForAppCodeTest extends TestCaseBase
      * @param string[]            $inheritedEnvVarNames
      * @param OptionForProdName[] $prodOptionNames
      */
+    #[Depends(OptionNamesAndSnapshotPropertiesTest::class)]
     public static function testInheritedEnvVarsAutoPass(array $inheritedEnvVarNames, array $prodOptionNames): void
     {
         $expectedBuiltEnvVars = [];
@@ -133,6 +137,7 @@ final class ComponentTestsEnvVarsForAppCodeTest extends TestCaseBase
     /**
      * @dataProvider dataProviderForTestLogLevelRelatedProdOverridesInheritedEnvVars
      */
+    #[Depends(OptionNamesAndSnapshotPropertiesTest::class)]
     public static function testLogLevelRelatedProdOptionOverridesInheritedEnvVars(OptionForProdName $prodOptName): void
     {
         $inheritedEnvVars = [];
@@ -172,6 +177,7 @@ final class ComponentTestsEnvVarsForAppCodeTest extends TestCaseBase
      *
      * @param OptionForProdName[] $prodOptNames
      */
+    #[Depends(OptionNamesAndSnapshotPropertiesTest::class)]
     public static function testInheritedEnvVarForProdOptionAllowedViaPassThrough(array $prodOptNames): void
     {
         /** @var OptionsForProdMap $emptyProdOptions */

@@ -76,6 +76,11 @@ enum OptionForProdName
         $elasticOTelPrefix = [
             self::bootstrap_php_part_file,
             self::enabled,
+            self::inferred_spans_enabled,
+            self::inferred_spans_min_duration,
+            self::inferred_spans_reduction_enabled,
+            self::inferred_spans_sampling_interval,
+            self::inferred_spans_stacktrace_enabled,
             self::log_file,
             self::log_level_file,
             self::log_level_stderr,
