@@ -24,20 +24,27 @@ declare(strict_types=1);
 namespace ElasticOTelTests\ComponentTests\Util;
 
 use Elastic\OTel\Util\TextUtil;
+use ElasticOTelTests\Util\FlagsUtil;
+use ElasticOTelTests\Util\IterableUtil;
 use ElasticOTelTests\Util\Log\LoggableInterface;
+use ElasticOTelTests\Util\Log\LoggableTrait;
 use ElasticOTelTests\Util\Log\LogStreamInterface;
 use ElasticOTelTests\Util\TextUtilForTests;
 use Opentelemetry\Proto\Trace\V1\Span as OTelProtoSpan;
+use Opentelemetry\Proto\Trace\V1\SpanFlags as OTelProtoSpanFlags;
 use PHPUnit\Framework\Assert;
 
 final class Span implements LoggableInterface
 {
+    use LoggableTrait;
+
     public readonly SpanAttributes $attributes;
     public readonly string $id;
     public readonly SpanKind $kind;
     public readonly string $name;
     public readonly ?string $parentId;
     public readonly string $traceId;
+    public readonly int $flags;
 
     public function __construct(OTelProtoSpan $protoSpan)
     {
@@ -47,6 +54,7 @@ final class Span implements LoggableInterface
         $this->name = $protoSpan->getName();
         $this->parentId = self::convertNullableId($protoSpan->getParentSpanId());
         $this->traceId = self::convertId($protoSpan->getTraceId());
+        $this->flags = $protoSpan->getFlags();
     }
 
     private static function convertNullableId(string $binaryId): ?string
@@ -67,18 +75,27 @@ final class Span implements LoggableInterface
         return IdGenerator::convertBinaryIdToString($idAsBytesSeq);
     }
 
+    public function hasRemoteParent(): ?bool
+    {
+        if (($this->flags & OTelProtoSpanFlags::SPAN_FLAGS_CONTEXT_HAS_IS_REMOTE_MASK) === 0) {
+            return null;
+        }
+        return ($this->flags & OTelProtoSpanFlags::SPAN_FLAGS_CONTEXT_IS_REMOTE_MASK) !== 0;
+    }
+
+    private const SPAN_FLAGS_MASKS_TO_NAME = [
+        OTelProtoSpanFlags::SPAN_FLAGS_CONTEXT_HAS_IS_REMOTE_MASK => 'HAS_IS_REMOTE',
+        OTelProtoSpanFlags::SPAN_FLAGS_CONTEXT_IS_REMOTE_MASK     => 'IS_REMOTE',
+    ];
+
     public function toLog(LogStreamInterface $stream): void
     {
-        /** @var array<string, mixed> $asMap */
-        $asMap = [];
-        $asMap['name'] = $this->name;
-        $asMap['kind'] = $this->kind->name;
-        $asMap['id'] = $this->id;
-        $asMap['traceId'] = $this->traceId;
-        if ($this->parentId !== null) {
-            $asMap['parentId'] = $this->parentId;
+        $flagsToLog = strval($this->flags);
+        $flagsHumanReadable = IterableUtil::convertToString(FlagsUtil::extractBitNames($this->flags, self::SPAN_FLAGS_MASKS_TO_NAME), separator: ' | ');
+        if (!TextUtil::isEmptyString($flagsHumanReadable)) {
+            $flagsToLog .= ' (' . $flagsHumanReadable . ')';
         }
-        $asMap['attributes'] = $this->attributes;
-        $stream->toLogAs($asMap);
+        $customToLog = ['flags' => $flagsToLog];
+        $this->toLogLoggableTraitImpl($stream, $customToLog);
     }
 }

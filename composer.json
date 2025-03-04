@@ -10,7 +10,7 @@
     ],
     "require": {
         "php": "8.1.*||8.2.*||8.3.*||8.4.*",
-        "open-telemetry/exporter-otlp": "1.0.4",
+        "open-telemetry/exporter-otlp": "1.2.0",
         "open-telemetry/opentelemetry-auto-curl": "0.0.2",
         "open-telemetry/opentelemetry-auto-http-async": "1.0.1",
         "open-telemetry/opentelemetry-auto-laravel": "1.0.1",

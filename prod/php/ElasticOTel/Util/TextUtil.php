@@ -217,4 +217,14 @@ final class TextUtil
             !$isCaseSensitive /* <- case_insensitivity */
         ) == 0;
     }
+
+    public static function appendWithOptionalSeparator(string $base, string $separator, string $suffix): string
+    {
+        $result = $base;
+        if (!TextUtil::isEmptyString($result)) {
+            $result .= $separator;
+        }
+        $result .= $suffix;
+        return $result;
+    }
 }
