@@ -24,6 +24,7 @@ declare(strict_types=1);
 namespace ElasticOTelTests\ComponentTests\Util;
 
 use Elastic\OTel\Util\TextUtil;
+use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LogStreamInterface;
 use ElasticOTelTests\Util\TextUtilForTests;
@@ -38,6 +39,7 @@ final class Span implements LoggableInterface
     public readonly string $name;
     public readonly ?string $parentId;
     public readonly string $traceId;
+    public readonly float $startTimeUnixNano;
 
     public function __construct(OTelProtoSpan $protoSpan)
     {
@@ -47,6 +49,7 @@ final class Span implements LoggableInterface
         $this->name = $protoSpan->getName();
         $this->parentId = self::convertNullableId($protoSpan->getParentSpanId());
         $this->traceId = self::convertId($protoSpan->getTraceId());
+        $this->startTimeUnixNano = self::convertTimeUnixNano($protoSpan->getStartTimeUnixNano());
     }
 
     private static function convertNullableId(string $binaryId): ?string
@@ -65,6 +68,16 @@ final class Span implements LoggableInterface
         }
 
         return IdGenerator::convertBinaryIdToString($idAsBytesSeq);
+    }
+
+    private static function convertTimeUnixNano(string|int $protoVal): float
+    {
+        if (is_int($protoVal)) {
+            return floatval($protoVal);
+        }
+
+        Assert::assertNotFalse(filter_var($protoVal, FILTER_VALIDATE_INT));
+        return floatval($protoVal);
     }
 
     public function toLog(LogStreamInterface $stream): void
