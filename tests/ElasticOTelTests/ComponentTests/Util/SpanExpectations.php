@@ -27,11 +27,6 @@ final class SpanExpectations implements ExpectationsInterface
 {
     use ExpectationsTrait;
 
-    /**
-     * @param ?string                     $name
-     * @param ?SpanKind                   $kind
-     * @param ?SpanAttributesExpectations $attributes
-     */
     public function __construct(
         public readonly ?string $name = null,
         public readonly ?SpanKind $kind = null,

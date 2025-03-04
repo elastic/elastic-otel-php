@@ -25,43 +25,8 @@ namespace ElasticOTelTests\ComponentTests\Util;
 
 class InferredSpanExpectationsBuilder extends SpanExpectationsBuilder
 {
-    public const DEFAULT_SPAN_TYPE = 'inferred';
-
-    /** @inheritDoc */
-    public function startNew(): SpanExpectations
+    public function __construct()
     {
-        $result = new SpanExpectations();
-        $result->type->setValue(self::DEFAULT_SPAN_TYPE);
-        return $result;
-    }
-
-    /**
-     * @param string            $className
-     * @param string            $methodName
-     * @param bool              $isStatic
-     * @param StackTraceFrame[] $stackTrace
-     * @param bool              $allowExpectedStackTraceToBePrefix
-     *
-     * @return SpanExpectations
-     */
-    public function fromClassMethodNamesAndStackTrace(string $className, string $methodName, bool $isStatic, array $stackTrace, bool $allowExpectedStackTraceToBePrefix): SpanExpectations
-    {
-        $result = self::fromClassMethodNames($className, $methodName, $isStatic);
-        $result->stackTrace->setValue(StackTraceExpectations::fromFrames($stackTrace, $allowExpectedStackTraceToBePrefix));
-        return $result;
-    }
-
-    /**
-     * @param string            $funcName
-     * @param StackTraceFrame[] $stackTrace
-     * @param bool              $allowExpectedStackTraceToBePrefix
-     *
-     * @return SpanExpectations
-     */
-    public function fromFuncNameAndStackTrace(string $funcName, array $stackTrace, bool $allowExpectedStackTraceToBePrefix): SpanExpectations
-    {
-        $result = self::fromFuncName($funcName);
-        $result->stackTrace->setValue(StackTraceExpectations::fromFrames($stackTrace, $allowExpectedStackTraceToBePrefix));
-        return $result;
+        $this->setKind(SpanKind::internal);
     }
 }

@@ -172,6 +172,21 @@ final class AssertEx
     }
 
     /**
+     * @template TArrayValue
+     *
+     * @param class-string<TArrayValue> $expectedValueType
+     *
+     * @phpstan-assert array<array-key, TArrayValue> $actual
+     */
+    final public static function isArrayWithValueType(string $expectedValueType, mixed $actual, string $message = ''): void
+    {
+        Assert::assertIsArray($actual, $message);
+        foreach ($actual as $value) {
+            Assert::assertInstanceOf($expectedValueType, $value);
+        }
+    }
+
+    /**
      * @template TKey of array-key
      * @template TValue
      *

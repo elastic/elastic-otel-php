@@ -23,47 +23,46 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
-use Elastic\OTel\Util\StaticClassTrait;
 use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\IterableUtil;
 use ElasticOTelTests\Util\TimeUtil;
+use Override;
 use PHPUnit\Framework\Assert;
 
-final class SpanSequenceValidator
+final class SpanSequenceExpectations implements ExpectationsInterface
 {
-    use StaticClassTrait;
-
-    /**
-     * @param Span[] $spans
-     *
-     * @return Span[]
-     */
-    private static function sortByStartTime(array $spans): array
-    {
-        usort(
-            $spans,
-            function (Span $span_1, Span $span_2): int {
-                return TimeUtil::compareTimestamps($span_1->startTimeUnixNano, $span_2->startTimeUnixNano);
-            }
-        );
-        return $spans;
-    }
+    use ExpectationsTrait;
 
     /**
      * @param SpanExpectations[] $expected
-     * @param Span[]             $actual
      */
-    public static function assertSequenceAsExpected(array $expected, array $actual): void
+    public function __construct(
+        public readonly array $expected
+    ) {
+    }
+
+    #[Override]
+    public function assertMatchesMixed(mixed $actual): void
+    {
+        AssertEx::isArrayWithValueType(Span::class, $actual);
+        /** @var Span[] $actual */
+        $this->assertMatches($actual);
+    }
+
+    /**
+     * @param Span[] $actual
+     */
+    public function assertMatches(array $actual): void
     {
         DebugContext::getCurrentScope(/* out */ $dbgCtx);
 
-        AssertEx::sameCount($expected, $actual);
+        AssertEx::sameCount($this->expected, $actual);
         $actualSortedByStartTime = self::sortByStartTime($actual);
         $index = 0;
         /** @var ?Span $prevActualSpan */
         $prevActualSpan = null;
-        foreach (IterableUtil::zip($expected, $actualSortedByStartTime) as [$expectedSpan, $actualSpan]) {
+        foreach (IterableUtil::zip($this->expected, $actualSortedByStartTime) as [$expectedSpan, $actualSpan]) {
             /** @var SpanExpectations $expectedSpan */
             /** @var Span $actualSpan */
             $dbgCtx->add(compact('index', 'expectedSpan', 'actualSpan'));
@@ -74,5 +73,16 @@ final class SpanSequenceValidator
             $prevActualSpan = $actualSpan;
             ++$index;
         }
+    }
+
+    /**
+     * @param Span[] $spans
+     *
+     * @return Span[]
+     */
+    private static function sortByStartTime(array $spans): array
+    {
+        usort(/* in,out */ $spans, fn(Span $span_1, Span $span_2) => TimeUtil::compareTimestamps($span_1->startTimeUnixNano, $span_2->startTimeUnixNano));
+        return $spans;
     }
 }

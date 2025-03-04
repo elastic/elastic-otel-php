@@ -57,6 +57,14 @@ final class WaitForEventCounts implements IsEnoughExportedDataInterface, Loggabl
         return $result;
     }
 
+    /**
+     * @param positive-int $min
+     */
+    public static function spansAtLeast(int $min): self
+    {
+        return self::spans(min: $min, max: PHP_INT_MAX);
+    }
+
     private function __construct()
     {
         $this->logger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__)->addAllContext(compact('this'));

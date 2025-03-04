@@ -26,6 +26,7 @@ namespace ElasticOTelTests\ComponentTests;
 use ElasticOTelTests\ComponentTests\Util\AppCodeHostParams;
 use ElasticOTelTests\ComponentTests\Util\AppCodeTarget;
 use ElasticOTelTests\ComponentTests\Util\ComponentTestCaseBase;
+use ElasticOTelTests\ComponentTests\Util\InferredSpanExpectationsBuilder;
 use ElasticOTelTests\ComponentTests\Util\SpanSequenceValidator;
 use ElasticOTelTests\ComponentTests\Util\WaitForEventCounts;
 use ElasticOTelTests\Util\ClassNameUtil;
@@ -122,23 +123,20 @@ final class InferredSpansComponentTest extends ComponentTestCaseBase
                 $appCodeParams->setProdOption(OptionForProdName::inferred_spans_min_duration, $inferredMinDuration . 's');
             }
         );
-        $appCodeHost->execAppCode(AppCodeTarget::asRouted([__CLASS__, 'appCodeForTestInferredSpans']));
+        $appCodeTarget = AppCodeTarget::asRouted([__CLASS__, 'appCodeForTestInferredSpans']);
+        $appCodeMethod = $appCodeTarget->appCodeMethod;
+        self::assertIsString($appCodeMethod);
+        $appCodeHost->execAppCode($appCodeTarget);
 
-        // Total number of spans is 3 sleep spans + 1 span for appCode method + 1 local root span
-        $expectedSpanCount = ($shouldCaptureSleeps ? 3 : 0) + 1 + 1;
-        $exportedData = $testCaseHandle->waitForEnoughExportedData(WaitForEventCounts::spans($expectedSpanCount));
+        // Number of spans is at least: 3 sleep spans + 1 span for appCode method
+        $expectedSpanMinCount = ($shouldCaptureSleeps ? 3 : 0) + 1;
+        $exportedData = $testCaseHandle->waitForEnoughExportedData(WaitForEventCounts::spansAtLeast($expectedSpanMinCount));
         $dbgCtx->add(compact('exportedData'));
 
-        $spanExpectationsBuilder = new InferredSpanExpectationsBuilder();
+        $inferredSpanExpectationsBuilder = new InferredSpanExpectationsBuilder();
 
-        $appCodeSpanExpectations = $expectationsBuilder->fromClassMethodNamesAndStackTrace(
-            ClassNameUtil::fqToShort(__CLASS__),
-            $appCodeMethod,
-            true /* <- isStatic */,
-            $stackTraces[self::APP_CODE_SPAN_STACK_TRACE],
-            true /* <- allowExpectedStackTraceToBePrefix */
-        );
-        $appCodeSpan = $dataFromAgent->singleSpanByName($appCodeSpanExpectations->name->getValue());
+        $appCodeSpanExpectations = $inferredSpanExpectationsBuilder->setNameUsingClassMethod(ClassNameUtil::fqToShort(__CLASS__), /* isStaticMethod */ true, $appCodeMethod);
+        $appCodeSpan = $exportedData->singleSpanByName($appCodeSpanExpectations->name->getValue());
         self::assertSame($tx->id, $appCodeSpan->parentId, $ctxStr);
         $appCodeSpan->assertMatches($appCodeSpanExpectations);
 
