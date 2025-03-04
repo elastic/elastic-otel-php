@@ -162,7 +162,7 @@ void LoggerSinkSysLog::setLevel(LogLevel level) {
 
 void LoggerSinkSysLog::writeLog(std::string const &formattedOutput, std::string_view message, std::string_view time, std::string_view level, std::string_view process) const {
     // mt-safe (multithread)
-    ::syslog(LOG_ALERT, PRsv " " PRsv, PRsvArg(process), PRsvArg(message));
+    ::syslog(LOG_ALERT, PRsv " " PRsv, PRsvArg(formattedOutput), PRsvArg(formattedOutput));
 }
 
 LogLevel LoggerSinkFile::getLevel() const {
