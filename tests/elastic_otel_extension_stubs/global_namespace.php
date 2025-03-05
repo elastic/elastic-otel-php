@@ -32,7 +32,6 @@ function elastic_otel_log_feature(
     int $isForced,
     int $level,
     int $feature,
-    string $category,
     string $file,
     ?int $line,
     string $func,

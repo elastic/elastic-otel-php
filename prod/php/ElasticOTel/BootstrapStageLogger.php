@@ -36,8 +36,6 @@ use function elastic_otel_log_feature;
  */
 final class BootstrapStageLogger
 {
-    public const LOG_CATEGORY = 'Bootstrap';
-
     public const LEVEL_OFF = 0;
     public const LEVEL_CRITICAL = 1;
     public const LEVEL_ERROR = 2;
@@ -242,7 +240,6 @@ final class BootstrapStageLogger
             0 /* $isForced */,
             $statementLevel,
             Log\LogFeature::BOOTSTRAP,
-            self::LOG_CATEGORY,
             self::processSourceCodeFilePathForLog($file),
             $line,
             self::processClassFunctionNameForLog($class, $func),

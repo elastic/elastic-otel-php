@@ -54,7 +54,6 @@ class ElasticLogWriter implements LogWriterInterface
             0 /* <- isForced */,
             $edotLevel->value,
             LogFeature::OTEL,
-            'OpenTelemetry' /* <- category */,
             $caller['file'] ?? '',
             $caller['line'] ?? null,
             $func,
