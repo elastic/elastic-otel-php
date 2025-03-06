@@ -19,6 +19,8 @@
  * under the License.
  */
 
+/** @noinspection PhpIllegalPsrClassPathInspection */
+
 declare(strict_types=1);
 
 namespace Elastic\OTel;
@@ -178,24 +180,22 @@ final class InstrumentationBridge
             $function,
             function () use ($func) {
                 elastic_otel_log_feature(
-                    0,
+                    0 /* <- isForced */,
                     LogLevel::debug->value,
                     Log\LogFeature::INSTRUMENTATION,
-                    'PRE HOOK',
-                    '',
-                    null,
+                    '' /* <- file */,
+                    null /* <- line */,
                     $func,
                     ('pre-hook data: ' . var_export(func_get_args(), true))
                 );
             },
             function () use ($func) {
                 elastic_otel_log_feature(
-                    0,
+                    0 /* <- isForced */,
                     LogLevel::debug->value,
                     Log\LogFeature::INSTRUMENTATION,
-                    'POST HOOK',
-                    '',
-                    null,
+                    '' /* <- file */,
+                    null /* <- line */,
                     $func,
                     ('post-hook data: ' . var_export(func_get_args(), true))
                 );
