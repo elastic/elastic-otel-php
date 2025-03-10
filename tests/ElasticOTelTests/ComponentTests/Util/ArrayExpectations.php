@@ -43,9 +43,22 @@ class ArrayExpectations implements ExpectationsInterface
      * @param array<TKey, TValue> $expectedArray
      */
     public function __construct(
-        private readonly array $expectedArray,
-        private readonly bool $allowOtherKeysInActual = true,
+        public readonly array $expectedArray,
+        public readonly bool $allowOtherKeysInActual = true,
     ) {
+    }
+
+    /**
+     * @phpstan-param TKey   $key
+     * @phpstan-param TValue $value
+     *
+     * @return self<TKey, TValue>
+     */
+    public function add(string|int $key, mixed $value): self
+    {
+        $newExpectedArray = $this->expectedArray;
+        $newExpectedArray[$key] = $value;
+        return new self($newExpectedArray, $this->allowOtherKeysInActual);
     }
 
     #[Override]

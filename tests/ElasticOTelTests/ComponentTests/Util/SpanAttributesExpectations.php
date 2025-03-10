@@ -33,7 +33,7 @@ final class SpanAttributesExpectations implements ExpectationsInterface
 {
     use ExpectationsTrait;
 
-    private readonly SpanAttributesArrayExpectations $arrayExpectations;
+    public readonly SpanAttributesArrayExpectations $arrayExpectations;
 
     /**
      * @param array<string, AttributeValue> $attributes
@@ -45,6 +45,14 @@ final class SpanAttributesExpectations implements ExpectationsInterface
         private readonly array $notAllowedAttributeNames = []
     ) {
         $this->arrayExpectations = new SpanAttributesArrayExpectations($attributes, $allowOtherKeysInActual);
+    }
+
+    /**
+     * @phpstan-param AttributeValue $value
+     */
+    public function addAllowedAttribute(string $key, array|bool|float|int|null|string $value): self
+    {
+        return new self($this->arrayExpectations->add($key, $value)->expectedArray, $this->arrayExpectations->allowOtherKeysInActual, $this->notAllowedAttributeNames);
     }
 
     #[Override]

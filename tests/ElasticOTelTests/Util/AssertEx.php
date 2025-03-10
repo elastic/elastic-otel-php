@@ -172,6 +172,36 @@ final class AssertEx
     }
 
     /**
+     * @template TArrayValue of object
+     *
+     * @param class-string<TArrayValue> $expectedValueType
+     *
+     * @phpstan-assert array<array-key, TArrayValue> $actual
+     */
+    final public static function isArrayWithValueType(string $expectedValueType, mixed $actual, string $message = ''): void
+    {
+        Assert::assertIsArray($actual, $message);
+        foreach ($actual as $value) {
+            Assert::assertInstanceOf($expectedValueType, $value);
+        }
+    }
+
+    /**
+     * @template T of numeric|string|object|resource
+     *
+     * @param ?T $actual
+     *
+     * @return T
+     *
+     * @phpstan-assert !null $actual
+     */
+    public static function isNotNull(mixed $actual, string $message = ''): mixed
+    {
+        Assert::assertNotNull($actual, $message);
+        return $actual;
+    }
+
+    /**
      * @template TKey of array-key
      * @template TValue
      *
