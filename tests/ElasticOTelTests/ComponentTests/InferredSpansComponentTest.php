@@ -130,9 +130,13 @@ final class InferredSpansComponentTest extends ComponentTestCaseBase
         self::assertIsString($appCodeMethodName);
         $appCodeHost->execAppCode($appCodeTarget);
 
-        // Number of spans is at least: 3 sleep spans + 1 span for appCode method
-        $expectedSpanMinCount = ($shouldCaptureSleeps ? 3 : 0) + 1;
-        $exportedData = $testCaseHandle->waitForEnoughExportedData(WaitForEventCounts::spansAtLeast($expectedSpanMinCount));
+        // Number of inferred spans is at least 4: 3 sleep spans + 1 span for appCode method
+        $expectedInferredSpansMinCount = $isInferredSpansEnabled ? (($shouldCaptureSleeps ? 3 : 0) + 1) : 0;
+        // Number of regular (i.e., not inferred) spans is 1 - the automatic root span
+        $expectedSpanMinCount = $expectedInferredSpansMinCount + 1;
+        $exportedData = $testCaseHandle->waitForEnoughExportedData(
+            $isInferredSpansEnabled ? WaitForEventCounts::spansAtLeast($expectedSpanMinCount) : WaitForEventCounts::spans($expectedSpanMinCount)
+        );
         $dbgCtx->add(compact('exportedData'));
 
         $inferredSpanExpectationsBuilder = new InferredSpanExpectationsBuilder();
@@ -145,8 +149,10 @@ final class InferredSpansComponentTest extends ComponentTestCaseBase
             self::assertSame($rootSpan->traceId, $span->traceId);
         }
 
-        // TODO: Sergey Kleyman: UNCOMMENT: Should we use <class>::<method> to name inferred spans for class methods
-        // $appCodeSpanExpectations = $inferredSpanExpectationsBuilder->setNameUsingClassMethod(ClassNameUtil::fqToShort(__CLASS__), /* isStaticMethod */ true, $appCodeMethodName)->build();
+        if (!$isInferredSpansEnabled) {
+            return;
+        }
+
         $appCodeSpanExpectations = $inferredSpanExpectationsBuilder->setNameUsingFuncName($appCodeMethodName)->build();
         $appCodeSpan = $exportedData->singleSpanByName($appCodeMethodName);
         self::assertTrue($exportedData->isSpanDescendantOf($appCodeSpan, $rootSpan));
