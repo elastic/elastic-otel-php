@@ -45,8 +45,8 @@ final class IdGenerator
     public static function convertBinaryIdToString(array $binaryId): string
     {
         $result = '';
-        for ($i = 0; $i < count($binaryId); ++$i) {
-            $result .= sprintf('%02x', $binaryId[$i]);
+        foreach ($binaryId as $byte) {
+            $result .= sprintf('%02x', $byte);
         }
         return $result;
     }

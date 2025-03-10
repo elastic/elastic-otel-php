@@ -21,21 +21,30 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTests\ComponentTests\Util;
+namespace ElasticOTelTests\Util;
 
-final class SpanExpectations implements ExpectationsInterface
+use Elastic\OTel\Util\StaticClassTrait;
+
+/**
+ * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
+ *
+ * @internal
+ */
+final class FlagsUtil
 {
-    use ExpectationsTrait;
+    use StaticClassTrait;
 
-    public function __construct(
-        public readonly ?string $name = null,
-        public readonly ?SpanKind $kind = null,
-        public readonly ?SpanAttributesExpectations $attributes = null,
-    ) {
-    }
-
-    public function assertMatches(Span $actual): void
+    /**
+     * @param array<int, string> $maskToName
+     *
+     * @return iterable<string>
+     */
+    public static function extractBitNames(int $flags, array $maskToName): iterable
     {
-        $this->assertMatchesMixed($actual);
+        foreach ($maskToName as $mask => $name) {
+            if (($flags & $mask) !== 0) {
+                yield $name;
+            }
+        }
     }
 }

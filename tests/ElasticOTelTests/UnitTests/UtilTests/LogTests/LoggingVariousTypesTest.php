@@ -23,6 +23,7 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\UnitTests\UtilTests\LogTests;
 
+use BackedEnum;
 use Elastic\OTel\Log\LogLevel;
 use ElasticOTelTests\BootstrapTests;
 use ElasticOTelTests\Util\AssertEx;
@@ -102,7 +103,23 @@ class LoggingVariousTypesTest extends TestCaseBase
     {
         /** @var list<array{UnitEnum, string}> $enumObjAndLoggedStringPairs */
         $enumObjAndLoggedStringPairs = [
-            [DummyEnum::small, __NAMESPACE__ . '\\DummyEnum(small)']
+            [DummyEnum::small, DummyEnum::class . '(small)'],
+            [DummyEnum::medium, DummyEnum::class . '(medium)'],
+            [DummyEnum::large, DummyEnum::class . '(large)'],
+        ];
+        foreach ($enumObjAndLoggedStringPairs as $enumObjAndLoggedStringPair) {
+            self::logValueAndVerify($enumObjAndLoggedStringPair[0], $enumObjAndLoggedStringPair[1]);
+        }
+    }
+
+    public function testBackedEnum(): void
+    {
+        /** @var list<array{BackedEnum, string}> $enumObjAndLoggedStringPairs */
+        $enumObjAndLoggedStringPairs = [
+            [DummyBackedEnum::hearts, DummyBackedEnum::class . '(hearts(H))'],
+            [DummyBackedEnum::diamonds, DummyBackedEnum::class . '(diamonds(D))'],
+            [DummyBackedEnum::clubs, DummyBackedEnum::class . '(clubs(C))'],
+            [DummyBackedEnum::spades, DummyBackedEnum::class . '(spades(S))'],
         ];
         foreach ($enumObjAndLoggedStringPairs as $enumObjAndLoggedStringPair) {
             self::logValueAndVerify($enumObjAndLoggedStringPair[0], $enumObjAndLoggedStringPair[1]);

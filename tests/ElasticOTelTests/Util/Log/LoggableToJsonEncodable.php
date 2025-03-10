@@ -23,6 +23,7 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\Util\Log;
 
+use BackedEnum;
 use Elastic\OTel\Log\LogLevel;
 use Elastic\OTel\Util\StaticClassTrait;
 use Elastic\OTel\Util\TextUtil;
@@ -262,6 +263,10 @@ final class LoggableToJsonEncodable
 
         if ($object instanceof LogLevel) {
             return strtoupper($object->name);
+        }
+
+        if ($object instanceof BackedEnum) {
+            return $object::class . '(' . $object->name . '(' . $object->value . ')' . ')';
         }
 
         if ($object instanceof UnitEnum) {
