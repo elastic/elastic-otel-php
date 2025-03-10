@@ -47,7 +47,7 @@ final class WaitForEventCounts implements IsEnoughExportedDataInterface, Loggabl
     {
         Assert::assertGreaterThan(0, $min);
         if ($max !== null) {
-            Assert::assertLessThanOrEqual($min, $max);
+            Assert::assertGreaterThanOrEqual($min, $max);
         }
 
         $result = new WaitForEventCounts();

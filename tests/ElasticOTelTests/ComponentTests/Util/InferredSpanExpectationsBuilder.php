@@ -23,10 +23,36 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
+use OpenTelemetry\SemConv\TraceAttributes;
+
+/**
+ * @phpstan-import-type AttributeValue from SpanAttributes
+ */
 class InferredSpanExpectationsBuilder extends SpanExpectationsBuilder
 {
+    private const IS_INFERRED_ATTRIBUTE_NAME = 'is_inferred';
+
     public function __construct()
     {
         $this->setKind(SpanKind::internal);
+        $this->addAllowedAttribute(self::IS_INFERRED_ATTRIBUTE_NAME, true);
+    }
+
+    /**
+     * @phpstan-param AttributeValue $value
+     */
+    private function addAllowedAttribute(string $key, array|bool|float|int|null|string $value): void
+    {
+        $prevAttributesExpectations = $this->attributes ?? (new SpanAttributesExpectations(attributes: []));
+        $this->setAttributes($prevAttributesExpectations->addAllowedAttribute($key, $value));
+    }
+
+    /**
+     * @return $this
+     */
+    public function setNameUsingFuncName(string $funcName): self
+    {
+        $this->addAllowedAttribute(TraceAttributes::CODE_FUNCTION_NAME, $funcName);
+        return parent::setNameUsingFuncName($funcName);
     }
 }

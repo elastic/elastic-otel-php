@@ -172,7 +172,7 @@ final class AssertEx
     }
 
     /**
-     * @template TArrayValue
+     * @template TArrayValue of object
      *
      * @param class-string<TArrayValue> $expectedValueType
      *
@@ -184,6 +184,21 @@ final class AssertEx
         foreach ($actual as $value) {
             Assert::assertInstanceOf($expectedValueType, $value);
         }
+    }
+
+    /**
+     * @template T of numeric|string|object|resource
+     *
+     * @param ?T $actual
+     *
+     * @return T
+     *
+     * @phpstan-assert !null $actual
+     */
+    public static function isNotNull(mixed $actual, string $message = ''): mixed
+    {
+        Assert::assertNotNull($actual, $message);
+        return $actual;
     }
 
     /**

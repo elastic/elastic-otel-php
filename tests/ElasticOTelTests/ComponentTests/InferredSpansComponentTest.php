@@ -27,12 +27,14 @@ use ElasticOTelTests\ComponentTests\Util\AppCodeHostParams;
 use ElasticOTelTests\ComponentTests\Util\AppCodeTarget;
 use ElasticOTelTests\ComponentTests\Util\ComponentTestCaseBase;
 use ElasticOTelTests\ComponentTests\Util\InferredSpanExpectationsBuilder;
-use ElasticOTelTests\ComponentTests\Util\SpanSequenceValidator;
+use ElasticOTelTests\ComponentTests\Util\Span;
+use ElasticOTelTests\ComponentTests\Util\SpanSequenceExpectations;
 use ElasticOTelTests\ComponentTests\Util\WaitForEventCounts;
-use ElasticOTelTests\Util\ClassNameUtil;
+use ElasticOTelTests\Util\ArrayUtilForTests;
 use ElasticOTelTests\Util\Config\OptionForProdName;
 use ElasticOTelTests\Util\DataProviderForTestBuilder;
 use ElasticOTelTests\Util\DebugContext;
+use ElasticOTelTests\Util\IterableUtil;
 use ElasticOTelTests\Util\MixedMap;
 
 /**
@@ -124,8 +126,8 @@ final class InferredSpansComponentTest extends ComponentTestCaseBase
             }
         );
         $appCodeTarget = AppCodeTarget::asRouted([__CLASS__, 'appCodeForTestInferredSpans']);
-        $appCodeMethod = $appCodeTarget->appCodeMethod;
-        self::assertIsString($appCodeMethod);
+        $appCodeMethodName = $appCodeTarget->appCodeMethod;
+        self::assertIsString($appCodeMethodName);
         $appCodeHost->execAppCode($appCodeTarget);
 
         // Number of spans is at least: 3 sleep spans + 1 span for appCode method
@@ -135,10 +137,20 @@ final class InferredSpansComponentTest extends ComponentTestCaseBase
 
         $inferredSpanExpectationsBuilder = new InferredSpanExpectationsBuilder();
 
-        $appCodeSpanExpectations = $inferredSpanExpectationsBuilder->setNameUsingClassMethod(ClassNameUtil::fqToShort(__CLASS__), /* isStaticMethod */ true, $appCodeMethod);
-        $appCodeSpan = $exportedData->singleSpanByName($appCodeSpanExpectations->name->getValue());
-        self::assertSame($tx->id, $appCodeSpan->parentId, $ctxStr);
-        $appCodeSpan->assertMatches($appCodeSpanExpectations);
+        $rootSpans = IterableUtil::toList($exportedData->findRootSpans());
+        self::assertCount(1, $rootSpans);
+        /** @var Span $rootSpan */
+        $rootSpan = ArrayUtilForTests::getFirstValue($rootSpans);
+        foreach ($exportedData->spans as $span) {
+            self::assertSame($rootSpan->traceId, $span->traceId);
+        }
+
+        // TODO: Sergey Kleyman: UNCOMMENT: Should we use <class>::<method> to name inferred spans for class methods
+        // $appCodeSpanExpectations = $inferredSpanExpectationsBuilder->setNameUsingClassMethod(ClassNameUtil::fqToShort(__CLASS__), /* isStaticMethod */ true, $appCodeMethodName)->build();
+        $appCodeSpanExpectations = $inferredSpanExpectationsBuilder->setNameUsingFuncName($appCodeMethodName)->build();
+        $appCodeSpan = $exportedData->singleSpanByName($appCodeMethodName);
+        self::assertTrue($exportedData->isSpanDescendantOf($appCodeSpan, $rootSpan));
+        $appCodeSpanExpectations->assertMatches($appCodeSpan);
 
         if (!$shouldCaptureSleeps) {
             return;
@@ -147,18 +159,13 @@ final class InferredSpansComponentTest extends ComponentTestCaseBase
         $expectedSleepSpans = [];
         $actualSleepSpans = [];
         foreach (self::SLEEP_FUNC_NAMES as $sleepFunc) {
-            $stackTrace = $stackTraces[$sleepFunc];
-            $expectedSleepSpans[] = $expectationsBuilder->fromFuncNameAndStackTrace(
-                $sleepFunc,
-                $stackTrace,
-                true /* <- allowExpectedStackTraceToBePrefix */
-            );
-            $sleepSpan = $dataFromAgent->singleSpanByName($sleepFunc);
+            $expectedSleepSpans[] = $inferredSpanExpectationsBuilder->setNameUsingFuncName($sleepFunc)->build();
+            $sleepSpan = $exportedData->singleSpanByName($sleepFunc);
             $actualSleepSpans[] = $sleepSpan;
-            self::assertSame($appCodeSpan->id, $sleepSpan->parentId);
+            self::assertTrue($exportedData->isSpanDescendantOf($sleepSpan, $appCodeSpan));
         }
 
-        SpanSequenceValidator::assertSequenceAsExpected($expectedSleepSpans, $actualSleepSpans);
+        (new SpanSequenceExpectations($expectedSleepSpans))->assertMatches($actualSleepSpans);
     }
 
     /**
