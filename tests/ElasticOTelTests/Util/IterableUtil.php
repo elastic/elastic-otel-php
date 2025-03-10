@@ -25,6 +25,7 @@ namespace ElasticOTelTests\Util;
 
 use Countable;
 use Elastic\OTel\Util\StaticClassTrait;
+use Elastic\OTel\Util\TextUtil;
 use Generator;
 use Iterator;
 use PHPUnit\Framework\Assert;
@@ -486,5 +487,17 @@ final class IterableUtil
                 yield $value;
             }
         }
+    }
+
+    /**
+     * @param iterable<string> $iterable
+     */
+    public static function convertToString(iterable $iterable, string $separator): string
+    {
+        $result = '';
+        foreach ($iterable as $value) {
+            $result = TextUtil::appendWithOptionalSeparator($result, $separator, $value);
+        }
+        return $result;
     }
 }

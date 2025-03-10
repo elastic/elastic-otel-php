@@ -274,6 +274,7 @@ final class CurlAutoInstrumentationTest extends ComponentTestCaseBase
         }
 
         $expectationsForServerTxSpan->assertMatches($serverTxSpan);
+        self::assertSame($enableCurlInstrumentationForClient, $serverTxSpan->hasRemoteParent());
     }
 
     /**
