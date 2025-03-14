@@ -322,8 +322,8 @@ class InferredSpans
      */
     private function getStackTrace(array $stackTrace): string
     {
-        $str = "#0 {main}\n";
-        $id = 1;
+        $id = 0;
+        $str = "";
         foreach ($stackTrace as $frame) {
             if (array_key_exists('file', $frame)) {
                 $file = $frame['file'] . '(' . ($frame['line'] ?? '') . ')';
@@ -334,6 +334,8 @@ class InferredSpans
             $str .= sprintf("#%d %s: %s%s%s\n", $id, $file, $frame['class'] ?? '', $frame['type'] ?? '', $frame['function']);
             $id++;
         }
+        $str .= sprintf("#%d {main}\n", $id);
+
         return $str;
     }
 
