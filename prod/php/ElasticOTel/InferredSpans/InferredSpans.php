@@ -347,7 +347,10 @@ class InferredSpans
     private function startFrameSpan(array $frame, int $durationMs, ?ContextInterface $parentContext, int $stackTraceId): array
     {
         $parent = $parentContext ?? Context::getCurrent();
-        $builder = $this->tracer->spanBuilder(!empty($frame['function']) ? $frame['function'] : '[unknown]')
+
+        $spanName = (!empty($frame['class']) ? ($frame['class'] . '::') : '') . (!empty($frame['function']) ? $frame['function'] : '[unknown]');
+
+        $builder = $this->tracer->spanBuilder($spanName)
             ->setParent($parent)
             ->setStartTimestamp($this->getStartTime($durationMs))
             ->setSpanKind(SpanKind::KIND_INTERNAL)
