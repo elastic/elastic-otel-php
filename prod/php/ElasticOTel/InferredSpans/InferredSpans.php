@@ -73,7 +73,7 @@ class InferredSpans
         $this->tracer = Globals::tracerProvider()->getTracer(
             'co.elastic.php.elastic-inferred-spans',
             null,
-            Version::VERSION_1_25_0->url(),
+            Version::VERSION_1_30_0->url(),
         );
 
         self::logDebug('spanReductionEnabled ' . $spanReductionEnabled . ' attachStackTrace ' . $attachStackTrace . ' minSpanDuration ' . $minSpanDuration);
@@ -355,6 +355,7 @@ class InferredSpans
             ->setStartTimestamp($this->getStartTime($durationMs))
             ->setSpanKind(SpanKind::KIND_INTERNAL)
             ->setAttribute(TraceAttributes::CODE_FUNCTION_NAME, $frame['function'])
+            ->setAttribute(TraceAttributes::CODE_NAMESPACE, $frame['class'] ?? null)
             ->setAttribute(TraceAttributes::CODE_FILEPATH, $frame['file'] ?? null)
             ->setAttribute(TraceAttributes::CODE_LINE_NUMBER, $frame['line'] ?? null)
             ->setAttribute('is_inferred', true);
