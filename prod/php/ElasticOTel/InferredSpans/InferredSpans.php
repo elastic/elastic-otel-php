@@ -73,7 +73,7 @@ class InferredSpans
         $this->tracer = Globals::tracerProvider()->getTracer(
             'co.elastic.php.elastic-inferred-spans',
             null,
-            Version::VERSION_1_25_0->url(),
+            Version::VERSION_1_30_0->url(),
         );
 
         self::logDebug('spanReductionEnabled ' . $spanReductionEnabled . ' attachStackTrace ' . $attachStackTrace . ' minSpanDuration ' . $minSpanDuration);
@@ -322,8 +322,8 @@ class InferredSpans
      */
     private function getStackTrace(array $stackTrace): string
     {
-        $str = "#0 {main}\n";
-        $id = 1;
+        $id = 0;
+        $str = "";
         foreach ($stackTrace as $frame) {
             if (array_key_exists('file', $frame)) {
                 $file = $frame['file'] . '(' . ($frame['line'] ?? '') . ')';
@@ -334,6 +334,8 @@ class InferredSpans
             $str .= sprintf("#%d %s: %s%s%s\n", $id, $file, $frame['class'] ?? '', $frame['type'] ?? '', $frame['function']);
             $id++;
         }
+        $str .= sprintf("#%d {main}\n", $id);
+
         return $str;
     }
 
@@ -345,11 +347,15 @@ class InferredSpans
     private function startFrameSpan(array $frame, int $durationMs, ?ContextInterface $parentContext, int $stackTraceId): array
     {
         $parent = $parentContext ?? Context::getCurrent();
-        $builder = $this->tracer->spanBuilder(!empty($frame['function']) ? $frame['function'] : '[unknown]')
+
+        $spanName = (!empty($frame['class']) ? ($frame['class'] . '::') : '') . (!empty($frame['function']) ? $frame['function'] : '[unknown]');
+
+        $builder = $this->tracer->spanBuilder($spanName)
             ->setParent($parent)
             ->setStartTimestamp($this->getStartTime($durationMs))
             ->setSpanKind(SpanKind::KIND_INTERNAL)
             ->setAttribute(TraceAttributes::CODE_FUNCTION_NAME, $frame['function'])
+            ->setAttribute(TraceAttributes::CODE_NAMESPACE, $frame['class'] ?? null)
             ->setAttribute(TraceAttributes::CODE_FILEPATH, $frame['file'] ?? null)
             ->setAttribute(TraceAttributes::CODE_LINE_NUMBER, $frame['line'] ?? null)
             ->setAttribute('is_inferred', true);
