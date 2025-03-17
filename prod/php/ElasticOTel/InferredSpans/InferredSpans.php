@@ -52,6 +52,8 @@ class InferredSpans
 {
     use LogsMessagesTrait;
 
+    public const IS_INFERRED_ATTRIBUTE_NAME = 'is_inferred';
+
     private const METADATA_SPAN = 'span';
     private const METADATA_CONTEXT = 'context';
     private const METADATA_SCOPE = 'scope';
@@ -358,7 +360,7 @@ class InferredSpans
             ->setAttribute(TraceAttributes::CODE_NAMESPACE, $frame['class'] ?? null)
             ->setAttribute(TraceAttributes::CODE_FILEPATH, $frame['file'] ?? null)
             ->setAttribute(TraceAttributes::CODE_LINE_NUMBER, $frame['line'] ?? null)
-            ->setAttribute('is_inferred', true);
+            ->setAttribute(self::IS_INFERRED_ATTRIBUTE_NAME, true);
 
         $span = $builder->startSpan(); //OpenTelemetry\API\Trace\SpanInterface
         $context = $span->storeInContext($parent); //OpenTelemetry\Context\ContextInterface

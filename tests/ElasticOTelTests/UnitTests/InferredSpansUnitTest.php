@@ -21,26 +21,16 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTests\ComponentTests\Util;
+namespace ElasticOTelTests\UnitTests;
 
-use OpenTelemetry\SemConv\TraceAttributes;
+use Elastic\OTel\InferredSpans\InferredSpans;
+use ElasticOTelTests\ComponentTests\Util\InferredSpanExpectationsBuilder;
+use ElasticOTelTests\Util\TestCaseBase;
 
-class InferredSpanExpectationsBuilder extends SpanExpectationsBuilder
+final class InferredSpansUnitTest extends TestCaseBase
 {
-    public const IS_INFERRED_ATTRIBUTE_NAME = 'is_inferred';
-
-    public function __construct()
+    public function testInferredAttributeName(): void
     {
-        $this->setKind(SpanKind::internal);
-        $this->addAttribute(self::IS_INFERRED_ATTRIBUTE_NAME, true);
-    }
-
-    /**
-     * @return $this
-     */
-    public function setNameUsingFuncName(string $funcName): self
-    {
-        $this->addAttribute(TraceAttributes::CODE_FUNCTION_NAME, $funcName);
-        return parent::setNameUsingFuncName($funcName);
+        self::assertSame(InferredSpans::IS_INFERRED_ATTRIBUTE_NAME, InferredSpanExpectationsBuilder::IS_INFERRED_ATTRIBUTE_NAME); // @phpstan-ignore staticMethod.alreadyNarrowedType
     }
 }
