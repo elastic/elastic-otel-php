@@ -30,7 +30,7 @@ use OpenTelemetry\SemConv\TraceAttributes;
  */
 class InferredSpanExpectationsBuilder extends SpanExpectationsBuilder
 {
-    private const IS_INFERRED_ATTRIBUTE_NAME = 'is_inferred';
+    public const IS_INFERRED_ATTRIBUTE_NAME = 'is_inferred';
 
     public function __construct()
     {

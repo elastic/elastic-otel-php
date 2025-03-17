@@ -52,6 +52,8 @@ class InferredSpans
 {
     use LogsMessagesTrait;
 
+    public const IS_INFERRED_ATTRIBUTE_NAME = 'is_inferred';
+
     private const METADATA_SPAN = 'span';
     private const METADATA_CONTEXT = 'context';
     private const METADATA_SCOPE = 'scope';
@@ -322,8 +324,8 @@ class InferredSpans
      */
     private function getStackTrace(array $stackTrace): string
     {
-        $str = "#0 {main}\n";
-        $id = 1;
+        $str = '';
+        $index = 0;
         foreach ($stackTrace as $frame) {
             if (array_key_exists('file', $frame)) {
                 $file = $frame['file'] . '(' . ($frame['line'] ?? '') . ')';
@@ -331,10 +333,39 @@ class InferredSpans
                 $file = '[internal function]';
             }
 
-            $str .= sprintf("#%d %s: %s%s%s\n", $id, $file, $frame['class'] ?? '', $frame['type'] ?? '', $frame['function']);
-            $id++;
+            $str .= sprintf("#%d %s: %s%s%s\n", $index, $file, $frame['class'] ?? '', $frame['type'] ?? '', $frame['function']);
+            ++$index;
         }
         return $str;
+    }
+
+    private static function extractShortFromFqClassName(string $fqClassName): string
+    {
+        // Check if $fqClassName begin with a back slash(es)
+        $firstBackSlashPos = strpos($fqClassName, '\\');
+        if ($firstBackSlashPos === false) {
+            return $fqClassName;
+        }
+        $firstCanonPos = $firstBackSlashPos === 0 ? 1 : 0;
+
+        $lastBackSlashPos = strrpos($fqClassName, '\\', $firstCanonPos);
+        if ($lastBackSlashPos === false) {
+            return substr($fqClassName, $firstCanonPos);
+        }
+
+        return substr($fqClassName, $lastBackSlashPos + 1);
+    }
+
+    /**
+     * @param ?string $fqClassName
+     * @param ?string $methodType
+     * @param ?string $funcName
+     *
+     * @return non-empty-string
+     */
+    private static function buildSpanName(?string $fqClassName, ?string $methodType, ?string $funcName): string
+    {
+        return (empty($fqClassName) ? '' : (self::extractShortFromFqClassName($fqClassName) . (empty($methodType) ? '::' : $methodType))) . (empty($funcName) ? '[unknown]' : $funcName);
     }
 
     /**
@@ -345,14 +376,17 @@ class InferredSpans
     private function startFrameSpan(array $frame, int $durationMs, ?ContextInterface $parentContext, int $stackTraceId): array
     {
         $parent = $parentContext ?? Context::getCurrent();
-        $builder = $this->tracer->spanBuilder(!empty($frame['function']) ? $frame['function'] : '[unknown]')
+        $fqClassName = $frame['class'] ?? null;
+        $funcName = $frame['function'] ?? null;
+        $builder = $this->tracer->spanBuilder(self::buildSpanName($fqClassName, $frame['type'] ?? null, $funcName))
             ->setParent($parent)
             ->setStartTimestamp($this->getStartTime($durationMs))
             ->setSpanKind(SpanKind::KIND_INTERNAL)
-            ->setAttribute(TraceAttributes::CODE_FUNCTION_NAME, $frame['function'])
+            ->setAttribute(TraceAttributes::CODE_NAMESPACE, $fqClassName)
+            ->setAttribute(TraceAttributes::CODE_FUNCTION_NAME, $funcName)
             ->setAttribute(TraceAttributes::CODE_FILEPATH, $frame['file'] ?? null)
             ->setAttribute(TraceAttributes::CODE_LINE_NUMBER, $frame['line'] ?? null)
-            ->setAttribute('is_inferred', true);
+            ->setAttribute(self::IS_INFERRED_ATTRIBUTE_NAME, true);
 
         $span = $builder->startSpan(); //OpenTelemetry\API\Trace\SpanInterface
         $context = $span->storeInContext($parent); //OpenTelemetry\Context\ContextInterface
