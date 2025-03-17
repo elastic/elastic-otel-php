@@ -21,7 +21,7 @@ RUN apt-get -qq update \
 
 RUN docker-php-ext-install \
         curl \
-        pdo \
+        pdo_sqlite \
         zip
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer

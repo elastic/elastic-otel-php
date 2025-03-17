@@ -23,6 +23,9 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
+/**
+ * @phpstan-import-type AttributeValue from SpanAttributes
+ */
 class SpanExpectationsBuilder
 {
     private const CLASS_AND_METHOD_SEPARATOR = '::';
@@ -79,6 +82,15 @@ class SpanExpectationsBuilder
         }
 
         return $classicName . self::CLASS_AND_METHOD_SEPARATOR . $methodName;
+    }
+
+    /**
+     * @phpstan-param AttributeValue $value
+     */
+    public function addAttribute(string $key, array|bool|float|int|null|string $value): void
+    {
+        $prevAttributesExpectations = $this->attributes ?? (new SpanAttributesExpectations(attributes: []));
+        $this->setAttributes($prevAttributesExpectations->addAllowedAttribute($key, $value));
     }
 
     public function build(): SpanExpectations
