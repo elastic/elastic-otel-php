@@ -47,7 +47,7 @@ final class WaitForEventCounts implements IsEnoughExportedDataInterface, Loggabl
     {
         Assert::assertGreaterThan(0, $min);
         if ($max !== null) {
-            Assert::assertLessThanOrEqual($min, $max);
+            Assert::assertGreaterThanOrEqual($min, $max);
         }
 
         $result = new WaitForEventCounts();
@@ -55,6 +55,14 @@ final class WaitForEventCounts implements IsEnoughExportedDataInterface, Loggabl
         $result->maxSpanCount = $max ?? $min;
 
         return $result;
+    }
+
+    /**
+     * @param positive-int $min
+     */
+    public static function spansAtLeast(int $min): self
+    {
+        return self::spans(min: $min, max: PHP_INT_MAX);
     }
 
     private function __construct()

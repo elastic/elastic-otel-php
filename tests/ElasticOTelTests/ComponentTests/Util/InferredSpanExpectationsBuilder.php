@@ -23,43 +23,36 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
-use Elastic\OTel\Util\StaticClassTrait;
+use OpenTelemetry\SemConv\TraceAttributes;
 
 /**
- * Code in this file is part of implementation internals and thus it is not covered by the backward compatibility.
- *
- * @internal
+ * @phpstan-import-type AttributeValue from SpanAttributes
  */
-final class IdGenerator
+class InferredSpanExpectationsBuilder extends SpanExpectationsBuilder
 {
-    use StaticClassTrait;
+    private const IS_INFERRED_ATTRIBUTE_NAME = 'is_inferred';
 
-    public static function generateId(int $idLengthInBytes): string
+    public function __construct()
     {
-        return self::convertBinaryIdToString(self::generateBinaryId($idLengthInBytes));
+        $this->setKind(SpanKind::internal);
+        $this->addAllowedAttribute(self::IS_INFERRED_ATTRIBUTE_NAME, true);
     }
 
     /**
-     * @param array<int> $binaryId
+     * @phpstan-param AttributeValue $value
      */
-    public static function convertBinaryIdToString(array $binaryId): string
+    private function addAllowedAttribute(string $key, array|bool|float|int|null|string $value): void
     {
-        $result = '';
-        foreach ($binaryId as $byte) {
-            $result .= sprintf('%02x', $byte);
-        }
-        return $result;
+        $prevAttributesExpectations = $this->attributes ?? (new SpanAttributesExpectations(attributes: []));
+        $this->setAttributes($prevAttributesExpectations->addAllowedAttribute($key, $value));
     }
 
     /**
-     * @return array<int>
+     * @return $this
      */
-    private static function generateBinaryId(int $idLengthInBytes): array
+    public function setNameUsingFuncName(string $funcName): self
     {
-        $result = [];
-        for ($i = 0; $i < $idLengthInBytes; ++$i) {
-            $result[] = mt_rand(0, 255);
-        }
-        return $result;
+        $this->addAllowedAttribute(TraceAttributes::CODE_FUNCTION_NAME, $funcName);
+        return parent::setNameUsingFuncName($funcName);
     }
 }

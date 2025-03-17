@@ -54,6 +54,7 @@ use OpenTelemetry\Contrib\Instrumentation\Curl\CurlInstrumentation;
 use OpenTelemetry\SemConv\TraceAttributes;
 
 /**
+ * @group smoke
  * @group does_not_require_external_services
  */
 final class CurlAutoInstrumentationTest extends ComponentTestCaseBase
@@ -273,6 +274,7 @@ final class CurlAutoInstrumentationTest extends ComponentTestCaseBase
         }
 
         $expectationsForServerTxSpan->assertMatches($serverTxSpan);
+        self::assertSame($enableCurlInstrumentationForClient, $serverTxSpan->hasRemoteParent());
     }
 
     /**

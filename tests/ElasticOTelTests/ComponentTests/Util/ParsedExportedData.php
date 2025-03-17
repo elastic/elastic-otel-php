@@ -24,6 +24,7 @@ declare(strict_types=1);
 namespace ElasticOTelTests\ComponentTests\Util;
 
 use ElasticOTelTests\Util\ArrayUtilForTests;
+use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\IterableUtil;
 use PHPUnit\Framework\Assert;
 
@@ -81,6 +82,29 @@ class ParsedExportedData
             }
         }
         return $result;
+    }
+
+    /**
+     * @return Span[]
+     */
+    public function findSpansById(string $id): array
+    {
+        $result = [];
+        foreach ($this->spans as $span) {
+            if ($span->id === $id) {
+                $result[] = $span;
+            }
+        }
+        return $result;
+    }
+
+    public function findSpanById(string $id): ?Span
+    {
+        $spans = $this->findSpansById($id);
+        if (ArrayUtilForTests::isEmpty($spans)) {
+            return null;
+        }
+        return ArrayUtilForTests::getSingleValue($spans);
     }
 
     /**
@@ -142,5 +166,21 @@ class ParsedExportedData
                 yield $span;
             }
         }
+    }
+
+    public function isSpanDescendantOf(Span $descendant, Span $ancestor): bool
+    {
+        $current = $descendant;
+        while (true) {
+            if ($current->id === $ancestor->id) {
+                return true;
+            }
+            if ($current->parentId === null) {
+                break;
+            }
+            /** @var Span $current */
+            $current = AssertEx::isNotNull($this->findSpanById($current->parentId));
+        }
+        return false;
     }
 }

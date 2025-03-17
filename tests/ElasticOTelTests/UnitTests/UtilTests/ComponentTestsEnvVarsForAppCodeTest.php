@@ -34,6 +34,7 @@ use ElasticOTelTests\Util\EnvVarUtil;
 use ElasticOTelTests\Util\TestCaseBase;
 
 /**
+ *
  * @phpstan-import-type EnvVars from EnvVarUtil
  * @phpstan-import-type OptionsForProdMap from AppCodeHostParams
  */

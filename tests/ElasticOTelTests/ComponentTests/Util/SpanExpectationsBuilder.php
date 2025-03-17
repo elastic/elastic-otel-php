@@ -28,8 +28,8 @@ class SpanExpectationsBuilder
     private const CLASS_AND_METHOD_SEPARATOR = '::';
 
     protected ?string $name = null;
-    private ?SpanKind $kind = null;
-    private ?SpanAttributesExpectations $attributes = null;
+    protected ?SpanKind $kind = null;
+    protected ?SpanAttributesExpectations $attributes = null;
 
     /**
      * @return $this
@@ -67,6 +67,7 @@ class SpanExpectationsBuilder
         return $this;
     }
 
+    /** @noinspection PhpUnusedParameterInspection */
     public static function buildNameFromClassMethod(?string $classicName, ?bool $isStaticMethod, ?string $methodName): ?string
     {
         if ($methodName === null) {
