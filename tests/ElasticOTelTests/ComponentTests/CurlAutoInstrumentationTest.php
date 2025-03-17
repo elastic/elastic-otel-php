@@ -169,7 +169,7 @@ final class CurlAutoInstrumentationTest extends ComponentTestCaseBase
     /**
      * @return iterable<string, array{MixedMap}>
      */
-    public static function dataProviderForTestRunAndEscalateLogLevelOnFailure(): iterable
+    public static function dataProviderForTestLocalClientServer(): iterable
     {
         return self::adaptDataProviderForTestBuilderToSmokeToDescToMixedMap(
             (new DataProviderForTestBuilder())
@@ -188,6 +188,7 @@ final class CurlAutoInstrumentationTest extends ComponentTestCaseBase
         $serverAppCode = $testCaseHandle->ensureAdditionalHttpAppCodeHost(
             dbgInstanceName: 'server for cUrl request',
             setParamsFunc: function (AppCodeHostParams $appCodeParams) use ($enableCurlInstrumentationForServer): void {
+                self::disableTimingDependentFeatures($appCodeParams);
                 if (!$enableCurlInstrumentationForServer) {
                     $appCodeParams->setProdOptionIfNotNull(OptionForProdName::disabled_instrumentations, self::CURL_INSTRUMENTATION_NAME);
                 }
@@ -198,6 +199,7 @@ final class CurlAutoInstrumentationTest extends ComponentTestCaseBase
         $enableCurlInstrumentationForClient = $testArgs->getBool(self::ENABLE_CURL_INSTRUMENTATION_FOR_CLIENT_KEY);
         $clientAppCode = $testCaseHandle->ensureMainAppCodeHost(
             setParamsFunc: function (AppCodeHostParams $appCodeParams) use ($enableCurlInstrumentationForClient): void {
+                self::disableTimingDependentFeatures($appCodeParams);
                 if (!$enableCurlInstrumentationForClient) {
                     $appCodeParams->setProdOptionIfNotNull(OptionForProdName::disabled_instrumentations, self::CURL_INSTRUMENTATION_NAME);
                 }
@@ -278,7 +280,7 @@ final class CurlAutoInstrumentationTest extends ComponentTestCaseBase
     }
 
     /**
-     * @dataProvider dataProviderForTestRunAndEscalateLogLevelOnFailure
+     * @dataProvider dataProviderForTestLocalClientServer
      */
     public function testLocalClientServer(MixedMap $testArgs): void
     {
