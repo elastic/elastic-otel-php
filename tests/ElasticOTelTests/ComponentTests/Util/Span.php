@@ -45,6 +45,8 @@ final class Span implements LoggableInterface
     public readonly ?string $parentId;
     public readonly string $traceId;
     public readonly int $flags;
+    public readonly float $startTimeUnixNano;
+    public readonly float $endTimeUnixNano;
 
     public function __construct(OTelProtoSpan $protoSpan)
     {
@@ -55,6 +57,8 @@ final class Span implements LoggableInterface
         $this->parentId = self::convertNullableId($protoSpan->getParentSpanId());
         $this->traceId = self::convertId($protoSpan->getTraceId());
         $this->flags = $protoSpan->getFlags();
+        $this->startTimeUnixNano = self::convertTimeUnixNano($protoSpan->getStartTimeUnixNano());
+        $this->endTimeUnixNano = self::convertTimeUnixNano($protoSpan->getEndTimeUnixNano());
     }
 
     private static function convertNullableId(string $binaryId): ?string
@@ -73,6 +77,16 @@ final class Span implements LoggableInterface
         }
 
         return IdGenerator::convertBinaryIdToString($idAsBytesSeq);
+    }
+
+    private static function convertTimeUnixNano(string|int $protoVal): float
+    {
+        if (is_int($protoVal)) {
+            return floatval($protoVal);
+        }
+
+        Assert::assertNotFalse(filter_var($protoVal, FILTER_VALIDATE_INT));
+        return floatval($protoVal);
     }
 
     public function hasRemoteParent(): ?bool

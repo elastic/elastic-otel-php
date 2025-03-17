@@ -40,6 +40,11 @@ enum OptionForProdName
     case disabled_instrumentations;
     case enabled;
     case exporter_otlp_endpoint;
+    case inferred_spans_enabled;
+    case inferred_spans_min_duration;
+    case inferred_spans_reduction_enabled;
+    case inferred_spans_sampling_interval;
+    case inferred_spans_stacktrace_enabled;
     case log_file;
     case log_level_file;
     case log_level_stderr;
@@ -71,6 +76,11 @@ enum OptionForProdName
         $elasticOTelPrefix = [
             self::bootstrap_php_part_file,
             self::enabled,
+            self::inferred_spans_enabled,
+            self::inferred_spans_min_duration,
+            self::inferred_spans_reduction_enabled,
+            self::inferred_spans_sampling_interval,
+            self::inferred_spans_stacktrace_enabled,
             self::log_file,
             self::log_level_file,
             self::log_level_stderr,
