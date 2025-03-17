@@ -28,6 +28,7 @@
     "require-dev": {
         "ext-ctype": "*",
         "ext-curl": "*",
+        "ext-mysqli": "*",
         "ext-zlib": "*",
         "guzzlehttp/guzzle": "^7.9.2",
         "nikic/php-parser": "^5.4.0",
