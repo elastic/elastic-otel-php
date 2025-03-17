@@ -69,7 +69,7 @@ final class CurlAutoInstrumentationTest extends ComponentTestCaseBase
     private const CURL_INSTRUMENTATION_NAME = 'curl';
 
     /** @noinspection PhpDeprecationInspection */
-    private const CURL_FUNC_ATTRIBUTE_NAME = TraceAttributes::CODE_FUNCTION;
+    private const CURL_FUNC_ATTRIBUTE_NAME = TraceAttributes::CODE_FUNCTION_NAME;
 
     /**
      * @param iterable<int> $suffixes
