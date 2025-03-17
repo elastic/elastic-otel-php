@@ -25,22 +25,22 @@ namespace ElasticOTelTests\ComponentTests\Util;
 
 use OpenTelemetry\SemConv\TraceAttributes;
 
-class InferredSpanExpectationsBuilder extends SpanExpectationsBuilder
+class DbSpanExpectationsBuilder extends SpanExpectationsBuilder
 {
-    private const IS_INFERRED_ATTRIBUTE_NAME = 'is_inferred';
-
-    public function __construct()
+    public function __construct(string $dbSystemName, string $dbNamespace)
     {
-        $this->setKind(SpanKind::internal);
-        $this->addAttribute(self::IS_INFERRED_ATTRIBUTE_NAME, true);
+        $this->setKind(SpanKind::client);
+
+        $this->addAttribute(TraceAttributes::DB_SYSTEM_NAME, $dbSystemName);
+        $this->addAttribute(TraceAttributes::DB_NAMESPACE, $dbNamespace);
     }
 
     /**
      * @return $this
      */
-    public function setNameUsingFuncName(string $funcName): self
+    public function setDbQueryText(string $statement): self
     {
-        $this->addAttribute(TraceAttributes::CODE_FUNCTION_NAME, $funcName);
-        return parent::setNameUsingFuncName($funcName);
+        $this->addAttribute(TraceAttributes::DB_QUERY_TEXT, $statement);
+        return $this;
     }
 }
