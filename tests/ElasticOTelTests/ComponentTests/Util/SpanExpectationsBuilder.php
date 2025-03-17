@@ -23,6 +23,8 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
+use OpenTelemetry\SemConv\TraceAttributes;
+
 /**
  * @phpstan-import-type AttributeValue from SpanAttributes
  */
@@ -37,18 +39,45 @@ class SpanExpectationsBuilder
     /**
      * @return $this
      */
-    public function setNameUsingClassMethod(string $className, ?bool $isStaticMethod, string $methodName): self
+    public function setNameUsingFuncName(string $funcName): self
     {
-        $this->name = self::buildNameFromClassMethod($className, $isStaticMethod, $methodName);
+        $this->name = $funcName;
+        return $this;
+    }
+
+    public function setCodeFuncNameAttribute(string $funcName): self
+    {
+        $this->addAttribute(TraceAttributes::CODE_FUNCTION_NAME, $funcName);
+        return $this;
+    }
+
+    public function setNameAndCodeAttributesUsingFuncName(string $funcName): self
+    {
+        $this->setNameUsingFuncName($funcName);
+        $this->setCodeFuncNameAttribute($funcName);
         return $this;
     }
 
     /**
      * @return $this
      */
-    public function setNameUsingFuncName(string $funcName): self
+    public function setNameUsingClassMethod(string $className, string $methodName, ?bool $isStaticMethod = null): self
     {
-        $this->name = $funcName;
+        $this->name = self::buildNameFromClassMethod($className, $methodName, $isStaticMethod);
+        return $this;
+    }
+
+    public function setCodeClassMethodNameAttributes(string $className, string $methodName): self
+    {
+        $this->addAttribute(TraceAttributes::CODE_NAMESPACE, $className);
+        $this->setCodeFuncNameAttribute($methodName);
+        return $this;
+    }
+
+    public function setNameAndCodeAttributesUsingClassMethod(string $className, string $methodName, ?bool $isStaticMethod = null): self
+    {
+        $this->setNameUsingClassMethod($className, $methodName, $isStaticMethod);
+        $this->setCodeClassMethodNameAttributes($className, $methodName);
         return $this;
     }
 
@@ -71,7 +100,7 @@ class SpanExpectationsBuilder
     }
 
     /** @noinspection PhpUnusedParameterInspection */
-    public static function buildNameFromClassMethod(?string $classicName, ?bool $isStaticMethod, ?string $methodName): ?string
+    public static function buildNameFromClassMethod(?string $classicName, ?string $methodName, ?bool $isStaticMethod = null): ?string
     {
         if ($methodName === null) {
             return null;
@@ -85,12 +114,34 @@ class SpanExpectationsBuilder
     }
 
     /**
-     * @phpstan-param AttributeValue $value
+     * @phpstan-assert !null $this->attributes
      */
-    public function addAttribute(string $key, array|bool|float|int|null|string $value): void
+    private function ensureAttributesNotNull(): SpanAttributesExpectations
     {
-        $prevAttributesExpectations = $this->attributes ?? (new SpanAttributesExpectations(attributes: []));
-        $this->setAttributes($prevAttributesExpectations->addAllowedAttribute($key, $value));
+        if ($this->attributes === null) {
+            $this->attributes = new SpanAttributesExpectations(attributes: []);
+        }
+        return $this->attributes;
+    }
+
+    /**
+     * @phpstan-param AttributeValue $value
+     *
+     * @return $this
+     */
+    public function addAttribute(string $key, array|bool|float|int|null|string $value): self
+    {
+        $this->ensureAttributesNotNull()->add($key, $value);
+        return $this;
+    }
+
+    /**
+     * @return $this
+     */
+    public function addNotAllowedAttribute(string $key): self
+    {
+        $this->ensureAttributesNotNull()->addNotAllowed($key);
+        return $this;
     }
 
     public function build(): SpanExpectations

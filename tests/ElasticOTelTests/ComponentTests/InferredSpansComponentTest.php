@@ -31,11 +31,13 @@ use ElasticOTelTests\ComponentTests\Util\Span;
 use ElasticOTelTests\ComponentTests\Util\SpanSequenceExpectations;
 use ElasticOTelTests\ComponentTests\Util\WaitForEventCounts;
 use ElasticOTelTests\Util\ArrayUtilForTests;
+use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\Config\OptionForProdName;
 use ElasticOTelTests\Util\DataProviderForTestBuilder;
 use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\IterableUtil;
 use ElasticOTelTests\Util\MixedMap;
+use OpenTelemetry\SemConv\TraceAttributes;
 
 /**
  * @group smoke
@@ -51,9 +53,9 @@ final class InferredSpansComponentTest extends ComponentTestCaseBase
     private const INFERRED_MIN_DURATION_SECONDS_TO_OMIT_SLEEPS = self::SLEEP_DURATION_SECONDS * 3 - 1;
 
     private const SLEEP_FUNC_NAME = 'sleep';
-    private const USLEEP_FUNC_NAME = 'usleep';
+    private const MULTI_STEP_USLEEP_FUNC_NAME = 'multiStepUsleep';
     private const TIME_NANOSLEEP_FUNC_NAME = 'time_nanosleep';
-    private const SLEEP_FUNC_NAMES = [self::SLEEP_FUNC_NAME, self::USLEEP_FUNC_NAME, self::TIME_NANOSLEEP_FUNC_NAME];
+    private const SLEEP_FUNC_NAMES = [self::SLEEP_FUNC_NAME, self::MULTI_STEP_USLEEP_FUNC_NAME, self::TIME_NANOSLEEP_FUNC_NAME];
 
     /**
      * @return iterable<array{MixedMap}>
@@ -68,7 +70,7 @@ final class InferredSpansComponentTest extends ComponentTestCaseBase
         return self::adaptToSmoke(DataProviderForTestBuilder::convertEachDataSetToMixedMap($result));
     }
 
-    private static function usleep(int $secondsToSleep): void
+    private static function multiStepUsleep(int $secondsToSleep): void
     {
         $microsecondsInSecond = 1000 * 1000;
         $microsecondsInEachSleep = $microsecondsInSecond / 5;
@@ -81,8 +83,8 @@ final class InferredSpansComponentTest extends ComponentTestCaseBase
     }
 
     /**
-     * @param int                              $secondsToSleep
-     * @param string                           $sleepFuncToUse
+     * @param int    $secondsToSleep
+     * @param string $sleepFuncToUse
      *
      * @noinspection PhpSameParameterValueInspection
      */
@@ -92,8 +94,8 @@ final class InferredSpansComponentTest extends ComponentTestCaseBase
             case self::SLEEP_FUNC_NAME:
                 self::assertSame(0, sleep($secondsToSleep));
                 break;
-            case self::USLEEP_FUNC_NAME:
-                self::usleep($secondsToSleep);
+            case self::MULTI_STEP_USLEEP_FUNC_NAME:
+                self::multiStepUsleep($secondsToSleep);
                 break;
             case self::TIME_NANOSLEEP_FUNC_NAME:
                 self::assertTrue(time_nanosleep($secondsToSleep, nanoseconds: 0));
@@ -106,7 +108,7 @@ final class InferredSpansComponentTest extends ComponentTestCaseBase
     public static function appCodeForTestInferredSpans(): void
     {
         self::mySleep(self::SLEEP_DURATION_SECONDS, self::SLEEP_FUNC_NAME);
-        self::mySleep(self::SLEEP_DURATION_SECONDS, self::USLEEP_FUNC_NAME);
+        self::mySleep(self::SLEEP_DURATION_SECONDS, self::MULTI_STEP_USLEEP_FUNC_NAME);
         self::mySleep(self::SLEEP_DURATION_SECONDS, self::TIME_NANOSLEEP_FUNC_NAME);
     }
 
@@ -153,8 +155,9 @@ final class InferredSpansComponentTest extends ComponentTestCaseBase
             return;
         }
 
-        $appCodeSpanExpectations = $inferredSpanExpectationsBuilder->setNameUsingFuncName($appCodeMethodName)->build();
-        $appCodeSpan = $exportedData->singleSpanByName($appCodeMethodName);
+        // appCodeForTestInferredSpans method is called by call_user_func so there is no CODE_FILE_PATH
+        $appCodeSpanExpectations = (clone $inferredSpanExpectationsBuilder)->addNotAllowedAttribute(TraceAttributes::CODE_FILE_PATH)->forClassMethod(__CLASS__, $appCodeMethodName);
+        $appCodeSpan = $exportedData->singleSpanByName(AssertEx::notNull($appCodeSpanExpectations->name));
         self::assertTrue($exportedData->isSpanDescendantOf($appCodeSpan, $rootSpan));
         $appCodeSpanExpectations->assertMatches($appCodeSpan);
 
@@ -162,13 +165,17 @@ final class InferredSpansComponentTest extends ComponentTestCaseBase
             return;
         }
 
+        $inferredSpanExpectationsBuilder->addAttribute(TraceAttributes::CODE_FILE_PATH, __FILE__);
         $expectedSleepSpans = [];
         $actualSleepSpans = [];
         foreach (self::SLEEP_FUNC_NAMES as $sleepFunc) {
-            $expectedSleepSpans[] = $inferredSpanExpectationsBuilder->setNameUsingFuncName($sleepFunc)->build();
-            $sleepSpan = $exportedData->singleSpanByName($sleepFunc);
-            $actualSleepSpans[] = $sleepSpan;
-            self::assertTrue($exportedData->isSpanDescendantOf($sleepSpan, $appCodeSpan));
+            $expectedSleepSpan = $sleepFunc === self::MULTI_STEP_USLEEP_FUNC_NAME
+                ? $inferredSpanExpectationsBuilder->forClassMethod(__CLASS__, $sleepFunc)
+                : $inferredSpanExpectationsBuilder->forStandaloneFunction($sleepFunc);
+            $expectedSleepSpans[] = $expectedSleepSpan;
+            $actualSleepSpan = $exportedData->singleSpanByName(AssertEx::notNull($expectedSleepSpan->name));
+            $actualSleepSpans[] = $actualSleepSpan;
+            self::assertTrue($exportedData->isSpanDescendantOf($actualSleepSpan, $appCodeSpan));
         }
 
         (new SpanSequenceExpectations($expectedSleepSpans))->assertMatches($actualSleepSpans);

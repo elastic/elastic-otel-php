@@ -75,16 +75,20 @@ class ArrayExpectations implements ExpectationsInterface
     public function assertMatches(array|ArrayReadInterface $actual): void
     {
         DebugContext::getCurrentScope(/* out */ $dbgCtx);
+
         if (!$this->allowOtherKeysInActual) {
             Assert::assertCount(count($this->expectedArray), $actual);
         }
+
+        $dbgCtx->pushSubScope();
         foreach ($this->expectedArray as $expectedKey => $expectedValue) {
-            $dbgCtx->add(compact('expectedKey', 'expectedValue'));
+            $dbgCtx->resetTopSubScope(compact('expectedKey', 'expectedValue'));
             self::keyExists($expectedKey, $this->expectedArray);
             $actualValue = self::getValue($expectedKey, $actual);
             $dbgCtx->add(compact('actualValue'));
             $this->assertValueMatches($expectedKey, $expectedValue, $actualValue);
         }
+        $dbgCtx->popSubScope();
     }
 
     /**

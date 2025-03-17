@@ -23,8 +23,6 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
-use OpenTelemetry\SemConv\TraceAttributes;
-
 class InferredSpanExpectationsBuilder extends SpanExpectationsBuilder
 {
     public const IS_INFERRED_ATTRIBUTE_NAME = 'is_inferred';
@@ -35,12 +33,13 @@ class InferredSpanExpectationsBuilder extends SpanExpectationsBuilder
         $this->addAttribute(self::IS_INFERRED_ATTRIBUTE_NAME, true);
     }
 
-    /**
-     * @return $this
-     */
-    public function setNameUsingFuncName(string $funcName): self
+    public function forClassMethod(string $className, string $methodName, ?bool $isStaticMethod = null): SpanExpectations
     {
-        $this->addAttribute(TraceAttributes::CODE_FUNCTION_NAME, $funcName);
-        return parent::setNameUsingFuncName($funcName);
+        return (clone $this)->setNameAndCodeAttributesUsingClassMethod($className, $methodName, $isStaticMethod)->build();
+    }
+
+    public function forStandaloneFunction(string $funcName): SpanExpectations
+    {
+        return (clone $this)->setNameAndCodeAttributesUsingFuncName($funcName)->build();
     }
 }

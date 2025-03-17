@@ -145,18 +145,18 @@ final class TransactionSpanTest extends ComponentTestCaseBase
         } else {
             $expectedRootSpanKind = SpanKind::server;
             $rootSpanAttributesExpectations = new SpanAttributesExpectations(
-                attributes:               [
-                                              self::DID_APP_CODE_FINISH_SUCCESSFULLY_KEY => true,
-                                          ],
-                notAllowedAttributeNames: [
-                                              TraceAttributes::HTTP_REQUEST_METHOD,
-                                              TraceAttributes::HTTP_REQUEST_BODY_SIZE,
-                                              TraceAttributes::SERVER_ADDRESS,
-                                              TraceAttributes::URL_FULL,
-                                              TraceAttributes::URL_PATH,
-                                              TraceAttributes::URL_SCHEME,
-                                              TraceAttributes::USER_AGENT_ORIGINAL,
-                                          ]
+                attributes:           [
+                                          self::DID_APP_CODE_FINISH_SUCCESSFULLY_KEY => true,
+                                      ],
+                notAllowedAttributes: [
+                                          TraceAttributes::HTTP_REQUEST_METHOD,
+                                          TraceAttributes::HTTP_REQUEST_BODY_SIZE,
+                                          TraceAttributes::SERVER_ADDRESS,
+                                          TraceAttributes::URL_FULL,
+                                          TraceAttributes::URL_PATH,
+                                          TraceAttributes::URL_SCHEME,
+                                          TraceAttributes::USER_AGENT_ORIGINAL,
+                                      ]
             );
         }
         $expectationsForRootSpan = new SpanExpectations(self::getExpectedTransactionSpanName(), $expectedRootSpanKind, $rootSpanAttributesExpectations);

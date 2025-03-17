@@ -324,7 +324,7 @@ final class PhpPartFacade
                        ->setParent($parent)
                        ->setAttribute(TraceAttributes::CODE_NAMESPACE, $class)
                        ->setAttribute(TraceAttributes::CODE_FUNCTION, $function)
-                       ->setAttribute(TraceAttributes::CODE_FILEPATH, $filename)
+                       ->setAttribute(TraceAttributes::CODE_FILE_PATH, $filename)
                        ->setAttribute(TraceAttributes::CODE_LINENO, $lineno)
                        ->setAttribute('call.arguments', print_r($params, true))
                        ->startSpan();

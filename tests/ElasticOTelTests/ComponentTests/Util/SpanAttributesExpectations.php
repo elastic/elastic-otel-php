@@ -23,26 +23,29 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
+use ElasticOTelTests\Util\Log\LoggableInterface;
+use ElasticOTelTests\Util\Log\LoggableTrait;
 use Override;
 use PHPUnit\Framework\Assert;
 
 /**
  * @phpstan-import-type AttributeValue from SpanAttributes
  */
-final class SpanAttributesExpectations implements ExpectationsInterface
+final class SpanAttributesExpectations implements ExpectationsInterface, LoggableInterface
 {
     use ExpectationsTrait;
+    use LoggableTrait;
 
     public readonly SpanAttributesArrayExpectations $arrayExpectations;
 
     /**
      * @param array<string, AttributeValue> $attributes
-     * @param array<string> $notAllowedAttributeNames
+     * @param array<string>                 $notAllowedAttributes
      */
     public function __construct(
         array $attributes,
         bool $allowOtherKeysInActual = true,
-        private readonly array $notAllowedAttributeNames = []
+        private readonly array $notAllowedAttributes = []
     ) {
         $this->arrayExpectations = new SpanAttributesArrayExpectations($attributes, $allowOtherKeysInActual);
     }
@@ -50,9 +53,16 @@ final class SpanAttributesExpectations implements ExpectationsInterface
     /**
      * @phpstan-param AttributeValue $value
      */
-    public function addAllowedAttribute(string $key, array|bool|float|int|null|string $value): self
+    public function add(string $key, array|bool|float|int|null|string $value): self
     {
-        return new self($this->arrayExpectations->add($key, $value)->expectedArray, $this->arrayExpectations->allowOtherKeysInActual, $this->notAllowedAttributeNames);
+        return new self($this->arrayExpectations->add($key, $value)->expectedArray, $this->arrayExpectations->allowOtherKeysInActual, $this->notAllowedAttributes);
+    }
+
+    public function addNotAllowed(string $key): self
+    {
+        $notAllowedAttributes = $this->notAllowedAttributes;
+        $notAllowedAttributes[] = $key;
+        return new self($this->arrayExpectations->expectedArray, $this->arrayExpectations->allowOtherKeysInActual, $notAllowedAttributes);
     }
 
     #[Override]
@@ -66,7 +76,7 @@ final class SpanAttributesExpectations implements ExpectationsInterface
     {
         $this->arrayExpectations->assertMatches($actual);
 
-        foreach ($this->notAllowedAttributeNames as $notAllowedAttributeName) {
+        foreach ($this->notAllowedAttributes as $notAllowedAttributeName) {
             Assert::assertFalse($actual->keyExists($notAllowedAttributeName));
         }
     }
