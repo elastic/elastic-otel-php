@@ -21,31 +21,16 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTests\Util;
+namespace ElasticOTelTests\UnitTests;
 
-use ElasticOTelTests\Util\Log\LoggableInterface;
-use ElasticOTelTests\Util\Log\LoggableStackTrace;
-use ElasticOTelTests\Util\Log\LoggableTrait;
+use Elastic\OTel\InferredSpans\InferredSpans;
+use ElasticOTelTests\ComponentTests\Util\InferredSpanExpectationsBuilder;
+use ElasticOTelTests\Util\TestCaseBase;
 
-/**
- * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
- *
- * @internal
- */
-final class CallerInfo implements LoggableInterface
+final class InferredSpansUnitTest extends TestCaseBase
 {
-    use LoggableTrait;
-
-    public ?string $file;
-    public ?int $line;
-    public ?string $class;
-    public ?string $function;
-
-    public function __construct(?string $file, ?int $line, ?string $class, ?string $function)
+    public function testInferredAttributeName(): void
     {
-        $this->file =  LoggableStackTrace::adaptSourceCodeFilePath($file);
-        $this->line = $line;
-        $this->class = $class;
-        $this->function = $function;
+        self::assertSame(InferredSpans::IS_INFERRED_ATTRIBUTE_NAME, InferredSpanExpectationsBuilder::IS_INFERRED_ATTRIBUTE_NAME); // @phpstan-ignore staticMethod.alreadyNarrowedType
     }
 }

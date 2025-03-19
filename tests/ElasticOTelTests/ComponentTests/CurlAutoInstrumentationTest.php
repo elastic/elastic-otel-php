@@ -36,7 +36,7 @@ use ElasticOTelTests\ComponentTests\Util\RequestHeadersRawSnapshotSource;
 use ElasticOTelTests\ComponentTests\Util\ResourcesClient;
 use ElasticOTelTests\ComponentTests\Util\Span;
 use ElasticOTelTests\ComponentTests\Util\SpanAttributesExpectations;
-use ElasticOTelTests\ComponentTests\Util\SpanExpectations;
+use ElasticOTelTests\ComponentTests\Util\SpanExpectationsBuilder;
 use ElasticOTelTests\ComponentTests\Util\SpanKind;
 use ElasticOTelTests\ComponentTests\Util\UrlUtil;
 use ElasticOTelTests\ComponentTests\Util\WaitForEventCounts;
@@ -68,9 +68,6 @@ final class CurlAutoInstrumentationTest extends ComponentTestCaseBase
     private const ENABLE_CURL_INSTRUMENTATION_FOR_CLIENT_KEY = 'enable_curl_instrumentation_for_client';
     private const ENABLE_CURL_INSTRUMENTATION_FOR_SERVER_KEY = 'enable_curl_instrumentation_for_server';
     private const CURL_INSTRUMENTATION_NAME = 'curl';
-
-    /** @noinspection PhpDeprecationInspection */
-    private const CURL_FUNC_ATTRIBUTE_NAME = TraceAttributes::CODE_FUNCTION;
 
     /**
      * @param iterable<int> $suffixes
@@ -169,7 +166,7 @@ final class CurlAutoInstrumentationTest extends ComponentTestCaseBase
     /**
      * @return iterable<string, array{MixedMap}>
      */
-    public static function dataProviderForTestRunAndEscalateLogLevelOnFailure(): iterable
+    public static function dataProviderForTestLocalClientServer(): iterable
     {
         return self::adaptDataProviderForTestBuilderToSmokeToDescToMixedMap(
             (new DataProviderForTestBuilder())
@@ -188,6 +185,7 @@ final class CurlAutoInstrumentationTest extends ComponentTestCaseBase
         $serverAppCode = $testCaseHandle->ensureAdditionalHttpAppCodeHost(
             dbgInstanceName: 'server for cUrl request',
             setParamsFunc: function (AppCodeHostParams $appCodeParams) use ($enableCurlInstrumentationForServer): void {
+                self::disableTimingDependentFeatures($appCodeParams);
                 if (!$enableCurlInstrumentationForServer) {
                     $appCodeParams->setProdOptionIfNotNull(OptionForProdName::disabled_instrumentations, self::CURL_INSTRUMENTATION_NAME);
                 }
@@ -198,6 +196,7 @@ final class CurlAutoInstrumentationTest extends ComponentTestCaseBase
         $enableCurlInstrumentationForClient = $testArgs->getBool(self::ENABLE_CURL_INSTRUMENTATION_FOR_CLIENT_KEY);
         $clientAppCode = $testCaseHandle->ensureMainAppCodeHost(
             setParamsFunc: function (AppCodeHostParams $appCodeParams) use ($enableCurlInstrumentationForClient): void {
+                self::disableTimingDependentFeatures($appCodeParams);
                 if (!$enableCurlInstrumentationForClient) {
                     $appCodeParams->setProdOptionIfNotNull(OptionForProdName::disabled_instrumentations, self::CURL_INSTRUMENTATION_NAME);
                 }
@@ -226,7 +225,7 @@ final class CurlAutoInstrumentationTest extends ComponentTestCaseBase
 
         $curlClientSpanAttributesExpectations = new SpanAttributesExpectations(
             [
-                self::CURL_FUNC_ATTRIBUTE_NAME             => 'curl_exec',
+                TraceAttributes::CODE_FUNCTION_NAME        => 'curl_exec',
                 TraceAttributes::HTTP_REQUEST_METHOD       => HttpMethods::GET,
                 TraceAttributes::HTTP_RESPONSE_STATUS_CODE => self::SERVER_RESPONSE_HTTP_STATUS,
                 TraceAttributes::SERVER_ADDRESS            => $appCodeRequestParamsForServer->urlParts->host,
@@ -235,7 +234,7 @@ final class CurlAutoInstrumentationTest extends ComponentTestCaseBase
                 TraceAttributes::URL_SCHEME                => $appCodeRequestParamsForServer->urlParts->scheme,
             ]
         );
-        $expectationsForCurlClientSpan = new SpanExpectations(HttpMethods::GET, SpanKind::client, $curlClientSpanAttributesExpectations);
+        $expectationsForCurlClientSpan = (new SpanExpectationsBuilder())->name(HttpMethods::GET)->kind(SpanKind::client)->attributes($curlClientSpanAttributesExpectations)->build();
 
         $serverTxSpanAttributesExpectations = new SpanAttributesExpectations(
             [
@@ -249,7 +248,7 @@ final class CurlAutoInstrumentationTest extends ComponentTestCaseBase
             ]
         );
         $expectedServerTxSpanName = HttpMethods::GET . ' ' . $appCodeRequestParamsForServer->urlParts->path;
-        $expectationsForServerTxSpan = new SpanExpectations($expectedServerTxSpanName, SpanKind::server, $serverTxSpanAttributesExpectations);
+        $expectationsForServerTxSpan = (new SpanExpectationsBuilder())->name($expectedServerTxSpanName)->kind(SpanKind::server)->attributes($serverTxSpanAttributesExpectations)->build();
 
         $exportedData = $testCaseHandle->waitForEnoughExportedData(WaitForEventCounts::spans($enableCurlInstrumentationForClient ? 3 : 2));
         $dbgCtx->add(compact('exportedData'));
@@ -278,7 +277,7 @@ final class CurlAutoInstrumentationTest extends ComponentTestCaseBase
     }
 
     /**
-     * @dataProvider dataProviderForTestRunAndEscalateLogLevelOnFailure
+     * @dataProvider dataProviderForTestLocalClientServer
      */
     public function testLocalClientServer(MixedMap $testArgs): void
     {

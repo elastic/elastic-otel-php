@@ -33,8 +33,11 @@ use PHPUnit\Framework\Assert;
  */
 final class DebugContextScope implements LoggableInterface
 {
+    /** @var Context[] */
+    private array $lowerSubScopesContexts;
+
     /** @var Context */
-    private array $context;
+    private array $topSubScopeContext;
 
     /**
      * @param StackTraceSegment $stackTraceSegment
@@ -45,7 +48,8 @@ final class DebugContextScope implements LoggableInterface
         array $initialCtx
     ) {
         Assert::assertNotEmpty($stackTraceSegment);
-        $this->context = $initialCtx;
+        $this->topSubScopeContext = $initialCtx;
+        $this->lowerSubScopesContexts = [];
     }
 
     /**
@@ -57,12 +61,7 @@ final class DebugContextScope implements LoggableInterface
     public static function appendContext(array $from, /* in,out */ array &$to): void
     {
         // Remove keys that exist in new context to make the new entry the last in added order
-        foreach (IterableUtil::keys($from) as $key) {
-            if (array_key_exists($key, $to)) {
-                unset($to[$key]);
-            }
-        }
-
+        ArrayUtilForTests::removeByKeys(/* in,out */ $to, IterableUtil::keys($from));
         ArrayUtilForTests::append(from: $from, to: $to);
     }
 
@@ -71,7 +70,27 @@ final class DebugContextScope implements LoggableInterface
      */
     public function add(array $ctx): void
     {
-        self::appendContext(from: $ctx, to: $this->context);
+        self::appendContext(from: $ctx, to: $this->topSubScopeContext);
+    }
+
+    public function pushSubScope(): void
+    {
+        $this->lowerSubScopesContexts[] = $this->topSubScopeContext;
+        $this->topSubScopeContext = [];
+    }
+
+    /**
+     * @phpstan-param Context $ctx
+     */
+    public function resetTopSubScope(array $ctx): void
+    {
+        $this->topSubScopeContext = $ctx;
+    }
+
+    public function popSubScope(): void
+    {
+        Assert::assertNotEmpty($this->lowerSubScopesContexts);
+        $this->topSubScopeContext = AssertEx::notNull(array_pop($this->lowerSubScopesContexts));
     }
 
     /**
@@ -120,7 +139,12 @@ final class DebugContextScope implements LoggableInterface
      */
     public function getContext(): array
     {
-        return $this->context;
+        $result = [];
+        foreach ($this->lowerSubScopesContexts as $subScopeCtx) {
+            self::appendContext(from: $subScopeCtx, to: $result);
+        }
+        self::appendContext(from: $this->topSubScopeContext, to: $result);
+        return $result;
     }
 
     public function getName(): string
@@ -157,11 +181,18 @@ final class DebugContextScope implements LoggableInterface
      */
     public function reset(array $initialCtx): void
     {
-        $this->context = $initialCtx;
+        $this->topSubScopeContext = $initialCtx;
+        $this->lowerSubScopesContexts = [];
     }
 
     public function toLog(LogStreamInterface $stream): void
     {
-        $stream->toLogAs(['stackTraceSegment' => $this->stackTraceSegment, 'context count' => count($this->context)]);
+        $stream->toLogAs(
+            [
+                'stackTraceSegment' => $this->stackTraceSegment,
+                'lower sub scopes count' => count($this->lowerSubScopesContexts),
+                'top sub scope count' => count($this->topSubScopeContext)
+            ]
+        );
     }
 }

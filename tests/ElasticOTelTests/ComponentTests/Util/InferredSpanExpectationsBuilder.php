@@ -25,34 +25,33 @@ namespace ElasticOTelTests\ComponentTests\Util;
 
 use OpenTelemetry\SemConv\TraceAttributes;
 
-/**
- * @phpstan-import-type AttributeValue from SpanAttributes
- */
 class InferredSpanExpectationsBuilder extends SpanExpectationsBuilder
 {
-    private const IS_INFERRED_ATTRIBUTE_NAME = 'is_inferred';
+    public const IS_INFERRED_ATTRIBUTE_NAME = 'is_inferred';
 
     public function __construct()
     {
-        $this->setKind(SpanKind::internal);
-        $this->addAllowedAttribute(self::IS_INFERRED_ATTRIBUTE_NAME, true);
+        parent::__construct();
+
+        $this->kind(SpanKind::internal)
+             ->addAttribute(self::IS_INFERRED_ATTRIBUTE_NAME, true);
     }
 
-    /**
-     * @phpstan-param AttributeValue $value
-     */
-    private function addAllowedAttribute(string $key, array|bool|float|int|null|string $value): void
+    private static function buildFor(self $builderClone, StackTraceExpectations $stackTrace, ?int $codeLineNumber): SpanExpectations
     {
-        $prevAttributesExpectations = $this->attributes ?? (new SpanAttributesExpectations(attributes: []));
-        $this->setAttributes($prevAttributesExpectations->addAllowedAttribute($key, $value));
+        if ($codeLineNumber !== null) {
+            $builderClone->addAttribute(TraceAttributes::CODE_LINE_NUMBER, $codeLineNumber);
+        }
+        return $builderClone->stackTrace($stackTrace)->build();
     }
 
-    /**
-     * @return $this
-     */
-    public function setNameUsingFuncName(string $funcName): self
+    public function buildForStaticMethod(string $className, string $methodName, StackTraceExpectations $stackTrace, ?int $codeLineNumber = null): SpanExpectations
     {
-        $this->addAllowedAttribute(TraceAttributes::CODE_FUNCTION_NAME, $funcName);
-        return parent::setNameUsingFuncName($funcName);
+        return self::buildFor((clone $this)->nameAndCodeAttributesUsingClassMethod($className, $methodName, isStaticMethod: true), $stackTrace, $codeLineNumber);
+    }
+
+    public function buildForFunction(string $funcName, StackTraceExpectations $stackTrace, ?int $codeLineNumber = null): SpanExpectations
+    {
+        return self::buildFor((clone $this)->nameAndCodeAttributesUsingFuncName($funcName), $stackTrace, $codeLineNumber);
     }
 }

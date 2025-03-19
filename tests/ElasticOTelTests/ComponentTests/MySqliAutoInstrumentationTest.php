@@ -27,7 +27,6 @@ use Elastic\OTel\Util\TextUtil;
 use ElasticOTelTests\ComponentTests\Util\AppCodeHostParams;
 use ElasticOTelTests\ComponentTests\Util\AppCodeRequestParams;
 use ElasticOTelTests\ComponentTests\Util\AppCodeTarget;
-use ElasticOTelTests\ComponentTests\Util\AutoInstrumentationUtilForTests;
 use ElasticOTelTests\ComponentTests\Util\ComponentTestCaseBase;
 use ElasticOTelTests\ComponentTests\Util\DbAutoInstrumentationUtilForTests;
 use ElasticOTelTests\ComponentTests\Util\MySqli\ApiFacade;
@@ -52,6 +51,7 @@ use OpenTelemetry\Contrib\Instrumentation\MySqli\MySqliInstrumentation;
 final class MySqliAutoInstrumentationTest extends ComponentTestCaseBase
 {
     private const INSTRUMENTATION_NAME = 'mysqli';
+    private const IS_AUTO_INSTRUMENTATION_ENABLED_KEY = 'is_auto_instrumentation_enabled';
 
     private const IS_OOP_API_KEY = 'IS_OOP_API';
 

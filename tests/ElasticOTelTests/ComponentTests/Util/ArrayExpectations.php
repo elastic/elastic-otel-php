@@ -49,6 +49,18 @@ class ArrayExpectations implements ExpectationsInterface
     }
 
     /**
+     * @return self<array-key, mixed>
+     *
+     * @noinspection PhpUnused
+     */
+    public static function matchAny(): self
+    {
+        /** @var ?self<array-key, mixed> $cached */
+        static $cached = null;
+        return $cached ??= new self([], allowOtherKeysInActual: true);
+    }
+
+    /**
      * @phpstan-param TKey   $key
      * @phpstan-param TValue $value
      *
@@ -75,16 +87,20 @@ class ArrayExpectations implements ExpectationsInterface
     public function assertMatches(array|ArrayReadInterface $actual): void
     {
         DebugContext::getCurrentScope(/* out */ $dbgCtx);
+
         if (!$this->allowOtherKeysInActual) {
             Assert::assertCount(count($this->expectedArray), $actual);
         }
+
+        $dbgCtx->pushSubScope();
         foreach ($this->expectedArray as $expectedKey => $expectedValue) {
-            $dbgCtx->add(compact('expectedKey', 'expectedValue'));
+            $dbgCtx->resetTopSubScope(compact('expectedKey', 'expectedValue'));
             self::keyExists($expectedKey, $this->expectedArray);
             $actualValue = self::getValue($expectedKey, $actual);
             $dbgCtx->add(compact('actualValue'));
-            $this->assertValueMatches($expectedKey, $expectedValue, $actualValue);
+            $this->assertArrayValueMatches($expectedKey, $expectedValue, $actualValue);
         }
+        $dbgCtx->popSubScope();
     }
 
     /**
@@ -116,8 +132,8 @@ class ArrayExpectations implements ExpectationsInterface
      * @phpstan-param TValue $expectedValue
      * @phpstan-param TValue $actualValue
      */
-    protected function assertValueMatches(string|int $key, mixed $expectedValue, mixed $actualValue): void
+    protected function assertArrayValueMatches(string|int $key, mixed $expectedValue, mixed $actualValue): void
     {
-        Assert::assertSame($expectedValue, $actualValue);
+        $this->assertValueMatches($expectedValue, $actualValue);
     }
 }

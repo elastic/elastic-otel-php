@@ -303,4 +303,27 @@ final class ArrayUtilTest extends TestCaseBase
     {
         AssertEx::throws(OutOfBoundsException::class, $callThatThrows);
     }
+
+    public static function testRemoveByKeys(): void
+    {
+        /**
+         * @param array<array-key, mixed> $removeFromArray
+         * @param iterable<array-key>     $keys
+         */
+        $testImpl = function (array $removeFromArray, iterable $keys, array $expectedResult): void {
+            $actualResult = $removeFromArray;
+            /** @var iterable<array-key> $keys */
+            ArrayUtilForTests::removeByKeys($actualResult, $keys);
+            AssertEx::equalMaps($expectedResult, $actualResult);
+        };
+
+        $testImpl([], [], []);
+        $testImpl([], ['key_a'], []);
+        $testImpl(['key_a' => 'value_a'], ['key_a'], []);
+        $testImpl(['key_a' => 'value_a'], ['key_b'], ['key_a' => 'value_a']);
+        $testImpl(['key_a' => 'value_a', 'key_b' => 'value_b'], ['key_b'], ['key_a' => 'value_a']);
+        $testImpl(['key_a' => 'value_a', 'key_b' => 'value_b'], ['key_a'], ['key_b' => 'value_b']);
+        $testImpl(['value_0', 'value_1'], [0], [1 => 'value_1']);
+        $testImpl(['value_0', 'value_1'], [1], ['value_0']);
+    }
 }

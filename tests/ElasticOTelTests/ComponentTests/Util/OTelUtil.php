@@ -35,6 +35,7 @@ use OpenTelemetry\API\Trace\TracerInterface;
 use OpenTelemetry\Context\Context;
 use OpenTelemetry\SemConv\TraceAttributes;
 use OpenTelemetry\SemConv\Version;
+use PHPUnit\Framework\Assert;
 use Throwable;
 
 /**
@@ -74,7 +75,7 @@ class OTelUtil
         if ($scope === null) {
             return;
         }
-        $scope->detach();
+        Assert::assertSame(0, $scope->detach());
         $span = OTelApiSpan::fromContext($scope->context());
 
         $span->setAttributes($attributes);
@@ -114,7 +115,7 @@ class OTelUtil
      *
      * @return array<string, mixed>
      */
-    public static function dbgDescForSpan(OTelApiSpanInterface $span, iterable $attributeKeys): array
+    public static function dbgDescForSpan(OTelApiSpanInterface $span, iterable $attributeKeys = []): array
     {
         $result = ['class' => get_class($span), 'isRecording' => $span->isRecording()];
         if (method_exists($span, 'getName')) {
@@ -133,17 +134,22 @@ class OTelUtil
     /**
      * @param OTelAttributesMapIterable $attributes
      */
-    public static function setActiveSpanAttributes(iterable $attributes): void
+    public static function addSpanAttributes(OTelApiSpanInterface $span, iterable $attributes): void
     {
         $logger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__);
         $loggerProxyDebug = $logger->ifDebugLevelEnabledNoLine(__FUNCTION__);
         $logger->addAllContext(compact('attributes'));
 
-        $currentCtx = Context::getCurrent();
-        $span = OTelApiSpan::fromContext($currentCtx);
-
         $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Before setting attributes', ['span' => self::dbgDescForSpan($span, IterableUtil::keys($attributes))]);
         $span->setAttributes($attributes);
         $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'After setting attributes', ['span' => self::dbgDescForSpan($span, IterableUtil::keys($attributes))]);
+    }
+
+    /**
+     * @param OTelAttributesMapIterable $attributes
+     */
+    public static function addActiveSpanAttributes(iterable $attributes): void
+    {
+        self::addSpanAttributes(OTelApiSpan::getCurrent(), $attributes);
     }
 }
