@@ -25,8 +25,10 @@ declare(strict_types=1);
 
 namespace Elastic\OTel\InferredSpans;
 
+use Elastic\OTel\Util\ArrayUtil;
 use OpenTelemetry\API\Globals;
 use OpenTelemetry\API\Behavior\LogsMessagesTrait;
+use OpenTelemetry\API\Trace\SpanBuilderInterface;
 use OpenTelemetry\API\Trace\SpanInterface;
 use OpenTelemetry\API\Trace\SpanKind;
 use OpenTelemetry\API\Trace\TracerInterface;
@@ -52,6 +54,8 @@ class InferredSpans
 {
     use LogsMessagesTrait;
 
+    public const IS_INFERRED_ATTRIBUTE_NAME = 'is_inferred';
+
     private const METADATA_SPAN = 'span';
     private const METADATA_CONTEXT = 'context';
     private const METADATA_SCOPE = 'scope';
@@ -73,7 +77,7 @@ class InferredSpans
         $this->tracer = Globals::tracerProvider()->getTracer(
             'co.elastic.php.elastic-inferred-spans',
             null,
-            Version::VERSION_1_25_0->url(),
+            Version::VERSION_1_30_0->url(),
         );
 
         self::logDebug('spanReductionEnabled ' . $spanReductionEnabled . ' attachStackTrace ' . $attachStackTrace . ' minSpanDuration ' . $minSpanDuration);
@@ -322,8 +326,8 @@ class InferredSpans
      */
     private function getStackTrace(array $stackTrace): string
     {
-        $str = "#0 {main}\n";
-        $id = 1;
+        $id = 0;
+        $str = "";
         foreach ($stackTrace as $frame) {
             if (array_key_exists('file', $frame)) {
                 $file = $frame['file'] . '(' . ($frame['line'] ?? '') . ')';
@@ -331,10 +335,22 @@ class InferredSpans
                 $file = '[internal function]';
             }
 
-            $str .= sprintf("#%d %s: %s%s%s\n", $id, $file, $frame['class'] ?? '', $frame['type'] ?? '', $frame['function']);
+            $str .= sprintf("#%d %s: %s%s%s()\n", $id, $file, $frame['class'] ?? '', $frame['type'] ?? '', $frame['function']);
             $id++;
         }
+        $str .= sprintf("#%d {main}\n", $id);
+
         return $str;
+    }
+
+    /**
+     * @phpstan-param DebugBackTraceFrame $frame
+     */
+    private static function setAttributeToFrameValue(array $frame, string $frameKey, SpanBuilderInterface $spanBuilder, string $attributeKey): void
+    {
+        if (ArrayUtil::getValueIfKeyExists($frameKey, $frame, /* out */ $frameValue) && (!empty($frameValue))) {
+            $spanBuilder->setAttribute($attributeKey, $frameValue);
+        }
     }
 
     /**
@@ -345,14 +361,19 @@ class InferredSpans
     private function startFrameSpan(array $frame, int $durationMs, ?ContextInterface $parentContext, int $stackTraceId): array
     {
         $parent = $parentContext ?? Context::getCurrent();
-        $builder = $this->tracer->spanBuilder(!empty($frame['function']) ? $frame['function'] : '[unknown]')
+
+        $spanName = (!empty($frame['class']) ? ($frame['class'] . '::') : '') . (!empty($frame['function']) ? $frame['function'] : '[unknown]');
+
+        $builder = $this->tracer->spanBuilder($spanName)
             ->setParent($parent)
             ->setStartTimestamp($this->getStartTime($durationMs))
             ->setSpanKind(SpanKind::KIND_INTERNAL)
-            ->setAttribute(TraceAttributes::CODE_FUNCTION_NAME, $frame['function'])
-            ->setAttribute(TraceAttributes::CODE_FILEPATH, $frame['file'] ?? null)
-            ->setAttribute(TraceAttributes::CODE_LINE_NUMBER, $frame['line'] ?? null)
-            ->setAttribute('is_inferred', true);
+            ->setAttribute(self::IS_INFERRED_ATTRIBUTE_NAME, true);
+
+        self::setAttributeToFrameValue($frame, 'function', $builder, TraceAttributes::CODE_FUNCTION_NAME);
+        self::setAttributeToFrameValue($frame, 'class', $builder, TraceAttributes::CODE_NAMESPACE);
+        self::setAttributeToFrameValue($frame, 'file', $builder, TraceAttributes::CODE_FILE_PATH);
+        self::setAttributeToFrameValue($frame, 'line', $builder, TraceAttributes::CODE_LINE_NUMBER);
 
         $span = $builder->startSpan(); //OpenTelemetry\API\Trace\SpanInterface
         $context = $span->storeInContext($parent); //OpenTelemetry\Context\ContextInterface

@@ -33,6 +33,8 @@ use RuntimeException;
  * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
  *
  * @internal
+ *
+ * @phpstan-type DebugBacktraceResult list<array<string, mixed>>
  */
 final class StackTraceUtil
 {
@@ -40,9 +42,9 @@ final class StackTraceUtil
     public const LINE_KEY = 'line';
     public const FUNCTION_KEY = 'function';
     public const CLASS_KEY = 'class';
-    public const TYPE_KEY = 'type';
-    public const FUNCTION_IS_STATIC_METHOD_TYPE_VALUE = '::';
-    public const FUNCTION_IS_METHOD_TYPE_VALUE = '->';
+    public const METHOD_KIND_KEY = 'type';
+    public const METHOD_IS_STATIC_KIND_VALUE = '::';
+    public const METHOD_IS_INSTANCE_KIND_VALUE = '->';
     public const THIS_OBJECT_KEY = 'object';
     public const ARGS_KEY = 'args';
 
@@ -216,18 +218,18 @@ final class StackTraceUtil
      */
     private function isStaticMethodInPhpFormat(array $frame): ?bool
     {
-        if (($funcType = self::getNullableStringValue(self::TYPE_KEY, $frame)) === null) {
+        if (($funcType = self::getNullableStringValue(self::METHOD_KIND_KEY, $frame)) === null) {
             return null;
         }
 
         switch ($funcType) {
-            case self::FUNCTION_IS_STATIC_METHOD_TYPE_VALUE:
+            case self::METHOD_IS_STATIC_KIND_VALUE:
                 return true;
-            case self::FUNCTION_IS_METHOD_TYPE_VALUE:
+            case self::METHOD_IS_INSTANCE_KIND_VALUE:
                 return false;
             default:
                 ($loggerProxy = $this->logger->ifErrorLevelEnabled(__LINE__, __FUNCTION__))
-                && $loggerProxy->log('Unexpected `' . self::TYPE_KEY . '\' value', ['type' => $funcType]);
+                && $loggerProxy->log('Unexpected `' . self::METHOD_KIND_KEY . '\' value', ['type' => $funcType]);
                 return null;
         }
     }

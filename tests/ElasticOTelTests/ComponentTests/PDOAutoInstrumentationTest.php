@@ -220,21 +220,21 @@ final class PDOAutoInstrumentationTest extends ComponentTestCaseBase
         /** @var SpanExpectations[] $expectedDbSpans */
         $expectedDbSpans = [];
         if ($isAutoInstrumentationEnabled) {
-            $expectedDbSpans[] = $expectationsBuilder->forPDOClassMethod('__construct');
+            $expectedDbSpans[] = $expectationsBuilder->buildForPDOClassMethod('__construct');
 
             if ($wrapInTx) {
-                $expectedDbSpans[] = $expectationsBuilder->forPDOClassMethod('beginTransaction');
+                $expectedDbSpans[] = $expectationsBuilder->buildForPDOClassMethod('beginTransaction');
             }
 
-            $expectedDbSpans[] = $expectationsBuilder->forPDOClassMethod('exec', dbQueryText: self::CREATE_TABLE_SQL);
-            $expectedDbSpans[] = $expectationsBuilder->forPDOClassMethod('prepare', dbQueryText: self::INSERT_SQL);
+            $expectedDbSpans[] = $expectationsBuilder->buildForPDOClassMethod('exec', dbQueryText: self::CREATE_TABLE_SQL);
+            $expectedDbSpans[] = $expectationsBuilder->buildForPDOClassMethod('prepare', dbQueryText: self::INSERT_SQL);
             foreach (self::MESSAGES as $ignored) {
-                $expectedDbSpans[] = $expectationsBuilder->forPDOStatementClassMethod('execute');
+                $expectedDbSpans[] = $expectationsBuilder->buildForPDOStatementClassMethod('execute');
             }
-            $expectedDbSpans[] = $expectationsBuilder->forPDOClassMethod('query', dbQueryText: self::SELECT_SQL);
+            $expectedDbSpans[] = $expectationsBuilder->buildForPDOClassMethod('query', dbQueryText: self::SELECT_SQL);
 
             if ($wrapInTx) {
-                $expectedDbSpans[] = $expectationsBuilder->forPDOClassMethod($rollback ? 'rollBack' : 'commit');
+                $expectedDbSpans[] = $expectationsBuilder->buildForPDOClassMethod($rollback ? 'rollBack' : 'commit');
             }
         }
 

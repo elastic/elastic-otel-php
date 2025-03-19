@@ -58,12 +58,6 @@ use const ElasticOTelTests\DUMMY_FUNC_FOR_TESTS_WITH_NAMESPACE_FUNCTION;
  */
 class DebugContextTest extends TestCaseBase
 {
-    private const NON_VENDOR_CALLS_DEPTH_KEY = 'non_vendor_calls_depth';
-    private const USE_FAIL_TO_TRIGGER_ASSERTION_KEY = 'use_fail_to_trigger_assertion';
-    private const SHOULD_TOP_NON_VENDOR_CALL_ADD_CONTEXT_KEY = 'add_context_top_non_vendor_call';
-    private const SHOULD_MIDDLE_NON_VENDOR_CALL_ADD_CONTEXT_KEY = 'add_context_middle_non_vendor_call';
-    private const SHOULD_BOTTOM_NON_VENDOR_CALL_ADD_CONTEXT_KEY = 'add_context_bottom_non_vendor_call';
-
     #[Override]
     public function setUp(): void
     {
@@ -199,6 +193,20 @@ class DebugContextTest extends TestCaseBase
     }
 
     /**
+     * @phpstan-param ExpectedContextsStack $src
+     *
+     * @return ExpectedContextsStack
+     */
+    private static function cloneExpectedScope(array $src): array
+    {
+        $result = [];
+        foreach ($src as $funcNameCtxPair) {
+            $result[] = new Pair($funcNameCtxPair->first, $funcNameCtxPair->second);
+        }
+        return $result;
+    }
+
+    /**
      * @phpstan-param ExpectedContextsStack $expectedContextsStack
      * @phpstan-param Context               $ctx
      */
@@ -268,17 +276,17 @@ class DebugContextTest extends TestCaseBase
         DebugContextConfig::onlyAddedContext(true);
     }
 
+    private const OPTIONS_TO_VARIATE_FOR_BASIC_CONFIG = [
+        DebugContextConfig::ENABLED_OPTION_NAME,
+        DebugContextConfig::USE_DESTRUCTORS_OPTION_NAME,
+    ];
+
     /**
      * @return iterable<string, array{MixedMap}>
      */
     public static function dataProviderForBasicDebugContextConfig(): iterable
     {
-        return self::dataProviderBuilderForDebugContextConfig(
-            [
-                DebugContextConfig::ENABLED_OPTION_NAME,
-                DebugContextConfig::USE_DESTRUCTORS_OPTION_NAME,
-            ]
-        )->buildAsMixedMaps();
+        return self::dataProviderBuilderForDebugContextConfig(self::OPTIONS_TO_VARIATE_FOR_BASIC_CONFIG)->buildAsMixedMaps();
     }
 
     /**
@@ -345,36 +353,6 @@ class DebugContextTest extends TestCaseBase
     /**
      * @dataProvider dataProviderForBasicDebugContextConfig
      */
-    public function testSubScopeSimple(MixedMap $testArgs): void
-    {
-        if (self::shortcutTestIfDebugContextIsDisabledByDefault()) {
-            return;
-        }
-
-        self::setDebugContextConfigFromTestArgs($testArgs);
-        self::thisTestAssumesOnlyAddedContext();
-
-        DebugContext::getCurrentScope(/* out */ $dbgCtx);
-        $expectedContextsStack = self::newExpectedScope(__FUNCTION__);
-        $dbgCtx->add(['my context' => 'before sub-scope']);
-        self::addToTopExpectedScope(/* ref */ $expectedContextsStack, ['my context' => 'before sub-scope']);
-
-        {
-            $dbgCtx->add(['my context' => 'inside sub-scope']);
-            self::addToTopExpectedScope(/* ref */ $expectedContextsStack, ['my context' => 'inside sub-scope']);
-            self::assertActualTopScopeHasKeyWithSameValue('my context', 'inside sub-scope');
-        }
-        self::assertCurrentContextsStack($expectedContextsStack);
-        self::assertActualTopScopeHasKeyWithSameValue('my context', 'inside sub-scope');
-
-        $dbgCtx->add(['my context' => 'after sub-scope']);
-        self::addToTopExpectedScope(/* ref */ $expectedContextsStack, ['my context' => 'after sub-scope']);
-        self::assertActualTopScopeHasKeyWithSameValue('my context', 'after sub-scope');
-    }
-
-    /**
-     * @dataProvider dataProviderForBasicDebugContextConfig
-     */
     public function testWithLoop(MixedMap $testArgs): void
     {
         if (self::shortcutTestIfDebugContextIsDisabledByDefault()) {
@@ -385,19 +363,62 @@ class DebugContextTest extends TestCaseBase
         self::thisTestAssumesOnlyAddedContext();
 
         DebugContext::getCurrentScope(/* out */ $dbgCtx);
-        $expectedContextsStack = self::newExpectedScope(__FUNCTION__);
+        $expectedContextsStackOutsideSubScope = self::newExpectedScope(__FUNCTION__);
         $dbgCtx->add(['my context' => 'before loop']);
-        self::addToTopExpectedScope(/* ref */ $expectedContextsStack, ['my context' => 'before loop']);
+        self::addToTopExpectedScope(/* ref */ $expectedContextsStackOutsideSubScope, ['my context' => 'before loop']);
 
+        $dbgCtx->pushSubScope();
         foreach (RangeUtil::generateUpTo(2) as $index) {
-            $dbgCtx->add(compact('index'));
-            self::addToTopExpectedScope(/* ref */ $expectedContextsStack, compact('index'));
+            $dbgCtx->resetTopSubScope(compact('index'));
+            $expectedContextsStackInsideSubScope = self::cloneExpectedScope($expectedContextsStackOutsideSubScope);
+            self::addToTopExpectedScope(/* ref */ $expectedContextsStackInsideSubScope, compact('index'));
             $dbgCtx->add(['key_with_index_' . $index => 'value_with_index_' . $index]);
-            self::addToTopExpectedScope(/* ref */ $expectedContextsStack, ['key_with_index_' . $index => 'value_with_index_' . $index]);
+            self::addToTopExpectedScope(/* ref */ $expectedContextsStackInsideSubScope, ['key_with_index_' . $index => 'value_with_index_' . $index]);
         }
+        $dbgCtx->popSubScope();
 
         $dbgCtx->add(['my context' => 'after loop']);
-        self::addToTopExpectedScope(/* ref */ $expectedContextsStack, ['my context' => 'after loop']);
+        self::addToTopExpectedScope(/* ref */ $expectedContextsStackOutsideSubScope, ['my context' => 'after loop']);
+    }
+
+    /**
+     * @dataProvider dataProviderForBasicDebugContextConfig
+     */
+    public function testNewValueForLowerScopeKey(MixedMap $testArgs): void
+    {
+        if (self::shortcutTestIfDebugContextIsDisabledByDefault()) {
+            return;
+        }
+
+        self::setDebugContextConfigFromTestArgs($testArgs);
+        self::thisTestAssumesOnlyAddedContext();
+
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
+        $expectedContextsStackOutsideSubScope = self::newExpectedScope(__FUNCTION__);
+        $varOutSideSubScope = 'before sub-scope';
+        $dbgCtx->add(compact('varOutSideSubScope'));
+        self::addToTopExpectedScope(/* ref */ $expectedContextsStackOutsideSubScope, compact('varOutSideSubScope'));
+
+        $dbgCtx->pushSubScope();
+        foreach (['iteration 0', 'iteration 1'] as $varInsideSubScope) {
+            $dbgCtx->resetTopSubScope(compact('varInsideSubScope'));
+            $expectedContextsStackInsideSubScope = self::cloneExpectedScope($expectedContextsStackOutsideSubScope);
+            self::addToTopExpectedScope(/* ref */ $expectedContextsStackInsideSubScope, compact('varInsideSubScope'));
+            self::assertActualTopScopeHasKeyWithSameValue('varInsideSubScope', $varInsideSubScope);
+
+            $anotherVarInsideSubScope = $varInsideSubScope . ' another';
+            $dbgCtx->add(compact('anotherVarInsideSubScope'));
+            self::addToTopExpectedScope(/* ref */ $expectedContextsStackInsideSubScope, compact('anotherVarInsideSubScope'));
+            self::assertActualTopScopeHasKeyWithSameValue('anotherVarInsideSubScope', $anotherVarInsideSubScope);
+
+            $varOutSideSubScope = $varInsideSubScope . ' for varOutSideSubScope';
+            $dbgCtx->add(compact('varOutSideSubScope'));
+            self::addToTopExpectedScope(/* ref */ $expectedContextsStackInsideSubScope, compact('varOutSideSubScope'));
+            self::assertActualTopScopeHasKeyWithSameValue('varOutSideSubScope', $varOutSideSubScope);
+        }
+        $dbgCtx->popSubScope();
+        self::assertCurrentContextsStack($expectedContextsStackOutsideSubScope);
+        self::assertActualTopScopeHasKeyWithSameValue('varOutSideSubScope', 'before sub-scope');
     }
 
     /**
@@ -413,42 +434,112 @@ class DebugContextTest extends TestCaseBase
         self::thisTestAssumesOnlyAddedContext();
 
         DebugContext::getCurrentScope(/* out */ $dbgCtx);
-        $expectedContextsStack = self::newExpectedScope(__FUNCTION__);
+        $expectedContextsStackSubScopeFuncLevel = self::newExpectedScope(__FUNCTION__);
         $dbgCtx->add(['my context' => 'before 1st loop']);
-        self::addToTopExpectedScope(/* ref */ $expectedContextsStack, ['my context' => 'before 1st loop']);
+        self::addToTopExpectedScope(/* ref */ $expectedContextsStackSubScopeFuncLevel, ['my context' => 'before 1st loop']);
 
+        $dbgCtx->pushSubScope();
         foreach (RangeUtil::generateUpTo(3) as $index1stLoop) {
-            $dbgCtx->add(compact('index1stLoop'));
-            self::addToTopExpectedScope(/* ref */ $expectedContextsStack, compact('index1stLoop'));
+            $dbgCtx->resetTopSubScope(compact('index1stLoop'));
+            $expectedContextsStackSubScope1stLoop = self::cloneExpectedScope($expectedContextsStackSubScopeFuncLevel);
+            self::addToTopExpectedScope(/* ref */ $expectedContextsStackSubScope1stLoop, compact('index1stLoop'));
 
             $dbgCtx->add(['my context' => 'before 1st loop']);
-            self::addToTopExpectedScope(/* ref */ $expectedContextsStack, ['my context' => 'before 1st loop']);
+            self::addToTopExpectedScope(/* ref */ $expectedContextsStackSubScope1stLoop, ['my context' => 'before 1st loop']);
 
             $dbgCtx->add(['1st loop key with index ' . $index1stLoop => '1st loop value with index ' . $index1stLoop]);
-            self::addToTopExpectedScope(/* ref */ $expectedContextsStack, ['1st loop key with index ' . $index1stLoop => '1st loop value with index ' . $index1stLoop]);
+            self::addToTopExpectedScope(/* ref */ $expectedContextsStackSubScope1stLoop, ['1st loop key with index ' . $index1stLoop => '1st loop value with index ' . $index1stLoop]);
 
+            $dbgCtx->pushSubScope();
             foreach (RangeUtil::generateUpTo(5) as $index2ndLoop) {
-                $dbgCtx->add(compact('index2ndLoop'));
-                self::addToTopExpectedScope(/* ref */ $expectedContextsStack, compact('index2ndLoop'));
+                $dbgCtx->resetTopSubScope(compact('index2ndLoop'));
+                $expectedContextsStackSubScope2ndLoop = self::cloneExpectedScope($expectedContextsStackSubScope1stLoop);
+                self::addToTopExpectedScope(/* ref */ $expectedContextsStackSubScope2ndLoop, compact('index2ndLoop'));
 
                 if ($index2ndLoop > 2) {
                     continue;
                 }
 
                 $dbgCtx->add(['2nd loop key with index ' . $index2ndLoop => '2nd loop value with index ' . $index2ndLoop]);
-                self::addToTopExpectedScope(/* ref */ $expectedContextsStack, ['2nd loop key with index ' . $index2ndLoop => '2nd loop value with index ' . $index2ndLoop]);
+                self::addToTopExpectedScope(/* ref */ $expectedContextsStackSubScope2ndLoop, ['2nd loop key with index ' . $index2ndLoop => '2nd loop value with index ' . $index2ndLoop]);
             }
+            $dbgCtx->popSubScope();
 
             if ($index1stLoop > 1) {
                 continue;
             }
 
             $dbgCtx->add(['my context' => 'after 2nd loop']);
-            self::addToTopExpectedScope(/* ref */ $expectedContextsStack, ['my context' => 'after 2nd loop']);
+            self::addToTopExpectedScope(/* ref */ $expectedContextsStackSubScope1stLoop, ['my context' => 'after 2nd loop']);
         }
+        $dbgCtx->popSubScope();
 
         $dbgCtx->add(['my context' => 'after 1st loop']);
-        self::addToTopExpectedScope(/* ref */ $expectedContextsStack, ['my context' => 'after 1st loop']);
+        self::addToTopExpectedScope(/* ref */ $expectedContextsStackSubScopeFuncLevel, ['my context' => 'after 1st loop']);
+    }
+
+    private const SHOULD_EXIT_EARLY_KEY = 'should_exit_early';
+
+    /**
+     * @return iterable<string, array{MixedMap}>
+     */
+    public static function dataProviderForTestSubScopeEarlyReturn(): iterable
+    {
+        return self::dataProviderBuilderForDebugContextConfig(self::OPTIONS_TO_VARIATE_FOR_BASIC_CONFIG)
+                   ->addBoolKeyedDimensionAllValuesCombinable(self::SHOULD_EXIT_EARLY_KEY)
+                   ->buildAsMixedMaps();
+    }
+
+    /**
+     * @dataProvider dataProviderForTestSubScopeEarlyReturn
+     */
+    public function testSubScopeEarlyReturn(MixedMap $testArgs): void
+    {
+        if (self::shortcutTestIfDebugContextIsDisabledByDefault()) {
+            return;
+        }
+
+        self::setDebugContextConfigFromTestArgs($testArgs);
+        self::thisTestAssumesOnlyAddedContext();
+
+        $shouldExitEarly = $testArgs->getBool(self::SHOULD_EXIT_EARLY_KEY);
+
+        DebugContext::getCurrentScope(/* out */ $dbgCtx, ['my context' => 'before calling 2nd func']);
+        $expectedContextsStack = self::newExpectedScope(__FUNCTION__, ['my context' => 'before calling 2nd func']);
+        self::assertCurrentContextsStack($expectedContextsStack);
+
+        /**
+         * @param ExpectedContextsStack $expectedContextsStackFromCaller
+         */
+        $secondFunc = static function (array $expectedContextsStackFromCaller) use ($shouldExitEarly): void {
+            /** @var ExpectedContextsStack $expectedContextsStackFromCaller */
+            DebugContext::getCurrentScope(/* out */ $dbgCtx, ['my context' => 'before sub-scope']);
+            $expectedContextsStackOutsideSubScope = self::newExpectedScope(__FUNCTION__, ['my context' => 'before sub-scope'], $expectedContextsStackFromCaller);
+            self::assertCurrentContextsStack($expectedContextsStackOutsideSubScope);
+
+            $dbgCtx->pushSubScope();
+            {
+            $expectedContextsStackInsideSubScope = self::cloneExpectedScope($expectedContextsStackOutsideSubScope);
+            $dbgCtx->resetTopSubScope(['my context' => 'inside sub-scope']);
+            self::addToTopExpectedScope(/* ref */ $expectedContextsStackInsideSubScope, ['my context' => 'inside sub-scope']);
+            if ($shouldExitEarly) {
+                return;
+            }
+            }
+            $dbgCtx->popSubScope();
+            self::assertCurrentContextsStack($expectedContextsStackOutsideSubScope);
+            self::assertActualTopScopeHasKeyWithSameValue('my context', 'before sub-scope');
+
+            $dbgCtx->add(['my context' => 'after sub-scope']);
+            self::addToTopExpectedScope(/* ref */ $expectedContextsStackOutsideSubScope, ['my context' => 'after sub-scope']);
+            self::assertActualTopScopeHasKeyWithSameValue('my context', 'after sub-scope');
+        };
+
+        $secondFunc($expectedContextsStack);
+
+        $dbgCtx->add(['my context' => 'after calling 2nd func']);
+        self::addToTopExpectedScope(/* ref */ $expectedContextsStack, ['my context' => 'after calling 2nd func']);
+        self::assertActualTopScopeHasKeyWithSameValue('my context', 'after calling 2nd func');
     }
 
     /**
@@ -766,6 +857,12 @@ class DebugContextTest extends TestCaseBase
             AssertEx::arrayHasKeyWithSameValue('testArgs', $testArgs, $thisFuncCtx);
         }
     }
+
+    private const NON_VENDOR_CALLS_DEPTH_KEY = 'non_vendor_calls_depth';
+    private const USE_FAIL_TO_TRIGGER_ASSERTION_KEY = 'use_fail_to_trigger_assertion';
+    private const SHOULD_TOP_NON_VENDOR_CALL_ADD_CONTEXT_KEY = 'add_context_top_non_vendor_call';
+    private const SHOULD_MIDDLE_NON_VENDOR_CALL_ADD_CONTEXT_KEY = 'add_context_middle_non_vendor_call';
+    private const SHOULD_BOTTOM_NON_VENDOR_CALL_ADD_CONTEXT_KEY = 'add_context_bottom_non_vendor_call';
 
     /**
      * @return iterable<string, array{MixedMap}>

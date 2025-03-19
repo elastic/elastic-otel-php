@@ -24,35 +24,23 @@ declare(strict_types=1);
 namespace ElasticOTelTests\ComponentTests\Util;
 
 use ElasticOTelTests\Util\ClassNameUtil;
-use OpenTelemetry\SemConv\TraceAttributes;
-use Override;
 use PDO;
 use PDOStatement;
 
 class PDOSpanExpectationsBuilder extends DbSpanExpectationsBuilder
 {
-    #[Override]
-    public function setNameUsingClassMethod(string $className, ?bool $isStaticMethod, string $methodName): self
-    {
-        parent::setNameUsingClassMethod($className, $isStaticMethod, $methodName);
-        $this->addAttribute(TraceAttributes::CODE_NAMESPACE, $className);
-        $this->addAttribute(TraceAttributes::CODE_FUNCTION_NAME, $methodName);
-        return $this;
-    }
-
-    public function forPDOClassMethod(string $methodName, bool $isStaticMethod = false, ?string $dbQueryText = null): SpanExpectations
+    public function buildForPDOClassMethod(string $methodName, ?bool $isStaticMethod = null, ?string $dbQueryText = null): SpanExpectations
     {
         $builderClone = clone $this;
-        $builderClone->setNameUsingClassMethod(ClassNameUtil::fqToShort(PDO::class), $isStaticMethod, $methodName);
+        $builderClone->nameAndCodeAttributesUsingClassMethod(ClassNameUtil::fqToShort(PDO::class), $methodName, $isStaticMethod);
         if ($dbQueryText !== null) {
             $builderClone->setDbQueryText($dbQueryText);
         }
         return $builderClone->build();
     }
 
-    public function forPDOStatementClassMethod(string $methodName, bool $isStaticMethod = false): SpanExpectations
+    public function buildForPDOStatementClassMethod(string $methodName, ?bool $isStaticMethod = null): SpanExpectations
     {
-        $builderClone = clone $this;
-        return $builderClone->setNameUsingClassMethod(ClassNameUtil::fqToShort(PDOStatement::class), $isStaticMethod, $methodName)->build();
+        return (clone $this)->nameAndCodeAttributesUsingClassMethod(ClassNameUtil::fqToShort(PDOStatement::class), $methodName, $isStaticMethod)->build();
     }
 }

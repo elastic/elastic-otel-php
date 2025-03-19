@@ -32,26 +32,41 @@ use PHPUnit\Framework\Assert;
  */
 final class Optional implements LoggableInterface
 {
-    /** @var T */
-    private mixed $value;
-    private bool $isValueSet = false;
-
     /**
-     * @return T
+     * @param T $value
      */
-    public function getValue()
-    {
-        Assert::assertTrue($this->isValueSet);
-        return $this->value;
+    private function __construct(
+        public readonly mixed $value,
+        public readonly bool $isValueSet = true
+    ) {
     }
 
     /**
      * @param T $value
+     *
+     * @return self<T>
      */
-    public function setValue($value): void
+    public static function value(mixed $value): self
     {
-        $this->value = $value;
-        $this->isValueSet = true;
+        return new self($value);
+    }
+
+    /**
+     * @return self<T>
+     */
+    public static function none(): self
+    {
+        static $cached = null;
+        return $cached ??= new self(value: null, isValueSet: false); // @phpstan-ignore return.type
+    }
+
+    /**
+     * @return T
+     */
+    public function getValue(): mixed
+    {
+        Assert::assertTrue($this->isValueSet);
+        return $this->value;
     }
 
     /**
@@ -66,12 +81,6 @@ final class Optional implements LoggableInterface
         return $this->isValueSet ? $this->value : $elseValue;
     }
 
-    public function reset(): void
-    {
-        $this->isValueSet = false;
-        unset($this->value);
-    }
-
     public function isValueSet(): bool
     {
         return $this->isValueSet;
@@ -80,13 +89,13 @@ final class Optional implements LoggableInterface
     /**
      * @param T $value
      *
+     * @return self<T>
+     *
      * @noinspection PhpUnused
      */
-    public function setValueIfNotSet($value): void
+    public function valueIfNotSet($value): self
     {
-        if (!$this->isValueSet) {
-            $this->setValue($value);
-        }
+        return $this->isValueSet ? $this : Optional::value($value);
     }
 
     public function toLog(LogStreamInterface $stream): void

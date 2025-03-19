@@ -62,4 +62,22 @@ final class DebugContextScopeRef
     {
         $this->scope?->add($ctx);
     }
+
+    public function pushSubScope(): void
+    {
+        $this->scope?->pushSubScope();
+    }
+
+    /**
+     * @phpstan-param Context $ctx
+     */
+    public function resetTopSubScope(array $ctx): void
+    {
+        $this->scope?->resetTopSubScope($ctx);
+    }
+
+    public function popSubScope(): void
+    {
+        $this->scope?->popSubScope();
+    }
 }

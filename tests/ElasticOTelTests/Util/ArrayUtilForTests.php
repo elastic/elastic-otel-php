@@ -199,6 +199,19 @@ final class ArrayUtilForTests
     }
 
     /**
+     * @template TKey of array-key
+     *
+     * @param array<TKey, mixed> $removeFromArray
+     * @param iterable<TKey>     $keys
+     */
+    public static function removeByKeys(/* in,out */ array &$removeFromArray, iterable $keys): void
+    {
+        foreach ($keys as $key) {
+            self::removeByKey($removeFromArray, $key);
+        }
+    }
+
+    /**
      * @template TValue
      * *
      * @param array<array-key, TValue> &$removeFromArray

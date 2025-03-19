@@ -27,20 +27,31 @@ use OpenTelemetry\SemConv\TraceAttributes;
 
 class InferredSpanExpectationsBuilder extends SpanExpectationsBuilder
 {
-    private const IS_INFERRED_ATTRIBUTE_NAME = 'is_inferred';
+    public const IS_INFERRED_ATTRIBUTE_NAME = 'is_inferred';
 
     public function __construct()
     {
-        $this->setKind(SpanKind::internal);
-        $this->addAttribute(self::IS_INFERRED_ATTRIBUTE_NAME, true);
+        parent::__construct();
+
+        $this->kind(SpanKind::internal)
+             ->addAttribute(self::IS_INFERRED_ATTRIBUTE_NAME, true);
     }
 
-    /**
-     * @return $this
-     */
-    public function setNameUsingFuncName(string $funcName): self
+    private static function buildFor(self $builderClone, StackTraceExpectations $stackTrace, ?int $codeLineNumber): SpanExpectations
     {
-        $this->addAttribute(TraceAttributes::CODE_FUNCTION_NAME, $funcName);
-        return parent::setNameUsingFuncName($funcName);
+        if ($codeLineNumber !== null) {
+            $builderClone->addAttribute(TraceAttributes::CODE_LINE_NUMBER, $codeLineNumber);
+        }
+        return $builderClone->stackTrace($stackTrace)->build();
+    }
+
+    public function buildForStaticMethod(string $className, string $methodName, StackTraceExpectations $stackTrace, ?int $codeLineNumber = null): SpanExpectations
+    {
+        return self::buildFor((clone $this)->nameAndCodeAttributesUsingClassMethod($className, $methodName, isStaticMethod: true), $stackTrace, $codeLineNumber);
+    }
+
+    public function buildForFunction(string $funcName, StackTraceExpectations $stackTrace, ?int $codeLineNumber = null): SpanExpectations
+    {
+        return self::buildFor((clone $this)->nameAndCodeAttributesUsingFuncName($funcName), $stackTrace, $codeLineNumber);
     }
 }

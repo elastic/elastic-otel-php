@@ -150,10 +150,35 @@ final class AssertEx
         return $actual;
     }
 
+    public static function isNullableString(mixed $actual, string $message = ''): ?string
+    {
+        return $actual === null ? null : self::isString($actual, $message);
+    }
+
+    /**
+     * @return non-empty-string
+     */
+    public static function isNonEmptyString(mixed $actual, string $message = ''): string
+    {
+        Assert::assertIsString($actual, $message);
+        Assert::assertNotEmpty($actual, $message);
+        return $actual;
+    }
+
     public static function isInt(mixed $actual, string $message = ''): int
     {
         Assert::assertIsInt($actual, $message);
         return $actual;
+    }
+
+    /**
+     * @return positive-int
+     */
+    public static function isPositiveInt(mixed $actual, string $message = ''): int
+    {
+        Assert::assertIsInt($actual, $message);
+        Assert::assertGreaterThan(0, $actual, $message);
+        return $actual; // @phpstan-ignore return.type
     }
 
     public static function isFloat(mixed $actual, string $message = ''): float

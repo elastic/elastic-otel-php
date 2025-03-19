@@ -23,36 +23,54 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
+use ElasticOTelTests\Util\DebugContext;
+use ElasticOTelTests\Util\Log\LoggableInterface;
+use ElasticOTelTests\Util\Log\LoggableTrait;
 use Override;
 use PHPUnit\Framework\Assert;
 
 /**
- * @phpstan-import-type AttributeValue from SpanAttributes
+ * @phpstan-import-type ArrayValue from SpanAttributesArrayExpectations
  */
-final class SpanAttributesExpectations implements ExpectationsInterface
+final class SpanAttributesExpectations implements ExpectationsInterface, LoggableInterface
 {
     use ExpectationsTrait;
+    use LoggableTrait;
 
     public readonly SpanAttributesArrayExpectations $arrayExpectations;
 
     /**
-     * @param array<string, AttributeValue> $attributes
-     * @param array<string> $notAllowedAttributeNames
+     * @param array<string, ArrayValue> $attributes
+     * @param array<string>             $notAllowedAttributes
      */
     public function __construct(
         array $attributes,
         bool $allowOtherKeysInActual = true,
-        private readonly array $notAllowedAttributeNames = []
+        private readonly array $notAllowedAttributes = []
     ) {
         $this->arrayExpectations = new SpanAttributesArrayExpectations($attributes, $allowOtherKeysInActual);
     }
 
-    /**
-     * @phpstan-param AttributeValue $value
-     */
-    public function addAllowedAttribute(string $key, array|bool|float|int|null|string $value): self
+    public static function matchAny(): self
     {
-        return new self($this->arrayExpectations->add($key, $value)->expectedArray, $this->arrayExpectations->allowOtherKeysInActual, $this->notAllowedAttributeNames);
+        /** @var ?self $cached */
+        static $cached = null;
+        return $cached ??= new self([], allowOtherKeysInActual: true);
+    }
+
+    /**
+     * @phpstan-param ArrayValue $value
+     */
+    public function with(string $key, array|bool|float|int|null|string|ExpectationsInterface $value): self
+    {
+        return new self($this->arrayExpectations->add($key, $value)->expectedArray, $this->arrayExpectations->allowOtherKeysInActual, $this->notAllowedAttributes);
+    }
+
+    public function withNotAllowed(string $key): self
+    {
+        $notAllowedAttributes = $this->notAllowedAttributes;
+        $notAllowedAttributes[] = $key;
+        return new self($this->arrayExpectations->expectedArray, $this->arrayExpectations->allowOtherKeysInActual, $notAllowedAttributes);
     }
 
     #[Override]
@@ -64,10 +82,15 @@ final class SpanAttributesExpectations implements ExpectationsInterface
 
     public function assertMatches(SpanAttributes $actual): void
     {
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
+
         $this->arrayExpectations->assertMatches($actual);
 
-        foreach ($this->notAllowedAttributeNames as $notAllowedAttributeName) {
+        $dbgCtx->pushSubScope();
+        foreach ($this->notAllowedAttributes as $notAllowedAttributeName) {
+            $dbgCtx->resetTopSubScope(compact('notAllowedAttributeName'));
             Assert::assertFalse($actual->keyExists($notAllowedAttributeName));
         }
+        $dbgCtx->popSubScope();
     }
 }
