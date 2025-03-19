@@ -20,6 +20,8 @@ parse_args() {
     while [[ "$#" -gt 0 ]]; do
         case $1 in
             --php_versions)
+                # SC2206: Quote to prevent word splitting/globbing, or split robustly with mapfile or read -a.
+                # shellcheck disable=SC2206
                 PHP_VERSIONS=($2)
                 shift
                 ;;
@@ -47,7 +49,7 @@ parse_args() {
 parse_args "$@"
 
 # Validate required arguments
-if [[ -z "$PHP_VERSIONS" ]]; then
+if [[ -z "${PHP_VERSIONS[*]}" ]]; then
     echo "Error: Missing required arguments."
     show_help
     exit 1
@@ -70,11 +72,11 @@ do
     fi
 
     docker run --rm \
-        -v ${PWD}:/sources \
-        -v ${PWD}/prod/php/vendor_${PHP_VERSION}:/sources/vendor \
-        -e GITHUB_SHA=${GITHUB_SHA} \
+        -v "${PWD}:/sources" \
+        -v "${PWD}/prod/php/vendor_${PHP_VERSION}:/sources/vendor" \
+        -e "GITHUB_SHA=${GITHUB_SHA}" \
         -w /sources \
-        php:${PHP_VERSION:0:1}.${PHP_VERSION:1:1}-cli sh -c "\
+        "php:${PHP_VERSION:0:1}.${PHP_VERSION:1:1}-cli" sh -c "\
         apt-get update && apt-get install -y unzip git \
         && git config --global --add safe.directory /sources \
         && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
