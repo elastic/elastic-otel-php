@@ -29,18 +29,18 @@ use PDOStatement;
 
 class PDOSpanExpectationsBuilder extends DbSpanExpectationsBuilder
 {
-    public function forPDOClassMethod(string $methodName, ?bool $isStaticMethod = null, ?string $dbQueryText = null): SpanExpectations
+    public function buildForPDOClassMethod(string $methodName, ?bool $isStaticMethod = null, ?string $dbQueryText = null): SpanExpectations
     {
         $builderClone = clone $this;
-        $builderClone->setNameAndCodeAttributesUsingClassMethod(ClassNameUtil::fqToShort(PDO::class), $methodName, $isStaticMethod);
+        $builderClone->nameAndCodeAttributesUsingClassMethod(ClassNameUtil::fqToShort(PDO::class), $methodName, $isStaticMethod);
         if ($dbQueryText !== null) {
             $builderClone->setDbQueryText($dbQueryText);
         }
         return $builderClone->build();
     }
 
-    public function forPDOStatementClassMethod(string $methodName, ?bool $isStaticMethod = null): SpanExpectations
+    public function buildForPDOStatementClassMethod(string $methodName, ?bool $isStaticMethod = null): SpanExpectations
     {
-        return (clone $this)->setNameAndCodeAttributesUsingClassMethod(ClassNameUtil::fqToShort(PDOStatement::class), $methodName, $isStaticMethod)->build();
+        return (clone $this)->nameAndCodeAttributesUsingClassMethod(ClassNameUtil::fqToShort(PDOStatement::class), $methodName, $isStaticMethod)->build();
     }
 }

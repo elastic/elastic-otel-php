@@ -29,18 +29,22 @@ use PHPUnit\Framework\Assert;
 
 /**
  * @phpstan-import-type AttributeValue from SpanAttributes
+ * @phpstan-type ArrayValue AttributeValue|ExpectationsInterface
  *
- * @extends ArrayExpectations<string, AttributeValue>
+ * @extends ArrayExpectations<string, ArrayValue>
  */
 final class SpanAttributesArrayExpectations extends ArrayExpectations
 {
+    /**
+     * @phpstan-param string $key
+     */
     #[Override]
-    protected function assertValueMatches(string|int $key, mixed $expectedValue, mixed $actualValue): void
+    protected function assertArrayValueMatches(string|int $key, mixed $expectedValue, mixed $actualValue): void
     {
         if ($key === TraceAttributes::URL_SCHEME) {
             Assert::assertEqualsIgnoringCase($expectedValue, $actualValue);
         } else {
-            Assert::assertSame($expectedValue, $actualValue);
+            parent::assertArrayValueMatches($key, $expectedValue, $actualValue); // @phpstan-ignore argument.type
         }
     }
 }

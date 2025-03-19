@@ -29,10 +29,11 @@ class DbSpanExpectationsBuilder extends SpanExpectationsBuilder
 {
     public function __construct(string $dbSystemName, string $dbNamespace)
     {
-        $this->setKind(SpanKind::client);
+        parent::__construct();
 
-        $this->addAttribute(TraceAttributes::DB_SYSTEM_NAME, $dbSystemName);
-        $this->addAttribute(TraceAttributes::DB_NAMESPACE, $dbNamespace);
+        $this->kind(SpanKind::client)
+             ->addAttribute(TraceAttributes::DB_SYSTEM_NAME, $dbSystemName)
+             ->addAttribute(TraceAttributes::DB_NAMESPACE, $dbNamespace);
     }
 
     /**

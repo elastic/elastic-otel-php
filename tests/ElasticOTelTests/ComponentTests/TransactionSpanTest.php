@@ -31,7 +31,7 @@ use ElasticOTelTests\ComponentTests\Util\HttpAppCodeHostHandle;
 use ElasticOTelTests\ComponentTests\Util\HttpAppCodeRequestParams;
 use ElasticOTelTests\ComponentTests\Util\Span;
 use ElasticOTelTests\ComponentTests\Util\SpanAttributesExpectations;
-use ElasticOTelTests\ComponentTests\Util\SpanExpectations;
+use ElasticOTelTests\ComponentTests\Util\SpanExpectationsBuilder;
 use ElasticOTelTests\ComponentTests\Util\SpanKind;
 use ElasticOTelTests\ComponentTests\Util\UrlUtil;
 use ElasticOTelTests\ComponentTests\Util\WaitForEventCounts;
@@ -159,10 +159,10 @@ final class TransactionSpanTest extends ComponentTestCaseBase
                                       ]
             );
         }
-        $expectationsForRootSpan = new SpanExpectations(self::getExpectedTransactionSpanName(), $expectedRootSpanKind, $rootSpanAttributesExpectations);
+        $expectationsForRootSpan = (new SpanExpectationsBuilder())->name(self::getExpectedTransactionSpanName())->kind($expectedRootSpanKind)->attributes($rootSpanAttributesExpectations)->build();
 
         $expectedDummySpanKind = SpanKind::internal;
-        $expectationsForDummySpan = new SpanExpectations(self::APP_CODE_DUMMY_SPAN_NAME, $expectedDummySpanKind);
+        $expectationsForDummySpan = (new SpanExpectationsBuilder())->name(self::APP_CODE_DUMMY_SPAN_NAME)->kind($expectedDummySpanKind)->build();
 
         $exportedData = $testCaseHandle->waitForEnoughExportedData(WaitForEventCounts::spans($expectedSpanCount));
         $dbgCtx->add(compact('exportedData'));

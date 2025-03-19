@@ -35,12 +35,8 @@ trait ExpectationsTrait
         $this->assertObjectMatchesTraitImpl($this, $actual);
     }
 
-    protected static function assertMatchesValue(mixed $expected, mixed $actual): void
+    protected static function assertValueMatches(mixed $expected, mixed $actual): void
     {
-        if ($expected === null) {
-            return;
-        }
-
         if (is_object($expected)) {
             self::assertObjectMatches($expected, $actual);
             return;
@@ -69,7 +65,7 @@ trait ExpectationsTrait
         foreach ($expected as $propName => $expectationsPropValue) { // @phpstan-ignore foreach.nonIterable
             $dbgCtx->add(compact('propName', 'expectationsPropValue'));
             Assert::assertTrue(property_exists($actual, $propName));
-            static::assertMatchesValue($expectationsPropValue, $actual->$propName);
+            static::assertValueMatches($expectationsPropValue, $actual->$propName);
         }
     }
 }

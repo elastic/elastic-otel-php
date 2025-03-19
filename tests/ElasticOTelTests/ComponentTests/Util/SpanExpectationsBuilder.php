@@ -23,84 +23,99 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
+use ElasticOTelTests\Util\AssertEx;
 use OpenTelemetry\SemConv\TraceAttributes;
 
 /**
- * @phpstan-import-type AttributeValue from SpanAttributes
+ * @phpstan-import-type ArrayValue from SpanAttributesExpectations as SpanAttributesExpectationsArrayValue
  */
 class SpanExpectationsBuilder
 {
     private const CLASS_AND_METHOD_SEPARATOR = '::';
 
-    protected ?string $name = null;
-    protected ?SpanKind $kind = null;
-    protected ?SpanAttributesExpectations $attributes = null;
+    protected StringExpectations $name;
 
-    /**
-     * @return $this
-     */
-    public function setNameUsingFuncName(string $funcName): self
-    {
-        $this->name = $funcName;
-        return $this;
-    }
+    /** @var LeafExpectations<SpanKind> */
+    protected LeafExpectations $kind;
 
-    public function setCodeFuncNameAttribute(string $funcName): self
-    {
-        $this->addAttribute(TraceAttributes::CODE_FUNCTION_NAME, $funcName);
-        return $this;
-    }
+    protected SpanAttributesExpectations $attributes;
 
-    public function setNameAndCodeAttributesUsingFuncName(string $funcName): self
+    protected StackTraceExpectations $stackTrace;
+
+    public function __construct()
     {
-        $this->setNameUsingFuncName($funcName);
-        $this->setCodeFuncNameAttribute($funcName);
-        return $this;
+        $this->name = StringExpectations::matchAny();
+        $this->kind = LeafExpectations::matchAny(); // @phpstan-ignore assign.propertyType
+        $this->attributes = SpanAttributesExpectations::matchAny();
+        $this->stackTrace = StackTraceExpectations::matchAny();
     }
 
     /**
      * @return $this
      */
-    public function setNameUsingClassMethod(string $className, string $methodName, ?bool $isStaticMethod = null): self
+    public function name(string $name): self
     {
-        $this->name = self::buildNameFromClassMethod($className, $methodName, $isStaticMethod);
+        $this->name = StringExpectations::literal($name);
         return $this;
     }
 
-    public function setCodeClassMethodNameAttributes(string $className, string $methodName): self
+    /**
+     * @return $this
+     *
+     * @noinspection PhpUnused
+     */
+    public function nameRegEx(string $nameRegEx): self
     {
-        $this->addAttribute(TraceAttributes::CODE_NAMESPACE, $className);
-        $this->setCodeFuncNameAttribute($methodName);
-        return $this;
-    }
-
-    public function setNameAndCodeAttributesUsingClassMethod(string $className, string $methodName, ?bool $isStaticMethod = null): self
-    {
-        $this->setNameUsingClassMethod($className, $methodName, $isStaticMethod);
-        $this->setCodeClassMethodNameAttributes($className, $methodName);
+        $this->name = StringExpectations::regex($nameRegEx);
         return $this;
     }
 
     /**
      * @return $this
      */
-    public function setKind(?SpanKind $kind): self
+    public function kind(SpanKind $kind): self
     {
-        $this->kind = $kind;
+        $this->kind = LeafExpectations::expectedValue($kind); // @phpstan-ignore assign.propertyType
         return $this;
     }
 
     /**
      * @return $this
      */
-    public function setAttributes(SpanAttributesExpectations $attributes): self
+    public function attributes(SpanAttributesExpectations $attributes): self
     {
         $this->attributes = $attributes;
         return $this;
     }
 
-    /** @noinspection PhpUnusedParameterInspection */
-    public static function buildNameFromClassMethod(?string $classicName, ?string $methodName, ?bool $isStaticMethod = null): ?string
+    /**
+     * @return $this
+     */
+    public function nameAndCodeAttributesUsingFuncName(string $funcName): self
+    {
+        $this->name($funcName);
+        return $this->addAttribute(TraceAttributes::CODE_FUNCTION_NAME, $funcName);
+    }
+
+    /**
+     * @return $this
+     */
+    public function nameUsingClassMethod(string $className, string $methodName, ?bool $isStaticMethod = null): self
+    {
+        return $this->name(AssertEx::notNull(self::buildNameFromClassMethod($className, $methodName, $isStaticMethod)));
+    }
+
+    /**
+     * @return $this
+     */
+    public function nameAndCodeAttributesUsingClassMethod(string $className, string $methodName, ?bool $isStaticMethod = null): self
+    {
+        $this->nameUsingClassMethod($className, $methodName, $isStaticMethod);
+        $this->addAttribute(TraceAttributes::CODE_NAMESPACE, $className);
+        return $this->addAttribute(TraceAttributes::CODE_FUNCTION_NAME, $methodName);
+    }
+
+    private static function buildNameFromClassMethod(?string $classicName, ?string $methodName, /** @noinspection PhpUnusedParameterInspection */ ?bool $isStaticMethod = null): ?string
     {
         if ($methodName === null) {
             return null;
@@ -114,24 +129,13 @@ class SpanExpectationsBuilder
     }
 
     /**
-     * @phpstan-assert !null $this->attributes
-     */
-    private function ensureAttributesNotNull(): SpanAttributesExpectations
-    {
-        if ($this->attributes === null) {
-            $this->attributes = new SpanAttributesExpectations(attributes: []);
-        }
-        return $this->attributes;
-    }
-
-    /**
-     * @phpstan-param AttributeValue $value
+     * @phpstan-param SpanAttributesExpectationsArrayValue $value
      *
      * @return $this
      */
-    public function addAttribute(string $key, array|bool|float|int|null|string $value): self
+    public function addAttribute(string $key, array|bool|float|int|null|string|ExpectationsInterface $value): self
     {
-        $this->ensureAttributesNotNull()->add($key, $value);
+        $this->attributes = $this->attributes->with($key, $value);
         return $this;
     }
 
@@ -140,8 +144,16 @@ class SpanExpectationsBuilder
      */
     public function addNotAllowedAttribute(string $key): self
     {
-        $this->ensureAttributesNotNull()->addNotAllowed($key);
+        $this->attributes = $this->attributes->withNotAllowed($key);
         return $this;
+    }
+
+    /**
+     * @return $this
+     */
+    public function stackTrace(StackTraceExpectations $stackTrace): self
+    {
+        return $this->addAttribute(TraceAttributes::CODE_STACKTRACE, $stackTrace);
     }
 
     public function build(): SpanExpectations

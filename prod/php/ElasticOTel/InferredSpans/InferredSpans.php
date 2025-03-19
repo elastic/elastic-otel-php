@@ -335,7 +335,7 @@ class InferredSpans
                 $file = '[internal function]';
             }
 
-            $str .= sprintf("#%d %s: %s%s%s\n", $id, $file, $frame['class'] ?? '', $frame['type'] ?? '', $frame['function']);
+            $str .= sprintf("#%d %s: %s%s%s()\n", $id, $file, $frame['class'] ?? '', $frame['type'] ?? '', $frame['function']);
             $id++;
         }
         $str .= sprintf("#%d {main}\n", $id);

@@ -70,6 +70,14 @@ class ComponentTestCaseBase extends TestCaseBase
         return $this->testCaseHandle;
     }
 
+    protected function tearDownTestCaseHandle(): void
+    {
+        if ($this->testCaseHandle !== null) {
+            $this->testCaseHandle->tearDown();
+            $this->testCaseHandle = null;
+        }
+    }
+
     protected function getTestCaseHandle(): TestCaseHandle
     {
         return $this->initTestCaseHandle();
@@ -78,10 +86,7 @@ class ComponentTestCaseBase extends TestCaseBase
     #[Override]
     public function tearDown(): void
     {
-        if ($this->testCaseHandle !== null) {
-            $this->testCaseHandle->tearDown();
-            $this->testCaseHandle = null;
-        }
+        $this->tearDownTestCaseHandle();
 
         parent::tearDown();
     }
@@ -108,12 +113,12 @@ class ComponentTestCaseBase extends TestCaseBase
             $appCodeImpl();
             $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Call to $appCodeImpl() finished successfully');
             if ($shouldSetAttributes) {
-                OTelUtil::setActiveSpanAttributes([self::DID_APP_CODE_FINISH_SUCCESSFULLY_KEY => true]);
+                OTelUtil::addActiveSpanAttributes([self::DID_APP_CODE_FINISH_SUCCESSFULLY_KEY => true]);
             }
         } catch (Throwable $throwable) {
             $loggerProxyDebug && $loggerProxyDebug->logThrowable(__LINE__, $throwable, 'Call to $appCodeImpl() thrown');
             if ($shouldSetAttributes) {
-                OTelUtil::setActiveSpanAttributes([self::DID_APP_CODE_FINISH_SUCCESSFULLY_KEY => false, self::THROWABLE_FROM_APP_CODE_KEY => LoggableToString::convert($throwable)]);
+                OTelUtil::addActiveSpanAttributes([self::DID_APP_CODE_FINISH_SUCCESSFULLY_KEY => false, self::THROWABLE_FROM_APP_CODE_KEY => LoggableToString::convert($throwable)]);
             }
             throw $throwable;
         }
@@ -293,7 +298,7 @@ class ComponentTestCaseBase extends TestCaseBase
         $escalatedLogLevelsSeq = self::generateLevelsForRunAndEscalateLogLevelOnFailure($initiallyFailedTestLogLevels, AmbientContextForTests::testConfig()->escalatedRerunsMaxCount);
         $rerunCount = 0;
         foreach ($escalatedLogLevelsSeq as $escalatedLogLevels) {
-            $this->tearDown();
+            $this->tearDownTestCaseHandle();
 
             ++$rerunCount;
             $loggerPerIt = $logger->inherit()->addAllContext(compact('rerunCount', 'escalatedLogLevels'));
