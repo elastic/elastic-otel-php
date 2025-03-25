@@ -227,6 +227,7 @@ function main() {
         current_github_workflow_log_group_name="${current_github_workflow_log_group_name}, filter: ${ELASTIC_OTEL_PHP_TESTS_FILTER}"
     fi
     start_github_workflow_log_group "${current_github_workflow_log_group_name}"
+    # We close this GitHub workflow log group in on_script_exit()
 
     /repo_root/tools/test/component/test_installed_package_one_matrix_row.sh
 }
