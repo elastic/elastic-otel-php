@@ -449,7 +449,37 @@ void convertScopeSpans(zval *scope_zv, opentelemetry::proto::trace::v1::ScopeSpa
     zval_ptr_dtor(&schema_ret);
 }
 
-#include "opentelemetry/proto/trace/v1/trace.pb.h"
+opentelemetry::proto::trace::v1::Span_SpanKind convertSpanKind(int kind) {
+    using opentelemetry::proto::trace::v1::Span_SpanKind;
+
+    switch (kind) {
+        case 1:
+            return Span_SpanKind::Span_SpanKind_SPAN_KIND_INTERNAL;
+        case 2:
+            return Span_SpanKind::Span_SpanKind_SPAN_KIND_CLIENT;
+        case 3:
+            return Span_SpanKind::Span_SpanKind_SPAN_KIND_SERVER;
+        case 4:
+            return Span_SpanKind::Span_SpanKind_SPAN_KIND_PRODUCER;
+        case 5:
+            return Span_SpanKind::Span_SpanKind_SPAN_KIND_CONSUMER;
+        default:
+            return Span_SpanKind::Span_SpanKind_SPAN_KIND_UNSPECIFIED;
+    }
+}
+opentelemetry::proto::trace::v1::Status_StatusCode convertStatusCode(const std::string &status) {
+    using opentelemetry::proto::trace::v1::Status_StatusCode;
+
+    if (status == "UNSET") {
+        return Status_StatusCode::Status_StatusCode_STATUS_CODE_UNSET;
+    } else if (status == "OK") {
+        return Status_StatusCode::Status_StatusCode_STATUS_CODE_OK;
+    } else if (status == "ERROR") {
+        return Status_StatusCode::Status_StatusCode_STATUS_CODE_ERROR;
+    }
+
+    return Status_StatusCode::Status_StatusCode_STATUS_CODE_UNSET;
+}
 
 void convertSpan(zval *span_zv, opentelemetry::proto::trace::v1::Span *out) {
     using namespace opentelemetry::proto::trace::v1;
@@ -536,7 +566,7 @@ void convertSpan(zval *span_zv, opentelemetry::proto::trace::v1::Span *out) {
     zval kind_ret, kind_fn;
     ZVAL_STRING(&kind_fn, "getKind");
     if (call_user_function(EG(function_table), span_zv, &kind_fn, &kind_ret, 0, nullptr) == SUCCESS && Z_TYPE(kind_ret) == IS_LONG) {
-        out->set_kind(static_cast<Span_SpanKind>(Z_LVAL(kind_ret)));
+        out->set_kind(convertSpanKind(Z_LVAL(kind_ret)));
     }
     zval_ptr_dtor(&kind_fn);
     zval_ptr_dtor(&kind_ret);
@@ -697,7 +727,7 @@ void convertSpan(zval *span_zv, opentelemetry::proto::trace::v1::Span *out) {
         zval code_fn, code_ret;
         ZVAL_STRING(&code_fn, "getCode");
         if (call_user_function(EG(function_table), &status_ret, &code_fn, &code_ret, 0, nullptr) == SUCCESS && Z_TYPE(code_ret) == IS_LONG) {
-            status->set_code(static_cast<Status_StatusCode>(Z_LVAL(code_ret)));
+            status->set_code(convertStatusCode(Z_STRVAL(code_ret)));
         }
         zval_ptr_dtor(&code_fn);
         zval_ptr_dtor(&code_ret);
