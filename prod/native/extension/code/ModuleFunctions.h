@@ -22,3 +22,5 @@
 #include <Zend/zend_API.h>
 
 extern const zend_function_entry elastic_otel_functions[];
+
+void register_otel();
