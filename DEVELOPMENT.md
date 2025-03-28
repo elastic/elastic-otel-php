@@ -22,7 +22,7 @@ You can also save a lot of time by creating a local cache for Conan packages;
 the files will then be stored outside the container and reused repeatedly.
 To do this, provide a path to the `--conan_cache_path` argument, e.g., `~/.conan_cache`.
 The script will automatically execute native unit tests just after the build.
-If you would like to skip native unit tests you can use `--skip_unit_tests` command line option. 
+If you would like to skip native unit tests you can use `--skip_unit_tests` command line option.
 
 Currently, we support the following architectures:
 
@@ -230,3 +230,15 @@ https://artifactory.elastic.dev/ui/repos/tree/General/apm-agent-php-dev
 and in "raw" format here:
 https://artifactory.elastic.dev/ui/native/apm-agent-php-dev/
 
+## Documentation
+
+The official documentation is available at:
+[https://elastic.github.io/opentelemetry/edot-sdks/php/index.html](https://elastic.github.io/opentelemetry/edot-sdks/php/index.html)
+
+It is automatically generated from source files located in the main repository:
+[https://github.com/elastic/opentelemetry](https://github.com/elastic/opentelemetry)
+
+The EDOT PHP documentation specifically resides in the following subdirectory:
+[https://github.com/elastic/opentelemetry/tree/main/docs/_edot-sdks/php](https://github.com/elastic/opentelemetry/tree/main/docs/_edot-sdks/php)
+
+If your changes require updates to the documentation, please make sure to update the relevant files in the documentation source directory accordingly.
