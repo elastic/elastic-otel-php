@@ -84,6 +84,10 @@ public:
         return &value;
     }
 
+    constexpr const zval *get() const noexcept {
+        return &value;
+    }
+
     zval *data() {
         return &value;
     }
@@ -194,6 +198,13 @@ public:
         return {Z_STRVAL(value), Z_STRLEN(value)};
     }
 
+    std::optional<zend_long> getOptLong() const {
+        if (isLong()) {
+            return Z_LVAL(value);
+        }
+        return std::nullopt;
+    }
+
     zend_long getLong() const {
         if (!isLong()) {
             throw std::runtime_error("Not an long");
@@ -218,11 +229,12 @@ public:
         }
     }
 
-    class Iterator {
+    template <typename TP = AutoZval>
+    class IteratorImpl {
     public:
-        using value_type = AutoZval;
+        using value_type = TP;
 
-        Iterator(HashTable *ht, uint32_t position) : ht_(ht), pos_(position) {
+        IteratorImpl(HashTable *ht, uint32_t position) : ht_(ht), pos_(position) {
             moveToValid();
         }
 
@@ -231,13 +243,13 @@ public:
             return zv ? AutoZval(zv) : AutoZval(); // ZVAL_UNDEF if not exists
         }
 
-        Iterator &operator++() {
+        IteratorImpl &operator++() {
             ++pos_;
             moveToValid();
             return *this;
         }
 
-        bool operator!=(const Iterator &other) const {
+        bool operator!=(const IteratorImpl &other) const {
             return ht_ != other.ht_ || pos_ != other.pos_;
         }
 
@@ -256,28 +268,43 @@ public:
         uint32_t pos_;
     };
 
-    Iterator begin() {
+    using iterator = IteratorImpl<AutoZval>;
+    using const_interator = IteratorImpl<const AutoZval>;
+
+    iterator begin() {
         if (!isArray())
             throw std::runtime_error("Zval is not an array");
-        return Iterator(Z_ARRVAL(value), 0);
+        return iterator(Z_ARRVAL(value), 0);
     }
 
-    Iterator end() {
+    iterator end() {
         if (!isArray())
             throw std::runtime_error("Zval is not an array");
-        return Iterator(Z_ARRVAL(value), Z_ARRVAL(value)->nNumUsed);
+        return iterator(Z_ARRVAL(value), Z_ARRVAL(value)->nNumUsed);
     }
 
-    Iterator cbegin() const {
+    const_interator begin() const {
         if (!isArray())
             throw std::runtime_error("Zval is not an array");
-        return Iterator(Z_ARRVAL(value), 0);
+        return const_interator(Z_ARRVAL(value), 0);
     }
 
-    Iterator cend() const {
+    const_interator end() const {
         if (!isArray())
             throw std::runtime_error("Zval is not an array");
-        return Iterator(Z_ARRVAL(value), Z_ARRVAL(value)->nNumUsed);
+        return const_interator(Z_ARRVAL(value), Z_ARRVAL(value)->nNumUsed);
+    }
+
+    const_interator cbegin() const {
+        if (!isArray())
+            throw std::runtime_error("Zval is not an array");
+        return const_interator(Z_ARRVAL(value), 0);
+    }
+
+    const_interator cend() const {
+        if (!isArray())
+            throw std::runtime_error("Zval is not an array");
+        return const_interator(Z_ARRVAL(value), Z_ARRVAL(value)->nNumUsed);
     }
 
     class KeyValueIterator {

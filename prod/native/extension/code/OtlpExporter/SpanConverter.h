@@ -3,6 +3,7 @@
 #include "opentelemetry/proto/trace/v1/trace.pb.h"
 #include "opentelemetry/proto/collector/trace/v1/trace_service.pb.h"
 
+#include "AttributesConverter.h"
 #include "AutoZval.h"
 
 #include <string>
@@ -161,27 +162,7 @@ private:
 
             KeyValue *kv = out->Add();
             kv->set_key(std::get<std::string_view>(key));
-
-            AnyValue *any = kv->mutable_value();
-
-            // TODO get from variant
-            switch (val.getType()) {
-                case IS_STRING:
-                    any->set_string_value(val.getStringView());
-                    break;
-                case IS_LONG:
-                    any->set_int_value(val.getLong());
-                    break;
-                case IS_DOUBLE:
-                    any->set_double_value(val.getDouble());
-                    break;
-                case IS_TRUE:
-                case IS_FALSE:
-                    any->set_bool_value(val.getBoolean());
-                    break;
-                default:
-                    break; // TODO log?
-            }
+            *kv->mutable_value() = AttributesConverter::convertAnyValue(val);
         }
     }
 
