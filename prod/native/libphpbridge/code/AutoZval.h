@@ -24,10 +24,11 @@
 #include <Zend/zend_variables.h>
 
 #include <array>
-#include <stdexcept>
 #include <format>
-#include <type_traits>
 #include <iostream>
+#include <optional>
+#include <stdexcept>
+#include <type_traits>
 #include <variant>
 
 namespace elasticapm::php {
@@ -110,6 +111,19 @@ public:
         ZVAL_DOUBLE(&value, val);
     }
 
+    constexpr void arrayInit() {
+        array_init(&value);
+    }
+
+    constexpr void arrayAddNextWithRef(zval *val) {
+        Z_TRY_ADDREF_P(val);
+        add_next_index_zval(&value, val);
+    }
+
+    constexpr void arrayAddNextWithRef(AutoZval const &val) {
+        arrayAddNextWithRef(const_cast<zval *>(val.get()));
+    }
+
     constexpr void set(NotZvalPointer auto &&val) {
         if constexpr (std::is_same_v<decltype(val), bool>) {
             ZVAL_BOOL(&value, val);
@@ -179,16 +193,28 @@ public:
         return AutoZval(zend_read_property(Z_OBJCE(value), Z_OBJ(value), propertyName.data(), propertyName.length(), 1, nullptr));
     }
 
-    AutoZval const &assertObjectType(std::string_view type) const {
+    bool instanceOf(std::string_view type) const {
         if (!isObject()) {
             throw std::runtime_error("Non-object");
         }
         auto objectType = std::string_view{ZSTR_VAL(Z_OBJCE(value)->name), ZSTR_LEN(Z_OBJCE(value)->name)};
-        if (type != objectType) {
+        return type == objectType;
+    }
+
+    AutoZval const &assertObjectType(std::string_view type) const {
+        if (!instanceOf(type)) {
+            auto objectType = std::string_view{ZSTR_VAL(Z_OBJCE(value)->name), ZSTR_LEN(Z_OBJCE(value)->name)};
             throw std::runtime_error(std::format("Invalid object type: expected '{}', but got '{}'", type, objectType));
         }
 
         return *this;
+    }
+
+    std::optional<std::string_view> getOptStringView() const {
+        if (!isString()) {
+            return std::nullopt;
+        }
+        return std::string_view{Z_STRVAL(value), Z_STRLEN(value)};
     }
 
     std::string_view getStringView() const {

@@ -72,8 +72,7 @@ public:
         std::unordered_map<std::string, opentelemetry::proto::logs::v1::ScopeLogs *> scopeLogsMap;
 
         if (!logs.isArray()) {
-            // php_error_docref(NULL, E_WARNING, "Invalid iterable passed to convert");
-            return request;
+            throw std::runtime_error("Invalid iterable passed to LogsConverter");
         }
 
         for (auto const &log : logs) {
@@ -137,12 +136,15 @@ private:
     void convertInstrumentationScope(AutoZval &scopeInfo, opentelemetry::proto::logs::v1::ScopeLogs *out) {
         auto scope = out->mutable_scope();
         scope->set_name(scopeInfo.callMethod("getName"sv).getStringView());
-        scope->set_version(scopeInfo.callMethod("getVersion"sv).getStringView());
+        if (auto version = scopeInfo.callMethod("getVersion"sv); version.isString()) {
+            scope->set_version(version.getStringView());
+        }
         auto attributes = scopeInfo.callMethod("getAttributes"sv);
         convertAttributes(attributes, scope->mutable_attributes());
         scope->set_dropped_attributes_count(attributes.callMethod("getDroppedAttributesCount"sv).getLong());
-
-        out->set_schema_url(scopeInfo.callMethod("getSchemaUrl"sv).getStringView());
+        if (auto schemaUrl = scopeInfo.callMethod("getSchemaUrl"sv); schemaUrl.isString()) {
+            out->set_schema_url(schemaUrl.getStringView());
+        }
     }
 
     void convertLogRecord(AutoZval const &log, opentelemetry::proto::logs::v1::LogRecord *out) {

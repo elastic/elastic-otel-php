@@ -1,6 +1,8 @@
 #include "OtlpExporter.h"
 #include "OtlpExporter/LogsConverter.h"
+#include "OtlpExporter/MetricConverter.h"
 #include "OtlpExporter/SpanConverter.h"
+
 #include "PhpBridge.h"
 #include "LogFeature.h"
 #include "ModuleGlobals.h"

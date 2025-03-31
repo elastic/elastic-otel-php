@@ -104,7 +104,7 @@ public:
         std::unordered_map<std::string, opentelemetry::proto::trace::v1::ScopeSpans *> scopeSpansMap;
 
         if (!spans.isArray()) {
-            throw std::runtime_error("Invalid iterable passed to convert");
+            throw std::runtime_error("Invalid iterable passed to SpanConverter");
         }
 
         for (auto const &span : spans) {
