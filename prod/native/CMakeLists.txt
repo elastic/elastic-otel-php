@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.26.0)
 
+include(FetchContent)
+
 # set path for our local includes
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/building/cmake")
 list(APPEND CMAKE_PREFIX_PATH "${CMAKE_BINARY_DIR}/build/${CMAKE_BUILD_TYPE}/generators")
@@ -75,6 +77,18 @@ elastic_array_to_list(${_PROJECT_PROPERTIES_SUPPORTED_PHP_VERSIONS} _supported_p
 
 message(STATUS "Supported PHP versions ${_supported_php_versions}")
 
+FetchContent_Declare(
+  OpenTelemetryProto
+  GIT_REPOSITORY https://github.com/open-telemetry/opentelemetry-proto.git
+  GIT_TAG        ${_PROJECT_PROPERTIES_OTEL_PROTO_VERSION}
+)
+FetchContent_MakeAvailable(OpenTelemetryProto)
+
+set(_OPENTELEMETRY_PROTO_PATH "${CMAKE_BINARY_DIR}/_deps/opentelemetryproto-src")
+
+message(STATUS "OpenTelemetry protobuf available at ${_OPENTELEMETRY_PROTO_PATH}")
+
+
 find_package(CURL 8.10.1 REQUIRED)
 find_package(libunwind 1.8.1 REQUIRED)
 find_package(Boost 1.86 REQUIRED CONFIG)
@@ -90,6 +104,7 @@ enable_testing()
 
 add_subdirectory(libcommon)
 add_subdirectory(libphpbridge)
+add_subdirectory(libotlp)
 add_subdirectory(loader)
 add_subdirectory(extension)
 add_subdirectory(phpbridge_extension)

@@ -227,14 +227,14 @@ TEST_F(CommonUtilsTest, parseLogFeatures_MultipleFeatures) {
     }
 }
 
-TEST(CommonUtilsTest, ValidUtf8Strings) {
+TEST_F(CommonUtilsTest, ValidUtf8Strings) {
     EXPECT_TRUE(isUtf8("hello"));
     EXPECT_TRUE(isUtf8("witaj świecie"));
     EXPECT_TRUE(isUtf8("こんにちは")); // japanise
     EXPECT_TRUE(isUtf8("🚀🌟✨"));     // emoji
 }
 
-TEST(CommonUtilsTest, InvalidUtf8Strings) {
+TEST_F(CommonUtilsTest, InvalidUtf8Strings) {
     // overlong encoding
     std::string overlong = "\xC0\xAF";
     EXPECT_FALSE(isUtf8(overlong));
@@ -256,7 +256,7 @@ TEST(CommonUtilsTest, InvalidUtf8Strings) {
     EXPECT_FALSE(isUtf8(invalid4));
 }
 
-TEST(CommonUtilsTest, EmptyString) {
+TEST_F(CommonUtilsTest, EmptyString) {
     EXPECT_TRUE(isUtf8(""));
 }
 }

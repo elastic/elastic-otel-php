@@ -292,7 +292,7 @@ std::unordered_map<elasticapm::php::LogFeature, LogLevel> parseLogFeatures(std::
     return features;
 }
 
-inline bool isUtf8(std::string_view input) {
+bool isUtf8(std::string_view input) {
     const uint8_t *p = reinterpret_cast<const uint8_t *>(input.data());
     size_t length = input.size();
 
