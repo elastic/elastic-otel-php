@@ -110,7 +110,7 @@ else
 fi
 
 conan remote add -vquiet --index 0 ElasticConan https://artifactory.elastic.dev/artifactory/api/conan/apm-agent-php-dev
-conan remote update --secure --index 1 --url https://center.conan.io conancenter
+conan remote update --secure --index 1 --url https://center2.conan.io conancenter
 
 source ${SCRIPT_DIR}/../../../tools/read_properties.sh
 read_properties ${SCRIPT_DIR}/../../../elastic-otel-php.properties PROJECT_PROPERTIES

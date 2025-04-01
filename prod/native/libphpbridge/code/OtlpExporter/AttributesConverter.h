@@ -24,8 +24,6 @@
 
 #include <opentelemetry/proto/common/v1/common.pb.h>
 #include <string_view>
-#include <regex>
-#include <vector>
 
 namespace elasticapm::php {
 
@@ -85,6 +83,21 @@ public:
         }
 
         return result;
+    }
+
+    static void convertAttributes(AutoZval const &attributes, google::protobuf::RepeatedPtrField<opentelemetry::proto::common::v1::KeyValue> *out) {
+        using namespace std::string_view_literals;
+        auto attributesArray = attributes.callMethod("toArray"sv);
+        for (auto it = attributesArray.kvbegin(); it != attributesArray.kvend(); ++it) {
+            auto [key, val] = *it;
+            if (!std::holds_alternative<std::string_view>(key)) {
+                continue;
+            }
+
+            auto *kv = out->Add();
+            kv->set_key(std::get<std::string_view>(key));
+            *kv->mutable_value() = AttributesConverter::convertAnyValue(val);
+        }
     }
 
 private:

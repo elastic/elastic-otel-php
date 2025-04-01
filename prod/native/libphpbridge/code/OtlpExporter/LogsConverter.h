@@ -26,6 +26,7 @@
 
 #include "AutoZval.h"
 #include "AttributesConverter.h"
+#include "ConverterHelpers.h"
 
 #include <string>
 #include <string_view>
@@ -40,50 +41,7 @@ public:
         return convert(batch).SerializeAsString();
     }
 
-    std::string getResourceId(AutoZval &resourceInfo) {
-        auto schemaUrl = resourceInfo.callMethod("getSchemaUrl"sv);
-        auto attributes = resourceInfo.callMethod("getAttributes"sv);
-        auto dropped = attributes.callMethod("getDroppedAttributesCount"sv);
-        auto attributesArray = attributes.callMethod("toArray"sv);
-
-        AutoZval toSerialize;
-        array_init(toSerialize.get());
-
-        Z_TRY_ADDREF_P(schemaUrl.get());
-        add_next_index_zval(toSerialize.get(), schemaUrl.get());
-        Z_TRY_ADDREF_P(attributesArray.get());
-        add_next_index_zval(toSerialize.get(), attributesArray.get());
-        Z_TRY_ADDREF_P(dropped.get());
-        add_next_index_zval(toSerialize.get(), dropped.get());
-
-        return php_serialize_zval(toSerialize.get());
-    }
-
-    std::string getScopeId(AutoZval &scopeInfo) {
-        auto name = scopeInfo.callMethod("getName"sv);
-        auto version = scopeInfo.callMethod("getVersion"sv);
-        auto schemaUrl = scopeInfo.callMethod("getSchemaUrl"sv);
-        auto attributes = scopeInfo.callMethod("getAttributes"sv);
-        auto dropped = attributes.callMethod("getDroppedAttributesCount"sv);
-        auto attributesArray = attributes.callMethod("toArray"sv);
-
-        AutoZval toSerialize;
-        array_init(toSerialize.get());
-
-        Z_TRY_ADDREF_P(name.get());
-        add_next_index_zval(toSerialize.get(), name.get());
-        Z_TRY_ADDREF_P(version.get());
-        add_next_index_zval(toSerialize.get(), version.get());
-        Z_TRY_ADDREF_P(schemaUrl.get());
-        add_next_index_zval(toSerialize.get(), schemaUrl.get());
-        Z_TRY_ADDREF_P(attributesArray.get());
-        add_next_index_zval(toSerialize.get(), attributesArray.get());
-        Z_TRY_ADDREF_P(dropped.get());
-        add_next_index_zval(toSerialize.get(), dropped.get());
-
-        return php_serialize_zval(toSerialize.get());
-    }
-
+private:
     opentelemetry::proto::collector::logs::v1::ExportLogsServiceRequest convert(AutoZval &logs) {
         opentelemetry::proto::collector::logs::v1::ExportLogsServiceRequest request;
 
@@ -98,8 +56,8 @@ public:
             auto resourceInfo = log.callMethod("getResource"sv);
             auto instrumentationScope = log.callMethod("getInstrumentationScope"sv);
 
-            std::string resourceId = getResourceId(resourceInfo);
-            std::string scopeId = getScopeId(instrumentationScope);
+            std::string resourceId = ConverterHelpers::getResourceId(resourceInfo);
+            std::string scopeId = ConverterHelpers::getScopeId(instrumentationScope);
 
             opentelemetry::proto::logs::v1::ResourceLogs *resourceLogs;
             if (resourceLogsMap.count(resourceId) == 0) {
@@ -126,29 +84,10 @@ public:
         return request;
     }
 
-private:
-    void convertAttributes(AutoZval &attributes, google::protobuf::RepeatedPtrField<opentelemetry::proto::common::v1::KeyValue> *out) {
-        using opentelemetry::proto::common::v1::AnyValue;
-        using opentelemetry::proto::common::v1::KeyValue;
-
-        auto attributesArray = attributes.callMethod("toArray"sv);
-
-        for (auto it = attributesArray.kvbegin(); it != attributesArray.kvend(); ++it) {
-            auto [key, val] = *it;
-            if (!std::holds_alternative<std::string_view>(key)) {
-                continue;
-            }
-
-            KeyValue *kv = out->Add();
-            kv->set_key(std::get<std::string_view>(key));
-            *kv->mutable_value() = AttributesConverter::convertAnyValue(val);
-        }
-    }
-
     void convertResourceLogs(AutoZval &resourceInfo, opentelemetry::proto::logs::v1::ResourceLogs *out) {
         auto attributes = resourceInfo.callMethod("getAttributes"sv);
         auto resource = out->mutable_resource();
-        convertAttributes(attributes, resource->mutable_attributes());
+        AttributesConverter::convertAttributes(attributes, resource->mutable_attributes());
         resource->set_dropped_attributes_count(attributes.callMethod("getDroppedAttributesCount"sv).getLong());
     }
 
@@ -159,7 +98,7 @@ private:
             scope->set_version(version.getStringView());
         }
         auto attributes = scopeInfo.callMethod("getAttributes"sv);
-        convertAttributes(attributes, scope->mutable_attributes());
+        AttributesConverter::convertAttributes(attributes, scope->mutable_attributes());
         scope->set_dropped_attributes_count(attributes.callMethod("getDroppedAttributesCount"sv).getLong());
         if (auto schemaUrl = scopeInfo.callMethod("getSchemaUrl"sv); schemaUrl.isString()) {
             out->set_schema_url(schemaUrl.getStringView());
@@ -196,26 +135,8 @@ private:
         }
 
         auto attributes = log.callMethod("getAttributes"sv);
-        convertAttributes(attributes, out->mutable_attributes());
+        AttributesConverter::convertAttributes(attributes, out->mutable_attributes());
         out->set_dropped_attributes_count(attributes.callMethod("getDroppedAttributesCount"sv).getLong());
-    }
-
-    std::string php_serialize_zval(zval *zv) {
-        zval retval;
-        zval fname;
-        ZVAL_STRING(&fname, "serialize");
-
-        if (call_user_function(EG(function_table), nullptr, &fname, &retval, 1, zv) != SUCCESS || Z_TYPE(retval) != IS_STRING) {
-            zval_ptr_dtor(&fname);
-            return {}; // empty string if serialization fails
-        }
-
-        std::string result(Z_STRVAL(retval), Z_STRLEN(retval));
-
-        zval_ptr_dtor(&fname);
-        zval_ptr_dtor(&retval);
-
-        return result;
     }
 };
 

@@ -24,6 +24,7 @@
 #include "opentelemetry/proto/common/v1/common.pb.h"
 #include "opentelemetry/proto/resource/v1/resource.pb.h"
 
+#include "ConverterHelpers.h"
 #include "AutoZval.h"
 #include "AttributesConverter.h"
 #include "CiCharTraits.h"
@@ -57,8 +58,8 @@ public:
             auto resource = metric.readProperty("resource");
             auto scope = metric.readProperty("instrumentationScope");
 
-            std::string resourceId = getResourceId(resource);
-            std::string scopeId = getScopeId(scope);
+            std::string resourceId = ConverterHelpers::getResourceId(resource);
+            std::string scopeId = ConverterHelpers::getScopeId(scope);
 
             auto *resourceMetrics = resourceMetricsMap[resourceId];
             if (!resourceMetrics) {
@@ -82,44 +83,10 @@ public:
     }
 
 private:
-    std::string getResourceId(AutoZval &resourceInfo) {
-        auto schemaUrl = resourceInfo.callMethod("getSchemaUrl"sv);
-        auto attributes = resourceInfo.callMethod("getAttributes"sv);
-        auto dropped = attributes.callMethod("getDroppedAttributesCount"sv);
-        auto attributesArray = attributes.callMethod("toArray"sv);
-
-        AutoZval toSerialize;
-        toSerialize.arrayInit();
-        toSerialize.arrayAddNextWithRef(schemaUrl);
-        toSerialize.arrayAddNextWithRef(attributesArray);
-        toSerialize.arrayAddNextWithRef(dropped);
-
-        return php_serialize_zval(toSerialize.get());
-    }
-
-    std::string getScopeId(AutoZval &scopeInfo) {
-        auto name = scopeInfo.callMethod("getName"sv);
-        auto version = scopeInfo.callMethod("getVersion"sv);
-        auto schemaUrl = scopeInfo.callMethod("getSchemaUrl"sv);
-        auto attributes = scopeInfo.callMethod("getAttributes"sv);
-        auto dropped = attributes.callMethod("getDroppedAttributesCount"sv);
-        auto attributesArray = attributes.callMethod("toArray"sv);
-
-        AutoZval toSerialize;
-        toSerialize.arrayInit();
-        toSerialize.arrayAddNextWithRef(name);
-        toSerialize.arrayAddNextWithRef(version);
-        toSerialize.arrayAddNextWithRef(schemaUrl);
-        toSerialize.arrayAddNextWithRef(attributesArray);
-        toSerialize.arrayAddNextWithRef(dropped);
-
-        return php_serialize_zval(toSerialize.get());
-    }
-
     void convertResourceMetrics(AutoZval &resource, opentelemetry::proto::metrics::v1::ResourceMetrics *out) {
         auto attributes = resource.callMethod("getAttributes"sv);
         auto resMetrics = out->mutable_resource();
-        convertAttributes(attributes, resMetrics->mutable_attributes());
+        AttributesConverter::convertAttributes(attributes, resMetrics->mutable_attributes());
         resMetrics->set_dropped_attributes_count(attributes.callMethod("getDroppedAttributesCount"sv).getLong());
         if (auto schemaUrl = resource.callMethod("getSchemaUrl"sv); schemaUrl.isString()) {
             out->set_schema_url(schemaUrl.getStringView()); // TODO ??? no value at all or empty string? (in php null is casted to empty string)
@@ -133,7 +100,7 @@ private:
             scope->set_version(version.getStringView());
         }
         auto attributes = scopeMetrics.callMethod("getAttributes"sv);
-        convertAttributes(attributes, scope->mutable_attributes());
+        AttributesConverter::convertAttributes(attributes, scope->mutable_attributes());
         scope->set_dropped_attributes_count(attributes.callMethod("getDroppedAttributesCount"sv).getLong());
         if (auto schemaUrl = scopeMetrics.callMethod("getSchemaUrl"sv); schemaUrl.isString()) {
             out->set_schema_url(schemaUrl.getStringView());
@@ -184,7 +151,7 @@ void convertMetricData(AutoZval const &data, opentelemetry::proto::metrics::v1::
     }
 
     void convertNumberDataPoint(AutoZval const &point, opentelemetry::proto::metrics::v1::NumberDataPoint *out) {
-        convertAttributes(point.readProperty("attributes"), out->mutable_attributes());
+        AttributesConverter::convertAttributes(point.readProperty("attributes"), out->mutable_attributes());
         out->set_start_time_unix_nano(point.readProperty("startTimestamp").getLong());
         out->set_time_unix_nano(point.readProperty("timestamp").getLong());
 
@@ -201,7 +168,7 @@ void convertMetricData(AutoZval const &data, opentelemetry::proto::metrics::v1::
     }
 
     void convertHistogramDataPoint(AutoZval const &point, opentelemetry::proto::metrics::v1::HistogramDataPoint *out) {
-        convertAttributes(point.readProperty("attributes"), out->mutable_attributes());
+        AttributesConverter::convertAttributes(point.readProperty("attributes"), out->mutable_attributes());
         out->set_start_time_unix_nano(point.readProperty("startTimestamp").getLong());
         out->set_time_unix_nano(point.readProperty("timestamp").getLong());
         out->set_count(point.readProperty("count").getLong());
@@ -220,7 +187,7 @@ void convertMetricData(AutoZval const &data, opentelemetry::proto::metrics::v1::
     }
 
     void convertExemplar(AutoZval const &ex, opentelemetry::proto::metrics::v1::Exemplar *out) {
-        convertAttributes(ex.readProperty("attributes"), out->mutable_filtered_attributes());
+        AttributesConverter::convertAttributes(ex.readProperty("attributes"), out->mutable_filtered_attributes());
         out->set_time_unix_nano(ex.readProperty("timestamp").getLong());
 
         if (auto spanId = ex.readProperty("spanId"); spanId.isString()) {
@@ -276,31 +243,6 @@ void convertMetricData(AutoZval const &data, opentelemetry::proto::metrics::v1::
         }
 
         throw std::runtime_error("Invalid temporality value: expected int or string (DELTA, CUMULATIVE, UNSPECIFIED)");
-    }
-
-    void convertAttributes(AutoZval const &attributes, google::protobuf::RepeatedPtrField<opentelemetry::proto::common::v1::KeyValue> *out) {
-        auto array = attributes.callMethod("toArray"sv);
-        for (auto it = array.kvbegin(); it != array.kvend(); ++it) {
-            auto [key, val] = *it;
-            if (!std::holds_alternative<std::string_view>(key))
-                continue;
-            auto *kv = out->Add();
-            kv->set_key(std::get<std::string_view>(key));
-            *kv->mutable_value() = AttributesConverter::convertAnyValue(val);
-        }
-    }
-
-    std::string php_serialize_zval(zval *zv) {
-        zval retval, fname;
-        ZVAL_STRING(&fname, "serialize");
-        if (call_user_function(EG(function_table), nullptr, &fname, &retval, 1, zv) != SUCCESS || Z_TYPE(retval) != IS_STRING) {
-            zval_ptr_dtor(&fname);
-            return {};
-        }
-        std::string result(Z_STRVAL(retval), Z_STRLEN(retval));
-        zval_ptr_dtor(&fname);
-        zval_ptr_dtor(&retval);
-        return result;
     }
 };
 
