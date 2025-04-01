@@ -171,6 +171,10 @@ public:
         return Z_TYPE_P(&value);
     }
 
+    bool isStringValidUtf8() const {
+        return (GC_FLAGS(Z_STR(value)) & IS_STR_VALID_UTF8);
+    }
+
     template <std::size_t ArgsNm = 0>
     AutoZval callMethod(std::string_view methodName, std::array<AutoZval, ArgsNm> params = {}) const { // TODO const? can modify object
         if (!isObject()) {
@@ -229,6 +233,24 @@ public:
             return Z_LVAL(value);
         }
         return std::nullopt;
+    }
+
+    double getNumberAsDouble() const {
+        if (isDouble()) {
+            return Z_DVAL(value);
+        } else if (isLong()) {
+            return static_cast<double>(Z_LVAL(value));
+        }
+        throw std::runtime_error("Not an number");
+    }
+
+    zend_long getNumberAsLong() const {
+        if (isLong()) {
+            return Z_LVAL(value);
+        } else if (isDouble()) {
+            return static_cast<zend_long>(Z_DVAL(value));
+        }
+        throw std::runtime_error("Not an number");
     }
 
     zend_long getLong() const {

@@ -280,3 +280,170 @@ void RegisterLogsExporterClasses() {
 
     zend_declare_property_null(logs_exporter_ce, "transport", sizeof("transport") - 1, ZEND_ACC_PRIVATE);
 }
+
+zend_class_entry *metric_exporter_ce;
+zend_class_entry *metric_exporter_iface_ce;
+
+PHP_METHOD(MetricExporter, __construct) {
+    zval *transport = nullptr;
+    zval *temporality = nullptr;
+
+    ZEND_PARSE_PARAMETERS_START(1, 2)
+    Z_PARAM_ZVAL(transport)
+    Z_PARAM_OPTIONAL
+    Z_PARAM_ZVAL(temporality)
+    ZEND_PARSE_PARAMETERS_END();
+
+    zend_update_property(metric_exporter_ce, Z_OBJ_P(ZEND_THIS), "transport", sizeof("transport") - 1, transport);
+    if (temporality) {
+        zend_update_property(metric_exporter_ce, Z_OBJ_P(ZEND_THIS), "temporality", sizeof("temporality") - 1, temporality);
+    } else {
+        zend_declare_property_null(metric_exporter_ce, "temporality", sizeof("temporality") - 1, ZEND_ACC_PRIVATE);
+    }
+}
+
+PHP_METHOD(MetricExporter, shutdown) {
+    zval *cancellation = NULL;
+    zval *transport;
+    zval retval;
+
+    if (zend_parse_parameters(ZEND_NUM_ARGS(), "|O!", &cancellation, cancellation_iface_ce) == FAILURE) {
+        RETURN_THROWS();
+    }
+
+    transport = zend_read_property(metric_exporter_ce, Z_OBJ_P(ZEND_THIS), "transport", sizeof("transport") - 1, 0, NULL);
+
+    if (!transport || Z_TYPE_P(transport) != IS_OBJECT) {
+        ELOGF_WARNING(EAPM_GL(logger_).get(), OTLPEXPORT, "Invalid transport");
+        zend_throw_exception(NULL, "Invalid transport", 0);
+        RETURN_THROWS();
+    }
+
+    zend_call_method(Z_OBJ_P(transport), Z_OBJCE_P(transport), NULL, "shutdown", strlen("shutdown"), &retval, 1, cancellation ? cancellation : &EG(uninitialized_zval), NULL);
+    RETURN_ZVAL(&retval, 1, 1);
+}
+
+PHP_METHOD(MetricExporter, forceFlush) {
+    zval *cancellation = NULL;
+    zval *transport;
+    zval retval;
+
+    if (zend_parse_parameters(ZEND_NUM_ARGS(), "|O!", &cancellation, cancellation_iface_ce) == FAILURE) {
+        RETURN_THROWS();
+    }
+
+    transport = zend_read_property(metric_exporter_ce, Z_OBJ_P(ZEND_THIS), "transport", sizeof("transport") - 1, 0, NULL);
+
+    if (!transport || Z_TYPE_P(transport) != IS_OBJECT) {
+        ELOGF_WARNING(EAPM_GL(logger_).get(), OTLPEXPORT, "Invalid transport");
+        zend_throw_exception(NULL, "Invalid transport", 0);
+        RETURN_THROWS();
+    }
+
+    zend_call_method(Z_OBJ_P(transport), Z_OBJCE_P(transport), NULL, "forceFlush", strlen("forceFlush"), &retval, 1, cancellation ? cancellation : &EG(uninitialized_zval), NULL);
+    RETURN_ZVAL(&retval, 1, 1);
+}
+
+PHP_METHOD(MetricExporter, export) {
+    zval *batch;
+    zval *cancellation = nullptr;
+
+    ZEND_PARSE_PARAMETERS_START(1, 2)
+    Z_PARAM_ZVAL(batch)
+    Z_PARAM_OPTIONAL
+    Z_PARAM_ZVAL(cancellation)
+    ZEND_PARSE_PARAMETERS_END();
+
+    zval *transport = zend_read_property(metric_exporter_ce, Z_OBJ_P(ZEND_THIS), "transport", sizeof("transport") - 1, 0, NULL);
+    if (!transport || Z_TYPE_P(transport) != IS_OBJECT) {
+        zend_throw_exception(NULL, "MetricExporter: Invalid transport", 0);
+        RETURN_THROWS();
+    }
+
+    try {
+        elasticapm::php::MetricConverter converter;
+        elasticapm::php::AutoZval b(batch);
+
+        std::array<elasticapm::php::AutoZval, 2> args{converter.getStringSerialized(b), elasticapm::php::AutoZval((cancellation && Z_TYPE_P(cancellation) == IS_OBJECT) ? cancellation : &EG(uninitialized_zval))};
+
+        elasticapm::php::AutoZval retVal;
+        if (!elasticapm::php::callMethod(transport, "send"sv, args.data()->get(), args.size(), retVal.get())) {
+            ELOGF_WARNING(EAPM_GL(logger_).get(), OTLPEXPORT, "MetricExporter: Failed to call send() on transport");
+            zend_throw_exception(NULL, "", 0);
+            RETURN_THROWS();
+        }
+
+        RETURN_ZVAL(retVal.get(), 1, 0);
+    } catch (std::exception const &e) {
+        ELOGF_WARNING(EAPM_GL(logger_).get(), OTLPEXPORT, "Failed to serialize metrics batch: '%s'", e.what());
+        zend_throw_exception_ex(NULL, 0, "Failed to serialize metrics batch: '%s'", e.what());
+        RETURN_THROWS();
+    }
+}
+
+PHP_METHOD(MetricExporter, temporality) {
+    zval *metric;
+
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+    Z_PARAM_ZVAL(metric)
+    ZEND_PARSE_PARAMETERS_END();
+
+    zval *temporality = zend_read_property(metric_exporter_ce, Z_OBJ_P(ZEND_THIS), "temporality", sizeof("temporality") - 1, 0, NULL);
+    if (temporality && Z_TYPE_P(temporality) != IS_NULL) {
+        RETURN_ZVAL(temporality, 1, 0);
+    }
+
+    zval retval;
+    zend_call_method(Z_OBJ_P(metric), Z_OBJCE_P(metric), NULL, "temporality", strlen("temporality"), &retval, 0, NULL, NULL);
+    RETURN_ZVAL(&retval, 1, 1);
+}
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_metricexporter___construct, 0, 0, 1)
+ZEND_ARG_OBJ_INFO(0, transport, OpenTelemetry\\Contrib\\Otlp\\TransportInterface, 0)
+ZEND_ARG_TYPE_MASK(0, temporality, MAY_BE_STRING | MAY_BE_OBJECT | MAY_BE_NULL, NULL)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_metricexporter_export, 0, 1, FutureInterface, 0)
+ZEND_ARG_TYPE_INFO(0, batch, IS_ITERABLE, 0)
+ZEND_ARG_OBJ_INFO_WITH_DEFAULT_VALUE(0, cancellation, OpenTelemetry\\SDK\\Common\\Future\\CancellationInterface, 1, "null")
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_metricexporter_shutdown, 0, 0, _IS_BOOL, 0)
+ZEND_ARG_OBJ_INFO_WITH_DEFAULT_VALUE(0, cancellation, OpenTelemetry\\SDK\\Common\\Future\\CancellationInterface, 1, "null")
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_metricexporter_forceFlush, 0, 0, _IS_BOOL, 0)
+ZEND_ARG_OBJ_INFO_WITH_DEFAULT_VALUE(0, cancellation, OpenTelemetry\\SDK\\Common\\Future\\CancellationInterface, 1, "null")
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_metricexporter_temporality, 0, 1, MAY_BE_STRING | MAY_BE_OBJECT | MAY_BE_NULL)
+ZEND_ARG_OBJ_INFO(0, metric, OpenTelemetry\\SDK\\Metrics\\MetricMetadataInterface, 0)
+ZEND_END_ARG_INFO()
+
+// clang-format off
+
+const zend_function_entry MetricExporterFunctions[] = {
+    PHP_ME(MetricExporter, __construct, arginfo_metricexporter___construct, ZEND_ACC_PUBLIC)
+    PHP_ME(MetricExporter, export, arginfo_metricexporter_export, ZEND_ACC_PUBLIC)
+    PHP_ME(MetricExporter, shutdown, arginfo_metricexporter_shutdown, ZEND_ACC_PUBLIC)
+    PHP_ME(MetricExporter, forceFlush, arginfo_metricexporter_forceFlush, ZEND_ACC_PUBLIC)
+    PHP_ME(MetricExporter, temporality, arginfo_metricexporter_temporality, ZEND_ACC_PUBLIC)
+    PHP_FE_END
+};
+
+// clang-format on
+
+void RegisterMetricExporterClasses() {
+    zend_class_entry ce;
+
+    INIT_NS_CLASS_ENTRY(ce, "OpenTelemetry\\SDK\\Metrics", "PushMetricExporterInterface", nullptr);
+    metric_exporter_iface_ce = zend_register_internal_interface(&ce);
+
+    INIT_NS_CLASS_ENTRY(ce, "OpenTelemetry\\Contrib\\Otlp", "MetricExporter", MetricExporterFunctions);
+    metric_exporter_ce = zend_register_internal_class(&ce);
+    zend_class_implements(metric_exporter_ce, 1, metric_exporter_iface_ce);
+    metric_exporter_ce->ce_flags |= ZEND_ACC_FINAL;
+
+    zend_declare_property_null(metric_exporter_ce, "transport", sizeof("transport") - 1, ZEND_ACC_PRIVATE);
+    zend_declare_property_null(metric_exporter_ce, "temporality", sizeof("temporality") - 1, ZEND_ACC_PRIVATE);
+}

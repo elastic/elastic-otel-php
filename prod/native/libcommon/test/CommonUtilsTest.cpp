@@ -226,5 +226,38 @@ TEST_F(CommonUtilsTest, parseLogFeatures_MultipleFeatures) {
         ASSERT_EQ(found->second, LogLevel::logLevel_debug);
     }
 }
+
+TEST(CommonUtilsTest, ValidUtf8Strings) {
+    EXPECT_TRUE(isUtf8("hello"));
+    EXPECT_TRUE(isUtf8("witaj świecie"));
+    EXPECT_TRUE(isUtf8("こんにちは")); // japanise
+    EXPECT_TRUE(isUtf8("🚀🌟✨"));     // emoji
+}
+
+TEST(CommonUtilsTest, InvalidUtf8Strings) {
+    // overlong encoding
+    std::string overlong = "\xC0\xAF";
+    EXPECT_FALSE(isUtf8(overlong));
+
+    // continuation byte without a starter
+    std::string orphan = "\x80";
+    EXPECT_FALSE(isUtf8(orphan));
+
+    // truncated 2-byte sequence
+    std::string truncated2 = "\xC2";
+    EXPECT_FALSE(isUtf8(truncated2));
+
+    // truncated 3-byte sequence
+    std::string truncated3 = "\xE0\xA0";
+    EXPECT_FALSE(isUtf8(truncated3));
+
+    // invalid 4-byte (outside Unicode range)
+    std::string invalid4 = "\xF5\x80\x80\x80";
+    EXPECT_FALSE(isUtf8(invalid4));
+}
+
+TEST(CommonUtilsTest, EmptyString) {
+    EXPECT_TRUE(isUtf8(""));
+}
 }
 

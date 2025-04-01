@@ -102,6 +102,7 @@ void elasticApmModuleInit(int moduleType, int moduleNumber) {
 
     RegisterOtlpExporterClasses();
     RegisterLogsExporterClasses();
+    RegisterMetricExporterClasses();
 }
 
 void elasticApmModuleShutdown( int moduleType, int moduleNumber ) {

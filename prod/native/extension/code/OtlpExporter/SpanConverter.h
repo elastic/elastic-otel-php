@@ -5,6 +5,7 @@
 
 #include "AttributesConverter.h"
 #include "AutoZval.h"
+#include "CiCharTraits.h"
 
 #include <string>
 #include <string_view>
@@ -216,12 +217,14 @@ private:
     }
     opentelemetry::proto::trace::v1::Status_StatusCode convertStatusCode(std::string_view status) {
         using opentelemetry::proto::trace::v1::Status_StatusCode;
+        using namespace elasticapm::utils::string_view_literals;
+        auto iStatus = elasticapm::utils::traits_cast<elasticapm::utils::CiCharTraits>(status);
 
-        if (status == "UNSET") {
+        if (iStatus == "Unset"_cisv) {
             return Status_StatusCode::Status_StatusCode_STATUS_CODE_UNSET;
-        } else if (status == "OK") {
+        } else if (iStatus == "Ok"_cisv) {
             return Status_StatusCode::Status_StatusCode_STATUS_CODE_OK;
-        } else if (status == "ERROR") {
+        } else if (iStatus == "Error"_cisv) {
             return Status_StatusCode::Status_StatusCode_STATUS_CODE_ERROR;
         }
 

@@ -291,4 +291,50 @@ std::unordered_map<elasticapm::php::LogFeature, LogLevel> parseLogFeatures(std::
     }
     return features;
 }
+
+inline bool isUtf8(std::string_view input) {
+    const uint8_t *p = reinterpret_cast<const uint8_t *>(input.data());
+    size_t length = input.size();
+
+    static constexpr uint8_t utf8_table[] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3};
+
+    while (length > 0) {
+        uint32_t d;
+        uint8_t c = *p++;
+        length--;
+
+        if (c < 0x80)
+            continue;
+
+        if (c < 0xC0 || c >= 0xF5)
+            return false;
+
+        uint8_t ab = utf8_table[c & 0x3F];
+        if (length < ab)
+            return false;
+        length -= ab;
+
+        if (((d = *p++) & 0xC0) != 0x80)
+            return false;
+
+        switch (ab) {
+            case 1:
+                if ((c & 0x3E) == 0)
+                    return false;
+                break;
+
+            case 2:
+                if ((*p++ & 0xC0) != 0x80 || (c == 0xE0 && (d & 0x20) == 0) || (c == 0xED && d >= 0xA0))
+                    return false;
+                break;
+
+            case 3:
+                if ((*p++ & 0xC0) != 0x80 || (*p++ & 0xC0) != 0x80 || (c == 0xF0 && (d & 0x30) == 0) || (c > 0xF4 || (c == 0xF4 && d > 0x8F)))
+                    return false;
+                break;
+        }
+    }
+
+    return true;
+}
 }
