@@ -17,4 +17,5 @@ CC=/opt/gcc-14.2.0/bin/gcc
 CXX=/opt/gcc-14.2.0/bin/g++
 LDFLAGS+=-static-libgcc
 LDFLAGS+=-static-libstdc++
+LDFLAGS+=-latomic
 CC_FOR_BUILD=/opt/gcc-14.2.0/bin/gcc
