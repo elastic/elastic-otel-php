@@ -14,4 +14,4 @@ compiler.libcxx=libstdc++11
 [env]
 CC=@_PRV_CONAN_PROFILE_CC@
 CXX=@_PRV_CONAN_PROFILE_CXX@
-LDFLAGS="-static-libgcc -static-libstdc++"
+LDFLAGS="-static-libgcc -static-libstdc++ -latomic"

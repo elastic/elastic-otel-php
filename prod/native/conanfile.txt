@@ -4,6 +4,7 @@ libunwind/1.8.1
 magic_enum/0.9.6
 boost/1.86.0
 gtest/1.15.0
+abseil/20240722.1
 protobuf/5.29.3
 php-headers-81/2.0
 php-headers-82/2.0
@@ -27,3 +28,5 @@ libprotobuf*:debug_suffix=False
 libprotobuf*:with_zlib=False
 libprotobuf*:with_rtti=True
 libprotobuf*:upb=False
+libabseil*:shared=False
+libabseil*:fPIC=True
