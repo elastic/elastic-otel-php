@@ -123,16 +123,22 @@ private:
     opentelemetry::proto::trace::v1::Span_SpanKind convertSpanKind(int kind) {
         using opentelemetry::proto::trace::v1::Span_SpanKind;
 
+        constexpr int KIND_INTERNAL = 0;
+        constexpr int KIND_CLIENT = 1;
+        constexpr int KIND_SERVER = 2;
+        constexpr int KIND_PRODUCER = 3;
+        constexpr int KIND_CONSUMER = 4;
+
         switch (kind) {
-            case 1: // TODO magic numbers
+            case KIND_INTERNAL:
                 return Span_SpanKind::Span_SpanKind_SPAN_KIND_INTERNAL;
-            case 2:
+            case KIND_CLIENT:
                 return Span_SpanKind::Span_SpanKind_SPAN_KIND_CLIENT;
-            case 3:
+            case KIND_SERVER:
                 return Span_SpanKind::Span_SpanKind_SPAN_KIND_SERVER;
-            case 4:
+            case KIND_PRODUCER:
                 return Span_SpanKind::Span_SpanKind_SPAN_KIND_PRODUCER;
-            case 5:
+            case KIND_CONSUMER:
                 return Span_SpanKind::Span_SpanKind_SPAN_KIND_CONSUMER;
             default:
                 return Span_SpanKind::Span_SpanKind_SPAN_KIND_UNSPECIFIED;
