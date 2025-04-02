@@ -42,7 +42,7 @@ final class MySqliStmtWrapped implements LoggableInterface
     ) {
     }
 
-    public function bindParam(string $types, mixed &$var, &...$vars): bool
+    public function bindParam(string $types, mixed &$var, mixed &...$vars): bool
     {
         return $this->isOOPApi
             ? $this->wrappedObj->bind_param($types, $var, ...$vars)
@@ -51,11 +51,15 @@ final class MySqliStmtWrapped implements LoggableInterface
 
     public function execute(): bool
     {
-        return $this->isOOPApi ? $this->wrappedObj->execute() : mysqli_stmt_execute($this->wrappedObj);
+        return $this->isOOPApi
+            ? $this->wrappedObj->execute()
+            : mysqli_stmt_execute($this->wrappedObj);
     }
 
     public function close(): bool
     {
-        return $this->isOOPApi ? $this->wrappedObj->close() : mysqli_stmt_close($this->wrappedObj);
+        return $this->isOOPApi
+            ? $this->wrappedObj->close()
+            : mysqli_stmt_close($this->wrappedObj);
     }
 }

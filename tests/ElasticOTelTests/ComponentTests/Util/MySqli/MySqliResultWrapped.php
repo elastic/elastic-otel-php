@@ -44,7 +44,9 @@ final class MySqliResultWrapped implements LoggableInterface
 
     public function numRows(): int|string
     {
-        return $this->isOOPApi ? $this->wrappedObj->num_rows : mysqli_num_rows($this->wrappedObj);
+        return $this->isOOPApi
+            ? $this->wrappedObj->num_rows
+            : mysqli_num_rows($this->wrappedObj);
     }
 
     /**
@@ -60,11 +62,15 @@ final class MySqliResultWrapped implements LoggableInterface
      */
     public function fetchAssoc(): array|null|false
     {
-        return $this->isOOPApi ? $this->wrappedObj->fetch_assoc() : mysqli_fetch_assoc($this->wrappedObj);
+        return $this->isOOPApi
+            ? $this->wrappedObj->fetch_assoc()
+            : mysqli_fetch_assoc($this->wrappedObj);
     }
 
     public function close(): void
     {
-        $this->isOOPApi ? $this->wrappedObj->close() : mysqli_free_result($this->wrappedObj);
+        $this->isOOPApi
+            ? $this->wrappedObj->close()
+            : mysqli_free_result($this->wrappedObj);
     }
 }

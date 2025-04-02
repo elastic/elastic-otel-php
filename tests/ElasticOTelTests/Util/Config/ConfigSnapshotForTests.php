@@ -48,13 +48,19 @@ final class ConfigSnapshotForTests implements LoggableInterface
     public readonly ?string $appCodeExtBinary; // @phpstan-ignore property.uninitializedReadonly
     private readonly ?AppCodeHostKind $appCodeHostKind; // @phpstan-ignore property.uninitializedReadonly
     public readonly ?string $appCodePhpExe; // @phpstan-ignore property.uninitializedReadonly
+
     private readonly ?TestInfraDataPerProcess $dataPerProcess; // @phpstan-ignore property.uninitializedReadonly
     private readonly ?TestInfraDataPerRequest $dataPerRequest; // @phpstan-ignore property.uninitializedReadonly
+
     private readonly ?WildcardListMatcher $envVarsToPassThrough; // @phpstan-ignore property.uninitializedReadonly
+
     public readonly int $escalatedRerunsMaxCount; // @phpstan-ignore property.uninitializedReadonly
     private readonly ?string $escalatedRerunsProdCodeLogLevelOptionName; // @phpstan-ignore property.uninitializedReadonly
+
     public readonly ?string $group; // @phpstan-ignore property.uninitializedReadonly
+
     public readonly LogLevel $logLevel; // @phpstan-ignore property.uninitializedReadonly
+
     public readonly ?string $mysqlHost; // @phpstan-ignore property.uninitializedReadonly
     public readonly ?int $mysqlPort; // @phpstan-ignore property.uninitializedReadonly
     public readonly ?string $mysqlUser; // @phpstan-ignore property.uninitializedReadonly

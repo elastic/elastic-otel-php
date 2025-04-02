@@ -59,6 +59,8 @@ use OpenTelemetry\SemConv\TraceAttributes;
  */
 final class CurlAutoInstrumentationTest extends ComponentTestCaseBase
 {
+    private const AUTO_INSTRUMENTATION_NAME = 'curl';
+
     private const RESOURCES_CLIENT_KEY = 'resources_client';
     private const HTTP_APP_CODE_REQUEST_PARAMS_FOR_SERVER_KEY = 'http_app_code_request_params_for_server';
     private const HTTP_REQUEST_HEADER_NAME_PREFIX = 'Elastic_OTel_PHP_custom_header_';
@@ -67,7 +69,6 @@ final class CurlAutoInstrumentationTest extends ComponentTestCaseBase
 
     private const ENABLE_CURL_INSTRUMENTATION_FOR_CLIENT_KEY = 'enable_curl_instrumentation_for_client';
     private const ENABLE_CURL_INSTRUMENTATION_FOR_SERVER_KEY = 'enable_curl_instrumentation_for_server';
-    private const CURL_INSTRUMENTATION_NAME = 'curl';
 
     /**
      * @param iterable<int> $suffixes
@@ -128,7 +129,7 @@ final class CurlAutoInstrumentationTest extends ComponentTestCaseBase
         $enableCurlInstrumentationForClient = $appCodeArgs->getBool(self::ENABLE_CURL_INSTRUMENTATION_FOR_CLIENT_KEY);
         if ($enableCurlInstrumentationForClient) {
             self::assertTrue(class_exists(CurlInstrumentation::class, autoload: false));
-            self::assertSame(CurlInstrumentation::NAME, self::CURL_INSTRUMENTATION_NAME); // @phpstan-ignore staticMethod.alreadyNarrowedType
+            self::assertSame(CurlInstrumentation::NAME, self::AUTO_INSTRUMENTATION_NAME); // @phpstan-ignore staticMethod.alreadyNarrowedType
         }
 
         $requestParams = $appCodeArgs->getObject(self::HTTP_APP_CODE_REQUEST_PARAMS_FOR_SERVER_KEY, HttpAppCodeRequestParams::class);
@@ -187,7 +188,7 @@ final class CurlAutoInstrumentationTest extends ComponentTestCaseBase
             setParamsFunc: function (AppCodeHostParams $appCodeParams) use ($enableCurlInstrumentationForServer): void {
                 self::disableTimingDependentFeatures($appCodeParams);
                 if (!$enableCurlInstrumentationForServer) {
-                    $appCodeParams->setProdOptionIfNotNull(OptionForProdName::disabled_instrumentations, self::CURL_INSTRUMENTATION_NAME);
+                    $appCodeParams->setProdOptionIfNotNull(OptionForProdName::disabled_instrumentations, self::AUTO_INSTRUMENTATION_NAME);
                 }
             }
         );
@@ -198,7 +199,7 @@ final class CurlAutoInstrumentationTest extends ComponentTestCaseBase
             setParamsFunc: function (AppCodeHostParams $appCodeParams) use ($enableCurlInstrumentationForClient): void {
                 self::disableTimingDependentFeatures($appCodeParams);
                 if (!$enableCurlInstrumentationForClient) {
-                    $appCodeParams->setProdOptionIfNotNull(OptionForProdName::disabled_instrumentations, self::CURL_INSTRUMENTATION_NAME);
+                    $appCodeParams->setProdOptionIfNotNull(OptionForProdName::disabled_instrumentations, self::AUTO_INSTRUMENTATION_NAME);
                 }
             },
             dbgInstanceName: 'client for cUrl request',

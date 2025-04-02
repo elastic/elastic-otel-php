@@ -39,7 +39,7 @@ class DbSpanExpectationsBuilder extends SpanExpectationsBuilder
     /**
      * @return $this
      */
-    public function setDbQueryText(string $statement): self
+    public function dbQueryText(string $statement): self
     {
         $this->addAttribute(TraceAttributes::DB_QUERY_TEXT, $statement);
         return $this;

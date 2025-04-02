@@ -29,14 +29,13 @@ use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LoggableTrait;
 use ElasticOTelTests\Util\Log\Logger;
 use mysqli;
-use PHPUnit\Framework\Assert;
 
 /**
  * Code in this file is part of implementation internals and thus it is not covered by the backward compatibility.
  *
  * @internal
  */
-final class ApiFacade implements LoggableInterface
+final class MySqliApiFacade implements LoggableInterface
 {
     use LoggableTrait;
 
@@ -48,19 +47,10 @@ final class ApiFacade implements LoggableInterface
         $this->logger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__)->addContext('this', $this);
     }
 
-    public static function canDbNameBeNull(): bool
-    {
-        return version_compare(PHP_VERSION, '7.4.0') >= 0;
-    }
-
     public function connect(string $host, int $port, string $username, string $password, ?string $dbName): ?MySqliWrapped
     {
         ($loggerProxy = $this->logger->ifTraceLevelEnabled(__LINE__, __FUNCTION__))
         && $loggerProxy->log('Entered', compact('host', 'port', 'username', 'password', 'dbName'));
-
-        if (!self::canDbNameBeNull()) {
-            Assert::assertNotNull($dbName);
-        }
 
         $wrappedObj = $this->isOOPApi
             ? new mysqli($host, $username, $password, $dbName, $port)

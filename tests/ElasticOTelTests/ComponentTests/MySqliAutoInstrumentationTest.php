@@ -29,19 +29,23 @@ use ElasticOTelTests\ComponentTests\Util\AppCodeRequestParams;
 use ElasticOTelTests\ComponentTests\Util\AppCodeTarget;
 use ElasticOTelTests\ComponentTests\Util\ComponentTestCaseBase;
 use ElasticOTelTests\ComponentTests\Util\DbAutoInstrumentationUtilForTests;
-use ElasticOTelTests\ComponentTests\Util\MySqli\ApiFacade;
+use ElasticOTelTests\ComponentTests\Util\MySqli\MySqliApiFacade;
 use ElasticOTelTests\ComponentTests\Util\MySqli\MySqliDbSpanDataExpectationsBuilder;
 use ElasticOTelTests\ComponentTests\Util\MySqli\MySqliResultWrapped;
 use ElasticOTelTests\ComponentTests\Util\MySqli\MySqliWrapped;
 use ElasticOTelTests\ComponentTests\Util\SpanExpectations;
+use ElasticOTelTests\ComponentTests\Util\SpanSequenceExpectations;
 use ElasticOTelTests\ComponentTests\Util\WaitForEventCounts;
 use ElasticOTelTests\Util\AmbientContextForTests;
+use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\Config\OptionForProdName;
 use ElasticOTelTests\Util\DataProviderForTestBuilder;
 use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\Log\LoggableToString;
 use ElasticOTelTests\Util\MixedMap;
 use OpenTelemetry\Contrib\Instrumentation\MySqli\MySqliInstrumentation;
+use OpenTelemetry\SemConv\TraceAttributes;
+use PHPUnit\Framework\Attributes\Depends;
 
 /**
  * @group smoke
@@ -50,7 +54,7 @@ use OpenTelemetry\Contrib\Instrumentation\MySqli\MySqliInstrumentation;
  */
 final class MySqliAutoInstrumentationTest extends ComponentTestCaseBase
 {
-    private const INSTRUMENTATION_NAME = 'mysqli';
+    private const AUTO_INSTRUMENTATION_NAME = 'mysqli';
     private const IS_AUTO_INSTRUMENTATION_ENABLED_KEY = 'is_auto_instrumentation_enabled';
 
     private const IS_OOP_API_KEY = 'IS_OOP_API';
@@ -102,22 +106,27 @@ final class MySqliAutoInstrumentationTest extends ComponentTestCaseBase
 
     public function testPrerequisitesSatisfied(): void
     {
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
+
         $extensionName = 'mysqli';
         self::assertTrue(extension_loaded($extensionName), 'Required extension ' . $extensionName . ' is not loaded');
 
-        self::assertNotNull(AmbientContextForTests::testConfig()->mysqlHost);
-        self::assertNotNull(AmbientContextForTests::testConfig()->mysqlPort);
-        self::assertNotNull(AmbientContextForTests::testConfig()->mysqlUser);
-        self::assertNotNull(AmbientContextForTests::testConfig()->mysqlPassword);
-        self::assertNotNull(AmbientContextForTests::testConfig()->mysqlDb);
+        $dbgCtx->pushSubScope();
+        foreach (get_object_vars(AmbientContextForTests::testConfig()) as $cfgPropName => $cfgPropValue) {
+            if (TextUtil::isPrefixOf('mysql', $cfgPropName)) {
+                $dbgCtx->resetTopSubScope(compact('cfgPropName', 'cfgPropValue'));
+                self::assertNotNull($cfgPropValue);
+            }
+        }
+        $dbgCtx->popSubScope();
 
-        $mySQLiApiFacade = new ApiFacade(/* isOOPApi */ true);
+        $mySQLiApiFacade = new MySqliApiFacade(/* isOOPApi */ true);
         $mySQLi = $mySQLiApiFacade->connect(
-            AmbientContextForTests::testConfig()->mysqlHost,
-            AmbientContextForTests::testConfig()->mysqlPort,
-            AmbientContextForTests::testConfig()->mysqlUser,
-            AmbientContextForTests::testConfig()->mysqlPassword,
-            AmbientContextForTests::testConfig()->mysqlDb
+            AssertEx::notNull(AmbientContextForTests::testConfig()->mysqlHost),
+            AssertEx::notNull(AmbientContextForTests::testConfig()->mysqlPort),
+            AssertEx::notNull(AmbientContextForTests::testConfig()->mysqlUser),
+            AssertEx::notNull(AmbientContextForTests::testConfig()->mysqlPassword),
+            AssertEx::notNull(AmbientContextForTests::testConfig()->mysqlDb)
         );
         self::assertNotNull($mySQLi);
         // Method mysqli::ping() is deprecated since PHP 8.4
@@ -194,12 +203,12 @@ final class MySqliAutoInstrumentationTest extends ComponentTestCaseBase
                     }
                     $multiQuery .= $query;
                 }
-                $expectedSpans[] = $expectationsBuilder->setNameUsingDbStatement($multiQuery)->build();
+                $expectedSpans[] = $expectationsBuilder->dbQueryText($multiQuery)->build();
                 break;
             case self::QUERY_KIND_QUERY:
             case self::QUERY_KIND_REAL_QUERY:
                 foreach ($queries as $query) {
-                    $expectedSpans[] = $expectationsBuilder->setNameUsingDbStatement($query)->build();
+                    $expectedSpans[] = $expectationsBuilder->dbQueryText($query)->build();
                 }
                 break;
             default:
@@ -251,87 +260,42 @@ final class MySqliAutoInstrumentationTest extends ComponentTestCaseBase
     }
 
     /**
-     * @return iterable<array{MixedMap}>
+     * @return iterable<string, array{MixedMap}>
      */
     public static function dataProviderForTestAutoInstrumentation(): iterable
     {
-        $disableInstrumentationsVariants = [
-            ''       => true,
-            'mysqli' => false,
-            'db'     => false,
-        ];
-
         /** @var array<?string> $connectDbNameVariants */
-        $connectDbNameVariants = [AmbientContextForTests::testConfig()->mysqlDb];
-        if (ApiFacade::canDbNameBeNull()) {
-            $connectDbNameVariants[] = null;
-        }
+        $connectDbNameVariants = [AmbientContextForTests::testConfig()->mysqlDb, null];
 
-        $result = (new DataProviderForTestBuilder())
-            ->addGeneratorOnlyFirstValueCombinable(AutoInstrumentationUtilForTests::disableInstrumentationsDataProviderGenerator($disableInstrumentationsVariants))
-            ->addBoolKeyedDimensionAllValuesCombinable(self::IS_OOP_API_KEY)
-            ->addCartesianProductOnlyFirstValueCombinable([self::CONNECT_DB_NAME_KEY => $connectDbNameVariants, self::WORK_DB_NAME_KEY    => self::allDbNames()])
-            ->addKeyedDimensionOnlyFirstValueCombinable(self::QUERY_KIND_KEY, self::QUERY_KIND_ALL_VALUES)
-            ->addGeneratorOnlyFirstValueCombinable(DbAutoInstrumentationUtilForTests::wrapTxRelatedArgsDataProviderGenerator())
-            ->build();
-
-        return self::adaptToSmoke(DataProviderForTestBuilder::convertEachDataSetToMixedMap($result));
-    }
-
-    /**
-     * @param MixedMap  $args
-     * @param ?bool    &$isOOPApi
-     * @param ?string  &$connectDbName
-     * @param ?string  &$workDbName
-     * @param ?string  &$queryKind
-     * @param ?bool    &$wrapInTx
-     * @param ?bool    &$rollback
-     *
-     * @param-out bool    $isOOPApi
-     * @param-out ?string $connectDbName
-     * @param-out string  $workDbName
-     * @param-out string  $queryKind
-     * @param-out bool    $wrapInTx
-     * @param-out bool    $rollback
-     */
-    public static function extractSharedArgs(
-        MixedMap $args,
-        ?bool &$isOOPApi /* <- out */,
-        ?string &$connectDbName /* <- out */,
-        ?string &$workDbName /* <- out */,
-        ?string &$queryKind /* <- out */,
-        ?bool &$wrapInTx /* <- out */,
-        ?bool &$rollback /* <- out */
-    ): void {
-        $isOOPApi = $args->getBool(self::IS_OOP_API_KEY);
-        $connectDbName = $args->getNullableString(self::CONNECT_DB_NAME_KEY);
-        $workDbName = $args->getString(self::WORK_DB_NAME_KEY);
-        $queryKind = $args->getString(self::QUERY_KIND_KEY);
-        $wrapInTx = $args->getBool(DbAutoInstrumentationUtilForTests::WRAP_IN_TX_KEY);
-        $rollback = $args->getBool(DbAutoInstrumentationUtilForTests::ROLLBACK_KEY);
+        return self::adaptDataProviderForTestBuilderToSmokeToDescToMixedMap(
+            (new DataProviderForTestBuilder())
+                ->addBoolKeyedDimensionAllValuesCombinable(self::IS_AUTO_INSTRUMENTATION_ENABLED_KEY)
+                ->addBoolKeyedDimensionAllValuesCombinable(self::IS_OOP_API_KEY)
+                ->addCartesianProductOnlyFirstValueCombinable([self::CONNECT_DB_NAME_KEY => $connectDbNameVariants, self::WORK_DB_NAME_KEY => self::allDbNames()])
+                ->addKeyedDimensionOnlyFirstValueCombinable(self::QUERY_KIND_KEY, self::QUERY_KIND_ALL_VALUES)
+                ->addGeneratorOnlyFirstValueCombinable(DbAutoInstrumentationUtilForTests::wrapTxRelatedArgsDataProviderGenerator())
+        );
     }
 
     public static function appCodeForTestAutoInstrumentation(MixedMap $appCodeArgs): void
     {
         DebugContext::getCurrentScope(/* out */ $dbgCtx);
 
-        self::assertTrue(extension_loaded('curl'));
+        self::assertTrue(extension_loaded('mysqli'));
 
-        $enableCurlInstrumentationForClient = $appCodeArgs->getBool(AutoInstrumentationUtilForTests::DISABLE_INSTRUMENTATIONS_KEY);
-        if ($enableCurlInstrumentationForClient) {
+        $isAutoInstrumentationEnabled = $appCodeArgs->getBool(self::IS_AUTO_INSTRUMENTATION_ENABLED_KEY);
+        if ($isAutoInstrumentationEnabled) {
             self::assertTrue(class_exists(MySqliInstrumentation::class, autoload: false));
-            self::assertSame(MySqliInstrumentation::NAME, self::INSTRUMENTATION_NAME); // @phpstan-ignore staticMethod.alreadyNarrowedType
+            self::assertSame(MySqliInstrumentation::NAME, self::AUTO_INSTRUMENTATION_NAME); // @phpstan-ignore staticMethod.alreadyNarrowedType
         }
 
-        self::extractSharedArgs(
-                      $appCodeArgs,
-            /* out */ $isOOPApi,
-            /* out */ $connectDbName,
-            /* out */ $workDbName,
-            /* out */ $queryKind,
-            /* out */ $wrapInTx,
-            /* out */ $rollback
-        );
+        $isOOPApi = $appCodeArgs->getBool(self::IS_OOP_API_KEY);
+        $connectDbName = $appCodeArgs->getNullableString(self::CONNECT_DB_NAME_KEY);
+        $workDbName = $appCodeArgs->getString(self::WORK_DB_NAME_KEY);
+        $queryKind = $appCodeArgs->getString(self::QUERY_KIND_KEY);
+        $wrapInTx = $appCodeArgs->getBool(DbAutoInstrumentationUtilForTests::WRAP_IN_TX_KEY);
+        $rollback = $appCodeArgs->getBool(DbAutoInstrumentationUtilForTests::ROLLBACK_KEY);
+
         $host = $appCodeArgs->getString(DbAutoInstrumentationUtilForTests::HOST_KEY);
         $port = $appCodeArgs->getInt(DbAutoInstrumentationUtilForTests::PORT_KEY);
         $user = $appCodeArgs->getString(DbAutoInstrumentationUtilForTests::USER_KEY);
@@ -339,7 +303,7 @@ final class MySqliAutoInstrumentationTest extends ComponentTestCaseBase
 
         mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
-        $mySQLiApiFacade = new ApiFacade($isOOPApi);
+        $mySQLiApiFacade = new MySqliApiFacade($isOOPApi);
         $mySQLi = $mySQLiApiFacade->connect($host, $port, $user, $password, $connectDbName);
         self::assertNotNull($mySQLi);
 
@@ -393,41 +357,24 @@ final class MySqliAutoInstrumentationTest extends ComponentTestCaseBase
         self::assertTrue($mySQLi->close());
     }
 
-    /**
-     * @dataProvider dataProviderForTestAutoInstrumentation
-     */
-    public function testAutoInstrumentation(MixedMap $testArgs): void
-    {
-        self::runAndEscalateLogLevelOnFailure(
-            self::buildDbgDescForTestWithArgs(__CLASS__, __FUNCTION__, $testArgs),
-            function () use ($testArgs): void {
-                $this->implTestAutoInstrumentation($testArgs);
-            }
-        );
-    }
-
     private function implTestAutoInstrumentation(MixedMap $testArgs): void
     {
         DebugContext::getCurrentScope(/* out */ $dbgCtx);
 
-        self::assertNotEmpty(self::MESSAGES);
+        self::assertNotEmpty(self::MESSAGES); // @phpstan-ignore staticMethod.alreadyNarrowedType
 
         $logger = self::getLoggerStatic(__NAMESPACE__, __CLASS__, __FILE__);
         ($loggerProxy = $logger->ifTraceLevelEnabled(__LINE__, __FUNCTION__))
         && $loggerProxy->log('Entered', ['$testArgs' => $testArgs]);
 
-        $disableInstrumentationsOptVal = $testArgs->getString(AutoInstrumentationUtilForTests::DISABLE_INSTRUMENTATIONS_KEY);
-        $isInstrumentationEnabled = $testArgs->getBool(AutoInstrumentationUtilForTests::IS_INSTRUMENTATION_ENABLED_KEY);
+        $isAutoInstrumentationEnabled = $testArgs->getBool(self::IS_AUTO_INSTRUMENTATION_ENABLED_KEY);
 
-        self::extractSharedArgs(
-                      $testArgs,
-            /* out */ $isOOPApi,
-            /* out */ $connectDbName,
-            /* out */ $workDbName,
-            /* out */ $queryKind,
-            /* out */ $wrapInTx,
-            /* out */ $rollback
-        );
+        $isOOPApi = $testArgs->getBool(self::IS_OOP_API_KEY);
+        $connectDbName = $testArgs->getNullableString(self::CONNECT_DB_NAME_KEY);
+        $workDbName = $testArgs->getString(self::WORK_DB_NAME_KEY);
+        $queryKind = $testArgs->getString(self::QUERY_KIND_KEY);
+        $wrapInTx = $testArgs->getBool(DbAutoInstrumentationUtilForTests::WRAP_IN_TX_KEY);
+        $rollback = $testArgs->getBool(DbAutoInstrumentationUtilForTests::ROLLBACK_KEY);
 
         $testCaseHandle = $this->getTestCaseHandle();
 
@@ -436,49 +383,48 @@ final class MySqliAutoInstrumentationTest extends ComponentTestCaseBase
         $appCodeArgs[DbAutoInstrumentationUtilForTests::HOST_KEY] = AmbientContextForTests::testConfig()->mysqlHost;
         $appCodeArgs[DbAutoInstrumentationUtilForTests::PORT_KEY] = AmbientContextForTests::testConfig()->mysqlPort;
         $appCodeArgs[DbAutoInstrumentationUtilForTests::USER_KEY] = AmbientContextForTests::testConfig()->mysqlUser;
-        $appCodeArgs[DbAutoInstrumentationUtilForTests::PASSWORD_KEY]
-            = AmbientContextForTests::testConfig()->mysqlPassword;
+        $appCodeArgs[DbAutoInstrumentationUtilForTests::PASSWORD_KEY] = AmbientContextForTests::testConfig()->mysqlPassword;
 
         $expectationsBuilder = new MySqliDbSpanDataExpectationsBuilder($isOOPApi);
-        /** @var SpanExpectations[] $expectedSpans */
-        $expectedSpans = [];
-        if ($isInstrumentationEnabled) {
-            $expectedSpans[] = $expectationsBuilder->setNameUsingApiNames('mysqli', '__construct', 'mysqli_connect')->build();
+        /** @var SpanExpectations[] $expectedDbSpans */
+        $expectedDbSpans = [];
+        if ($isAutoInstrumentationEnabled) {
+            $expectedDbSpans[] = $expectationsBuilder->setNameUsingApiNames('mysqli', '__construct', 'mysqli_connect')->build();
 
             // Method mysqli::ping() is deprecated since PHP 8.4
             if (PHP_VERSION_ID < 80400) {
-                $expectedSpans[] = $expectationsBuilder->setNameUsingApiNames('mysqli', 'ping')->build();
+                $expectedDbSpans[] = $expectationsBuilder->setNameUsingApiNames('mysqli', 'ping')->build();
             }
 
             if ($connectDbName !== $workDbName) {
-                $expectedSpans[] = $expectationsBuilder->setNameUsingDbStatement(self::CREATE_DATABASE_IF_NOT_EXISTS_SQL_PREFIX . $workDbName)->build();
+                $expectedDbSpans[] = $expectationsBuilder->dbQueryText(self::CREATE_DATABASE_IF_NOT_EXISTS_SQL_PREFIX . $workDbName)->build();
                 $expectationsBuilder = new MySqliDbSpanDataExpectationsBuilder($isOOPApi);
-                $expectedSpans[] = $expectationsBuilder->setNameUsingApiNames('mysqli', 'select_db')->build();
+                $expectedDbSpans[] = $expectationsBuilder->setNameUsingApiNames('mysqli', 'select_db')->build();
             }
 
-            $expectedSpans[] = $expectationsBuilder->setNameUsingDbStatement(self::CREATE_TABLE_SQL)->build();
+            $expectedDbSpans[] = $expectationsBuilder->dbQueryText(self::CREATE_TABLE_SQL)->build();
 
             if ($wrapInTx) {
-                $expectedSpans[] = $expectationsBuilder->setNameUsingApiNames('mysqli', 'begin_transaction')->build();
+                $expectedDbSpans[] = $expectationsBuilder->setNameUsingApiNames('mysqli', 'begin_transaction')->build();
             }
 
             foreach (self::MESSAGES as $ignored) {
-                $expectedSpans[] = $expectationsBuilder->setNameUsingDbStatement(self::INSERT_SQL)->build();
+                $expectedDbSpans[] = $expectationsBuilder->dbQueryText(self::INSERT_SQL)->build();
             }
 
-            $expectedSpans[] = $expectationsBuilder->setNameUsingDbStatement(self::SELECT_SQL)->build();
+            $expectedDbSpans[] = $expectationsBuilder->dbQueryText(self::SELECT_SQL)->build();
 
             if ($wrapInTx) {
-                $expectedSpans[] = $expectationsBuilder->setNameUsingApiNames('mysqli', $rollback ? 'rollback' : 'commit')->build();
+                $expectedDbSpans[] = $expectationsBuilder->setNameUsingApiNames('mysqli', $rollback ? 'rollback' : 'commit')->build();
             }
 
-            self::addExpectationsForResetDbState($expectationsBuilder, $queryKind, /* out */ $expectedSpans);
+            self::addExpectationsForResetDbState($expectationsBuilder, $queryKind, /* out */ $expectedDbSpans);
         }
 
         $appCodeHost = $testCaseHandle->ensureMainAppCodeHost(
-            function (AppCodeHostParams $appCodeParams) use ($disableInstrumentationsOptVal): void {
-                if (!empty($disableInstrumentationsOptVal)) {
-                    $appCodeParams->setProdOption(OptionForProdName::disabled_instrumentations, $disableInstrumentationsOptVal);
+            function (AppCodeHostParams $appCodeParams) use ($isAutoInstrumentationEnabled): void {
+                if (!$isAutoInstrumentationEnabled) {
+                    $appCodeParams->setProdOptionIfNotNull(OptionForProdName::disabled_instrumentations, self::AUTO_INSTRUMENTATION_NAME);
                 }
                 self::disableTimingDependentFeatures($appCodeParams);
             }
@@ -490,11 +436,30 @@ final class MySqliAutoInstrumentationTest extends ComponentTestCaseBase
             }
         );
 
-        $exportedData = $testCaseHandle->waitForEnoughExportedData(WaitForEventCounts::spans(count($expectedSpans)));
+        // +1 for automatic local root span
+        $exportedData = $testCaseHandle->waitForEnoughExportedData(WaitForEventCounts::spans(1 + count($expectedDbSpans)));
         $dbgCtx->add(compact('exportedData'));
 
-        // SpanSequenceValidator::updateExpectationsEndTime($expectedSpans);
-        // SpanSequenceValidator::assertSequenceAsExpected($expectedSpans, array_values($dataFromAgent->idToSpan));
-        self::dummyAssert();
+        $actualDbSpans = [];
+        foreach ($exportedData->spans as $span) {
+            if ($span->attributes->keyExists(TraceAttributes::DB_SYSTEM_NAME)) {
+                $actualDbSpans[] = $span;
+            }
+        }
+        (new SpanSequenceExpectations($expectedDbSpans))->assertMatches($actualDbSpans);
+    }
+
+    /**
+     * @dataProvider dataProviderForTestAutoInstrumentation
+     */
+    #[Depends('testPrerequisitesSatisfied')]
+    public function testAutoInstrumentation(MixedMap $testArgs): void
+    {
+        self::runAndEscalateLogLevelOnFailure(
+            self::buildDbgDescForTestWithArgs(__CLASS__, __FUNCTION__, $testArgs),
+            function () use ($testArgs): void {
+                $this->implTestAutoInstrumentation($testArgs);
+            }
+        );
     }
 }

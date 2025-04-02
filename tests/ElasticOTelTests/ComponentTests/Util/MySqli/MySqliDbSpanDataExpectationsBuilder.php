@@ -35,6 +35,7 @@ final class MySqliDbSpanDataExpectationsBuilder extends DbSpanExpectationsBuilde
     public function __construct(
         private readonly bool $isOOPApi
     ) {
+        parent::__construct(dbSystemName: '', dbNamespace: '');
     }
 
     private static function buildFuncName(string $className, string $methodName): string
@@ -45,8 +46,8 @@ final class MySqliDbSpanDataExpectationsBuilder extends DbSpanExpectationsBuilde
     public function setNameUsingApiNames(string $className, string $methodName, ?string $funcName = null): self
     {
         $this->isOOPApi
-            ? $this->setNameUsingClassMethod($className, /* isStaticMethod */ false, $methodName)
-            : $this->setNameUsingFuncName($funcName ?? self::buildFuncName($className, $methodName));
+            ? $this->nameAndCodeAttributesUsingClassMethod($className, $methodName, isStaticMethod: false)
+            : $this->nameAndCodeAttributesUsingFuncName($funcName ?? self::buildFuncName($className, $methodName));
         return $this;
     }
 }
