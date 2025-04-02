@@ -25,7 +25,6 @@ declare(strict_types=1);
 
 namespace Elastic\OTel;
 
-use Elastic\OTel\OtlpExporters\SpanExporter;
 use Elastic\OTel\HttpTransport\ElasticHttpTransportFactory;
 use Elastic\OTel\InferredSpans\InferredSpans;
 use Elastic\OTel\Log\ElasticLogWriter;
