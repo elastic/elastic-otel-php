@@ -28,10 +28,14 @@
 #include "InternalFunctionInstrumentation.h"
 #include "transport/HttpTransportAsync.h"
 #include "PhpBridge.h"
+#include "OtlpExporter/LogsConverter.h"
+#include "OtlpExporter/MetricConverter.h"
+#include "OtlpExporter/SpanConverter.h"
 
 #include <main/php.h>
 #include <Zend/zend_API.h>
 #include <Zend/zend_closures.h>
+#include <Zend/zend_exceptions.h>
 
 // bool elastic_otel_is_enabled()
 PHP_FUNCTION(elastic_otel_is_enabled) {
@@ -245,6 +249,72 @@ PHP_FUNCTION(force_set_object_property_value) {
     RETURN_BOOL(elasticapm::php::forceSetObjectPropertyValue(object, property_name, value));
 }
 
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_elastic_convert_spans, 0, 1, IS_STRING, 0)
+ZEND_ARG_TYPE_INFO(0, batch, IS_ITERABLE, 0)
+ZEND_END_ARG_INFO()
+
+PHP_FUNCTION(convert_spans) {
+    zval *batch;
+
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+    Z_PARAM_ZVAL(batch)
+    ZEND_PARSE_PARAMETERS_END();
+
+    try {
+        elasticapm::php::SpanConverter converter;
+        auto res = converter.getStringSerialized(elasticapm::php::AutoZval(batch));
+        RETURN_STRINGL(res.c_str(), res.length());
+    } catch (std::exception const &e) {
+        ELOGF_WARNING(EAPM_GL(logger_).get(), OTLPEXPORT, "Failed to serialize spans batch: '%s'", e.what());
+        zend_throw_exception_ex(NULL, 0, "Failed to serialize spans batch: '%s'", e.what());
+        RETURN_THROWS();
+    }
+}
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_elastic_convert_logs, 0, 1, IS_STRING, 0)
+ZEND_ARG_TYPE_INFO(0, batch, IS_ITERABLE, 0)
+ZEND_END_ARG_INFO()
+
+PHP_FUNCTION(convert_logs) {
+    zval *batch;
+
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+    Z_PARAM_ZVAL(batch)
+    ZEND_PARSE_PARAMETERS_END();
+
+    try {
+        elasticapm::php::LogsConverter converter;
+        auto res = converter.getStringSerialized(elasticapm::php::AutoZval(batch));
+        RETURN_STRINGL(res.c_str(), res.length());
+    } catch (std::exception const &e) {
+        ELOGF_WARNING(EAPM_GL(logger_).get(), OTLPEXPORT, "Failed to serialize logs batch: '%s'", e.what());
+        zend_throw_exception_ex(NULL, 0, "Failed to serialize logs batch: '%s'", e.what());
+        RETURN_THROWS();
+    }
+}
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_elastic_convert_metrics, 0, 1, IS_STRING, 0)
+ZEND_ARG_TYPE_INFO(0, batch, IS_ITERABLE, 0)
+ZEND_END_ARG_INFO()
+
+PHP_FUNCTION(convert_metrics) {
+    zval *batch;
+
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+    Z_PARAM_ZVAL(batch)
+    ZEND_PARSE_PARAMETERS_END();
+
+    try {
+        elasticapm::php::MetricConverter converter;
+        auto res = converter.getStringSerialized(elasticapm::php::AutoZval(batch));
+        RETURN_STRINGL(res.c_str(), res.length());
+    } catch (std::exception const &e) {
+        ELOGF_WARNING(EAPM_GL(logger_).get(), OTLPEXPORT, "Failed to serialize metrics batch: '%s'", e.what());
+        zend_throw_exception_ex(NULL, 0, "Failed to serialize metrics batch: '%s'", e.what());
+        RETURN_THROWS();
+    }
+}
+
 // clang-format off
 const zend_function_entry elastic_otel_functions[] = {
     PHP_FE( elastic_otel_is_enabled, elastic_otel_no_paramters_arginfo )
@@ -257,6 +327,11 @@ const zend_function_entry elastic_otel_functions[] = {
     ZEND_NS_FE( "Elastic\\OTel\\HttpTransport", initialize, ArgInfoInitialize)
     ZEND_NS_FE( "Elastic\\OTel\\HttpTransport", enqueue, elastic_otel_no_paramters_arginfo)
     ZEND_NS_FE( "Elastic\\OTel\\InferredSpans", force_set_object_property_value, elastic_otel_force_set_object_property_value_arginfo)
+
+    ZEND_NS_FE( "Elastic\\OTel\\OtlpExporters", convert_spans, arginfo_elastic_convert_spans)
+    ZEND_NS_FE( "Elastic\\OTel\\OtlpExporters", convert_logs, arginfo_elastic_convert_logs)
+    ZEND_NS_FE( "Elastic\\OTel\\OtlpExporters", convert_metrics, arginfo_elastic_convert_metrics)
+
 
     PHP_FE_END
 };

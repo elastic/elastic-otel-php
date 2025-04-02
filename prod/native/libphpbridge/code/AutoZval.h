@@ -277,139 +277,173 @@ public:
         }
     }
 
+    uint32_t getArrayCount() {
+        return zend_array_count(Z_ARRVAL(value));
+    }
+    // =============================
+    // Iterator for values only
+    // =============================
     template <typename TP = AutoZval>
     class IteratorImpl {
     public:
         using value_type = TP;
 
-        IteratorImpl(HashTable *ht, uint32_t position) : ht_(ht), pos_(position) {
-            moveToValid();
+        IteratorImpl(HashTable *ht, bool end = false) : ht_(ht), end_(end) {
+            if (!end_) {
+                if (!ht_ || zend_array_count(ht_) == 0) {
+                    end_ = true;
+                } else {
+                    zend_hash_internal_pointer_reset(ht_);
+                    moveToValid();
+                }
+            }
         }
 
         value_type operator*() const {
-            zval *zv = zend_hash_index_find(ht_, pos_);
-            return zv ? AutoZval(zv) : AutoZval(); // ZVAL_UNDEF if not exists
+            zval *val = zend_hash_get_current_data(ht_);
+            return val ? AutoZval(val) : AutoZval();
         }
 
         IteratorImpl &operator++() {
-            ++pos_;
-            moveToValid();
+            zend_hash_move_forward(ht_);
+            if (zend_hash_has_more_elements(ht_) != SUCCESS) {
+                end_ = true;
+            } else {
+                moveToValid();
+            }
             return *this;
         }
 
         bool operator!=(const IteratorImpl &other) const {
-            return ht_ != other.ht_ || pos_ != other.pos_;
+            return ht_ != other.ht_ || end_ != other.end_;
         }
 
     private:
         void moveToValid() {
-            // skip holes
-            while (pos_ < ht_->nNumUsed) {
-                if (!Z_ISUNDEF(ht_->arData[pos_].val)) {
-                    break;
+            while (zend_hash_has_more_elements(ht_) == SUCCESS) {
+                zval *val = zend_hash_get_current_data(ht_);
+                if (val && !Z_ISUNDEF_P(val)) {
+                    return;
                 }
-                ++pos_;
+                zend_hash_move_forward(ht_);
             }
+            end_ = true;
         }
 
         HashTable *ht_;
-        uint32_t pos_;
+        bool end_;
     };
 
     using iterator = IteratorImpl<AutoZval>;
-    using const_interator = IteratorImpl<const AutoZval>;
+    using const_iterator = IteratorImpl<const AutoZval>;
 
     iterator begin() {
         if (!isArray())
             throw std::runtime_error("Zval is not an array");
-        return iterator(Z_ARRVAL(value), 0);
+        return iterator(Z_ARRVAL(value), false);
     }
 
     iterator end() {
         if (!isArray())
             throw std::runtime_error("Zval is not an array");
-        return iterator(Z_ARRVAL(value), Z_ARRVAL(value)->nNumUsed);
+        return iterator(Z_ARRVAL(value), true);
     }
 
-    const_interator begin() const {
+    const_iterator begin() const {
+        return cbegin();
+    }
+    const_iterator end() const {
+        return cend();
+    }
+
+    const_iterator cbegin() const {
         if (!isArray())
             throw std::runtime_error("Zval is not an array");
-        return const_interator(Z_ARRVAL(value), 0);
+        return const_iterator(Z_ARRVAL(value), false);
     }
 
-    const_interator end() const {
+    const_iterator cend() const {
         if (!isArray())
             throw std::runtime_error("Zval is not an array");
-        return const_interator(Z_ARRVAL(value), Z_ARRVAL(value)->nNumUsed);
+        return const_iterator(Z_ARRVAL(value), true);
     }
 
-    const_interator cbegin() const {
-        if (!isArray())
-            throw std::runtime_error("Zval is not an array");
-        return const_interator(Z_ARRVAL(value), 0);
-    }
-
-    const_interator cend() const {
-        if (!isArray())
-            throw std::runtime_error("Zval is not an array");
-        return const_interator(Z_ARRVAL(value), Z_ARRVAL(value)->nNumUsed);
-    }
-
+    // =============================
+    // Iterator for key-value pairs
+    // =============================
     class KeyValueIterator {
     public:
         using Key = std::variant<std::string_view, zend_ulong>;
         using Value = AutoZval;
         using Pair = std::pair<Key, Value>;
 
-        KeyValueIterator(HashTable *ht, uint32_t pos) : ht_(ht), pos_(pos) {
-            moveToValid();
+        explicit KeyValueIterator(HashTable *ht, bool end = false) : ht_(ht), end_(end) {
+            if (!end_) {
+                if (!ht_ || zend_array_count(ht_) == 0) {
+                    end_ = true;
+                } else {
+                    zend_hash_internal_pointer_reset(ht_);
+                    moveToValid();
+                }
+            }
         }
 
         Pair operator*() const {
-            Bucket *bucket = &ht_->arData[pos_];
+            zend_string *key_str = nullptr;
+            zend_ulong key_index = 0;
+
+            int key_type = zend_hash_get_current_key(ht_, &key_str, &key_index);
             Key key;
-            if (bucket->key) {
-                key = std::string_view(ZSTR_VAL(bucket->key), ZSTR_LEN(bucket->key));
+            if (key_type == HASH_KEY_IS_STRING && key_str) {
+                key = std::string_view(ZSTR_VAL(key_str), ZSTR_LEN(key_str));
             } else {
-                key = bucket->h;
+                key = key_index;
             }
-            return {key, AutoZval(&bucket->val)};
+
+            zval *val = zend_hash_get_current_data(ht_);
+            return {key, val ? AutoZval(val) : AutoZval()};
         }
 
         KeyValueIterator &operator++() {
-            ++pos_;
-            moveToValid();
+            zend_hash_move_forward(ht_);
+            if (zend_hash_has_more_elements(ht_) != SUCCESS) {
+                end_ = true;
+            } else {
+                moveToValid();
+            }
             return *this;
         }
 
         bool operator!=(const KeyValueIterator &other) const {
-            return pos_ != other.pos_ || ht_ != other.ht_;
+            return ht_ != other.ht_ || end_ != other.end_;
         }
 
     private:
         void moveToValid() {
-            while (pos_ < ht_->nNumUsed) {
-                if (!Z_ISUNDEF(ht_->arData[pos_].val)) {
-                    break;
+            while (zend_hash_has_more_elements(ht_) == SUCCESS) {
+                zval *val = zend_hash_get_current_data(ht_);
+                if (val && !Z_ISUNDEF_P(val)) {
+                    return;
                 }
-                ++pos_;
+                zend_hash_move_forward(ht_);
             }
+            end_ = true;
         }
 
         HashTable *ht_;
-        uint32_t pos_;
+        bool end_;
     };
 
     KeyValueIterator kvbegin() const {
         if (!isArray())
-            throw std::runtime_error("Not an array");
-        return KeyValueIterator(Z_ARRVAL(value), 0);
+            throw std::runtime_error("Zval is not an array");
+        return KeyValueIterator(Z_ARRVAL(value), false);
     }
 
     KeyValueIterator kvend() const {
         if (!isArray())
-            throw std::runtime_error("Not an array");
-        return KeyValueIterator(Z_ARRVAL(value), Z_ARRVAL(value)->nNumUsed);
+            throw std::runtime_error("Zval is not an array");
+        return KeyValueIterator(Z_ARRVAL(value), true);
     }
 
 private:

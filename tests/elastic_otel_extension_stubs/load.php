@@ -25,4 +25,5 @@ if (!extension_loaded('elastic_otel')) {
     require __DIR__ . '/global_namespace.php';
     require __DIR__ . '/Elastic_OTel_HttpTransport_namespace.php';
     require __DIR__ . '/Elastic_OTel_InferredSpans_namespace.php';
+    require __DIR__ . '/Elastic_OTel_OtlpExporters_namespace.php';
 }

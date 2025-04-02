@@ -37,12 +37,12 @@ using namespace std::string_view_literals;
 
 class LogsConverter {
 public:
-    std::string getStringSerialized(AutoZval &batch) {
+    std::string getStringSerialized(AutoZval const &batch) {
         return convert(batch).SerializeAsString();
     }
 
 private:
-    opentelemetry::proto::collector::logs::v1::ExportLogsServiceRequest convert(AutoZval &logs) {
+    opentelemetry::proto::collector::logs::v1::ExportLogsServiceRequest convert(AutoZval const &logs) {
         opentelemetry::proto::collector::logs::v1::ExportLogsServiceRequest request;
 
         std::unordered_map<std::string, opentelemetry::proto::logs::v1::ResourceLogs *> resourceLogsMap;

@@ -37,11 +37,11 @@ using namespace std::string_view_literals;
 
 class SpanConverter {
 public:
-    std::string getStringSerialized(AutoZval &batch) {
+    std::string getStringSerialized(AutoZval const &batch) {
         return convert(batch).SerializeAsString();
     }
 
-    opentelemetry::proto::collector::trace::v1::ExportTraceServiceRequest convert(AutoZval &spans) {
+    opentelemetry::proto::collector::trace::v1::ExportTraceServiceRequest convert(AutoZval const &spans) {
         opentelemetry::proto::collector::trace::v1::ExportTraceServiceRequest request;
 
         std::unordered_map<std::string, opentelemetry::proto::trace::v1::ResourceSpans *> resourceSpansMap;
@@ -200,14 +200,14 @@ private:
         using opentelemetry::proto::trace::v1::Status;
         using namespace std::string_view_literals;
 
-        auto context = span.callMethod<0>("getContext"sv, {});
-        out->set_trace_id(context.callMethod<0>("getTraceIdBinary"sv, {}).getStringView());
-        out->set_span_id(context.callMethod<0>("getSpanIdBinary"sv, {}).getStringView());
+        auto context = span.callMethod("getContext"sv);
+        out->set_trace_id(context.callMethod("getTraceIdBinary"sv).getStringView());
+        out->set_span_id(context.callMethod("getSpanIdBinary"sv).getStringView());
 
-        auto parentSpanContext = span.callMethod("getParentContext"sv, {});
+        auto parentSpanContext = span.callMethod("getParentContext"sv);
         out->set_flags(buildFlagsForSpan(context, parentSpanContext));
 
-        auto traceState = context.callMethod<0>("getTraceState"sv, {});
+        auto traceState = context.callMethod("getTraceState"sv);
         if (traceState.isObject()) {
             out->set_trace_state(traceState.callMethod("__toString"sv, {}).getStringView());
         }

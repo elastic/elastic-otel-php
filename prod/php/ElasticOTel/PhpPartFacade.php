@@ -25,6 +25,7 @@ declare(strict_types=1);
 
 namespace Elastic\OTel;
 
+use Elastic\OTel\OtlpExporters\SpanExporter;
 use Elastic\OTel\HttpTransport\ElasticHttpTransportFactory;
 use Elastic\OTel\InferredSpans\InferredSpans;
 use Elastic\OTel\Log\ElasticLogWriter;
@@ -120,14 +121,18 @@ final class PhpPartFacade
             InstrumentationBridge::singletonInstance()->bootstrap();
             self::prepareEnvForOTelSdk($elasticOTelNativePartVersion);
             self::registerAutoloader();
+            self::registerNativeOtlpSerializer();
             self::registerAsyncTransportFactory();
             self::registerOtelLogWriter();
+
 
             /** @noinspection PhpInternalEntityUsedInspection */
             if (SdkAutoloader::isExcludedUrl()) {
                 BootstrapStageLogger::logDebug('Url is excluded', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
                 return false;
             }
+
+
 
             Traces\ElasticRootSpan::startRootSpan(function () {
                 PhpPartFacade::$rootSpanEnded = true;
@@ -270,6 +275,17 @@ final class PhpPartFacade
     private static function registerOtelLogWriter(): void
     {
         ElasticLogWriter::enableLogWriter();
+    }
+
+    private static function registerNativeOtlpSerializer(): void
+    {
+        if (elastic_otel_get_config_option_by_name('native_otlp_serializer_enabled') === false) {
+            BootstrapStageLogger::logDebug('ELASTIC_OTEL_NATIVE_OTLP_SERIALIZER_ENABLED set to false', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
+        } else {
+            class_exists("Elastic\\OTel\\OtlpExporters\\SpanExporter");
+            class_exists("Elastic\\OTel\\OtlpExporters\\LogsExporter");
+            class_exists("Elastic\\OTel\\OtlpExporters\\MetricExporter");
+        }
     }
 
     /**

@@ -1,3 +1,5 @@
+<?php
+
 /*
  * Copyright Elasticsearch B.V. and/or licensed to Elasticsearch B.V. under one
  * or more contributor license agreements. See the NOTICE file distributed with
@@ -17,8 +19,32 @@
  * under the License.
  */
 
-#pragma once
+declare(strict_types=1);
 
-void RegisterOtlpExporterClasses();
-void RegisterLogsExporterClasses();
-void RegisterMetricExporterClasses();
+namespace Elastic\OTel\HttpTransport;
+
+/**
+ * This function is implemented by the extension
+ */
+function convert_spans(
+    iterable $batch
+): string {
+}
+
+
+/**
+ * This function is implemented by the extension
+ */
+function convert_logs(
+    iterable $batch
+): string {
+}
+
+
+/**
+ * This function is implemented by the extension
+ */
+function convert_metrics(
+    iterable $batch
+): string {
+}

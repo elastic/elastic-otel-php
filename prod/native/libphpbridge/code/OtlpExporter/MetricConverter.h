@@ -40,11 +40,11 @@ using namespace std::string_view_literals;
 
 class MetricConverter {
 public:
-    std::string getStringSerialized(AutoZval &batch) {
+    std::string getStringSerialized(AutoZval const &batch) {
         return convert(batch).SerializeAsString();
     }
 
-    opentelemetry::proto::collector::metrics::v1::ExportMetricsServiceRequest convert(AutoZval &metrics) {
+    opentelemetry::proto::collector::metrics::v1::ExportMetricsServiceRequest convert(AutoZval const &metrics) {
         if (!metrics.isArray()) {
             throw std::runtime_error("Invalid iterable passed to MetricsConverter");
         }
