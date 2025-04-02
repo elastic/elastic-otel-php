@@ -101,6 +101,7 @@ verify_otlp_exporters() {
 
     if ! diff -r "${base_php_impl_package_dir}" "${current_php_impl_package_dir}" ; then
         echo "${base_php_impl_package_dir} and ${current_php_impl_package_dir} have different content"
+        echo "It means that PHP implementation in ${php_impl_package_name} changed compared to the version used as the base for the native implementation"
         echo "1) If the changes require it make sure native implementation is updated"
         echo "2) Set native_otlp_exporters_based_on_php_impl_version in elastic-otel-php.properties to the version of ${php_impl_package_name} in composer.json"
         return 1
