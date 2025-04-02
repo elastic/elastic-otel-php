@@ -1,6 +1,14 @@
 
 # Elastic Distribution for OpenTelemetry PHP Change Log
 
+## v1.0.0
+
+### What's new
+
+- OTLP protobuf built-in native serialization (PR [#198](https://github.com/elastic/elastic-otel-php/pull/198))
+
+### Technical news
+- Move EDOT PHP documentation to elastic/opentelemetry (PR [#197](https://github.com/elastic/elastic-otel-php/pull/197))
 
 ## v0.4.0
 
