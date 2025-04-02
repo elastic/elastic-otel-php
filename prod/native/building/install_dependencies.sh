@@ -25,43 +25,43 @@ show_help() {
 parse_args() {
     while [[ "$#" -gt 0 ]]; do
         case $1 in
-            --build_output_path)
-                ARG_BUILD_OUTPUT_PATH="$2"
-                shift
-                ;;
-            --build_preset)
-                ARG_BUILD_PRESET="$2"
-                shift
-                ;;
-            --build_type)
-                ARG_BUILD_TYPE="$2"
-                shift
-                ;;
-            --detect_conan_profile)
-                ARG_DETECT_CONAN_PROFILE=true
-                shift
-                ;;
-            --skip_venv_conan)
-                ARG_SKIP_VENV_CONAN=true
-                shift
-                ;;
-            --force_install)
-                ARG_FORCE_INSTALL="--force_install"
-                shift
-                ;;
-            --trace)
-                ARG_TRACE=" -vvv "
-                shift
-                ;;
-            --help)
-                show_help
-                exit 0
-                ;;
-            *)
-                echo "Unknown parameter passed: $1"
-                show_help
-                exit 1
-                ;;
+        --build_output_path)
+            ARG_BUILD_OUTPUT_PATH="$2"
+            shift
+            ;;
+        --build_preset)
+            ARG_BUILD_PRESET="$2"
+            shift
+            ;;
+        --build_type)
+            ARG_BUILD_TYPE="$2"
+            shift
+            ;;
+        --detect_conan_profile)
+            ARG_DETECT_CONAN_PROFILE=true
+            shift
+            ;;
+        --skip_venv_conan)
+            ARG_SKIP_VENV_CONAN=true
+            shift
+            ;;
+        --force_install)
+            ARG_FORCE_INSTALL="--force_install"
+            shift
+            ;;
+        --trace)
+            ARG_TRACE=" -vvv "
+            shift
+            ;;
+        --help)
+            show_help
+            exit 0
+            ;;
+        *)
+            echo "Unknown parameter passed: $1"
+            show_help
+            exit 1
+            ;;
         esac
         shift
     done
@@ -92,20 +92,18 @@ else
     source ${SCRIPT_DIR}/install_venv_conan.sh --build_path "${ARG_BUILD_OUTPUT_PATH}/" ${ARG_FORCE_INSTALL}
 fi
 
-
-
 # installing profile only for known arch
 if [[ -n "${ARG_BUILD_PRESET}" ]]; then
     echo "Installing conan profiles and settings for ${ARG_BUILD_PRESET}"
 
-    conan config install "${SCRIPT_DIR}/conan/profiles/${ARG_BUILD_PRESET}"  -tf profiles
+    conan config install "${SCRIPT_DIR}/conan/profiles/${ARG_BUILD_PRESET}" -tf profiles
     conan config install "${SCRIPT_DIR}/conan/settings.yml"
 
     OPTION_PROFILE=" --profile:build=${ARG_BUILD_PRESET} --profile:host=${ARG_BUILD_PRESET} "
 else
 
     if [[ -n "${ARG_DETECT_CONAN_PROFILE}" ]]; then
-       conan profile detect
+        conan profile detect
     fi
 fi
 
@@ -116,8 +114,7 @@ source ${SCRIPT_DIR}/../../../tools/read_properties.sh
 read_properties ${SCRIPT_DIR}/../../../elastic-otel-php.properties PROJECT_PROPERTIES
 PHP_VERSIONS=(${PROJECT_PROPERTIES_SUPPORTED_PHP_VERSIONS//[()]/})
 
-for PHP_VERSION in "${PHP_VERSIONS[@]}"
-do
+for PHP_VERSION in "${PHP_VERSIONS[@]}"; do
     CREATE_REFERENCE=php-headers-${PHP_VERSION}
     echo "Searching for ${CREATE_REFERENCE}/${PROJECT_PROPERTIES_PHP_HEADERS_VERSION} in local cache/remotes"
 
@@ -133,6 +130,20 @@ do
 
 done
 
- # conan will create build/${OPTION_BUILD_TYPE}/generators fordlers inside ${ARG_BUILD_OUTPUT_PATH}
+CREATE_REFERENCE=protobuf-custom
+PROTOBUF_VERSION=5.27.0
+
+echo "Searching for ${CREATE_REFERENCE}/${PROTOBUF_VERSION} in local cache/remotes"
+if conan list -c ${CREATE_REFERENCE}/${PROTOBUF_VERSION}:* -fs="build_type=${ARG_BUILD_TYPE}" 2>&1 | grep -q "not found"; then
+    if conan search -f json ${CREATE_REFERENCE}/${PROTOBUF_VERSION} 2>&1 | grep -q "Found"; then
+        echo "Package protobuf-custom found in remote"
+    else
+        echo "Package protobuf-custom not found - creating"
+        conan create --version ${PROTOBUF_VERSION} --build=missing ${ARG_TRACE} ${OPTION_PROFILE} ${OPTION_BUILD_TYPE} --name ${CREATE_REFERENCE} ${SCRIPT_DIR}/dependencies/protobuf-custom
+    fi
+
+fi
+
+# conan will create build/${OPTION_BUILD_TYPE}/generators fordlers inside ${ARG_BUILD_OUTPUT_PATH}
 
 conan install ${ARG_TRACE} --build=missing ${OPTION_PROFILE} ${OPTION_BUILD_TYPE} -of ${ARG_BUILD_OUTPUT_PATH} ${SCRIPT_DIR}/../conanfile.txt

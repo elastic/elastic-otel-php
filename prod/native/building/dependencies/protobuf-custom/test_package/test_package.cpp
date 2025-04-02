@@ -17,10 +17,18 @@
  * under the License.
  */
 
-#pragma once
+#include <cstdlib>
+#include <iostream>
 
-#include <Zend/zend_API.h>
+#include <google/protobuf/timestamp.pb.h>
+#include <google/protobuf/util/time_util.h>
 
-extern const zend_function_entry elastic_otel_functions[];
+int main()
+{
+	google::protobuf::Timestamp ts;
+	google::protobuf::util::TimeUtil::FromString("1972-01-01T10:00:20.021Z", &ts);
+	const auto nanoseconds = ts.nanos();
 
-void register_otel();
+	std::cout << "1972-01-01T10:00:20.021Z in nanoseconds: " << nanoseconds << "\n";
+	return EXIT_SUCCESS;
+}

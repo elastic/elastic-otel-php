@@ -45,7 +45,8 @@ foreach(_php_version ${_supported_php_versions})
                                             )
 
     target_link_libraries(${_Target}
-        common
+        PRIVATE common
+        PUBLIC otlp
     )
 
 endforeach()

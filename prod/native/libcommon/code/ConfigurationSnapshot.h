@@ -49,6 +49,8 @@
 
 #define ELASTIC_OTEL_CFG_OPT_NAME_DEPENDENCY_AUTOLOADER_GUARD_ENABLED dependency_autoloader_guard_enabled
 
+#define ELASTIC_OTEL_CFG_OPT_NAME_NATIVE_OTLP_SERIALIZER_ENABLED native_otlp_serializer_enabled
+
 namespace elasticapm::php {
 
 using namespace std::string_literals;
@@ -77,6 +79,7 @@ struct ConfigurationSnapshot {
     std::chrono::milliseconds ELASTIC_OTEL_CFG_OPT_NAME_INFERRED_SPANS_MIN_DURATION = std::chrono::milliseconds(0);
 
     bool ELASTIC_OTEL_CFG_OPT_NAME_DEPENDENCY_AUTOLOADER_GUARD_ENABLED = true;
+    bool ELASTIC_OTEL_CFG_OPT_NAME_NATIVE_OTLP_SERIALIZER_ENABLED = true;
 
     uint64_t revision = 0;
 };

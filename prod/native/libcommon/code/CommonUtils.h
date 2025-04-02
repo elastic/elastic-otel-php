@@ -81,4 +81,6 @@ std::optional<ParsedURL> parseUrl(std::string const &url);
 std::optional<std::string> getConnectionDetailsFromURL(std::string const &url);
 
 std::unordered_map<elasticapm::php::LogFeature, LogLevel> parseLogFeatures(std::shared_ptr<elasticapm::php::LoggerInterface> logger, std::string_view logFeatures);
+
+bool isUtf8(std::string_view input);
 }

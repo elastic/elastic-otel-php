@@ -29,6 +29,7 @@
 #include "Hooking.h"
 #include "InternalFunctionInstrumentation.h"
 #include "ModuleIniEntries.h"
+#include "ModuleFunctions.h"
 #include "ModuleGlobals.h"
 #include "PeriodicTaskExecutor.h"
 #include "RequestScope.h"
@@ -48,7 +49,6 @@
 
 
 extern elasticapm::php::ConfigurationManager configManager;
-
 
 void logStartupPreamble(elasticapm::php::LoggerInterface *logger) {
     constexpr LogLevel level = LogLevel::logLevel_debug;
@@ -94,7 +94,6 @@ void elasticApmModuleInit(int moduleType, int moduleNumber) {
 
     zend_observer_activate();
     zend_observer_fcall_register(elasticapm::php::elasticRegisterObserver);
-
 
     if (php_check_open_basedir_ex(EAPM_GL(config_)->get(&elasticapm::php::ConfigurationSnapshot::bootstrap_php_part_file).c_str(), false) != 0) {
         ELOGF_WARNING(globals->logger_, MODULE, "EDOT PHP bootstrap file (%s) is located outside of paths allowed by open_basedir ini setting. Read more details here https://elastic.github.io/opentelemetry/edot-sdks/php/setup/limitations.html", EAPM_GL(config_)->get(&elasticapm::php::ConfigurationSnapshot::bootstrap_php_part_file).c_str());
