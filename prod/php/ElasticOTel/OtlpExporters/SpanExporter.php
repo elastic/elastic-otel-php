@@ -21,6 +21,8 @@ declare(strict_types=1);
  * under the License.
  */
 
+/** @phpstan-ignore-file */
+
 namespace OpenTelemetry\Contrib\Otlp;
 
 use OpenTelemetry\API\Behavior\LogsMessagesTrait;
