@@ -1,3 +1,5 @@
+<?php
+
 /*
  * Copyright Elasticsearch B.V. and/or licensed to Elasticsearch B.V. under one
  * or more contributor license agreements. See the NOTICE file distributed with
@@ -17,10 +19,38 @@
  * under the License.
  */
 
-#pragma once
+declare(strict_types=1);
 
-#include <Zend/zend_API.h>
+namespace Elastic\OTel\HttpTransport;
 
-extern const zend_function_entry elastic_otel_functions[];
+/**
+ * This function is implemented by the extension
+ * @phpstan-ignore-next-line
+ */
+function convert_spans(
+    iterable $batch
+): string {
+    return "";
+}
 
-void register_otel();
+
+/**
+ * This function is implemented by the extension
+ * @phpstan-ignore-next-line
+ */
+function convert_logs(
+    iterable $batch
+): string {
+    return "";
+}
+
+
+/**
+ * This function is implemented by the extension
+ * @phpstan-ignore-next-line
+ */
+function convert_metrics(
+    iterable $batch
+): string {
+    return "";
+}
