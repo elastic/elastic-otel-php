@@ -8,6 +8,8 @@ export elastic_otel_php_supported_php_versions=("${supported_php_versions[@]:?}"
 export elastic_otel_php_supported_package_types=("${supported_package_types[@]:?}")
 export elastic_otel_php_test_app_code_host_kinds_short_names=("${test_app_code_host_kinds_short_names[@]:?}")
 export elastic_otel_php_test_groups_short_names=("${test_groups_short_names[@]:?}")
+export elastic_otel_php_otel_proto_version="${otel_proto_version:?}"
+export elastic_otel_php_native_otlp_exporters_based_on_php_impl_version="${native_otlp_exporters_based_on_php_impl_version:?}"
 
 function get_supported_php_versions_as_string() {
     local supported_php_versions_as_string
