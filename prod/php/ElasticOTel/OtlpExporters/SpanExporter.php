@@ -47,11 +47,14 @@ final class SpanExporter implements SpanExporterInterface
     {
     }
 
+    /** @phpstan-ignore-next-line */
     public function export(iterable $batch, ?CancellationInterface $cancellation = null): FutureInterface
     {
         // \Elastic\OTel\OtlpExporters\convert_spans is provided by extension
         return $this->transport
+            /** @phpstan-ignore-next-line */
             ->send(\Elastic\OTel\OtlpExporters\convert_spans($batch), $cancellation)
+            /** @phpstan-ignore-next-line */
             ->map(function (?string $payload): bool {
                 if ($payload === null) {
                     return true;

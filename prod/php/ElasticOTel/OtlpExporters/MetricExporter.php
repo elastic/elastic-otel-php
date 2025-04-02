@@ -52,16 +52,20 @@ final class MetricExporter implements PushMetricExporterInterface, AggregationTe
     ) {
     }
 
+    /** @phpstan-ignore-next-line */
     public function temporality(MetricMetadataInterface $metric): Temporality|string|null
     {
         return $this->temporality ?? $metric->temporality();
     }
 
+    /** @phpstan-ignore-next-line */
     public function export(iterable $batch): bool
     {
         // \Elastic\OTel\OtlpExporters\convert_metrics is provided by extension
         return $this->transport
+            /** @phpstan-ignore-next-line */
             ->send(\Elastic\OTel\OtlpExporters\convert_metrics($batch))
+            /** @phpstan-ignore-next-line */
             ->map(function (?string $payload): bool {
                 if ($payload === null) {
                     return true;

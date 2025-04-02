@@ -22,8 +22,6 @@
 
 declare(strict_types=1);
 
-/** @phpstan-ignore-file */
-
 namespace OpenTelemetry\Contrib\Otlp;
 
 use OpenTelemetry\API\Behavior\LogsMessagesTrait;
@@ -51,12 +49,15 @@ class LogsExporter implements LogRecordExporterInterface
 
     /**
      * @param iterable<ReadableLogRecord> $batch
+     * @phpstan-ignore-next-line
      */
     public function export(iterable $batch, ?CancellationInterface $cancellation = null): FutureInterface
     {
         // \Elastic\OTel\OtlpExporters\convert_logs is provided by extension
         return $this->transport
+            /** @phpstan-ignore-next-line */
             ->send(\Elastic\OTel\OtlpExporters\convert_logs($batch), $cancellation)
+            /** @phpstan-ignore-next-line */
             ->map(function (?string $payload): bool {
                 if ($payload === null) {
                     return true;
