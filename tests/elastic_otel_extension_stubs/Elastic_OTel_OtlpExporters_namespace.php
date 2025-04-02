@@ -25,26 +25,32 @@ namespace Elastic\OTel\HttpTransport;
 
 /**
  * This function is implemented by the extension
+ * @phpstan-ignore-next-line
  */
 function convert_spans(
     iterable $batch
 ): string {
+    return "";
 }
 
 
 /**
  * This function is implemented by the extension
+ * @phpstan-ignore-next-line
  */
 function convert_logs(
     iterable $batch
 ): string {
+    return "";
 }
 
 
 /**
  * This function is implemented by the extension
+ * @phpstan-ignore-next-line
  */
 function convert_metrics(
     iterable $batch
 ): string {
+    return "";
 }
