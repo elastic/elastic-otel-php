@@ -45,7 +45,6 @@ final class SpanExporter implements SpanExporterInterface
     {
     }
 
-    /** @phpstan-ignore-next-line */
     public function export(iterable $batch, ?CancellationInterface $cancellation = null): FutureInterface
     {
         // \Elastic\OTel\OtlpExporters\convert_spans is provided by extension

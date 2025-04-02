@@ -56,7 +56,6 @@ final class MetricExporter implements PushMetricExporterInterface, AggregationTe
         return $this->temporality ?? $metric->temporality();
     }
 
-    /** @phpstan-ignore-next-line */
     public function export(iterable $batch): bool
     {
         // \Elastic\OTel\OtlpExporters\convert_metrics is provided by extension
