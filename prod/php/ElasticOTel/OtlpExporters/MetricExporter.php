@@ -23,8 +23,6 @@ declare(strict_types=1);
 
 namespace OpenTelemetry\Contrib\Otlp;
 
-/** @phpstan-ignore-file */
-
 use OpenTelemetry\API\Behavior\LogsMessagesTrait;
 use Opentelemetry\Proto\Collector\Metrics\V1\ExportMetricsServiceResponse;
 use OpenTelemetry\SDK\Common\Export\TransportInterface;
