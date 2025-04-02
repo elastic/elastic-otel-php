@@ -19,9 +19,10 @@
  * under the License.
  */
 
-/** @phpstan-ignore-file */
 
 declare(strict_types=1);
+
+/** @phpstan-ignore-file */
 
 namespace OpenTelemetry\Contrib\Otlp;
 
