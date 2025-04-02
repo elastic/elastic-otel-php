@@ -63,12 +63,12 @@ public:
             std::string scopeId = ConverterHelpers::getScopeId(instrumentationScope);
 
             opentelemetry::proto::trace::v1::ResourceSpans *resourceSpans;
-            if ((resourceSpansIt = resourceSpansMap.find(resourceId)) == resourceSpansMap.end()) {
+            if (decltype(resourceSpansMap)::iterator resourceSpansIt = resourceSpansMap.find(resourceId); resourceSpansIt == resourceSpansMap.end()) {
                 resourceSpans = request.add_resource_spans();
                 convertResourceSpans(resourceInfo, resourceSpans);
                 resourceSpansMap[resourceId] = resourceSpans;
             } else {
-                resourceSpans = *resourceSpansIt;
+                resourceSpans = resourceSpansIt->second;
             }
 
             opentelemetry::proto::trace::v1::ScopeSpans *scopeSpans;
