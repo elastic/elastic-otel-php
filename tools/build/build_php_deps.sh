@@ -75,33 +75,24 @@ verify_otlp_exporters() {
 
     local php_impl_package_name="open-telemetry/exporter-otlp"
 
-    local base_php_impl_vendor_dir="${PWD}/z_local/temp/verify_otlp_exporters/vendor"
-    mkdir -p "${base_php_impl_vendor_dir}"
-    echo "Content of ${base_php_impl_vendor_dir}"
-    ls -al "${base_php_impl_vendor_dir}"
-
     docker run --rm \
-        -v "${base_php_impl_vendor_dir}:/app/vendor" \
-        -w /app \
-        "php:${PHP_VERSION:0:1}.${PHP_VERSION:1:1}-cli" sh -c "\
-        apt-get update && apt-get install -y unzip git \
-        && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
-        && composer require ${php_impl_package_name}:${elastic_otel_php_native_otlp_exporters_based_on_php_impl_version:?} \
-        && composer --no-dev install"
+        -v "${vendor_dir}:/new_vendor:ro" \
+        -w / \
+        "php:${PHP_VERSION:0:1}.${PHP_VERSION:1:1}-cli" \
+        sh -c \
+        "\
+            mkdir /used_as_base && cd /used_as_base \
+            && apt-get update && apt-get install -y unzip git \
+            && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
+            && composer require ${php_impl_package_name}:${elastic_otel_php_native_otlp_exporters_based_on_php_impl_version:?} \
+            && composer --no-dev install \
+            && diff -r /used_as_base/vendor/${php_impl_package_name} /new_vendor/${php_impl_package_name} \
+        "\
+        || has_compared_the_same=false
 
-    echo "Content of ${base_php_impl_vendor_dir}"
-    ls -al "${base_php_impl_vendor_dir}"
-
-    local base_php_impl_package_dir="${base_php_impl_vendor_dir}/${php_impl_package_name}"
-    echo "Content of ${base_php_impl_package_dir}"
-    ls -al "${base_php_impl_package_dir}"
-    local current_php_impl_package_dir="${vendor_dir}/${php_impl_package_name}"
-    echo "Content of ${current_php_impl_package_dir}"
-    ls -al "${current_php_impl_package_dir}"
-
-    if ! diff -r "${base_php_impl_package_dir}" "${current_php_impl_package_dir}" ; then
-        echo "${base_php_impl_package_dir} and ${current_php_impl_package_dir} have different content"
-        echo "It means that PHP implementation in ${php_impl_package_name} changed compared to the version used as the base for the native implementation"
+    if [ "${has_compared_the_same}" = "false" ]; then
+        echo "${vendor_dir}/${php_impl_package_name} content differs from the base"
+        echo "It means that PHP implementation of OTLP exporter (i.e., ${php_impl_package_name}) in composer.json differs from the version (which is ${elastic_otel_php_native_otlp_exporters_based_on_php_impl_version:?}) used as the base for the native implementation"
         echo "1) If the changes require it make sure native implementation is updated"
         echo "2) Set native_otlp_exporters_based_on_php_impl_version in elastic-otel-php.properties to the version of ${php_impl_package_name} in composer.json"
         return 1
