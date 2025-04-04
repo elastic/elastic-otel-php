@@ -29,8 +29,9 @@ use OpenTelemetry\SDK\Common\Export\TransportInterface;
 use OpenTelemetry\SDK\Common\Future\CancellationInterface;
 use OpenTelemetry\SDK\Common\Future\FutureInterface;
 use OpenTelemetry\SDK\Logs\LogRecordExporterInterface;
-use OpenTelemetry\SDK\Logs\ReadableLogRecord;
 use Throwable;
+
+use function Elastic\OTel\OtlpExporters\convert_logs;
 
 /**
  * @psalm-import-type SUPPORTED_CONTENT_TYPES from ProtobufSerializer
@@ -42,48 +43,50 @@ class LogsExporter implements LogRecordExporterInterface
     /**
      * @psalm-param TransportInterface<SUPPORTED_CONTENT_TYPES> $transport
      */
-    public function __construct(private TransportInterface $transport)
-    {
+    public function __construct(
+        private readonly TransportInterface $transport
+    ) {
     }
 
     /**
-     * @param iterable<ReadableLogRecord> $batch
-     * @phpstan-ignore-next-line
+     * @inheritDoc
+     *
+     * @return FutureInterface<mixed>
      */
     public function export(iterable $batch, ?CancellationInterface $cancellation = null): FutureInterface
     {
-        // \Elastic\OTel\OtlpExporters\convert_logs is provided by extension
         return $this->transport
-            /** @phpstan-ignore-next-line */
-            ->send(\Elastic\OTel\OtlpExporters\convert_logs($batch), $cancellation)
-            /** @phpstan-ignore-next-line */
-            ->map(function (?string $payload): bool {
-                if ($payload === null) {
+            ->send(convert_logs($batch), $cancellation)
+            ->map(
+                static function (mixed $payload): bool {
+                    if ($payload === null) {
+                        return true;
+                    }
+
+                    $serviceResponse = new ExportLogsServiceResponse();
+
+                    $partialSuccess = $serviceResponse->getPartialSuccess();
+                    if ($partialSuccess !== null && $partialSuccess->getRejectedLogRecords()) {
+                        self::logError('Export partial success', [
+                            'rejected_logs' => $partialSuccess->getRejectedLogRecords(),
+                            'error_message' => $partialSuccess->getErrorMessage(),
+                        ]);
+
+                        return false;
+                    }
+                    if ($partialSuccess !== null && $partialSuccess->getErrorMessage()) {
+                        self::logWarning('Export success with warnings/suggestions', ['error_message' => $partialSuccess->getErrorMessage()]);
+                    }
+
                     return true;
                 }
-
-                $serviceResponse = new ExportLogsServiceResponse();
-
-                $partialSuccess = $serviceResponse->getPartialSuccess();
-                if ($partialSuccess !== null && $partialSuccess->getRejectedLogRecords()) {
-                    self::logError('Export partial success', [
-                        'rejected_logs' => $partialSuccess->getRejectedLogRecords(),
-                        'error_message' => $partialSuccess->getErrorMessage(),
-                    ]);
+            )->catch(
+                static function (Throwable $throwable): bool {
+                    self::logError('Export failure', ['exception' => $throwable]);
 
                     return false;
                 }
-                if ($partialSuccess !== null && $partialSuccess->getErrorMessage()) {
-                    self::logWarning('Export success with warnings/suggestions', ['error_message' => $partialSuccess->getErrorMessage()]);
-                }
-
-                return true;
-            })
-            ->catch(static function (Throwable $throwable): bool {
-                self::logError('Export failure', ['exception' => $throwable]);
-
-                return false;
-            });
+            );
     }
 
     public function forceFlush(?CancellationInterface $cancellation = null): bool

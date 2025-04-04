@@ -281,9 +281,11 @@ final class PhpPartFacade
         if (elastic_otel_get_config_option_by_name('native_otlp_serializer_enabled') === false) {
             BootstrapStageLogger::logDebug('ELASTIC_OTEL_NATIVE_OTLP_SERIALIZER_ENABLED set to false', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
         } else {
-            class_exists("Elastic\\OTel\\OtlpExporters\\SpanExporter");
-            class_exists("Elastic\\OTel\\OtlpExporters\\LogsExporter");
-            class_exists("Elastic\\OTel\\OtlpExporters\\MetricExporter");
+            // Load classes such as \OpenTelemetry\Contrib\Otlp\SpanExporter to shadow the ones in SDK
+            $otelOtlpDir = ProdPhpDir::$fullPath . DIRECTORY_SEPARATOR . 'OpenTelemetry' . DIRECTORY_SEPARATOR . 'Contrib' . DIRECTORY_SEPARATOR . 'Otlp';
+            foreach (['SpanExporter', 'LogsExporter', 'MetricExporter'] as $exporter) {
+                require $otelOtlpDir . DIRECTORY_SEPARATOR . $exporter . '.php';
+            }
         }
     }
 

@@ -32,6 +32,8 @@ use OpenTelemetry\SDK\Metrics\MetricMetadataInterface;
 use OpenTelemetry\SDK\Metrics\PushMetricExporterInterface;
 use Throwable;
 
+use function Elastic\OTel\OtlpExporters\convert_metrics;
+
 /**
  * @see https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/metrics/sdk_exporters/stdout.md#opentelemetry-metrics-exporter---standard-output
  * @see https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/protocol/file-exporter.md#json-file-serialization
@@ -56,41 +58,41 @@ final class MetricExporter implements PushMetricExporterInterface, AggregationTe
         return $this->temporality ?? $metric->temporality();
     }
 
+    /** @inheritDoc */
     public function export(iterable $batch): bool
     {
-        // \Elastic\OTel\OtlpExporters\convert_metrics is provided by extension
         return $this->transport
-            /** @phpstan-ignore-next-line */
-            ->send(\Elastic\OTel\OtlpExporters\convert_metrics($batch))
-            /** @phpstan-ignore-next-line */
-            ->map(function (?string $payload): bool {
-                if ($payload === null) {
+            ->send(convert_metrics($batch))
+            ->map(
+                static function (mixed $payload): bool {
+                    if ($payload === null) {
+                        return true;
+                    }
+
+                    $serviceResponse = new ExportMetricsServiceResponse();
+
+                    $partialSuccess = $serviceResponse->getPartialSuccess();
+                    if ($partialSuccess !== null && $partialSuccess->getRejectedDataPoints()) {
+                        self::logError('Export partial success', [
+                            'rejected_data_points' => $partialSuccess->getRejectedDataPoints(),
+                            'error_message'        => $partialSuccess->getErrorMessage(),
+                        ]);
+
+                        return false;
+                    }
+                    if ($partialSuccess !== null && $partialSuccess->getErrorMessage()) {
+                        self::logWarning('Export success with warnings/suggestions', ['error_message' => $partialSuccess->getErrorMessage()]);
+                    }
+
                     return true;
                 }
-
-                $serviceResponse = new ExportMetricsServiceResponse();
-
-                $partialSuccess = $serviceResponse->getPartialSuccess();
-                if ($partialSuccess !== null && $partialSuccess->getRejectedDataPoints()) {
-                    self::logError('Export partial success', [
-                        'rejected_data_points' => $partialSuccess->getRejectedDataPoints(),
-                        'error_message' => $partialSuccess->getErrorMessage(),
-                    ]);
+            )->catch(
+                static function (Throwable $throwable): bool {
+                    self::logError('Export failure', ['exception' => $throwable]);
 
                     return false;
                 }
-                if ($partialSuccess !== null && $partialSuccess->getErrorMessage()) {
-                    self::logWarning('Export success with warnings/suggestions', ['error_message' => $partialSuccess->getErrorMessage()]);
-                }
-
-                return true;
-            })
-            ->catch(static function (Throwable $throwable): bool {
-                self::logError('Export failure', ['exception' => $throwable]);
-
-                return false;
-            })
-            ->await();
+            )->await();
     }
 
     public function shutdown(): bool
