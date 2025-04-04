@@ -22,6 +22,7 @@
 #endif
 #include "BridgeModuleGlobals.h"
 #include "BridgeModuleFunctions.h"
+#include "AutoZvalFunctions.h"
 
 #include "elastic_otel_version.h"
 
@@ -63,6 +64,7 @@ PHP_GSHUTDOWN_FUNCTION(phpbridge) {
 }
 
 PHP_MINIT_FUNCTION(phpbridge) {
+    register_AutoZval_class();
     return SUCCESS;
 }
 
@@ -70,6 +72,7 @@ PHP_MSHUTDOWN_FUNCTION(phpbridge) {
     return SUCCESS;
 }
 
+// clang-format off
 zend_module_entry phpbridge_module_entry = {
     STANDARD_MODULE_HEADER,
     "elastic_phpbridge",                /* Extension name */
@@ -86,6 +89,7 @@ zend_module_entry phpbridge_module_entry = {
     PhpBridgePostDeactivate,            /* post deactivate */
     STANDARD_MODULE_PROPERTIES_EX
 };
+// clang-format off
 
 #   ifdef ZTS
 ZEND_TSRMLS_CACHE_DEFINE()
