@@ -4,13 +4,15 @@ set -e -o pipefail
 
 SKIP_NOTICE=false
 KEEP_COMPOSER_LOCK=false
+SKIP_VERIFY=false
 
 show_help() {
     echo "Usage: $0 --php_versions <versions>"
     echo
     echo "Arguments:"
     echo "  --php_versions           Required. List of PHP versions separated by spaces (e.g., '81 82 83 84')."
-    echo "  --skip_notice            Optional. Skip notice file generator."
+    echo "  --skip_notice            Optional. Skip notice file generator. Default: false (i.e., NOTICE file is generated)."
+    echo "  --skip_verify            Optional. Skip verify step. Default: false (i.e., verify step is executed)."
     echo "  --keep_composer_lock     Optional. Keep composer.lock file."
     echo
     echo "Example:"
@@ -29,6 +31,9 @@ parse_args() {
                 ;;
             --skip_notice)
                 SKIP_NOTICE=true
+                ;;
+            --skip_verify)
+                SKIP_VERIFY=true
                 ;;
             --keep_composer_lock)
                 KEEP_COMPOSER_LOCK=true
@@ -88,7 +93,7 @@ verify_otlp_exporters() {
             && composer --no-dev install \
             && diff -r /used_as_base/vendor/${php_impl_package_name} /new_vendor/${php_impl_package_name} \
         "\
-        || has_compared_the_same=false
+        || has_compared_the_same="false"
 
     if [ "${has_compared_the_same}" = "false" ]; then
         echo "${vendor_dir}/${php_impl_package_name} content differs from the base"
@@ -133,6 +138,10 @@ main() {
         GEN_NOTICE="&& echo 'Generating NOTICE file. This may take some time...' && php /sources/packaging/notice_generator.php >>/sources/NOTICE"
     fi
 
+    if [ "${SKIP_VERIFY}" != "false" ]; then
+        echo "Skipping verify step"
+    fi
+
     for PHP_VERSION in "${PHP_VERSIONS[@]}"
     do
         mkdir -p "prod/php/vendor_${PHP_VERSION}"
@@ -161,7 +170,9 @@ main() {
             rm -f composer.lock
         fi
 
-        verify_vendor_dir "${PHP_VERSION}" "${vendor_dir}"
+        if [ "${SKIP_VERIFY}" = "false" ]; then
+            verify_vendor_dir "${PHP_VERSION}" "${vendor_dir}"
+        fi
     done
 }
 
