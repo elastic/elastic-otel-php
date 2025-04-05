@@ -34,7 +34,7 @@ class PDOSpanExpectationsBuilder extends DbSpanExpectationsBuilder
         $builderClone = clone $this;
         $builderClone->nameAndCodeAttributesUsingClassMethod(ClassNameUtil::fqToShort(PDO::class), $methodName, $isStaticMethod);
         if ($dbQueryText !== null) {
-            $builderClone->setDbQueryText($dbQueryText);
+            $builderClone->dbQueryText($dbQueryText);
         }
         return $builderClone->build();
     }

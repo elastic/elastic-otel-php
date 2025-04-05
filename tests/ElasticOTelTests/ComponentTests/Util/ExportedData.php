@@ -34,4 +34,12 @@ final class ExportedData extends ParsedExportedData
     ) {
         parent::__construct(spans: $spans);
     }
+
+    /**
+     * @return array{'counts': array{'spans': int}}
+     */
+    public function dbgGetSummary(): array
+    {
+        return ['counts' => ['spans' => count($this->spans)]];
+    }
 }

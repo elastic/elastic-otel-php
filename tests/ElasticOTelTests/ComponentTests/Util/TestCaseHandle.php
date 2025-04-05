@@ -27,6 +27,7 @@ use Closure;
 use Elastic\OTel\Log\LogLevel;
 use ElasticOTelTests\Util\AmbientContextForTests;
 use ElasticOTelTests\Util\Config\OptionForProdName;
+use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
 use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LoggableToString;
@@ -109,19 +110,26 @@ final class TestCaseHandle implements LoggableInterface
         return $this->additionalHttpAppCodeHost;
     }
 
-    public function waitForEnoughExportedData(IsEnoughExportedDataInterface $isEnoughExportedData): ExportedData
+    public function waitForEnoughExportedData(IsEnoughExportedDataInterface $expectedIsEnough): ExportedData
     {
         Assert::assertNotEmpty($this->appCodeInvocations);
         $dataAccumulator = new ExportedDataAccumulator();
         $hasPassed = (new PollingCheck(__FUNCTION__ . ' passes', intval(TimeUtil::secondsToMicroseconds(self::MAX_WAIT_TIME_DATA_FROM_AGENT_SECONDS))))->run(
-            function () use ($isEnoughExportedData, $dataAccumulator) {
+            function () use ($expectedIsEnough, $dataAccumulator) {
                 $dataAccumulator->addAgentToOTeCollectorEvents($this->MockOTelCollector->fetchNewData(shouldWait: true));
-                return $dataAccumulator->isEnough($isEnoughExportedData);
+                return $dataAccumulator->isEnough($expectedIsEnough);
             }
         );
-        Assert::assertTrue($hasPassed, 'The expected data from agent has not arrived. ' . LoggableToString::convert(compact('isEnoughExportedData', 'dataAccumulator')));
 
-        return $dataAccumulator->getAccumulatedData();
+        $accumulatedData = $dataAccumulator->getAccumulatedData();
+        if (!$hasPassed) {
+            DebugContext::getCurrentScope(/* out */ $dbgCtx);
+            $accumulatedDataSummary = $accumulatedData->dbgGetSummary();
+            $dbgCtx->add(compact('expectedIsEnough', 'accumulatedDataSummary', 'accumulatedData', 'dataAccumulator'));
+            Assert::fail('The expected exported data has not arrived; ' . LoggableToString::convert(compact('expectedIsEnough', 'accumulatedDataSummary')));
+        }
+
+        return $accumulatedData;
     }
 
     private function autoSetProdOptions(AppCodeHostParams $params): void

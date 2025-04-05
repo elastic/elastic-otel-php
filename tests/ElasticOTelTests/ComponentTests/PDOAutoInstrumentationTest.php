@@ -263,7 +263,6 @@ final class PDOAutoInstrumentationTest extends ComponentTestCaseBase
                 $actualDbSpans[] = $span;
             }
         }
-
         (new SpanSequenceExpectations($expectedDbSpans))->assertMatches($actualDbSpans);
     }
 

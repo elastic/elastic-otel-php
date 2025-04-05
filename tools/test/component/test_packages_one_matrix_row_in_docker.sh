@@ -99,14 +99,48 @@ function select_Dockerfile_based_on_package_type () {
     echo "Dockerfile_${package_type}"
 }
 
+function does_tests_group_need_external_services () {
+    if [ -z "${ELASTIC_OTEL_PHP_TESTS_GROUP}" ] ; then
+        echo "true"
+        return
+    fi
+
+    case "${ELASTIC_OTEL_PHP_TESTS_GROUP}" in
+        'does_not_require_external_services')
+                echo "false"
+                return 0
+                ;;
+        'requires_external_services')
+                echo "true"
+                return 0
+                ;;
+        'smoke')
+                echo "true"
+                return 0
+                ;;
+        *)
+                # SC2028: echo may not expand escape sequences. Use printf.
+                # shellcheck disable=SC2028
+                echo "Unknown tests group name: \`${ELASTIC_OTEL_PHP_TESTS_GROUP}\'"
+                return 1
+                ;;
+    esac
+}
+
+function on_script_exit () {
+    if [ "${should_start_external_services}" == "true" ] ; then
+        "${this_script_dir}/start_external_services.sh"
+    fi
+}
+
 function main() {
     local current_github_workflow_log_group_name="Setting the environment for ${BASH_SOURCE[0]}"
     echo "::group::${current_github_workflow_log_group_name}"
 
-    this_script_dir="$( dirname "${BASH_SOURCE[0]}" )"
-    this_script_dir="$( realpath "${this_script_dir}" )"
+    this_script_dir="$(dirname "${BASH_SOURCE[0]}")"
+    this_script_dir="$(realpath "${this_script_dir}")"
 
-    repo_root_dir="$( realpath "${this_script_dir}/../../.." )"
+    repo_root_dir="$(realpath "${this_script_dir}/../../..")"
     source "${repo_root_dir}/tools/shared.sh"
 
     parse_args "$@"
@@ -154,10 +188,23 @@ function main() {
     local current_github_workflow_log_group_name="Preparing to run docker container using image image with tag ${docker_image_tag}"
     start_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
+    should_start_external_services=$(does_tests_group_need_external_services)
+
+    trap on_script_exit EXIT
+
     build_docker_env_vars_command_line_part docker_run_cmd_line_args
+
+    if [ "${should_start_external_services}" == "true" ] ; then
+        if [ -z "${ELASTIC_OTEL_PHP_TESTS_EXTERNAL_SERVICES_ENV_VARS_ARE_SET}" ] ; then
+            source "${this_script_dir}/external_services_env_vars.sh"
+        fi
+        "${this_script_dir}/start_external_services.sh"
+        docker_run_cmd_line_args=("${docker_run_cmd_line_args[@]}" "--network=${ELASTIC_OTEL_PHP_TESTS_DOCKER_NETWORK:?}")
+    fi
 
     docker_run_cmd_line_args=("${docker_run_cmd_line_args[@]}" -v "${packages_dir}:/elastic_otel_php_tests/packages:ro")
     docker_run_cmd_line_args=("${docker_run_cmd_line_args[@]}" -v "${logs_dir}:/elastic_otel_php_tests/logs")
+
     echo "docker_run_cmd_line_args: ${docker_run_cmd_line_args[*]}"
 
     end_github_workflow_log_group "${current_github_workflow_log_group_name}"
