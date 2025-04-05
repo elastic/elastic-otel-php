@@ -241,7 +241,7 @@ public:
         } else if (isLong()) {
             return static_cast<double>(Z_LVAL(value));
         }
-        throw std::runtime_error("Not an number");
+        throw std::runtime_error("Not a number");
     }
 
     zend_long getNumberAsLong() const {
@@ -250,19 +250,19 @@ public:
         } else if (isDouble()) {
             return static_cast<zend_long>(Z_DVAL(value));
         }
-        throw std::runtime_error("Not an number");
+        throw std::runtime_error("Not a number");
     }
 
     zend_long getLong() const {
         if (!isLong()) {
-            throw std::runtime_error("Not an long");
+            throw std::runtime_error("Not a long");
         }
         return Z_LVAL(value);
     }
 
     double getDouble() const {
         if (!isDouble()) {
-            throw std::runtime_error("Not an double");
+            throw std::runtime_error("Not a double");
         }
         return Z_DVAL(value);
     }
@@ -273,11 +273,11 @@ public:
         } else if (Z_TYPE_P(&value) == IS_FALSE) {
             return false;
         } else {
-            throw std::runtime_error("Not an boolean");
+            throw std::runtime_error("Not a boolean");
         }
     }
 
-    uint32_t getArrayCount() {
+    uint32_t getArrayCount() const {
         return zend_array_count(Z_ARRVAL(value));
     }
     // =============================

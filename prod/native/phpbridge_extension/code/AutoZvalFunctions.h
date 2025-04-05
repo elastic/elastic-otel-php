@@ -1,5 +1,3 @@
-<?php
-
 /*
  * Copyright Elasticsearch B.V. and/or licensed to Elasticsearch B.V. under one
  * or more contributor license agreements. See the NOTICE file distributed with
@@ -19,16 +17,6 @@
  * under the License.
  */
 
-/** @noinspection PhpUnusedParameterInspection */
+#pragma once
 
-declare(strict_types=1);
-
-namespace Elastic\OTel\InferredSpans;
-
-/**
- * This function is implemented by the extension
- */
-function force_set_object_property_value(object $object, string $property_name, mixed $value): bool
-{
-    return false;
-}
+void register_AutoZval_class();
