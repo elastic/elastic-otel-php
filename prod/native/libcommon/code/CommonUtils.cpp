@@ -282,10 +282,10 @@ std::unordered_map<elasticapm::php::LogFeature, LogLevel> parseLogFeatures(std::
                     auto feature = elasticapm::php::parseLogFeature(option);
                     features.emplace(feature, level);
                 } catch (std::invalid_argument const &e) {
-                    ELOG_WARNING(logger, "Error while parsing LogFeature " PRsv ", exception: %s ", PRsvArg(featureAndValue), e.what());
+                    ELOGF_NF_WARNING(logger, "Error while parsing LogFeature " PRsv ", exception: %s ", PRsvArg(featureAndValue), e.what());
                 }
             } else {
-                ELOG_WARNING(logger, "Error while parsing LogFeature " PRsv, PRsvArg(featureAndValue));
+                ELOGF_NF_WARNING(logger, "Error while parsing LogFeature " PRsv, PRsvArg(featureAndValue));
             }
         }
     }
