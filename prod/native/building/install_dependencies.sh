@@ -107,43 +107,46 @@ else
     fi
 fi
 
+check_or_create_package() {
+    local CREATE_REFERENCE="$1"
+    local CREATE_REFERENCE_VERSION="$2"
+
+    echo "Searching for ${CREATE_REFERENCE}/${CREATE_REFERENCE_VERSION} in local cache/remotes"
+    if conan list -c "${CREATE_REFERENCE}/${CREATE_REFERENCE_VERSION}:*" -fs="build_type=${ARG_BUILD_TYPE}" 2>&1 | grep -q "not found"; then
+        if conan search -f json "${CREATE_REFERENCE}/${CREATE_REFERENCE_VERSION}" 2>&1 | grep -q "Found"; then
+            echo "Package ${CREATE_REFERENCE} found in remote"
+        else
+            echo "Package ${CREATE_REFERENCE} not found - creating"
+            conan create --version "${CREATE_REFERENCE_VERSION}" --build=missing ${ARG_TRACE} -o:a "b2/*:toolset=cxx" -o:a "b2/*:use_cxx_env=True" ${OPTION_PROFILE} ${OPTION_BUILD_TYPE} --name "${CREATE_REFERENCE}" "${SCRIPT_DIR}/dependencies/${CREATE_REFERENCE}"
+        fi
+    fi
+}
+
+create_package_is_missing() {
+    local CREATE_REFERENCE="$1"
+    local CREATE_REFERENCE_VERSION="$2"
+
+    echo "Searching for ${CREATE_REFERENCE}/${CREATE_REFERENCE_VERSION} in local cache/remotes"
+    if conan list -c "${CREATE_REFERENCE}/${CREATE_REFERENCE_VERSION}:*" -fs="build_type=${ARG_BUILD_TYPE}" 2>&1 | grep -q "not found"; then
+        echo "Package ${CREATE_REFERENCE} not found - creating"
+        conan create --version "${CREATE_REFERENCE_VERSION}" --build=missing ${ARG_TRACE} ${OPTION_PROFILE} ${OPTION_BUILD_TYPE} --name "${CREATE_REFERENCE}" "${SCRIPT_DIR}/dependencies/${CREATE_REFERENCE}"
+    fi
+}
+
 conan remote add -vquiet --index 0 ElasticConan https://artifactory.elastic.dev/artifactory/api/conan/apm-agent-php-dev
-conan remote update --secure --index 1 --url https://center.conan.io conancenter
+conan remote update --secure --index 1 --url https://center2.conan.io conancenter
 
 source ${SCRIPT_DIR}/../../../tools/read_properties.sh
 read_properties ${SCRIPT_DIR}/../../../elastic-otel-php.properties PROJECT_PROPERTIES
 PHP_VERSIONS=(${PROJECT_PROPERTIES_SUPPORTED_PHP_VERSIONS//[()]/})
 
 for PHP_VERSION in "${PHP_VERSIONS[@]}"; do
-    CREATE_REFERENCE=php-headers-${PHP_VERSION}
-    echo "Searching for ${CREATE_REFERENCE}/${PROJECT_PROPERTIES_PHP_HEADERS_VERSION} in local cache/remotes"
-
-    if conan list -c ${CREATE_REFERENCE}/${PROJECT_PROPERTIES_PHP_HEADERS_VERSION}:* -fs="build_type=${ARG_BUILD_TYPE}" 2>&1 | grep -q "not found"; then
-        if conan search -f json ${CREATE_REFERENCE}/${PROJECT_PROPERTIES_PHP_HEADERS_VERSION} 2>&1 | grep -q "Found"; then
-            echo "Package php-headers-${PHP_VERSION} found in remote"
-        else
-            echo "Package php-headers-${PHP_VERSION} not found - creating"
-            conan create --build=missing ${ARG_TRACE} ${OPTION_PROFILE} ${OPTION_BUILD_TYPE} --name ${CREATE_REFERENCE} ${SCRIPT_DIR}/dependencies/php-headers
-        fi
-
-    fi
-
+    check_or_create_package "php-headers-${PHP_VERSION}" "${PROJECT_PROPERTIES_PHP_HEADERS_VERSION}"
 done
 
-CREATE_REFERENCE=protobuf-custom
-PROTOBUF_VERSION=5.27.0
+check_or_create_package "protobuf-custom" "5.27.0"
+create_package_is_missing "b2" "5.3.1"
 
-echo "Searching for ${CREATE_REFERENCE}/${PROTOBUF_VERSION} in local cache/remotes"
-if conan list -c ${CREATE_REFERENCE}/${PROTOBUF_VERSION}:* -fs="build_type=${ARG_BUILD_TYPE}" 2>&1 | grep -q "not found"; then
-    if conan search -f json ${CREATE_REFERENCE}/${PROTOBUF_VERSION} 2>&1 | grep -q "Found"; then
-        echo "Package protobuf-custom found in remote"
-    else
-        echo "Package protobuf-custom not found - creating"
-        conan create --version ${PROTOBUF_VERSION} --build=missing ${ARG_TRACE} ${OPTION_PROFILE} ${OPTION_BUILD_TYPE} --name ${CREATE_REFERENCE} ${SCRIPT_DIR}/dependencies/protobuf-custom
-    fi
+# conan will create build/${OPTION_BUILD_TYPE}/generators folders inside ${ARG_BUILD_OUTPUT_PATH}
 
-fi
-
-# conan will create build/${OPTION_BUILD_TYPE}/generators fordlers inside ${ARG_BUILD_OUTPUT_PATH}
-
-conan install ${ARG_TRACE} --build=missing ${OPTION_PROFILE} ${OPTION_BUILD_TYPE} -of ${ARG_BUILD_OUTPUT_PATH} ${SCRIPT_DIR}/../conanfile.txt
+conan install ${ARG_TRACE} -vvv --build=missing ${OPTION_PROFILE} ${OPTION_BUILD_TYPE} -of ${ARG_BUILD_OUTPUT_PATH} ${SCRIPT_DIR}/../conanfile.py

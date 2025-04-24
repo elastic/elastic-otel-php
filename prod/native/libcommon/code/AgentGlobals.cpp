@@ -31,8 +31,8 @@
 #include "InstrumentedFunctionHooksStorage.h"
 #include "CommonUtils.h"
 #include "transport/HttpTransportAsync.h"
+#include "transport/OpAmp.h"
 #include "DependencyAutoLoaderGuard.h"
-
 #include "LogFeature.h"
 #include <signal.h>
 
@@ -56,6 +56,7 @@ AgentGlobals::AgentGlobals(std::shared_ptr<LoggerInterface> logger,
     inferredSpans_(std::move(inferredSpans)),
     periodicTaskExecutor_(),
     httpTransportAsync_(std::make_unique<elasticapm::php::transport::HttpTransportAsync<>>(logger_, config_)),
+    opAmp_(std::make_shared<opentelemetry::php::transport::OpAmp>(logger_, config_)),
     sharedMemory_(std::make_shared<elasticapm::php::SharedMemoryState>()),
     requestScope_(std::make_shared<elasticapm::php::RequestScope>(logger_, bridge_, sapi_, sharedMemory_, dependencyAutoLoaderGuard_, inferredSpans_, config_, [hs = hooksStorage_]() { hs->clear(); }, [this]() { return getPeriodicTaskExecutor();})),
     logSinkStdErr_(std::move(logSinkStdErr)),

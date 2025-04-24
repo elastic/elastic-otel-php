@@ -20,23 +20,23 @@ show_help() {
 parse_args() {
     while [[ "$#" -gt 0 ]]; do
         case $1 in
-            --build_path)
-                BUILD_PATH="$2"
-                shift
-                ;;
-            --force_install)
-                FORCE_INSTALL=true
-                shift
-                ;;
-            --help)
-                show_help
-                exit 0
-                ;;
-            *)
-                echo "Unknown parameter passed: $1"
-                show_help
-                exit 1
-                ;;
+        --build_path)
+            BUILD_PATH="$2"
+            shift
+            ;;
+        --force_install)
+            FORCE_INSTALL=true
+            shift
+            ;;
+        --help)
+            show_help
+            exit 0
+            ;;
+        *)
+            echo "Unknown parameter passed: $1"
+            show_help
+            exit 1
+            ;;
         esac
         shift
     done
@@ -90,11 +90,10 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-
 if [[ "$_VENV_CREATED" == "true" || "${FORCE_INSTALL}" = true ]]; then
     ${_PIP} --require-virtualenv install -U pip
     # ${_PIP} --require-virtualenv install -U "pyyaml==3.11"
-    ${_PIP} --require-virtualenv install -U conan==2.8.0
+    ${_PIP} --require-virtualenv install -U conan==2.15.0
 fi
 
 echo "${_VENV_PATH}/bin/activate"

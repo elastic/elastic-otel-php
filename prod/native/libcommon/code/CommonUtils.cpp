@@ -231,7 +231,7 @@ std::string sanitizeKeyValueString(std::string const &tokenName, std::string con
 }
 
 std::optional<ParsedURL> parseUrl(std::string const &url) {
-    std::regex url_regex(R"((http|https)://([\w.-]+)(?::(\d+))?(?:/(.*))?)");
+    std::regex url_regex(R"((http|https|ws|wss)://([\w.-]+)(?::(\d+))?(?:/(.*))?)");
     std::smatch match;
 
     if (std::regex_match(url, match, url_regex)) {
