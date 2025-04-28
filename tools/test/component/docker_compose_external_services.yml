@@ -1,9 +1,7 @@
-version: '2.1'
-
 # See external_services_env_vars.sh for env vars used in this file
 
 services:
-    ${ELASTIC_OTEL_PHP_TESTS_MYSQL_HOST}:
+    elastic-otel-php-tests-component-mysql:
         image: mysql:8.0
         restart: always
         environment:
@@ -15,15 +13,16 @@ services:
             timeout: 5s
             retries: 60
         networks:
-            - ${ELASTIC_OTEL_PHP_TESTS_DOCKER_NETWORK}
+            - elastic-otel-php-tests-component-network
 
     elastic-otel-php-tests-component-wait-for-all-services-to-start:
         image: busybox
         depends_on:
-            ${ELASTIC_OTEL_PHP_TESTS_MYSQL_HOST}:
+            elastic-otel-php-tests-component-mysql:
                 condition: service_healthy
 
 networks:
-    ${ELASTIC_OTEL_PHP_TESTS_DOCKER_NETWORK}:
+    elastic-otel-php-tests-component-network:
         name: ${ELASTIC_OTEL_PHP_TESTS_DOCKER_NETWORK}
-        driver: bridge
+        attachable: true
+        external: false

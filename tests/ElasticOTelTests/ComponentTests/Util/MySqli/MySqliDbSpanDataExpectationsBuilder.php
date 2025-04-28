@@ -24,6 +24,10 @@ declare(strict_types=1);
 namespace ElasticOTelTests\ComponentTests\Util\MySqli;
 
 use ElasticOTelTests\ComponentTests\Util\DbSpanExpectationsBuilder;
+use ElasticOTelTests\ComponentTests\Util\SpanExpectations;
+use ElasticOTelTests\Util\ClassNameUtil;
+use mysqli;
+use mysqli_stmt;
 
 /**
  * Code in this file is part of implementation internals and thus it is not covered by the backward compatibility.
@@ -32,22 +36,38 @@ use ElasticOTelTests\ComponentTests\Util\DbSpanExpectationsBuilder;
  */
 final class MySqliDbSpanDataExpectationsBuilder extends DbSpanExpectationsBuilder
 {
+    public const DB_SYSTEM_NAME = 'mysql';
+
     public function __construct(
-        private readonly bool $isOOPApi
+        private readonly bool $isOOPApi,
     ) {
-        parent::__construct(dbSystemName: '', dbNamespace: '');
+        parent::__construct();
+
+        $this->dbSystemName(self::DB_SYSTEM_NAME);
     }
 
-    private static function buildFuncName(string $className, string $methodName): string
+    private static function deduceFuncName(string $className, string $methodName): string
     {
         return $className . '_' . $methodName;
     }
 
-    public function setNameUsingApiNames(string $className, string $methodName, ?string $funcName = null): self
+    public function buildForApi(string $className, string $methodName, ?string $funcName = null, ?string $dbQueryText = null): SpanExpectations
     {
-        $this->isOOPApi
-            ? $this->nameAndCodeAttributesUsingClassMethod($className, $methodName, isStaticMethod: false)
-            : $this->nameAndCodeAttributesUsingFuncName($funcName ?? self::buildFuncName($className, $methodName));
-        return $this;
+        $builderClone = clone $this;
+        $builderClone->isOOPApi
+            ? $builderClone->nameAndCodeAttributesUsingClassMethod($className, $methodName, isStaticMethod: false)
+            : $builderClone->nameAndCodeAttributesUsingFuncName($funcName ?? self::deduceFuncName($className, $methodName));
+        $builderClone->optionalDbQueryText($dbQueryText);
+        return $builderClone->build();
+    }
+
+    public function buildForMySqliClassMethod(string $methodName, ?string $funcName = null, ?string $dbQueryText = null): SpanExpectations
+    {
+        return $this->buildForApi(ClassNameUtil::fqToShort(mysqli::class), $methodName, $funcName, $dbQueryText);
+    }
+
+    public function buildForMySqliStmtClassMethod(string $methodName, ?string $funcName = null, ?string $dbQueryText = null): SpanExpectations
+    {
+        return $this->buildForApi(ClassNameUtil::fqToShort(mysqli_stmt::class), $methodName, $funcName, $dbQueryText);
     }
 }

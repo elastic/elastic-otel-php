@@ -129,7 +129,7 @@ function does_tests_group_need_external_services () {
 
 function on_script_exit () {
     if [ "${should_start_external_services}" == "true" ] ; then
-        "${this_script_dir}/start_external_services.sh"
+        "${this_script_dir}/stop_external_services.sh"
     fi
 }
 
@@ -170,6 +170,17 @@ function main() {
     source "${this_script_dir}/unpack_matrix_row.sh" "${ELASTIC_OTEL_PHP_TESTS_MATRIX_ROW:?}"
     env | grep ELASTIC_OTEL_PHP_TESTS_ | sort
 
+    should_start_external_services=$(does_tests_group_need_external_services)
+
+    trap on_script_exit EXIT
+
+    if [ "${should_start_external_services}" == "true" ] ; then
+        # External services environment variables should be set before build_docker_env_vars_command_line_part() is called
+        # because those environment variables should be passed to the docker container that will run the test code
+        source "${this_script_dir}/external_services_env_vars.sh"
+        "${this_script_dir}/start_external_services.sh"
+    fi
+
     local dockerfile
     dockerfile=$(select_Dockerfile_based_on_package_type "${ELASTIC_OTEL_PHP_TESTS_PACKAGE_TYPE:?}")
     echo "Selected Dockerfile: ${dockerfile}"
@@ -188,22 +199,14 @@ function main() {
     local current_github_workflow_log_group_name="Preparing to run docker container using image image with tag ${docker_image_tag}"
     start_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
-    should_start_external_services=$(does_tests_group_need_external_services)
-
-    trap on_script_exit EXIT
-
     build_docker_env_vars_command_line_part docker_run_cmd_line_args
-
-    if [ "${should_start_external_services}" == "true" ] ; then
-        if [ -z "${ELASTIC_OTEL_PHP_TESTS_EXTERNAL_SERVICES_ENV_VARS_ARE_SET}" ] ; then
-            source "${this_script_dir}/external_services_env_vars.sh"
-        fi
-        "${this_script_dir}/start_external_services.sh"
-        docker_run_cmd_line_args=("${docker_run_cmd_line_args[@]}" "--network=${ELASTIC_OTEL_PHP_TESTS_DOCKER_NETWORK:?}")
-    fi
 
     docker_run_cmd_line_args=("${docker_run_cmd_line_args[@]}" -v "${packages_dir}:/elastic_otel_php_tests/packages:ro")
     docker_run_cmd_line_args=("${docker_run_cmd_line_args[@]}" -v "${logs_dir}:/elastic_otel_php_tests/logs")
+
+    if [ "${should_start_external_services}" == "true" ] ; then
+        docker_run_cmd_line_args=("${docker_run_cmd_line_args[@]}" "--network=${ELASTIC_OTEL_PHP_TESTS_DOCKER_NETWORK:?}")
+    fi
 
     echo "docker_run_cmd_line_args: ${docker_run_cmd_line_args[*]}"
 

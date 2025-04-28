@@ -9,9 +9,7 @@ function main() {
     repo_root_dir="$(realpath "${this_script_dir}/../../..")"
     source "${repo_root_dir}/tools/shared.sh"
 
-    if [ -z "${ELASTIC_OTEL_PHP_TESTS_EXTERNAL_SERVICES_ENV_VARS_ARE_SET}" ] ; then
-        source "${this_script_dir}/external_services_env_vars.sh"
-    fi
+    source "${this_script_dir}/external_services_env_vars.sh"
 
     local current_github_workflow_log_group_name="Stopping external services used by component tests"
     start_github_workflow_log_group "${current_github_workflow_log_group_name}"

@@ -45,7 +45,6 @@ use ElasticOTelTests\Util\Log\LoggableToString;
 use ElasticOTelTests\Util\MixedMap;
 use OpenTelemetry\Contrib\Instrumentation\MySqli\MySqliInstrumentation;
 use OpenTelemetry\SemConv\TraceAttributes;
-use PHPUnit\Framework\Attributes\Depends;
 
 /**
  * @group smoke
@@ -104,12 +103,19 @@ final class MySqliAutoInstrumentationTest extends ComponentTestCaseBase
         = /** @lang text */
         'SELECT * FROM messages';
 
-    public function testPrerequisitesSatisfied(): void
+    private static bool $verifiedPrerequisites = false;
+
+    private static function assertExtensionLoaded(): void
+    {
+        $mysqliExtensionName = 'mysqli';
+        self::assertTrue(extension_loaded($mysqliExtensionName), 'Extension ' . $mysqliExtensionName . ' is not loaded');
+    }
+
+    private static function assertPrerequisites(): void
     {
         DebugContext::getCurrentScope(/* out */ $dbgCtx);
 
-        $extensionName = 'mysqli';
-        self::assertTrue(extension_loaded($extensionName), 'Required extension ' . $extensionName . ' is not loaded');
+        self::assertExtensionLoaded();
 
         $dbgCtx->pushSubScope();
         foreach (get_object_vars(AmbientContextForTests::testConfig()) as $cfgPropName => $cfgPropValue) {
@@ -188,31 +194,27 @@ final class MySqliAutoInstrumentationTest extends ComponentTestCaseBase
      * @param string                              $kind
      * @param SpanExpectations[]                 &$expectedSpans
      */
-    private static function addExpectationsForQueriesUsingKind(
-        MySqliDbSpanDataExpectationsBuilder $expectationsBuilder,
-        array $queries,
-        string $kind,
-        array &$expectedSpans
-    ): void {
-        switch ($kind) {
-            case self::QUERY_KIND_MULTI_QUERY:
-                $multiQuery = '';
-                foreach ($queries as $query) {
-                    if (!TextUtil::isEmptyString($multiQuery)) {
-                        $multiQuery .= ';';
-                    }
-                    $multiQuery .= $query;
+    private static function addExpectationsForQueriesUsingKind(MySqliDbSpanDataExpectationsBuilder $expectationsBuilder, array $queries, string $kind, array &$expectedSpans): void
+    {
+        if ($kind === self::QUERY_KIND_MULTI_QUERY) {
+            $multiQuery = '';
+            foreach ($queries as $query) {
+                if (!TextUtil::isEmptyString($multiQuery)) {
+                    $multiQuery .= ';';
                 }
-                $expectedSpans[] = $expectationsBuilder->dbQueryText($multiQuery)->build();
-                break;
-            case self::QUERY_KIND_QUERY:
-            case self::QUERY_KIND_REAL_QUERY:
-                foreach ($queries as $query) {
-                    $expectedSpans[] = $expectationsBuilder->dbQueryText($query)->build();
-                }
-                break;
-            default:
-                self::fail();
+                $multiQuery .= $query;
+            }
+            $expectedSpans[] = $expectationsBuilder->buildForMySqliClassMethod('multi_query', dbQueryText: $multiQuery);
+            return;
+        }
+
+        $methodName = match ($kind) {
+            self::QUERY_KIND_QUERY => 'query',
+            self::QUERY_KIND_REAL_QUERY => 'real_query',
+            default => self::fail(),
+        };
+        foreach ($queries as $query) {
+            $expectedSpans[] = $expectationsBuilder->buildForMySqliClassMethod($methodName, dbQueryText: $query);
         }
     }
 
@@ -248,13 +250,10 @@ final class MySqliAutoInstrumentationTest extends ComponentTestCaseBase
     /**
      * @param MySqliDbSpanDataExpectationsBuilder $expectationsBuilder
      * @param string                              $queryKind
-     * @param SpanExpectations[]             &$expectedSpans
+     * @param SpanExpectations[]                 &$expectedSpans
      */
-    private static function addExpectationsForResetDbState(
-        MySqliDbSpanDataExpectationsBuilder $expectationsBuilder,
-        string $queryKind,
-        /* out */ array &$expectedSpans
-    ): void {
+    private static function addExpectationsForResetDbState(MySqliDbSpanDataExpectationsBuilder $expectationsBuilder, string $queryKind, /* out */ array &$expectedSpans): void
+    {
         $queries = self::queriesToResetDbState();
         self::addExpectationsForQueriesUsingKind($expectationsBuilder, $queries, $queryKind, /* out */ $expectedSpans);
     }
@@ -281,7 +280,7 @@ final class MySqliAutoInstrumentationTest extends ComponentTestCaseBase
     {
         DebugContext::getCurrentScope(/* out */ $dbgCtx);
 
-        self::assertTrue(extension_loaded('mysqli'));
+        self::assertExtensionLoaded();
 
         $isAutoInstrumentationEnabled = $appCodeArgs->getBool(self::IS_AUTO_INSTRUMENTATION_ENABLED_KEY);
         if ($isAutoInstrumentationEnabled) {
@@ -306,11 +305,6 @@ final class MySqliAutoInstrumentationTest extends ComponentTestCaseBase
         $mySQLiApiFacade = new MySqliApiFacade($isOOPApi);
         $mySQLi = $mySQLiApiFacade->connect($host, $port, $user, $password, $connectDbName);
         self::assertNotNull($mySQLi);
-
-        // Method mysqli::ping() is deprecated since PHP 8.4
-        if (PHP_VERSION_ID < 80400) {
-            self::assertTrue($mySQLi->ping());
-        }
 
         if ($connectDbName !== $workDbName) {
             self::assertTrue($mySQLi->query(self::CREATE_DATABASE_IF_NOT_EXISTS_SQL_PREFIX . $workDbName));
@@ -385,41 +379,38 @@ final class MySqliAutoInstrumentationTest extends ComponentTestCaseBase
         $appCodeArgs[DbAutoInstrumentationUtilForTests::USER_KEY] = AmbientContextForTests::testConfig()->mysqlUser;
         $appCodeArgs[DbAutoInstrumentationUtilForTests::PASSWORD_KEY] = AmbientContextForTests::testConfig()->mysqlPassword;
 
-        $expectationsBuilder = new MySqliDbSpanDataExpectationsBuilder($isOOPApi);
         /** @var SpanExpectations[] $expectedDbSpans */
         $expectedDbSpans = [];
         if ($isAutoInstrumentationEnabled) {
-            $expectedDbSpans[] = $expectationsBuilder->setNameUsingApiNames('mysqli', '__construct', 'mysqli_connect')->build();
-
-            // Method mysqli::ping() is deprecated since PHP 8.4
-            if (PHP_VERSION_ID < 80400) {
-                $expectedDbSpans[] = $expectationsBuilder->setNameUsingApiNames('mysqli', 'ping')->build();
-            }
+            $expectationsBuilder = (new MySqliDbSpanDataExpectationsBuilder($isOOPApi))->dbNamespace($connectDbName ?? '');
+            $expectedDbSpans[] = $expectationsBuilder->buildForMySqliClassMethod('__construct', funcName: 'mysqli_connect');
 
             if ($connectDbName !== $workDbName) {
-                $expectedDbSpans[] = $expectationsBuilder->dbQueryText(self::CREATE_DATABASE_IF_NOT_EXISTS_SQL_PREFIX . $workDbName)->build();
-                $expectationsBuilder = new MySqliDbSpanDataExpectationsBuilder($isOOPApi);
-                $expectedDbSpans[] = $expectationsBuilder->setNameUsingApiNames('mysqli', 'select_db')->build();
+                $expectedDbSpans[] = $expectationsBuilder->buildForMySqliClassMethod('query', dbQueryText: self::CREATE_DATABASE_IF_NOT_EXISTS_SQL_PREFIX . $workDbName);
+                $expectationsBuilder->dbNamespace($workDbName);
+                $expectedDbSpans[] = $expectationsBuilder->buildForMySqliClassMethod('select_db');
             }
 
-            $expectedDbSpans[] = $expectationsBuilder->dbQueryText(self::CREATE_TABLE_SQL)->build();
+            $expectedDbSpans[] = $expectationsBuilder->buildForMySqliClassMethod('query', dbQueryText: self::CREATE_TABLE_SQL);
 
             if ($wrapInTx) {
-                $expectedDbSpans[] = $expectationsBuilder->setNameUsingApiNames('mysqli', 'begin_transaction')->build();
+                $expectedDbSpans[] = $expectationsBuilder->buildForMySqliClassMethod('begin_transaction');
             }
 
+            $expectedDbSpans[] = $expectationsBuilder->buildForMySqliClassMethod('prepare', dbQueryText: self::INSERT_SQL);
             foreach (self::MESSAGES as $ignored) {
-                $expectedDbSpans[] = $expectationsBuilder->dbQueryText(self::INSERT_SQL)->build();
+                $expectedDbSpans[] = $expectationsBuilder->buildForMySqliStmtClassMethod('execute', dbQueryText: self::INSERT_SQL);
             }
 
-            $expectedDbSpans[] = $expectationsBuilder->dbQueryText(self::SELECT_SQL)->build();
+            $expectedDbSpans[] = $expectationsBuilder->buildForMySqliClassMethod('query', dbQueryText: self::SELECT_SQL);
 
             if ($wrapInTx) {
-                $expectedDbSpans[] = $expectationsBuilder->setNameUsingApiNames('mysqli', $rollback ? 'rollback' : 'commit')->build();
+                $expectedDbSpans[] = $expectationsBuilder->buildForMySqliClassMethod($rollback ? 'rollback' : 'commit');
             }
 
             self::addExpectationsForResetDbState($expectationsBuilder, $queryKind, /* out */ $expectedDbSpans);
         }
+        $dbgCtx->add(compact('expectedDbSpans'));
 
         $appCodeHost = $testCaseHandle->ensureMainAppCodeHost(
             function (AppCodeHostParams $appCodeParams) use ($isAutoInstrumentationEnabled): void {
@@ -452,9 +443,12 @@ final class MySqliAutoInstrumentationTest extends ComponentTestCaseBase
     /**
      * @dataProvider dataProviderForTestAutoInstrumentation
      */
-    #[Depends('testPrerequisitesSatisfied')]
     public function testAutoInstrumentation(MixedMap $testArgs): void
     {
+        if (!self::$verifiedPrerequisites) {
+            self::assertPrerequisites();
+            self::$verifiedPrerequisites = true;
+        }
         self::runAndEscalateLogLevelOnFailure(
             self::buildDbgDescForTestWithArgs(__CLASS__, __FUNCTION__, $testArgs),
             function () use ($testArgs): void {

@@ -216,7 +216,7 @@ final class PDOAutoInstrumentationTest extends ComponentTestCaseBase
             $appCodeArgs[DbAutoInstrumentationUtilForTests::DB_NAME_KEY] = $dbName;
         }
 
-        $expectationsBuilder = new PDOSpanExpectationsBuilder(dbSystemName: 'sqlite', dbNamespace: $dbName === self::TEMP_DB_NAME ? '' : $dbName);
+        $expectationsBuilder = (new PDOSpanExpectationsBuilder())->dbSystemName('sqlite')->dbNamespace($dbName === self::TEMP_DB_NAME ? '' : $dbName);
         /** @var SpanExpectations[] $expectedDbSpans */
         $expectedDbSpans = [];
         if ($isAutoInstrumentationEnabled) {

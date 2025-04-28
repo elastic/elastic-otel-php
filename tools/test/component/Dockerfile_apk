@@ -20,6 +20,8 @@ RUN apk update \
 
 RUN docker-php-ext-install \
         curl \
+        mysqli \
+        pdo_mysql \
         pdo_sqlite \
         zip
 
