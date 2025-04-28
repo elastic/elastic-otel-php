@@ -71,6 +71,7 @@ public:
     }
 
     void printf(LogLevel level, const char *format, ...) const override;
+    void log(LogLevel level, const std::string &message) const override;
 
     bool doesMeetsLevelCondition(LogLevel level) const override;
     bool doesFeatureMeetsLevelCondition(LogLevel level, LogFeature feature) const override;

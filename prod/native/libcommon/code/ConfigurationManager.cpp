@@ -132,7 +132,7 @@ void ConfigurationManager::update() {
             }
 
         } catch (std::invalid_argument const &e) {
-            ELOG_ERROR(logger_, "ConfigurationManager::update exception: '%s'", e.what());
+            ELOGF_NF_ERROR(logger_, "ConfigurationManager::update exception: '%s'", e.what());
         }
     }
 

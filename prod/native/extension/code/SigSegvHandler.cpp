@@ -40,7 +40,7 @@ void SigSegvHandler(int signalId) {
 
     if (ELASTICAPM_G(globals) && ELASTICAPM_G(globals)->logger_) {
         auto output = elasticapm::osutils::getStackTrace(0);
-        ELOG_CRITICAL(ELASTICAPM_G(globals)->logger_.get(), "Received signal %d. Agent version: " ELASTIC_OTEL_VERSION " " LIBC_IMPL "\n%s", signalId, output.c_str());
+        ELOGF_NF_CRITICAL(ELASTICAPM_G(globals)->logger_.get(), "Received signal %d. Agent version: " ELASTIC_OTEL_VERSION " " LIBC_IMPL "\n%s", signalId, output.c_str());
 
         /* Call the default signal handler to have core dump generated... */
         if (signalHandlerData::oldSigSegvHandler) {
@@ -55,7 +55,7 @@ void SigSegvHandler(int signalId) {
 void registerSigSegvHandler(elasticapm::php::LoggerInterface * logger) {
     auto retval = signal(SIGSEGV, SigSegvHandler);
     if (retval == SIG_ERR) {
-        ELOG_ERROR(logger, "Unable to set SIGSEGV handler. Errno: %d", errno);
+        ELOGF_NF_ERROR(logger, "Unable to set SIGSEGV handler. Errno: %d", errno);
         return;
     } else {
         signalHandlerData::oldSigSegvHandler = retval;

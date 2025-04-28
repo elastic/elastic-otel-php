@@ -113,6 +113,40 @@ void Logger::printf(LogLevel level, const char *format, ...) const {
     }
 }
 
+void Logger::log(LogLevel level, const std::string &message) const {
+    std::string output = "[EDOT] "s;
+    output.append(getFormattedTime());
+    output.append(" ");
+
+    size_t indexOfProcessData = output.length();
+    output.append(getFormattedProcessData());
+
+    size_t indexOfLogLevel = output.length();
+    output.append(" [");
+    output.append(getLogLevelName(level));
+    output.append("] ");
+
+    size_t indexOfMessage = output.length();
+    output.append(message);
+
+    output.push_back('\n');
+
+    auto outputSv = std::string_view{output};
+
+    auto msgSv = outputSv.substr(indexOfMessage, output.length() - indexOfMessage - 1);
+    auto timeSv = outputSv.substr(0, indexOfProcessData - 1);
+    auto processSv = outputSv.substr(indexOfProcessData, indexOfLogLevel - indexOfProcessData);
+    auto levelSv = outputSv.substr(indexOfLogLevel + 1, indexOfMessage - indexOfLogLevel - 2);
+
+    std::lock_guard<SpinLock> lock(spinLock_);
+    for (auto const &sink : sinks_) {
+        if (sink->getLevel() < level) {
+            continue;
+        }
+        sink->writeLog(output, msgSv, timeSv, levelSv, processSv);
+    }
+}
+
 std::string Logger::getFormattedTime() const {
     const auto now = std::chrono::system_clock::now();
     const std::time_t nowTime = std::chrono::system_clock::to_time_t(now);
