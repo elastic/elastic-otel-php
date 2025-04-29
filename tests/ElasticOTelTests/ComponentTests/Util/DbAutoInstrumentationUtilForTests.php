@@ -35,10 +35,10 @@ final class DbAutoInstrumentationUtilForTests
     public const USER_KEY = 'USER';
     public const PASSWORD_KEY = 'PASSWORD';
 
-    public const DB_NAME_KEY = 'DB_NAME';
-    public const USE_SELECT_DB_KEY = 'USE_SELECT_DB';
-    public const WRAP_IN_TX_KEY = 'WRAP_IN_TX';
-    public const ROLLBACK_KEY = 'ROLLBACK';
+    public const DB_NAME_KEY = 'db_name';
+    public const USE_SELECT_DB_KEY = 'use_select_db';
+    public const WRAP_IN_TX_KEY = 'wrap_in_TX';
+    public const SHOULD_ROLLBACK_KEY = 'should_rollback';
 
     /**
      * @return callable(array<mixed>): iterable<array<mixed>>
@@ -57,8 +57,8 @@ final class DbAutoInstrumentationUtilForTests
                     yield array_merge(
                         $resultSoFar,
                         [
-                            self::WRAP_IN_TX_KEY => $wrapInTx,
-                            self::ROLLBACK_KEY   => $rollback,
+                            self::WRAP_IN_TX_KEY      => $wrapInTx,
+                            self::SHOULD_ROLLBACK_KEY => $rollback,
                         ]
                     );
                 }

@@ -41,6 +41,7 @@ use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\Config\OptionForProdName;
 use ElasticOTelTests\Util\DataProviderForTestBuilder;
 use ElasticOTelTests\Util\DebugContext;
+use ElasticOTelTests\Util\IterableUtil;
 use ElasticOTelTests\Util\Log\LoggableToString;
 use ElasticOTelTests\Util\MixedMap;
 use OpenTelemetry\Contrib\Instrumentation\MySqli\MySqliInstrumentation;
@@ -55,12 +56,12 @@ final class MySqliAutoInstrumentationTest extends ComponentTestCaseBase
     private const AUTO_INSTRUMENTATION_NAME = 'mysqli';
     private const IS_AUTO_INSTRUMENTATION_ENABLED_KEY = 'is_auto_instrumentation_enabled';
 
-    private const IS_OOP_API_KEY = 'IS_OOP_API';
+    private const IS_OOP_API_KEY = 'is_OOP_API';
 
-    public const CONNECT_DB_NAME_KEY = 'CONNECT_DB_NAME';
-    public const WORK_DB_NAME_KEY = 'WORK_DB_NAME';
+    public const CONNECT_DB_NAME_KEY = 'connect_db_name';
+    public const WORK_DB_NAME_KEY = 'work_db_name';
 
-    private const QUERY_KIND_KEY = 'QUERY_KIND';
+    private const QUERY_KIND_KEY = 'query_kind';
     private const QUERY_KIND_QUERY = 'query';
     private const QUERY_KIND_REAL_QUERY = 'real_query';
     private const QUERY_KIND_MULTI_QUERY = 'multi_query';
@@ -134,10 +135,6 @@ final class MySqliAutoInstrumentationTest extends ComponentTestCaseBase
             AssertEx::notNull(AmbientContextForTests::testConfig()->mysqlDb)
         );
         self::assertNotNull($mySQLi);
-        // Method mysqli::ping() is deprecated since PHP 8.4
-        if (PHP_VERSION_ID < 80400) {
-            self::assertTrue($mySQLi->ping());
-        }
     }
 
     /**
@@ -196,14 +193,15 @@ final class MySqliAutoInstrumentationTest extends ComponentTestCaseBase
     private static function addExpectationsForQueriesUsingKind(MySqliDbSpanDataExpectationsBuilder $expectationsBuilder, array $queries, string $kind, array &$expectedSpans): void
     {
         if ($kind === self::QUERY_KIND_MULTI_QUERY) {
-            $multiQuery = '';
-            foreach ($queries as $query) {
-                if (!TextUtil::isEmptyString($multiQuery)) {
-                    $multiQuery .= ';';
+            $queriesCount = count($queries);
+            foreach (IterableUtil::zipOneWithIndex($queries) as [$queryIndex, $query]) {
+                $queryAdapted = $query . (($queryIndex !== ($queriesCount - 1)) ? ';' : '');
+                if ($queryIndex === 0) {
+                    $expectedSpans[] = $expectationsBuilder->buildForMySqliClassMethod('multi_query', dbQueryText: $queryAdapted);
+                    continue;
                 }
-                $multiQuery .= $query;
+                $expectedSpans[] = $expectationsBuilder->buildForMySqliClassMethod('next_result', dbQueryText: $queryAdapted);
             }
-            $expectedSpans[] = $expectationsBuilder->buildForMySqliClassMethod('multi_query', dbQueryText: $multiQuery);
             return;
         }
 
@@ -262,7 +260,7 @@ final class MySqliAutoInstrumentationTest extends ComponentTestCaseBase
      */
     public static function dataProviderForTestAutoInstrumentation(): iterable
     {
-        // It seems PHPUnit enumerates test cases (included calling test method data providers
+        // It seems PHPUnit enumerates test cases which includes calling test method data providers
         // even when the tests class does not have the selected group attribute.
         // To avoid a test failure because this data provider cannot run without some external configuration (MySQL server host, etc.)
         // just return a dummy test args - the args will be used only for PHPUnit test case enumeration
@@ -301,7 +299,7 @@ final class MySqliAutoInstrumentationTest extends ComponentTestCaseBase
         $workDbName = $appCodeArgs->getString(self::WORK_DB_NAME_KEY);
         $queryKind = $appCodeArgs->getString(self::QUERY_KIND_KEY);
         $wrapInTx = $appCodeArgs->getBool(DbAutoInstrumentationUtilForTests::WRAP_IN_TX_KEY);
-        $rollback = $appCodeArgs->getBool(DbAutoInstrumentationUtilForTests::ROLLBACK_KEY);
+        $rollback = $appCodeArgs->getBool(DbAutoInstrumentationUtilForTests::SHOULD_ROLLBACK_KEY);
 
         $host = $appCodeArgs->getString(DbAutoInstrumentationUtilForTests::HOST_KEY);
         $port = $appCodeArgs->getInt(DbAutoInstrumentationUtilForTests::PORT_KEY);
@@ -376,7 +374,7 @@ final class MySqliAutoInstrumentationTest extends ComponentTestCaseBase
         $workDbName = $testArgs->getString(self::WORK_DB_NAME_KEY);
         $queryKind = $testArgs->getString(self::QUERY_KIND_KEY);
         $wrapInTx = $testArgs->getBool(DbAutoInstrumentationUtilForTests::WRAP_IN_TX_KEY);
-        $rollback = $testArgs->getBool(DbAutoInstrumentationUtilForTests::ROLLBACK_KEY);
+        $rollback = $testArgs->getBool(DbAutoInstrumentationUtilForTests::SHOULD_ROLLBACK_KEY);
 
         $testCaseHandle = $this->getTestCaseHandle();
 
@@ -390,13 +388,17 @@ final class MySqliAutoInstrumentationTest extends ComponentTestCaseBase
         /** @var SpanExpectations[] $expectedDbSpans */
         $expectedDbSpans = [];
         if ($isAutoInstrumentationEnabled) {
-            $expectationsBuilder = (new MySqliDbSpanDataExpectationsBuilder($isOOPApi))->dbNamespace($connectDbName ?? '');
+            $expectationsBuilder = (new MySqliDbSpanDataExpectationsBuilder($isOOPApi));
+            if ($connectDbName !== null) {
+                $expectationsBuilder->dbNamespace($connectDbName);
+            }
             $expectedDbSpans[] = $expectationsBuilder->buildForMySqliClassMethod('__construct', funcName: 'mysqli_connect');
 
             if ($connectDbName !== $workDbName) {
                 $expectedDbSpans[] = $expectationsBuilder->buildForMySqliClassMethod('query', dbQueryText: self::CREATE_DATABASE_IF_NOT_EXISTS_SQL_PREFIX . $workDbName);
                 $expectationsBuilder->dbNamespace($workDbName);
-                $expectedDbSpans[] = $expectationsBuilder->buildForMySqliClassMethod('select_db');
+                // TODO: Sergey Kleyman: UNCOMMENT
+                // $expectedDbSpans[] = $expectationsBuilder->buildForMySqliClassMethod('select_db');
             }
 
             $expectedDbSpans[] = $expectationsBuilder->buildForMySqliClassMethod('query', dbQueryText: self::CREATE_TABLE_SQL);

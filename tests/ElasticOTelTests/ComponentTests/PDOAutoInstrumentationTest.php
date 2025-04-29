@@ -160,7 +160,7 @@ final class PDOAutoInstrumentationTest extends ComponentTestCaseBase
 
         $dbName = $appCodeArgs->getString(DbAutoInstrumentationUtilForTests::DB_NAME_KEY);
         $wrapInTx = $appCodeArgs->getBool(DbAutoInstrumentationUtilForTests::WRAP_IN_TX_KEY);
-        $rollback = $appCodeArgs->getBool(DbAutoInstrumentationUtilForTests::ROLLBACK_KEY);
+        $rollback = $appCodeArgs->getBool(DbAutoInstrumentationUtilForTests::SHOULD_ROLLBACK_KEY);
 
         $pdo = new PDO(self::buildConnectionString($dbName));
         self::assertTrue($pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION));
@@ -202,7 +202,7 @@ final class PDOAutoInstrumentationTest extends ComponentTestCaseBase
         $isAutoInstrumentationEnabled = $testArgs->getBool(self::IS_AUTO_INSTRUMENTATION_ENABLED_KEY);
         $dbNameArg = $testArgs->getString(DbAutoInstrumentationUtilForTests::DB_NAME_KEY);
         $wrapInTx = $testArgs->getBool(DbAutoInstrumentationUtilForTests::WRAP_IN_TX_KEY);
-        $rollback = $testArgs->getBool(DbAutoInstrumentationUtilForTests::ROLLBACK_KEY);
+        $rollback = $testArgs->getBool(DbAutoInstrumentationUtilForTests::SHOULD_ROLLBACK_KEY);
 
         $testCaseHandle = $this->getTestCaseHandle();
 

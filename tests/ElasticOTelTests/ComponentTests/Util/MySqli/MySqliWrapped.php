@@ -42,13 +42,6 @@ final class MySqliWrapped implements LoggableInterface
     ) {
     }
 
-    public function ping(): bool
-    {
-        return $this->isOOPApi
-            ? $this->wrappedObj->ping()
-            : mysqli_ping($this->wrappedObj);
-    }
-
     public function selectDb(string $dbName): bool
     {
         return $this->isOOPApi
