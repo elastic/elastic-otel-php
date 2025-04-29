@@ -64,7 +64,7 @@ final class OptionsForTestsMetadata
             [OptionForTestsName::escalated_reruns_max_count, new IntOptionMetadata(minValidValue: 0, maxValidValue: null, defaultValue: 10)],
             [OptionForTestsName::escalated_reruns_prod_code_log_level_option_name, new NullableStringOptionMetadata()],
 
-            [OptionForTestsName::group, new NullableStringOptionMetadata()],
+            [OptionForTestsName::group, new NullableTestGroupNameOptionMetadata()],
 
             [OptionForTestsName::log_level, new LogLevelOptionMetadata(LogLevel::info)],
 

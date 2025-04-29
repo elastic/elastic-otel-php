@@ -49,7 +49,6 @@ use OpenTelemetry\SemConv\TraceAttributes;
 /**
  * @group smoke
  * @group requires_external_services
- * @group requires_mysql_external_service
  */
 final class MySqliAutoInstrumentationTest extends ComponentTestCaseBase
 {
@@ -263,6 +262,15 @@ final class MySqliAutoInstrumentationTest extends ComponentTestCaseBase
      */
     public static function dataProviderForTestAutoInstrumentation(): iterable
     {
+        // It seems PHPUnit enumerates test cases (included calling test method data providers
+        // even when the tests class does not have the selected group attribute.
+        // To avoid a test failure because this data provider cannot run without some external configuration (MySQL server host, etc.)
+        // just return a dummy test args - the args will be used only for PHPUnit test case enumeration
+        // and the test method will not be called with these args.
+        if (!AmbientContextForTests::testConfig()->doesRequireExternalServices()) {
+            return ['dummy test args' => [new MixedMap()]];
+        }
+
         /** @var array<?string> $connectDbNameVariants */
         $connectDbNameVariants = [AmbientContextForTests::testConfig()->mysqlDb, null];
 

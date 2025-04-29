@@ -28,6 +28,7 @@ use Elastic\OTel\Util\TextUtil;
 use Elastic\OTel\Util\WildcardListMatcher;
 use ElasticOTelTests\ComponentTests\Util\AppCodeHostKind;
 use ElasticOTelTests\ComponentTests\Util\EnvVarUtilForTests;
+use ElasticOTelTests\ComponentTests\Util\TestGroupName;
 use ElasticOTelTests\ComponentTests\Util\TestInfraDataPerProcess;
 use ElasticOTelTests\ComponentTests\Util\TestInfraDataPerRequest;
 use ElasticOTelTests\Util\AssertEx;
@@ -57,7 +58,7 @@ final class ConfigSnapshotForTests implements LoggableInterface
     public readonly int $escalatedRerunsMaxCount; // @phpstan-ignore property.uninitializedReadonly
     private readonly ?string $escalatedRerunsProdCodeLogLevelOptionName; // @phpstan-ignore property.uninitializedReadonly
 
-    public readonly ?string $group; // @phpstan-ignore property.uninitializedReadonly
+    public readonly ?TestGroupName $group; // @phpstan-ignore property.uninitializedReadonly
 
     public readonly LogLevel $logLevel; // @phpstan-ignore property.uninitializedReadonly
 
@@ -105,7 +106,12 @@ final class ConfigSnapshotForTests implements LoggableInterface
 
     public function isSmoke(): bool
     {
-        return $this->group === 'smoke';
+        return $this->group === TestGroupName::smoke;
+    }
+
+    public function doesRequireExternalServices(): bool
+    {
+        return $this->group === null || $this->group->doesRequireExternalServices();
     }
 
     public function escalatedRerunsProdCodeLogLevelOptionName(): ?OptionForProdName
