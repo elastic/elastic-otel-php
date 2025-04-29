@@ -390,8 +390,6 @@ final class MySqliAutoInstrumentationTest extends ComponentTestCaseBase
             if ($connectDbName !== $workDbName) {
                 $expectedDbSpans[] = $expectationsBuilder->buildForMySqliClassMethod('query', dbQueryText: self::CREATE_DATABASE_IF_NOT_EXISTS_SQL_PREFIX . $workDbName);
                 $expectationsBuilder->dbNamespace($workDbName);
-                // TODO: Sergey Kleyman: UNCOMMENT
-                // $expectedDbSpans[] = $expectationsBuilder->buildForMySqliClassMethod('select_db');
             }
 
             $expectedDbSpans[] = $expectationsBuilder->buildForMySqliClassMethod('query', dbQueryText: self::CREATE_TABLE_SQL);

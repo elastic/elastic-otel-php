@@ -52,7 +52,7 @@ final class AmbientContextForTests
         $this->logBackend = new LogBackend($maxEnabledLogLevelBeforeRealConfig, new SinkForTests($dbgProcessName));
         self::$loggerFactory = new LoggerFactory($this->logBackend);
         $this->clock = new Clock(self::$loggerFactory);
-        // Now that we have a logger we can read real config and see the potential issues with it logged
+        // Now that we have a logger, we can read real config and see the potential issues with it logged
         $this->readAndApplyConfig();
     }
 
