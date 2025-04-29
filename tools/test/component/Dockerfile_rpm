@@ -4,7 +4,7 @@ FROM fedora:latest
 
 RUN ls -1 /etc/*release | xargs -i sh -c 'echo {} && cat {}'
 
-RUN dnf -y update && dnf -y install unzip
+RUN dnf -y update && dnf -y install unzip git gawk which
 RUN FEDORA_VERSION_ID=$(cat /etc/*release | grep VERSION_ID | cut -d '=' -f 2) && echo "FEDORA_VERSION_ID: ${FEDORA_VERSION_ID}" \
     && dnf -y install https://rpms.remirepo.net/fedora/remi-release-${FEDORA_VERSION_ID}.rpm
 

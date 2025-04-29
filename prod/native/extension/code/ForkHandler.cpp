@@ -30,7 +30,7 @@
 #include "transport/HttpTransportAsync.h"
 
 static void callbackToLogForkBeforeInParent() {
-    ELOG_DEBUG(EAPM_GL(logger_), "Before process fork (i.e., in parent context); its parent (i.e., grandparent) PID: %d", static_cast<int>(elasticapm::osutils::getParentProcessId()));
+    ELOGF_NF_DEBUG(EAPM_GL(logger_), "Before process fork (i.e., in parent context); its parent (i.e., grandparent) PID: %d", static_cast<int>(elasticapm::osutils::getParentProcessId()));
     // TODO implement forkable registry
     if (ELASTICAPM_G(globals) && ELASTICAPM_G(globals)->periodicTaskExecutor_) {
         ELASTICAPM_G(globals)->periodicTaskExecutor_->prefork();
@@ -41,7 +41,7 @@ static void callbackToLogForkBeforeInParent() {
 }
 
 static void callbackToLogForkAfterInParent() {
-    ELOG_DEBUG(EAPM_GL(logger_), "After process fork (in parent context)");
+    ELOGF_NF_DEBUG(EAPM_GL(logger_), "After process fork (in parent context)");
     if (ELASTICAPM_G(globals) && ELASTICAPM_G(globals)->periodicTaskExecutor_) {
         ELASTICAPM_G(globals)->periodicTaskExecutor_->postfork(false);
     }
@@ -51,7 +51,7 @@ static void callbackToLogForkAfterInParent() {
 }
 
 static void callbackToLogForkAfterInChild() {
-    ELOG_DEBUG(EAPM_GL(logger_), "After process fork (in child context); parent PID: %d", static_cast<int>(elasticapm::osutils::getParentProcessId()));
+    ELOGF_NF_DEBUG(EAPM_GL(logger_), "After process fork (in child context); parent PID: %d", static_cast<int>(elasticapm::osutils::getParentProcessId()));
     if (ELASTICAPM_G(globals) && ELASTICAPM_G(globals)->periodicTaskExecutor_) {
         ELASTICAPM_G(globals)->periodicTaskExecutor_->postfork(true);
     }
@@ -63,9 +63,9 @@ static void callbackToLogForkAfterInChild() {
 void registerCallbacksToLogFork() {
     int retVal = pthread_atfork(callbackToLogForkBeforeInParent, callbackToLogForkAfterInParent, callbackToLogForkAfterInChild);
     if (retVal == 0) {
-        ELOG_DEBUG(EAPM_GL(logger_), "Registered callbacks to log process fork");
+        ELOGF_NF_DEBUG(EAPM_GL(logger_), "Registered callbacks to log process fork");
     } else {
-        ELOG_WARNING(EAPM_GL(logger_), "Failed to register callbacks to log process fork; return value: %d", retVal);
+        ELOGF_NF_WARNING(EAPM_GL(logger_), "Failed to register callbacks to log process fork; return value: %d", retVal);
     }
 }
 
