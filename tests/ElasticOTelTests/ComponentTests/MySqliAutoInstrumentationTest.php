@@ -376,19 +376,12 @@ final class MySqliAutoInstrumentationTest extends ComponentTestCaseBase
         $wrapInTx = $testArgs->getBool(DbAutoInstrumentationUtilForTests::WRAP_IN_TX_KEY);
         $rollback = $testArgs->getBool(DbAutoInstrumentationUtilForTests::SHOULD_ROLLBACK_KEY);
 
-        $testCaseHandle = $this->getTestCaseHandle();
-
-        $appCodeArgs = $testArgs->clone();
-
-        $appCodeArgs[DbAutoInstrumentationUtilForTests::HOST_KEY] = AmbientContextForTests::testConfig()->mysqlHost;
-        $appCodeArgs[DbAutoInstrumentationUtilForTests::PORT_KEY] = AmbientContextForTests::testConfig()->mysqlPort;
-        $appCodeArgs[DbAutoInstrumentationUtilForTests::USER_KEY] = AmbientContextForTests::testConfig()->mysqlUser;
-        $appCodeArgs[DbAutoInstrumentationUtilForTests::PASSWORD_KEY] = AmbientContextForTests::testConfig()->mysqlPassword;
-
         /** @var SpanExpectations[] $expectedDbSpans */
         $expectedDbSpans = [];
         if ($isAutoInstrumentationEnabled) {
-            $expectationsBuilder = (new MySqliDbSpanDataExpectationsBuilder($isOOPApi));
+            $expectationsBuilder = (new MySqliDbSpanDataExpectationsBuilder($isOOPApi))
+                ->serverAddress(AssertEx::notNull(AmbientContextForTests::testConfig()->mysqlHost))
+                ->serverPort(AssertEx::notNull(AmbientContextForTests::testConfig()->mysqlPort));
             if ($connectDbName !== null) {
                 $expectationsBuilder->dbNamespace($connectDbName);
             }
@@ -422,6 +415,13 @@ final class MySqliAutoInstrumentationTest extends ComponentTestCaseBase
         }
         $dbgCtx->add(compact('expectedDbSpans'));
 
+        $appCodeArgs = $testArgs->clone();
+        $appCodeArgs[DbAutoInstrumentationUtilForTests::HOST_KEY] = AmbientContextForTests::testConfig()->mysqlHost;
+        $appCodeArgs[DbAutoInstrumentationUtilForTests::PORT_KEY] = AmbientContextForTests::testConfig()->mysqlPort;
+        $appCodeArgs[DbAutoInstrumentationUtilForTests::USER_KEY] = AmbientContextForTests::testConfig()->mysqlUser;
+        $appCodeArgs[DbAutoInstrumentationUtilForTests::PASSWORD_KEY] = AmbientContextForTests::testConfig()->mysqlPassword;
+
+        $testCaseHandle = $this->getTestCaseHandle();
         $appCodeHost = $testCaseHandle->ensureMainAppCodeHost(
             function (AppCodeHostParams $appCodeParams) use ($isAutoInstrumentationEnabled): void {
                 if (!$isAutoInstrumentationEnabled) {

@@ -23,6 +23,7 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
+use ElasticOTelTests\Util\AssertEx;
 use OpenTelemetry\SemConv\TraceAttributes;
 
 class DbSpanExpectationsBuilder extends SpanExpectationsBuilder
@@ -37,25 +38,41 @@ class DbSpanExpectationsBuilder extends SpanExpectationsBuilder
     /**
      * @return $this
      */
-    public function dbSystemName(string $dbSystemName): self
+    public function dbSystemName(string $value): self
     {
-        return $this->addAttribute(TraceAttributes::DB_SYSTEM_NAME, $dbSystemName);
+        return $this->addAttribute(TraceAttributes::DB_SYSTEM_NAME, $value);
     }
 
     /**
      * @return $this
      */
-    public function dbNamespace(string $dbNamespace): self
+    public function dbNamespace(string $value): self
     {
-        return $this->addAttribute(TraceAttributes::DB_NAMESPACE, $dbNamespace);
+        return $this->addAttribute(TraceAttributes::DB_NAMESPACE, $value);
     }
 
     /**
      * @return $this
      */
-    public function dbQueryText(string $dbQueryText): self
+    public function dbQueryText(string $value): self
     {
-        return $this->addAttribute(TraceAttributes::DB_QUERY_TEXT, $dbQueryText);
+        return $this->addAttribute(TraceAttributes::DB_QUERY_TEXT, $value);
+    }
+
+    /**
+     * @return $this
+     */
+    public function dbOperationName(string $value): self
+    {
+        return $this->addAttribute(TraceAttributes::DB_OPERATION_NAME, $value);
+    }
+
+    /**
+     * @return $this
+     */
+    public function dbQueryTextAndOperationName(string $value): self
+    {
+        return $this->dbQueryText($value)->dbOperationName(self::extractDbOperationNameFromQueryText($value));
     }
 
     /**
@@ -67,5 +84,23 @@ class DbSpanExpectationsBuilder extends SpanExpectationsBuilder
             return $this->dbQueryText($dbQueryText);
         }
         return $this;
+    }
+
+    /**
+     * @return $this
+     */
+    public function optionalDbQueryTextAndOperationName(?string $dbQueryText): self
+    {
+        if ($dbQueryText !== null) {
+            return $this->dbQueryTextAndOperationName($dbQueryText);
+        }
+        return $this;
+    }
+
+    private static function extractDbOperationNameFromQueryText(string $dbQueryText): string
+    {
+        $words = explode(' ', $dbQueryText, limit: 2);
+        AssertEx::countAtLeast(1, $words);
+        return $words[0];
     }
 }
