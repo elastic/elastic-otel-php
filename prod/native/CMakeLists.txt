@@ -86,7 +86,19 @@ FetchContent_MakeAvailable(OpenTelemetryProto)
 
 set(_OPENTELEMETRY_PROTO_PATH "${CMAKE_BINARY_DIR}/_deps/opentelemetryproto-src")
 
-message(STATUS "OpenTelemetry protobuf available at ${_OPENTELEMETRY_PROTO_PATH}")
+message(STATUS "OpenTelemetry OTLP protobuf available at ${_OPENTELEMETRY_PROTO_PATH}")
+
+FetchContent_Declare(
+  OpenTelemetryOpAmp
+  GIT_REPOSITORY https://github.com/open-telemetry/opamp-spec.git
+  GIT_TAG        ${_PROJECT_PROPERTIES_OTEL_OPAMP_PROTO_VERSION}
+)
+FetchContent_MakeAvailable(OpenTelemetryOpAmp)
+
+set(_OPENTELEMETRY_OPAMP_PROTO_PATH "${CMAKE_BINARY_DIR}/_deps/opentelemetryopamp-src")
+
+message(STATUS "OpenTelemetry OpAmp protobuf available at ${_OPENTELEMETRY_PROTO_PATH}")
+
 
 
 find_package(CURL 8.10.1 REQUIRED)
@@ -105,6 +117,7 @@ enable_testing()
 add_subdirectory(libcommon)
 add_subdirectory(libphpbridge)
 add_subdirectory(libotlp)
+add_subdirectory(libopamp)
 add_subdirectory(loader)
 add_subdirectory(extension)
 add_subdirectory(phpbridge_extension)
