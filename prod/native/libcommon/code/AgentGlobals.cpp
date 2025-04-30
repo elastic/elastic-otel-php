@@ -31,8 +31,8 @@
 #include "InstrumentedFunctionHooksStorage.h"
 #include "CommonUtils.h"
 #include "transport/HttpTransportAsync.h"
+#include "transport/OpAmp.h"
 #include "DependencyAutoLoaderGuard.h"
-
 #include "LogFeature.h"
 #include <signal.h>
 
@@ -49,18 +49,19 @@ AgentGlobals::AgentGlobals(std::shared_ptr<LoggerInterface> logger,
         ConfigurationStorage::configUpdate_t updateConfigurationSnapshot) :
     config_(std::make_shared<elasticapm::php::ConfigurationStorage>(std::move(updateConfigurationSnapshot))),
     logger_(std::move(logger)),
+    logSinkStdErr_(std::move(logSinkStdErr)),
+    logSinkSysLog_(std::move(logSinkSysLog)),
+    logSinkFile_(std::move(logSinkFile)),
     bridge_(std::move(bridge)),
     dependencyAutoLoaderGuard_(std::make_shared<DependencyAutoLoaderGuard>(bridge_, logger_)),
     hooksStorage_(std::move(hooksStorage)),
     sapi_(std::make_shared<elasticapm::php::PhpSapi>(bridge_->getPhpSapiName())),
     inferredSpans_(std::move(inferredSpans)),
     periodicTaskExecutor_(),
-    httpTransportAsync_(std::make_unique<elasticapm::php::transport::HttpTransportAsync<>>(logger_, config_)),
+    httpTransportAsync_(std::make_shared<elasticapm::php::transport::HttpTransportAsync<>>(logger_, config_)),
+    opAmp_(std::make_shared<opentelemetry::php::transport::OpAmp>(logger_, config_, httpTransportAsync_)),
     sharedMemory_(std::make_shared<elasticapm::php::SharedMemoryState>()),
-    requestScope_(std::make_shared<elasticapm::php::RequestScope>(logger_, bridge_, sapi_, sharedMemory_, dependencyAutoLoaderGuard_, inferredSpans_, config_, [hs = hooksStorage_]() { hs->clear(); }, [this]() { return getPeriodicTaskExecutor();})),
-    logSinkStdErr_(std::move(logSinkStdErr)),
-    logSinkSysLog_(std::move(logSinkSysLog)),
-    logSinkFile_(std::move(logSinkFile))
+    requestScope_(std::make_shared<elasticapm::php::RequestScope>(logger_, bridge_, sapi_, sharedMemory_, dependencyAutoLoaderGuard_, inferredSpans_, config_, [hs = hooksStorage_]() { hs->clear(); }, [this]() { return getPeriodicTaskExecutor();}))
     {
         config_->addConfigUpdateWatcher([logger = logger_, stderrsink = logSinkStdErr_, syslogsink = logSinkSysLog_, filesink = logSinkFile_](ConfigurationSnapshot const &cfg) {
             stderrsink->setLevel(cfg.log_level_stderr);
@@ -91,6 +92,8 @@ std::shared_ptr<PeriodicTaskExecutor> AgentGlobals::getPeriodicTaskExecutor() {
     periodicTaskExecutor_ = std::make_shared<elasticapm::php::PeriodicTaskExecutor>(
             std::vector<elasticapm::php::PeriodicTaskExecutor::task_t>{
             [inferredSpans = inferredSpans_](elasticapm::php::PeriodicTaskExecutor::time_point_t now) { inferredSpans->tryRequestInterrupt(now); }
+            // [opAmp = opAmp_](elasticapm::php::PeriodicTaskExecutor::time_point_t now) { opAmp }
+
             },
             []() {
                 // block signals for this thread to be handled by main Apache/PHP thread

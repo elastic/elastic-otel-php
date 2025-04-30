@@ -47,7 +47,7 @@ public:
         }
     }
 
-    int16_t sendPayload(std::string const &endpointUrl, struct curl_slist *headers, std::vector<std::byte> const &payload) const;
+    int16_t sendPayload(std::string const &endpointUrl, struct curl_slist *headers, std::vector<std::byte> const &payload, std::string *responseBuffer = nullptr) const;
 
 private:
     CURL *handle_ = nullptr;
