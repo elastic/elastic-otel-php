@@ -23,8 +23,10 @@
 #include "ForkableInterface.h"
 #include "LoggerInterface.h"
 #include "ConfigurationStorage.h"
+#include "CommonUtils.h"
 
 #include <boost/core/noncopyable.hpp>
+#include <condition_variable>
 #include <memory>
 #include <thread>
 
@@ -32,16 +34,14 @@ using namespace std::literals;
 
 namespace opentelemetry::php::transport {
 
-class OpAmp : public elasticapm::php::ForkableInterface, public boost::noncopyable {
+class OpAmp : public elasticapm::php::ForkableInterface, public boost::noncopyable, public std::enable_shared_from_this<OpAmp> {
 public:
     OpAmp(std::shared_ptr<elasticapm::php::LoggerInterface> log, std::shared_ptr<elasticapm::php::ConfigurationStorage> config, std::shared_ptr<elasticapm::php::transport::HttpTransportAsyncInterface> transport) : log_(std::move(log)), config_(std::move(config)), transport_(std::move(transport)) {
-        std::vector<std::pair<std::string_view, std::string_view>> headers{{"Authorization", "Franek"}};
-        transport_->initializeConnection("http://localhost/v1/opamp", 1244, "application/x-protobuf"s, headers, std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::duration<double>(10)), static_cast<std::size_t>(10), std::chrono::milliseconds(10s));
-        startThread();
     }
     // [](int16_t responseCode, std::span<std::byte> data) { std::cout << "== code: " << (int)responseCode << "======= size:" << data.size() << "================\n" << reinterpret_cast<const char *>(data.data()) << "\n==================\n"; }
 
     ~OpAmp() {
+        ELOG_DEBUG(log_, OPAMP, "going down");
         shutdownThread();
     }
 
@@ -52,21 +52,26 @@ public:
 
     void postfork([[maybe_unused]] bool child) final {
         ELOG_DEBUG(log_, OPAMP, "postfork in {}", child ? "child"sv : "parent"sv);
-        // if (child && !payloadsToSend_.empty()) {
-        //     ELOGF_DEBUG(log_, TRANSPORT, "HttpTransportAsync::postfork child emptying payloads queue. %zu will be sent from parent", payloadsToSend_.size());
-        //     decltype(payloadsToSend_) q;
-        //     payloadsToSend_.swap(q);
-        // }
         working_ = true;
         startThread();
         pauseCondition_.notify_all();
     }
 
+    void init(std::string endpointUrl, std::vector<std::pair<std::string_view, std::string_view>> const &endpointHeaders, std::chrono::milliseconds timeout, std::size_t maxRetries, std::chrono::milliseconds retryDelay) {
+        endpointHash_ = std::hash<std::string>{}(endpointUrl);
+        transport_->initializeConnection(endpointUrl, endpointHash_, "application/x-protobuf"s, endpointHeaders, timeout, maxRetries, retryDelay);
+        startThread();
+        sendInitialAgentToServer();
+    }
+
 protected:
+    void sendInitialAgentToServer();
+    void handleServerToAgent(const char *data, std::size_t size);
+
     void startThread() {
         std::lock_guard<std::mutex> lock(mutex_);
         if (!thread_) {
-            ELOG_DEBUG(log_, OPAMP, "OpAmp startThread");
+            ELOG_DEBUG(log_, OPAMP, "startThread");
             thread_ = std::make_unique<std::thread>([this]() { opAmpHeartbeat(); });
         }
     }
@@ -75,7 +80,7 @@ protected:
         {
             std::lock_guard<std::mutex> lock(mutex_);
             if (thread_) {
-                ELOG_DEBUG(log_, OPAMP, "OpAmp shutdownThread");
+                ELOG_DEBUG(log_, OPAMP, "shutdownThread");
             }
 
             working_ = false;
@@ -103,13 +108,16 @@ protected:
             if (!working_ && !forceFlushOnDestruction_) {
                 break;
             }
-
-            // sendHeartbeat();
+            sendHeartbeat();
         }
     }
 
+    void sendHeartbeat();
+
+    std::string generateAgentUID();
+
 private:
-    static constexpr std::chrono::seconds heartbeatInterval_{1};
+    static constexpr std::chrono::seconds heartbeatInterval_{2};
 
     std::mutex mutex_;
     std::unique_ptr<std::thread> thread_;
@@ -117,9 +125,12 @@ private:
     bool working_ = true;
     std::atomic_bool forceFlushOnDestruction_ = false;
 
+    std::size_t endpointHash_ = 0;
+
     std::shared_ptr<elasticapm::php::LoggerInterface> log_;
     std::shared_ptr<elasticapm::php::ConfigurationStorage> config_;
     std::shared_ptr<elasticapm::php::transport::HttpTransportAsyncInterface> transport_;
+    std::string agentUid_ = generateAgentUID();
 };
 
 } // namespace opentelemetry::php::transport

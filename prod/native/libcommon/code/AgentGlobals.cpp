@@ -92,8 +92,6 @@ std::shared_ptr<PeriodicTaskExecutor> AgentGlobals::getPeriodicTaskExecutor() {
     periodicTaskExecutor_ = std::make_shared<elasticapm::php::PeriodicTaskExecutor>(
             std::vector<elasticapm::php::PeriodicTaskExecutor::task_t>{
             [inferredSpans = inferredSpans_](elasticapm::php::PeriodicTaskExecutor::time_point_t now) { inferredSpans->tryRequestInterrupt(now); }
-            // [opAmp = opAmp_](elasticapm::php::PeriodicTaskExecutor::time_point_t now) { opAmp }
-
             },
             []() {
                 // block signals for this thread to be handled by main Apache/PHP thread
