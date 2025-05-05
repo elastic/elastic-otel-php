@@ -21,25 +21,21 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTests\ComponentTests\Util;
+namespace ElasticOTelTests\Util\Config;
 
-final class ExportedData extends ParsedExportedData
+use ElasticOTelTests\ComponentTests\Util\TestGroupName;
+
+/**
+ * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
+ *
+ * @internal
+ *
+ * @extends NullableOptionMetadata<TestGroupName>
+ */
+final class NullableTestGroupNameOptionMetadata extends NullableOptionMetadata
 {
-    /**
-     * @param Span[] $spans
-     */
-    public function __construct(
-        public readonly RawExportedData $raw,
-        array $spans,
-    ) {
-        parent::__construct(spans: $spans);
-    }
-
-    /**
-     * @return array{'counts': array{'spans': int}}
-     */
-    public function dbgGetSummary(): array
+    public function __construct()
     {
-        return ['counts' => ['spans' => count($this->spans)]];
+        parent::__construct(EnumOptionParser::useEnumCasesNames(TestGroupName::class, isCaseSensitive: true, isUnambiguousPrefixAllowed: false));
     }
 }

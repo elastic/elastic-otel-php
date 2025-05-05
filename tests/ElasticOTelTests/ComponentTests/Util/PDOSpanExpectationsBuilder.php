@@ -31,12 +31,10 @@ class PDOSpanExpectationsBuilder extends DbSpanExpectationsBuilder
 {
     public function buildForPDOClassMethod(string $methodName, ?bool $isStaticMethod = null, ?string $dbQueryText = null): SpanExpectations
     {
-        $builderClone = clone $this;
-        $builderClone->nameAndCodeAttributesUsingClassMethod(ClassNameUtil::fqToShort(PDO::class), $methodName, $isStaticMethod);
-        if ($dbQueryText !== null) {
-            $builderClone->setDbQueryText($dbQueryText);
-        }
-        return $builderClone->build();
+        return (clone $this)
+            ->nameAndCodeAttributesUsingClassMethod(ClassNameUtil::fqToShort(PDO::class), $methodName, $isStaticMethod)
+            ->optionalDbQueryText($dbQueryText)
+            ->build();
     }
 
     public function buildForPDOStatementClassMethod(string $methodName, ?bool $isStaticMethod = null): SpanExpectations

@@ -23,23 +23,22 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
-final class ExportedData extends ParsedExportedData
+/**
+ * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
+ *
+ * @internal
+ */
+enum TestGroupName
 {
-    /**
-     * @param Span[] $spans
-     */
-    public function __construct(
-        public readonly RawExportedData $raw,
-        array $spans,
-    ) {
-        parent::__construct(spans: $spans);
-    }
+    case smoke;
+    case does_not_require_external_services;
+    case requires_external_services;
 
-    /**
-     * @return array{'counts': array{'spans': int}}
-     */
-    public function dbgGetSummary(): array
+    public function doesRequireExternalServices(): bool
     {
-        return ['counts' => ['spans' => count($this->spans)]];
+        return match ($this) {
+            self::smoke, self::requires_external_services => true,
+            self::does_not_require_external_services => false,
+        };
     }
 }

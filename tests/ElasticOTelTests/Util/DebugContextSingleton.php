@@ -160,7 +160,7 @@ final class DebugContextSingleton implements LoggableInterface
             $frameIndexToScope = [];
             /** @var non-empty-list<non-negative-int> $frameIndexesForScopes */
             $frameIndexesForScopes = $syncRetVal;
-            foreach (IterableUtil::zipWithIndex($frameIndexesForScopes) as [$scopeIndex, $frameIndex]) {
+            foreach (IterableUtil::zipOneWithIndex($frameIndexesForScopes) as [$scopeIndex, $frameIndex]) {
                 $frameIndexToScope[$frameIndex] = $this->addedContextScopesStack[$scopeIndex];
             }
 

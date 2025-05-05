@@ -1052,9 +1052,7 @@ class DebugContextTest extends TestCaseBase
             // <PHPUnit's main> ... calls ... <this test func> ... calls ... Assert::xyz()
             AssertEx::countAtLeast($nonVendorCallsDepth + 2, $decodedContextsStack);
             $testFuncCtxIndex = null;
-            /** @var non-negative-int $scopeIndex */
-            /** @var string $scopeDesc */
-            foreach (IterableUtil::zipWithIndex(IterableUtil::keys($decodedContextsStack)) as [$scopeIndex, $scopeDesc]) {
+            foreach (IterableUtil::zipOneWithIndex(IterableUtil::keys($decodedContextsStack)) as [$scopeIndex, $scopeDesc]) {
                 if (str_contains(haystack: $scopeDesc, needle: __FUNCTION__)) {
                     $testFuncCtxIndex = $scopeIndex;
                 }
