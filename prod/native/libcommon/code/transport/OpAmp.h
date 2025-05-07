@@ -26,9 +26,12 @@
 #include "CommonUtils.h"
 
 #include <boost/core/noncopyable.hpp>
+#include <boost/uuid.hpp>
 #include <condition_variable>
 #include <memory>
+#include <string>
 #include <thread>
+#include <unordered_map>
 
 using namespace std::literals;
 
@@ -57,12 +60,7 @@ public:
         pauseCondition_.notify_all();
     }
 
-    void init(std::string endpointUrl, std::vector<std::pair<std::string_view, std::string_view>> const &endpointHeaders, std::chrono::milliseconds timeout, std::size_t maxRetries, std::chrono::milliseconds retryDelay) {
-        endpointHash_ = std::hash<std::string>{}(endpointUrl);
-        transport_->initializeConnection(endpointUrl, endpointHash_, "application/x-protobuf"s, endpointHeaders, timeout, maxRetries, retryDelay);
-        startThread();
-        sendInitialAgentToServer();
-    }
+    void init(std::string endpointUrl, std::vector<std::pair<std::string_view, std::string_view>> const &endpointHeaders, std::chrono::milliseconds timeout, std::size_t maxRetries, std::chrono::milliseconds retryDelay);
 
 protected:
     void sendInitialAgentToServer();
@@ -72,7 +70,7 @@ protected:
         std::lock_guard<std::mutex> lock(mutex_);
         if (!thread_) {
             ELOG_DEBUG(log_, OPAMP, "startThread");
-            thread_ = std::make_unique<std::thread>([this]() { opAmpHeartbeat(); });
+            thread_ = std::make_unique<std::thread>([this]() { opAmpHeartbeatTask(); });
         }
     }
 
@@ -93,17 +91,14 @@ protected:
         thread_.reset();
     }
 
-    void opAmpHeartbeat() {
+    void opAmpHeartbeatTask() {
         ELOGF_DEBUG(log_, OPAMP, "opAmpHeartbeat blocking signals and starting work");
 
         elasticapm::utils::blockApacheAndPHPSignals();
 
         std::unique_lock<std::mutex> lock(mutex_);
         while (working_) {
-            pauseCondition_.wait_for(lock, heartbeatInterval_, [this]() -> bool {
-                //  return !payloadsToSend_.empty() || !working_;
-                return !working_;
-            });
+            pauseCondition_.wait_for(lock, heartbeatInterval_, [this]() -> bool { return !working_; });
 
             if (!working_ && !forceFlushOnDestruction_) {
                 break;
@@ -114,23 +109,23 @@ protected:
 
     void sendHeartbeat();
 
-    std::string generateAgentUID();
-
 private:
-    static constexpr std::chrono::seconds heartbeatInterval_{2};
+    std::chrono::seconds heartbeatInterval_{2};
 
     std::mutex mutex_;
     std::unique_ptr<std::thread> thread_;
     std::condition_variable pauseCondition_;
     bool working_ = true;
     std::atomic_bool forceFlushOnDestruction_ = false;
-
     std::size_t endpointHash_ = 0;
 
     std::shared_ptr<elasticapm::php::LoggerInterface> log_;
     std::shared_ptr<elasticapm::php::ConfigurationStorage> config_;
     std::shared_ptr<elasticapm::php::transport::HttpTransportAsyncInterface> transport_;
-    std::string agentUid_ = generateAgentUID();
+    boost::uuids::uuid agentUid_{boost::uuids::random_generator()()};
+
+    std::string currentConfigHash_;
+    std::unordered_map<std::string, std::string> configFiles_;
 };
 
 } // namespace opentelemetry::php::transport
