@@ -12,6 +12,7 @@ target_link_libraries(${_Target}
     PRIVATE libunwind::libunwind
     PRIVATE CURL::libcurl
     PRIVATE opamp
+    PRIVATE semconv
     )
 
 configure_file("elastic_otel_version.h.in" "${CMAKE_CURRENT_BINARY_DIR}/generated/elastic_otel_version.h")
