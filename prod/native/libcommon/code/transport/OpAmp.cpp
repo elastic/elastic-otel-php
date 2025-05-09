@@ -26,6 +26,9 @@
 
 #include <format>
 
+#include <opentelemetry/semconv/service_attributes.h>
+#include <opentelemetry/semconv/deployment_attributes.h>
+
 using namespace std::literals;
 
 namespace opentelemetry::php::transport {
@@ -36,7 +39,11 @@ void OpAmp::init(std::string endpointUrl, std::vector<std::pair<std::string_view
     endpointHash_ = std::hash<std::string>{}(endpointUrl);
     transport_->initializeConnection(endpointUrl, endpointHash_, "application/x-protobuf"s, endpointHeaders, timeout, maxRetries, retryDelay);
     startThread();
-    sendInitialAgentToServer();
+    try {
+        sendInitialAgentToServer();
+    } catch (std::exception const &e) {
+        ELOG_WARNING(log_, OPAMP, "Unable to send heartbeat {}", e.what());
+    }
 }
 
 void OpAmp::handleServerToAgent(const char *data, std::size_t size) {
@@ -93,34 +100,42 @@ void OpAmp::sendInitialAgentToServer() {
     auto *desc = msg.mutable_agent_description();
     auto *attrs = desc->mutable_identifying_attributes();
 
-    addKeyValue(attrs, "service.name", "test");
-    addKeyValue(attrs, "service.version", "1.0.0");
-    addKeyValue(attrs, "service.instance.id", "abc123");
+    if (auto value = resourceDetector_.get(opentelemetry::semconv::service::kServiceName); !value.empty()) {
+        addKeyValue(attrs, opentelemetry::semconv::service::kServiceName, value);
+    }
+    if (auto value = resourceDetector_.get(opentelemetry::semconv::service::kServiceVersion); !value.empty()) {
+        addKeyValue(attrs, opentelemetry::semconv::service::kServiceVersion, value);
+    }
+
+    // deprecated
+    if (auto value = resourceDetector_.get(opentelemetry::semconv::deployment::kDeploymentEnvironment); !value.empty()) {
+        addKeyValue(attrs, opentelemetry::semconv::deployment::kDeploymentEnvironmentName, value);
+    }
+
+    if (auto value = resourceDetector_.get(opentelemetry::semconv::deployment::kDeploymentEnvironmentName); !value.empty()) {
+        addKeyValue(attrs, opentelemetry::semconv::deployment::kDeploymentEnvironmentName, value);
+    }
+
+    addKeyValue(attrs, opentelemetry::semconv::service::kServiceInstanceId, boost::uuids::to_string(agentUid_));
 
     // os.type, os.version - to describe where the Agent runs.
     // host.* to describe the host the Agent runs on.
     // cloud.* to describe the cloud where the host is located.
     // any other relevant Resource attributes that describe this Agent and the environment it runs in.
     // any user-defined attributes that the end user would like to associate with this Agent.
-
-    // service.name should be set to the same value that the Agent uses in its own telemetry.
     // service.namespace if it is used in the environment where the Agent runs.
-    // service.version should be set to version number of the Agent build.
-    // service.instance.id should be set. It may be set equal to the Agent’s instance uid (equal to ServerToAgent.instance_uid field) or any other value that uniquely identifies the Agent in combination with other attributes.
-    // any other attributes that are necessary for uniquely identifying the Agent’s own telemetry.
-
     // TODO control heartbeat by reading OTEL_OPAMP_DISABLE_HEARTBEATS...
 
     msg.set_capabilities(opamp::proto::AgentCapabilities::AgentCapabilities_AcceptsRemoteConfig | opamp::proto::AgentCapabilities::AgentCapabilities_ReportsStatus | opamp::proto::AgentCapabilities::AgentCapabilities_ReportsHeartbeat);
 
     std::string payload;
     if (!msg.SerializeToString(&payload)) {
-        throw std::runtime_error("Failed to serialize AgentToServer message");
+        throw std::runtime_error("Failed to serialize AgentToServer initial message");
     }
 
     auto callback = [self = shared_from_this()](int16_t responseCode, std::span<std::byte> data) {
+        ELOG_DEBUG(self->log_, OPAMP, "sendInitialAgentToServer response code: {}, data size: {}", responseCode, data.size_bytes());
         self->handleServerToAgent(reinterpret_cast<const char *>(data.data()), data.size_bytes());
-        std::cout << "== code: " << (int)responseCode << "======= size:" << data.size() << "================\n" << reinterpret_cast<const char *>(data.data()) << "\n==================\n";
     };
 
     transport_->enqueue(endpointHash_, {reinterpret_cast<std::byte *>(payload.data()), payload.length()}, callback);
@@ -132,11 +147,11 @@ void OpAmp::sendHeartbeat() {
     msg.set_instance_uid(reinterpret_cast<const char *>(agentUid_.data()), agentUid_.size());
     std::string payload;
     if (!msg.SerializeToString(&payload)) {
-        throw std::runtime_error("Failed to serialize AgentToServer message");
+        throw std::runtime_error("Failed to serialize AgentToServer heartbeat message");
     }
 
     auto callback = [self = shared_from_this()](int16_t responseCode, std::span<std::byte> data) {
-        ELOG_DEBUG(self->log_, OPAMP, "heartbeat response code: {} payload size: {}", responseCode, data.size());
+        ELOG_DEBUG(self->log_, OPAMP, "sendHeartbeat response code: {} payload size: {}", responseCode, data.size());
         self->handleServerToAgent(reinterpret_cast<const char *>(data.data()), data.size_bytes());
     };
     transport_->enqueue(endpointHash_, {reinterpret_cast<std::byte *>(payload.data()), payload.length()}, callback);

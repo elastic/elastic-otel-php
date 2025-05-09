@@ -20,6 +20,7 @@
 #pragma once
 
 #include "HttpTransportAsyncInterface.h"
+#include "ResourceDetector.h"
 #include "ForkableInterface.h"
 #include "LoggerInterface.h"
 #include "ConfigurationStorage.h"
@@ -41,7 +42,6 @@ class OpAmp : public elasticapm::php::ForkableInterface, public boost::noncopyab
 public:
     OpAmp(std::shared_ptr<elasticapm::php::LoggerInterface> log, std::shared_ptr<elasticapm::php::ConfigurationStorage> config, std::shared_ptr<elasticapm::php::transport::HttpTransportAsyncInterface> transport) : log_(std::move(log)), config_(std::move(config)), transport_(std::move(transport)) {
     }
-    // [](int16_t responseCode, std::span<std::byte> data) { std::cout << "== code: " << (int)responseCode << "======= size:" << data.size() << "================\n" << reinterpret_cast<const char *>(data.data()) << "\n==================\n"; }
 
     ~OpAmp() {
         ELOG_DEBUG(log_, OPAMP, "going down");
@@ -103,7 +103,12 @@ protected:
             if (!working_ && !forceFlushOnDestruction_) {
                 break;
             }
-            sendHeartbeat();
+
+            try {
+                sendHeartbeat();
+            } catch (std::exception const &e) {
+                ELOG_WARNING(log_, OPAMP, "Unable to send heartbeat {}", e.what());
+            }
         }
     }
 
@@ -126,6 +131,7 @@ private:
 
     std::string currentConfigHash_;
     std::unordered_map<std::string, std::string> configFiles_;
+    opentelemetry::php::ResourceDetector resourceDetector_;
 };
 
 } // namespace opentelemetry::php::transport
