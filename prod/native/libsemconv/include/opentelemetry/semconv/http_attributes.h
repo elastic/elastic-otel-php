@@ -29,6 +29,58 @@ namespace http
 {
 
 /**
+ * Deprecated, use @code client.address @endcode instead.
+ *
+ * @deprecated
+ * {"note": "Replaced by @code client.address @endcode.", "reason": "uncategorized"}
+ */
+OPENTELEMETRY_DEPRECATED
+static constexpr const char *kHttpClientIp
+ = "http.client_ip";
+
+/**
+ * State of the HTTP connection in the HTTP connection pool.
+ */
+static constexpr const char *kHttpConnectionState
+ = "http.connection.state";
+
+/**
+ * Deprecated, use @code network.protocol.name @endcode instead.
+ *
+ * @deprecated
+ * {"note": "Replaced by @code network.protocol.name @endcode.", "reason": "uncategorized"}
+ */
+OPENTELEMETRY_DEPRECATED
+static constexpr const char *kHttpFlavor
+ = "http.flavor";
+
+/**
+ * Deprecated, use one of @code server.address @endcode, @code client.address @endcode or @code http.request.header.host @endcode instead, depending on the usage.
+ *
+ * @deprecated
+ * {"note": "Replaced by one of @code server.address @endcode, @code client.address @endcode or @code http.request.header.host @endcode, depending on the usage.", "reason": "uncategorized"}
+ */
+OPENTELEMETRY_DEPRECATED
+static constexpr const char *kHttpHost
+ = "http.host";
+
+/**
+ * Deprecated, use @code http.request.method @endcode instead.
+ *
+ * @deprecated
+ * {"note": "Replaced by @code http.request.method @endcode.", "reason": "uncategorized"}
+ */
+OPENTELEMETRY_DEPRECATED
+static constexpr const char *kHttpMethod
+ = "http.method";
+
+/**
+ * The size of the request payload body in bytes. This is the number of bytes transferred excluding headers and is often, but not always, present as the <a href="https://www.rfc-editor.org/rfc/rfc9110.html#field.content-length">Content-Length</a> header. For requests using transport encoding, this should be the compressed size.
+ */
+static constexpr const char *kHttpRequestBodySize
+ = "http.request.body.size";
+
+/**
  * HTTP request headers, @code <key> @endcode being the normalized HTTP Header name (lowercase), the value being the header values.
  * <p>
  * Instrumentations SHOULD require an explicit configuration of which headers are to be captured. Including all request headers can be a security risk - explicit configuration helps avoid leaking sensitive information.
@@ -74,6 +126,38 @@ static constexpr const char *kHttpRequestResendCount
  = "http.request.resend_count";
 
 /**
+ * The total size of the request in bytes. This should be the total number of bytes sent over the wire, including the request line (HTTP/1.1), framing (HTTP/2 and HTTP/3), headers, and request body if any.
+ */
+static constexpr const char *kHttpRequestSize
+ = "http.request.size";
+
+/**
+ * Deprecated, use @code http.request.header.<key> @endcode instead.
+ *
+ * @deprecated
+ * {"note": "Replaced by @code http.request.header.<key> @endcode.", "reason": "uncategorized"}
+ */
+OPENTELEMETRY_DEPRECATED
+static constexpr const char *kHttpRequestContentLength
+ = "http.request_content_length";
+
+/**
+ * Deprecated, use @code http.request.body.size @endcode instead.
+ *
+ * @deprecated
+ * {"note": "Replaced by @code http.request.body.size @endcode.", "reason": "uncategorized"}
+ */
+OPENTELEMETRY_DEPRECATED
+static constexpr const char *kHttpRequestContentLengthUncompressed
+ = "http.request_content_length_uncompressed";
+
+/**
+ * The size of the response payload body in bytes. This is the number of bytes transferred excluding headers and is often, but not always, present as the <a href="https://www.rfc-editor.org/rfc/rfc9110.html#field.content-length">Content-Length</a> header. For requests using transport encoding, this should be the compressed size.
+ */
+static constexpr const char *kHttpResponseBodySize
+ = "http.response.body.size";
+
+/**
  * HTTP response headers, @code <key> @endcode being the normalized HTTP Header name (lowercase), the value being the header values.
  * <p>
  * Instrumentations SHOULD require an explicit configuration of which headers are to be captured. Including all response headers can be a security risk - explicit configuration helps avoid leaking sensitive information.
@@ -84,10 +168,36 @@ static constexpr const char *kHttpResponseHeader
  = "http.response.header";
 
 /**
+ * The total size of the response in bytes. This should be the total number of bytes sent over the wire, including the status line (HTTP/1.1), framing (HTTP/2 and HTTP/3), headers, and response body and trailers if any.
+ */
+static constexpr const char *kHttpResponseSize
+ = "http.response.size";
+
+/**
  * <a href="https://tools.ietf.org/html/rfc7231#section-6">HTTP response status code</a>.
  */
 static constexpr const char *kHttpResponseStatusCode
  = "http.response.status_code";
+
+/**
+ * Deprecated, use @code http.response.header.<key> @endcode instead.
+ *
+ * @deprecated
+ * {"note": "Replaced by @code http.response.header.<key> @endcode.", "reason": "uncategorized"}
+ */
+OPENTELEMETRY_DEPRECATED
+static constexpr const char *kHttpResponseContentLength
+ = "http.response_content_length";
+
+/**
+ * Deprecated, use @code http.response.body.size @endcode instead.
+ *
+ * @deprecated
+ * {"note": "Replace by @code http.response.body.size @endcode.", "reason": "uncategorized"}
+ */
+OPENTELEMETRY_DEPRECATED
+static constexpr const char *kHttpResponseContentLengthUncompressed
+ = "http.response_content_length_uncompressed";
 
 /**
  * The matched route, that is, the path template in the format used by the respective server framework.
@@ -98,6 +208,130 @@ static constexpr const char *kHttpResponseStatusCode
 static constexpr const char *kHttpRoute
  = "http.route";
 
+/**
+ * Deprecated, use @code url.scheme @endcode instead.
+ *
+ * @deprecated
+ * {"note": "Replaced by @code url.scheme @endcode instead.", "reason": "uncategorized"}
+ */
+OPENTELEMETRY_DEPRECATED
+static constexpr const char *kHttpScheme
+ = "http.scheme";
+
+/**
+ * Deprecated, use @code server.address @endcode instead.
+ *
+ * @deprecated
+ * {"note": "Replaced by @code server.address @endcode.", "reason": "uncategorized"}
+ */
+OPENTELEMETRY_DEPRECATED
+static constexpr const char *kHttpServerName
+ = "http.server_name";
+
+/**
+ * Deprecated, use @code http.response.status_code @endcode instead.
+ *
+ * @deprecated
+ * {"note": "Replaced by @code http.response.status_code @endcode.", "reason": "uncategorized"}
+ */
+OPENTELEMETRY_DEPRECATED
+static constexpr const char *kHttpStatusCode
+ = "http.status_code";
+
+/**
+ * Deprecated, use @code url.path @endcode and @code url.query @endcode instead.
+ *
+ * @deprecated
+ * {"note": "Split to @code url.path @endcode and `url.query.", "reason": "uncategorized"}
+ */
+OPENTELEMETRY_DEPRECATED
+static constexpr const char *kHttpTarget
+ = "http.target";
+
+/**
+ * Deprecated, use @code url.full @endcode instead.
+ *
+ * @deprecated
+ * {"note": "Replaced by @code url.full @endcode.", "reason": "uncategorized"}
+ */
+OPENTELEMETRY_DEPRECATED
+static constexpr const char *kHttpUrl
+ = "http.url";
+
+/**
+ * Deprecated, use @code user_agent.original @endcode instead.
+ *
+ * @deprecated
+ * {"note": "Replaced by @code user_agent.original @endcode.", "reason": "uncategorized"}
+ */
+OPENTELEMETRY_DEPRECATED
+static constexpr const char *kHttpUserAgent
+ = "http.user_agent";
+
+
+namespace HttpConnectionStateValues
+{
+/**
+ * active state.
+ */
+static constexpr const char *
+ kActive
+ = "active";
+
+/**
+ * idle state.
+ */
+static constexpr const char *
+ kIdle
+ = "idle";
+
+}
+
+namespace HttpFlavorValues
+{
+/**
+ * HTTP/1.0
+ */
+static constexpr const char *
+ kHttp10
+ = "1.0";
+
+/**
+ * HTTP/1.1
+ */
+static constexpr const char *
+ kHttp11
+ = "1.1";
+
+/**
+ * HTTP/2
+ */
+static constexpr const char *
+ kHttp20
+ = "2.0";
+
+/**
+ * HTTP/3
+ */
+static constexpr const char *
+ kHttp30
+ = "3.0";
+
+/**
+ * SPDY protocol.
+ */
+static constexpr const char *
+ kSpdy
+ = "SPDY";
+
+/**
+ * QUIC protocol.
+ */
+static constexpr const char *
+ kQuic
+ = "QUIC";
+
+}
 
 namespace HttpRequestMethodValues
 {

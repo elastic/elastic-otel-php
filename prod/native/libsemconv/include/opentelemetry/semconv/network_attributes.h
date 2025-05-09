@@ -29,6 +29,62 @@ namespace network
 {
 
 /**
+ * The ISO 3166-1 alpha-2 2-character country code associated with the mobile carrier network.
+ */
+static constexpr const char *kNetworkCarrierIcc
+ = "network.carrier.icc";
+
+/**
+ * The mobile carrier country code.
+ */
+static constexpr const char *kNetworkCarrierMcc
+ = "network.carrier.mcc";
+
+/**
+ * The mobile carrier network code.
+ */
+static constexpr const char *kNetworkCarrierMnc
+ = "network.carrier.mnc";
+
+/**
+ * The name of the mobile carrier.
+ */
+static constexpr const char *kNetworkCarrierName
+ = "network.carrier.name";
+
+/**
+ * The state of network connection
+ * <p>
+ * Connection states are defined as part of the <a href="https://datatracker.ietf.org/doc/html/rfc9293#section-3.3.2">rfc9293</a>
+ */
+static constexpr const char *kNetworkConnectionState
+ = "network.connection.state";
+
+/**
+ * This describes more details regarding the connection.type. It may be the type of cell technology connection, but it could be used for describing details about a wifi connection.
+ */
+static constexpr const char *kNetworkConnectionSubtype
+ = "network.connection.subtype";
+
+/**
+ * The internet connection type.
+ */
+static constexpr const char *kNetworkConnectionType
+ = "network.connection.type";
+
+/**
+ * The network interface name.
+ */
+static constexpr const char *kNetworkInterfaceName
+ = "network.interface.name";
+
+/**
+ * The network IO operation direction.
+ */
+static constexpr const char *kNetworkIoDirection
+ = "network.io.direction";
+
+/**
  * Local address of the network connection - IP address or Unix domain socket name.
  */
 static constexpr const char *kNetworkLocalAddress
@@ -88,6 +144,295 @@ static constexpr const char *kNetworkTransport
 static constexpr const char *kNetworkType
  = "network.type";
 
+
+namespace NetworkConnectionStateValues
+{
+/**
+ * none
+ */
+static constexpr const char *
+ kClosed
+ = "closed";
+
+/**
+ * none
+ */
+static constexpr const char *
+ kCloseWait
+ = "close_wait";
+
+/**
+ * none
+ */
+static constexpr const char *
+ kClosing
+ = "closing";
+
+/**
+ * none
+ */
+static constexpr const char *
+ kEstablished
+ = "established";
+
+/**
+ * none
+ */
+static constexpr const char *
+ kFinWait1
+ = "fin_wait_1";
+
+/**
+ * none
+ */
+static constexpr const char *
+ kFinWait2
+ = "fin_wait_2";
+
+/**
+ * none
+ */
+static constexpr const char *
+ kLastAck
+ = "last_ack";
+
+/**
+ * none
+ */
+static constexpr const char *
+ kListen
+ = "listen";
+
+/**
+ * none
+ */
+static constexpr const char *
+ kSynReceived
+ = "syn_received";
+
+/**
+ * none
+ */
+static constexpr const char *
+ kSynSent
+ = "syn_sent";
+
+/**
+ * none
+ */
+static constexpr const char *
+ kTimeWait
+ = "time_wait";
+
+}
+
+namespace NetworkConnectionSubtypeValues
+{
+/**
+ * GPRS
+ */
+static constexpr const char *
+ kGprs
+ = "gprs";
+
+/**
+ * EDGE
+ */
+static constexpr const char *
+ kEdge
+ = "edge";
+
+/**
+ * UMTS
+ */
+static constexpr const char *
+ kUmts
+ = "umts";
+
+/**
+ * CDMA
+ */
+static constexpr const char *
+ kCdma
+ = "cdma";
+
+/**
+ * EVDO Rel. 0
+ */
+static constexpr const char *
+ kEvdo0
+ = "evdo_0";
+
+/**
+ * EVDO Rev. A
+ */
+static constexpr const char *
+ kEvdoA
+ = "evdo_a";
+
+/**
+ * CDMA2000 1XRTT
+ */
+static constexpr const char *
+ kCdma20001xrtt
+ = "cdma2000_1xrtt";
+
+/**
+ * HSDPA
+ */
+static constexpr const char *
+ kHsdpa
+ = "hsdpa";
+
+/**
+ * HSUPA
+ */
+static constexpr const char *
+ kHsupa
+ = "hsupa";
+
+/**
+ * HSPA
+ */
+static constexpr const char *
+ kHspa
+ = "hspa";
+
+/**
+ * IDEN
+ */
+static constexpr const char *
+ kIden
+ = "iden";
+
+/**
+ * EVDO Rev. B
+ */
+static constexpr const char *
+ kEvdoB
+ = "evdo_b";
+
+/**
+ * LTE
+ */
+static constexpr const char *
+ kLte
+ = "lte";
+
+/**
+ * EHRPD
+ */
+static constexpr const char *
+ kEhrpd
+ = "ehrpd";
+
+/**
+ * HSPAP
+ */
+static constexpr const char *
+ kHspap
+ = "hspap";
+
+/**
+ * GSM
+ */
+static constexpr const char *
+ kGsm
+ = "gsm";
+
+/**
+ * TD-SCDMA
+ */
+static constexpr const char *
+ kTdScdma
+ = "td_scdma";
+
+/**
+ * IWLAN
+ */
+static constexpr const char *
+ kIwlan
+ = "iwlan";
+
+/**
+ * 5G NR (New Radio)
+ */
+static constexpr const char *
+ kNr
+ = "nr";
+
+/**
+ * 5G NRNSA (New Radio Non-Standalone)
+ */
+static constexpr const char *
+ kNrnsa
+ = "nrnsa";
+
+/**
+ * LTE CA
+ */
+static constexpr const char *
+ kLteCa
+ = "lte_ca";
+
+}
+
+namespace NetworkConnectionTypeValues
+{
+/**
+ * none
+ */
+static constexpr const char *
+ kWifi
+ = "wifi";
+
+/**
+ * none
+ */
+static constexpr const char *
+ kWired
+ = "wired";
+
+/**
+ * none
+ */
+static constexpr const char *
+ kCell
+ = "cell";
+
+/**
+ * none
+ */
+static constexpr const char *
+ kUnavailable
+ = "unavailable";
+
+/**
+ * none
+ */
+static constexpr const char *
+ kUnknown
+ = "unknown";
+
+}
+
+namespace NetworkIoDirectionValues
+{
+/**
+ * none
+ */
+static constexpr const char *
+ kTransmit
+ = "transmit";
+
+/**
+ * none
+ */
+static constexpr const char *
+ kReceive
+ = "receive";
+
+}
 
 namespace NetworkTransportValues
 {

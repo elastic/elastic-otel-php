@@ -15,6 +15,10 @@ endif()
 
 add_library (${_Target} INTERFACE)
 
+target_compile_definitions(${_Target} INTERFACE OPENTELEMETRY_DEPRECATED=/*deprecated*/)
+
+
+
 target_include_directories(${_Target}
     INTERFACE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

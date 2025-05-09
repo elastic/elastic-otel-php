@@ -21,5 +21,5 @@ read_properties() {
             local var_name="${prefix}_$(echo $key | tr '[:lower:]' '[:upper:]')"
             export "$var_name"="$value"
         fi
-    done < "$file"
+    done <"$file"
 }
