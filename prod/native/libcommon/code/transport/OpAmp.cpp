@@ -53,6 +53,8 @@ void OpAmp::handleServerToAgent(const char *data, std::size_t size) {
         return;
     }
 
+    ELOG_DEBUG(log_, OPAMP, "ServerToAgent has_agent_identification: {}, has_command: {}, has_connection_settings: {}, has_custom_capabilities: {}, has_custom_message: {}, has_error_response: {}, has_packages_available: {}, has_remote_config: {}", msg.has_agent_identification(), msg.has_command(), msg.has_connection_settings(), msg.has_custom_capabilities(), msg.has_custom_message(), msg.has_error_response(), msg.has_packages_available(), msg.has_remote_config());
+
     if (msg.has_connection_settings()) {
         if (msg.connection_settings().has_opamp()) {
             ELOG_DEBUG(log_, OPAMP, "Received connection settings, heartbeat interval {}s", msg.connection_settings().opamp().heartbeat_interval_seconds());
@@ -73,6 +75,24 @@ void OpAmp::handleServerToAgent(const char *data, std::size_t size) {
                     configFiles_[item.first] = item.second.body();
                 }
             }
+        }
+    }
+
+    if (msg.has_custom_capabilities()) {
+        auto const &customCapabilities = msg.custom_capabilities();
+        ELOG_DEBUG(log_, OPAMP, "Server capabilities count: {}", customCapabilities.capabilities_size());
+        for (auto const &capability : customCapabilities.capabilities()) {
+            ELOG_DEBUG(log_, OPAMP, "Server reported capability: {}", capability);
+        }
+    }
+
+    if (msg.has_error_response()) {
+        auto const &error = msg.error_response();
+        ELOG_WARNING(log_, OPAMP, "ServerToAgent error '{}', type {}", error.error_message(), static_cast<int>(error.type()));
+
+        if (error.has_retry_info() && error.type() == opamp::proto::ServerErrorResponseType::ServerErrorResponseType_Unavailable) {
+            // TODO set retry interval
+            error.retry_info().retry_after_nanoseconds();
         }
     }
 }
@@ -145,6 +165,13 @@ void OpAmp::sendHeartbeat() {
     ::opamp::proto::AgentToServer msg;
 
     msg.set_instance_uid(reinterpret_cast<const char *>(agentUid_.data()), agentUid_.size());
+
+    if (!currentConfigHash_.empty()) {
+        auto remoteConfigStatus = msg.mutable_remote_config_status();
+        remoteConfigStatus->set_last_remote_config_hash(currentConfigHash_);
+        remoteConfigStatus->set_status(opamp::proto::RemoteConfigStatuses::RemoteConfigStatuses_APPLIED);
+    }
+
     std::string payload;
     if (!msg.SerializeToString(&payload)) {
         throw std::runtime_error("Failed to serialize AgentToServer heartbeat message");
