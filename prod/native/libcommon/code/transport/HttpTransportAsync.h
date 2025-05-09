@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "HttpTransportAsyncInterface.h"
 #include "ForkableInterface.h"
 #include "ConfigurationStorage.h"
 #include "CurlSender.h"
@@ -29,6 +30,7 @@
 #include <algorithm>
 #include <chrono>
 #include <condition_variable>
+#include <functional>
 #include <memory>
 #include <queue>
 #include <span>
@@ -38,13 +40,14 @@
 #include <vector>
 #include <boost/container_hash/hash.hpp>
 #include <curl/curl.h>
+#include <iostream>
 
 using namespace std::literals;
 
 namespace elasticapm::php::transport {
 
 template <typename CurlSender = CurlSender, typename Endpoints = HttpEndpoints>
-class HttpTransportAsync : public ForkableInterface, public boost::noncopyable {
+class HttpTransportAsync : public HttpTransportAsyncInterface, public ForkableInterface, public boost::noncopyable {
     using endpointUrlHash_t = Endpoints::endpointUrlHash_t;
 
 public:
@@ -59,7 +62,7 @@ public:
         CurlCleanup();
     }
 
-    void initializeConnection(std::string endpointUrl, size_t endpointHash, std::string contentType, HttpEndpoint::enpointHeaders_t const &endpointHeaders, std::chrono::milliseconds timeout, std::size_t maxRetries, std::chrono::milliseconds retryDelay) {
+    void initializeConnection(std::string endpointUrl, size_t endpointHash, std::string contentType, HttpEndpoint::enpointHeaders_t const &endpointHeaders, std::chrono::milliseconds timeout, std::size_t maxRetries, std::chrono::milliseconds retryDelay) override {
         ELOGF_DEBUG(log_, TRANSPORT, "HttpTransportAsync::initializeConnection endpointUrl '%s' enpointHash: %X timeout: %zums retries: %zu retry delay: %zums", endpointUrl.c_str(), endpointHash, timeout.count(), maxRetries, retryDelay.count());
 
         try {
@@ -70,7 +73,7 @@ public:
         }
     }
 
-    void enqueue(size_t endpointHash, std::span<std::byte> payload) {
+    void enqueue(size_t endpointHash, std::span<std::byte> payload, responseCallback_t callback = {}) override {
         {
             std::lock_guard<std::mutex> lock(mutex_);
             ELOGF_TRACE(log_, TRANSPORT, "HttpTransportAsync::enqueue enpointHash: %X payload size: %zu, current queue size %zu usage %zu bytes", endpointHash, payload.size(), payloadsToSend_.size(), payloadsByteUsage_);
@@ -80,7 +83,7 @@ public:
                 return;
             }
 
-            payloadsToSend_.emplace(endpointHash, std::vector<std::byte>(payload.begin(), payload.end()));
+            payloadsToSend_.emplace(endpointHash, std::vector<std::byte>(payload.begin(), payload.end()), callback);
             payloadsByteUsage_ += payload.size();
         }
         pauseCondition_.notify_all();
@@ -151,7 +154,7 @@ protected:
 
     void send(std::unique_lock<std::mutex> &lockedPayloadsMutex) {
         while (!payloadsToSend_.empty()) {
-            auto [endpointHash, payload] = std::move(payloadsToSend_.front());
+            auto [endpointHash, payload, callback] = std::move(payloadsToSend_.front());
             payloadsToSend_.pop();
             payloadsByteUsage_ -= payload.size();
 
@@ -165,15 +168,23 @@ protected:
                     std::size_t retry = 0;
 
                     while (retry < maxRetries) {
-                        auto responseCode = conn.sendPayload(endpointUrl, headers, payload);
+                        std::string responseBuffer;
+
+                        auto responseCode = conn.sendPayload(endpointUrl, headers, payload, callback ? &responseBuffer : nullptr);
 
                         ELOGF_TRACE(log_, TRANSPORT, "HttpTransportAsync::send enpointHash: %X connectionId: %X payload size: %zu responseCode %d", endpointHash, connId, payload.size(), static_cast<int>(responseCode));
 
                         if (responseCode >= 200 && responseCode < 300) {
+                            if (callback) {
+                                callback(responseCode, {reinterpret_cast<std::byte *>(responseBuffer.data()), responseBuffer.size()});
+                            }
                             break;
                         }
 
                         if (responseCode >= 400 && responseCode < 500 && responseCode != 408 && responseCode != 429) {
+                            if (callback) {
+                                callback(responseCode, {reinterpret_cast<std::byte *>(responseBuffer.data()), responseBuffer.size()});
+                            }
                             std::string msg = "server returned with code "s;
                             msg.append(std::to_string(responseCode));
                             throw std::runtime_error(msg);
@@ -216,7 +227,7 @@ protected:
     std::shared_ptr<ConfigurationStorage> config_;
     Endpoints endpoints_;
     std::mutex mutex_;
-    std::queue<std::pair<endpointUrlHash_t, std::vector<std::byte>>> payloadsToSend_;
+    std::queue<std::tuple<endpointUrlHash_t, std::vector<std::byte>, responseCallback_t>> payloadsToSend_;
     std::size_t payloadsByteUsage_ = 0;
 
     std::unique_ptr<std::thread> thread_;

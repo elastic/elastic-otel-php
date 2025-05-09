@@ -24,6 +24,10 @@
 #include <functional>
 #include <memory>
 
+namespace opentelemetry::php::transport {
+class OpAmp;
+}
+
 namespace elasticapm::php {
 
 class LoggerInterface;
@@ -64,19 +68,20 @@ public:
 
     std::shared_ptr<ConfigurationStorage> config_;
     std::shared_ptr<LoggerInterface> logger_;
+    std::shared_ptr<LoggerSinkInterface> logSinkStdErr_;
+    std::shared_ptr<LoggerSinkInterface> logSinkSysLog_;
+    std::shared_ptr<LoggerSinkFile> logSinkFile_;
     std::shared_ptr<PhpBridgeInterface> bridge_;
     std::shared_ptr<DependencyAutoLoaderGuard> dependencyAutoLoaderGuard_;
     std::shared_ptr<InstrumentedFunctionHooksStorageInterface> hooksStorage_;
     std::shared_ptr<PhpSapi> sapi_;
     std::shared_ptr<InferredSpans> inferredSpans_;
     std::shared_ptr<PeriodicTaskExecutor> periodicTaskExecutor_;
-    std::unique_ptr<transport::HttpTransportAsync<transport::CurlSender, transport::HttpEndpoints> > httpTransportAsync_;
+    std::shared_ptr<transport::HttpTransportAsync<transport::CurlSender, transport::HttpEndpoints> > httpTransportAsync_;
+    std::shared_ptr<opentelemetry::php::transport::OpAmp> opAmp_;
     std::shared_ptr<SharedMemoryState> sharedMemory_;
     std::shared_ptr<RequestScope> requestScope_;
 
-    std::shared_ptr<LoggerSinkInterface> logSinkStdErr_;
-    std::shared_ptr<LoggerSinkInterface> logSinkSysLog_;
-    std::shared_ptr<LoggerSinkFile> logSinkFile_;
 };
 
 } // namespace elasticapm::php

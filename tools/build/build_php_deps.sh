@@ -23,30 +23,30 @@ show_help() {
 parse_args() {
     while [[ "$#" -gt 0 ]]; do
         case $1 in
-            --php_versions)
-                # SC2206: Quote to prevent word splitting/globbing, or split robustly with mapfile or read -a.
-                # shellcheck disable=SC2206
-                PHP_VERSIONS=($2)
-                shift
-                ;;
-            --skip_notice)
-                SKIP_NOTICE=true
-                ;;
-            --skip_verify)
-                SKIP_VERIFY=true
-                ;;
-            --keep_composer_lock)
-                KEEP_COMPOSER_LOCK=true
-                ;;
-            --help)
-                show_help
-                exit 0
-                ;;
-            *)
-                echo "Unknown parameter passed: $1"
-                show_help
-                exit 1
-                ;;
+        --php_versions)
+            # SC2206: Quote to prevent word splitting/globbing, or split robustly with mapfile or read -a.
+            # shellcheck disable=SC2206
+            PHP_VERSIONS=($2)
+            shift
+            ;;
+        --skip_notice)
+            SKIP_NOTICE=true
+            ;;
+        --skip_verify)
+            SKIP_VERIFY=true
+            ;;
+        --keep_composer_lock)
+            KEEP_COMPOSER_LOCK=true
+            ;;
+        --help)
+            show_help
+            exit 0
+            ;;
+        *)
+            echo "Unknown parameter passed: $1"
+            show_help
+            exit 1
+            ;;
         esac
         shift
     done
@@ -92,8 +92,8 @@ verify_otlp_exporters() {
             && composer require ${php_impl_package_name}:${elastic_otel_php_native_otlp_exporters_based_on_php_impl_version:?} \
             && composer --no-dev install \
             && diff -r /used_as_base/vendor/${php_impl_package_name} /new_vendor/${php_impl_package_name} \
-        "\
-        || has_compared_the_same="false"
+        " ||
+        has_compared_the_same="false"
 
     if [ "${has_compared_the_same}" = "false" ]; then
         echo "${vendor_dir}/${php_impl_package_name} content differs from the base"
@@ -113,11 +113,14 @@ verify_vendor_dir() {
 }
 
 main() {
-    this_script_dir="$( dirname "${BASH_SOURCE[0]}" )"
-    this_script_dir="$( realpath "${this_script_dir}" )"
+    this_script_dir="$(dirname "${BASH_SOURCE[0]}")"
+    this_script_dir="$(realpath "${this_script_dir}")"
 
-    repo_root_dir="$( realpath "${this_script_dir}/../.." )"
+    repo_root_dir="$(realpath "${this_script_dir}/../..")"
     source "${repo_root_dir}/tools/shared.sh"
+
+    source "${repo_root_dir}/tools/read_properties.sh"
+    read_properties "${repo_root_dir}/elastic-otel-php.properties" _PROJECT_PROPERTIES
 
     # Parse arguments
     parse_args "$@"
@@ -142,8 +145,7 @@ main() {
         echo "Skipping verify step"
     fi
 
-    for PHP_VERSION in "${PHP_VERSIONS[@]}"
-    do
+    for PHP_VERSION in "${PHP_VERSIONS[@]}"; do
         mkdir -p "prod/php/vendor_${PHP_VERSION}"
 
         if [ "$SKIP_NOTICE" = false ]; then
@@ -163,6 +165,13 @@ main() {
             && composer --ignore-platform-req=php --no-dev install \
             ${GEN_NOTICE} \
             && chmod 666 /sources/composer.lock"
+
+        INSTALLED_SEMCONV_VERSION=$(jq -r '.packages[] | select(.name == "open-telemetry/sem-conv") | .version' composer.lock)
+
+        if [[ "${INSTALLED_SEMCONV_VERSION}" != "${_PROJECT_PROPERTIES_OTEL_SEMCONV_VERSION}" ]]; then
+            echo "PHP side semantic conventions version ${INSTALLED_SEMCONV_VERSION} doesn't match native version ${_PROJECT_PROPERTIES_OTEL_SEMCONV_VERSION}"
+            exit 1
+        fi
 
         if [ "${KEEP_COMPOSER_LOCK}" = true ]; then
             echo "Keeping composer.lock file"
