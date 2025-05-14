@@ -14,4 +14,4 @@ With EDOT PHP, you get all the features of the OpenTelemetry PHP agent, plus:
 📚 **Want to get started?**
 
 Check out the official documentation:
-👉 [https://elastic.github.io/opentelemetry/edot-sdks/php/index.html](https://elastic.github.io/opentelemetry/edot-sdks/php/index.html)
+👉 [https://www.elastic.co/docs/reference/opentelemetry/edot-sdks/php/index.html](https://www.elastic.co/docs/reference/opentelemetry/edot-sdks/php/index.html)
