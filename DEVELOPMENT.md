@@ -233,7 +233,7 @@ https://artifactory.elastic.dev/ui/native/apm-agent-php-dev/
 ## Documentation
 
 The official documentation is available at:
-[https://elastic.github.io/opentelemetry/edot-sdks/php/index.html](https://elastic.github.io/opentelemetry/edot-sdks/php/index.html)
+[https://www.elastic.co/docs/reference/opentelemetry/edot-sdks/php/index.html](https://www.elastic.co/docs/reference/opentelemetry/edot-sdks/php/index.html)
 
 It is automatically generated from source files located in the main repository:
 [https://github.com/elastic/opentelemetry](https://github.com/elastic/opentelemetry)
