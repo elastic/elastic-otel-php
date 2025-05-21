@@ -50,7 +50,11 @@ final class Span implements LoggableInterface
 
     public function __construct(OTelProtoSpan $protoSpan)
     {
-        $this->attributes = new SpanAttributes($protoSpan->getAttributes());
+        /**
+         * @noinspection PhpParamsInspection
+         * Google\Protobuf\Internal\RepeatedField is deprecated, and Google\Protobuf\RepeatedField is used instead.
+         */
+        $this->attributes = new SpanAttributes($protoSpan->getAttributes()); // @phpstan-ignore argument.type
         $this->id = self::convertId($protoSpan->getSpanId());
         $this->kind = SpanKind::fromOTelProtoSpanKind($protoSpan->getKind());
         $this->name = $protoSpan->getName();
