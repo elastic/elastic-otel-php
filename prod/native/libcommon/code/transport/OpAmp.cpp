@@ -18,6 +18,7 @@
  */
 
 #include "OpAmp.h"
+#include "ResourceDetector.h"
 
 // #include "WebSocketClient.h"
 // #include "CommonUtils.h"
@@ -28,13 +29,17 @@
 
 #include <opentelemetry/semconv/service_attributes.h>
 #include <opentelemetry/semconv/deployment_attributes.h>
+#include <opentelemetry/semconv/os_attributes.h>
 
 using namespace std::literals;
 
 namespace opentelemetry::php::transport {
 
 void OpAmp::init(std::string endpointUrl, std::vector<std::pair<std::string_view, std::string_view>> const &endpointHeaders, std::chrono::milliseconds timeout, std::size_t maxRetries, std::chrono::milliseconds retryDelay) {
-    ELOG_DEBUG(log_, OPAMP, "Agent UID: {}", boost::uuids::to_string(agentUid_));
+    ELOG_DEBUG(log_, OPAMP, "Agent UID: '{}', endpoint: '{}'", boost::uuids::to_string(agentUid_), endpointUrl);
+    for (auto const &[k, v] : endpointHeaders) {
+        ELOG_DEBUG(log_, OPAMP, "Header: '{}: {}'", k, v);
+    }
 
     endpointHash_ = std::hash<std::string>{}(endpointUrl);
     transport_->initializeConnection(endpointUrl, endpointHash_, "application/x-protobuf"s, endpointHeaders, timeout, maxRetries, retryDelay);
@@ -120,31 +125,18 @@ void OpAmp::sendInitialAgentToServer() {
     auto *desc = msg.mutable_agent_description();
     auto *attrs = desc->mutable_identifying_attributes();
 
-    if (auto value = resourceDetector_.get(opentelemetry::semconv::service::kServiceName); !value.empty()) {
-        addKeyValue(attrs, opentelemetry::semconv::service::kServiceName, value);
-    }
-    if (auto value = resourceDetector_.get(opentelemetry::semconv::service::kServiceVersion); !value.empty()) {
-        addKeyValue(attrs, opentelemetry::semconv::service::kServiceVersion, value);
-    }
-
-    // deprecated
-    if (auto value = resourceDetector_.get(opentelemetry::semconv::deployment::kDeploymentEnvironment); !value.empty()) {
+    // get deprecated if exists and send as modern value
+    if (auto value = resourceDetector_->get(opentelemetry::semconv::deployment::kDeploymentEnvironment); !value.empty()) {
         addKeyValue(attrs, opentelemetry::semconv::deployment::kDeploymentEnvironmentName, value);
     }
 
-    if (auto value = resourceDetector_.get(opentelemetry::semconv::deployment::kDeploymentEnvironmentName); !value.empty()) {
-        addKeyValue(attrs, opentelemetry::semconv::deployment::kDeploymentEnvironmentName, value);
+    for (auto const &resource : *resourceDetector_) {
+        if (!resource.second.empty()) {
+            addKeyValue(attrs, resource.first, resource.second);
+        }
     }
 
     addKeyValue(attrs, opentelemetry::semconv::service::kServiceInstanceId, boost::uuids::to_string(agentUid_));
-
-    // os.type, os.version - to describe where the Agent runs.
-    // host.* to describe the host the Agent runs on.
-    // cloud.* to describe the cloud where the host is located.
-    // any other relevant Resource attributes that describe this Agent and the environment it runs in.
-    // any user-defined attributes that the end user would like to associate with this Agent.
-    // service.namespace if it is used in the environment where the Agent runs.
-    // TODO control heartbeat by reading OTEL_OPAMP_DISABLE_HEARTBEATS...
 
     msg.set_capabilities(opamp::proto::AgentCapabilities::AgentCapabilities_AcceptsRemoteConfig | opamp::proto::AgentCapabilities::AgentCapabilities_ReportsStatus | opamp::proto::AgentCapabilities::AgentCapabilities_ReportsHeartbeat);
 

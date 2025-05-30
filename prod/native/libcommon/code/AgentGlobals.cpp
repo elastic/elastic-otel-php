@@ -30,6 +30,7 @@
 #include "ConfigurationStorage.h"
 #include "InstrumentedFunctionHooksStorage.h"
 #include "CommonUtils.h"
+#include "ResourceDetector.h"
 #include "transport/HttpTransportAsync.h"
 #include "transport/OpAmp.h"
 #include "DependencyAutoLoaderGuard.h"
@@ -59,7 +60,8 @@ AgentGlobals::AgentGlobals(std::shared_ptr<LoggerInterface> logger,
     inferredSpans_(std::move(inferredSpans)),
     periodicTaskExecutor_(),
     httpTransportAsync_(std::make_shared<elasticapm::php::transport::HttpTransportAsync<>>(logger_, config_)),
-    opAmp_(std::make_shared<opentelemetry::php::transport::OpAmp>(logger_, config_, httpTransportAsync_)),
+    resourceDetector_(std::make_shared<opentelemetry::php::ResourceDetector>(bridge_)),
+    opAmp_(std::make_shared<opentelemetry::php::transport::OpAmp>(logger_, config_, httpTransportAsync_, resourceDetector_)),
     sharedMemory_(std::make_shared<elasticapm::php::SharedMemoryState>()),
     requestScope_(std::make_shared<elasticapm::php::RequestScope>(logger_, bridge_, sapi_, sharedMemory_, dependencyAutoLoaderGuard_, inferredSpans_, config_, [hs = hooksStorage_]() { hs->clear(); }, [this]() { return getPeriodicTaskExecutor();}))
     {

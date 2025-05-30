@@ -35,6 +35,7 @@
 #include "RequestScope.h"
 #include "SigSegvHandler.h"
 #include "os/OsUtils.h"
+#include "transport/OpAmp.h"
 
 #include <curl/curl.h>
 #include <inttypes.h> // PRIu64
@@ -98,6 +99,18 @@ void elasticApmModuleInit(int moduleType, int moduleNumber) {
     if (php_check_open_basedir_ex(EAPM_GL(config_)->get(&elasticapm::php::ConfigurationSnapshot::bootstrap_php_part_file).c_str(), false) != 0) {
         ELOGF_WARNING(globals->logger_, MODULE, "EDOT PHP bootstrap file (%s) is located outside of paths allowed by open_basedir ini setting. Read more details here https://elastic.github.io/opentelemetry/edot-sdks/php/setup/limitations.html", EAPM_GL(config_)->get(&elasticapm::php::ConfigurationSnapshot::bootstrap_php_part_file).c_str());
     }
+
+    std::string endpointUrl = globals->config_->get().opamp_endpoint;
+    if (!endpointUrl.ends_with("/v1/opamp")) {
+        endpointUrl += "/v1/opamp";
+    }
+
+    auto opampHeaders = elasticapm::utils::parseUrlEncodedKeyValueString(globals->config_->get().opamp_headers);
+    std::vector<std::pair<std::string_view, std::string_view>> opampHeadersView;
+    for (const auto &[k, v] : opampHeaders) {
+        opampHeadersView.push_back(std::pair<std::string_view, std::string_view>(k, v));
+    }
+    globals->opAmp_->init(std::move(endpointUrl), opampHeadersView, globals->config_->get().opamp_timeout, globals->config_->get().opamp_max_retries, globals->config_->get().opamp_retry_delay);
 }
 
 void elasticApmModuleShutdown( int moduleType, int moduleNumber ) {

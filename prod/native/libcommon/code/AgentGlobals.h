@@ -24,6 +24,10 @@
 #include <functional>
 #include <memory>
 
+namespace opentelemetry::php {
+class ResourceDetector;
+}
+
 namespace opentelemetry::php::transport {
 class OpAmp;
 }
@@ -78,6 +82,7 @@ public:
     std::shared_ptr<InferredSpans> inferredSpans_;
     std::shared_ptr<PeriodicTaskExecutor> periodicTaskExecutor_;
     std::shared_ptr<transport::HttpTransportAsync<transport::CurlSender, transport::HttpEndpoints> > httpTransportAsync_;
+    std::shared_ptr<opentelemetry::php::ResourceDetector> resourceDetector_;
     std::shared_ptr<opentelemetry::php::transport::OpAmp> opAmp_;
     std::shared_ptr<SharedMemoryState> sharedMemory_;
     std::shared_ptr<RequestScope> requestScope_;

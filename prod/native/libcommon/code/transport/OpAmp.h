@@ -20,7 +20,6 @@
 #pragma once
 
 #include "HttpTransportAsyncInterface.h"
-#include "ResourceDetector.h"
 #include "ForkableInterface.h"
 #include "LoggerInterface.h"
 #include "ConfigurationStorage.h"
@@ -36,11 +35,15 @@
 
 using namespace std::literals;
 
+namespace opentelemetry::php {
+class ResourceDetector;
+}
+
 namespace opentelemetry::php::transport {
 
 class OpAmp : public elasticapm::php::ForkableInterface, public boost::noncopyable, public std::enable_shared_from_this<OpAmp> {
 public:
-    OpAmp(std::shared_ptr<elasticapm::php::LoggerInterface> log, std::shared_ptr<elasticapm::php::ConfigurationStorage> config, std::shared_ptr<elasticapm::php::transport::HttpTransportAsyncInterface> transport) : log_(std::move(log)), config_(std::move(config)), transport_(std::move(transport)) {
+    OpAmp(std::shared_ptr<elasticapm::php::LoggerInterface> log, std::shared_ptr<elasticapm::php::ConfigurationStorage> config, std::shared_ptr<elasticapm::php::transport::HttpTransportAsyncInterface> transport, std::shared_ptr<opentelemetry::php::ResourceDetector> resourceDetector) : log_(std::move(log)), config_(std::move(config)), transport_(std::move(transport)), resourceDetector_(std::move(resourceDetector)) {
     }
 
     ~OpAmp() {
@@ -98,7 +101,7 @@ protected:
 
         std::unique_lock<std::mutex> lock(mutex_);
         while (working_) {
-            pauseCondition_.wait_for(lock, heartbeatInterval_, [this]() -> bool { return !working_; });
+            pauseCondition_.wait_for(lock, heartbeatInterval_.load(), [this]() -> bool { return !working_; });
 
             if (!working_ && !forceFlushOnDestruction_) {
                 break;
@@ -115,7 +118,7 @@ protected:
     void sendHeartbeat();
 
 private:
-    std::chrono::seconds heartbeatInterval_{2};
+    std::atomic<std::chrono::seconds> heartbeatInterval_ = 30s;
 
     std::mutex mutex_;
     std::unique_ptr<std::thread> thread_;
@@ -131,7 +134,7 @@ private:
 
     std::string currentConfigHash_;
     std::unordered_map<std::string, std::string> configFiles_;
-    opentelemetry::php::ResourceDetector resourceDetector_;
+    std::shared_ptr<opentelemetry::php::ResourceDetector> resourceDetector_;
 };
 
 } // namespace opentelemetry::php::transport
