@@ -51,9 +51,17 @@
 
 #define ELASTIC_OTEL_CFG_OPT_NAME_NATIVE_OTLP_SERIALIZER_ENABLED native_otlp_serializer_enabled
 
+#define ELASTIC_OTEL_OPAMP_HEADERS opamp_headers
+#define ELASTIC_OTEL_OPAMP_ENDPOINT opamp_endpoint
+
+#define ELASTIC_OTEL_OPAMP_TIMEOUT opamp_timeout
+#define ELASTIC_OTEL_OPAMP_MAX_RETRIES opamp_max_retries
+#define ELASTIC_OTEL_OPAMP_RETRY_DELAY opamp_retry_delay
+
 namespace elasticapm::php {
 
 using namespace std::string_literals;
+using namespace std::chrono_literals;
 
 struct ConfigurationSnapshot {
     std::string ELASTIC_OTEL_CFG_OPT_NAME_BOOTSTRAP_PHP_PART_FILE;
@@ -80,6 +88,13 @@ struct ConfigurationSnapshot {
 
     bool ELASTIC_OTEL_CFG_OPT_NAME_DEPENDENCY_AUTOLOADER_GUARD_ENABLED = true;
     bool ELASTIC_OTEL_CFG_OPT_NAME_NATIVE_OTLP_SERIALIZER_ENABLED = true;
+
+    std::string ELASTIC_OTEL_OPAMP_HEADERS;
+    std::string ELASTIC_OTEL_OPAMP_ENDPOINT;
+
+    std::chrono::milliseconds ELASTIC_OTEL_OPAMP_TIMEOUT = 10s;
+    std::size_t ELASTIC_OTEL_OPAMP_MAX_RETRIES = 3;
+    std::chrono::milliseconds ELASTIC_OTEL_OPAMP_RETRY_DELAY = 10s;
 
     uint64_t revision = 0;
 };

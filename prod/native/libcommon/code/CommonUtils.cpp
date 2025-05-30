@@ -337,4 +337,43 @@ bool isUtf8(std::string_view input) {
 
     return true;
 }
+
+std::string percentDecode(std::string_view input) {
+    std::string result;
+    result.reserve(input.size());
+
+    for (size_t i = 0; i < input.size(); ++i) {
+        if (input[i] == '%' && i + 2 < input.size() && std::isxdigit(input[i + 1]) && std::isxdigit(input[i + 2])) {
+            std::string hex = {input[i + 1], input[i + 2]};
+            char decoded_char = static_cast<char>(std::stoi(hex, nullptr, 16));
+            result += decoded_char;
+            i += 2;
+        } else {
+            result += input[i];
+        }
+    }
+
+    return result;
+}
+
+std::map<std::string, std::string> parseUrlEncodedKeyValueString(std::string_view input) {
+    std::map<std::string, std::string> result;
+
+    while (!input.empty()) {
+        size_t commaPos = input.find(',');
+        std::string_view pair = input.substr(0, commaPos);
+
+        size_t equal_pos = pair.find('=');
+        if (equal_pos != std::string_view::npos) {
+            result.insert(std::make_pair(std::string(pair.substr(0, equal_pos)), percentDecode(pair.substr(equal_pos + 1))));
+        }
+
+        if (commaPos == std::string_view::npos) {
+            break;
+        }
+        input.remove_prefix(commaPos + 1);
+    }
+
+    return result;
+}
 }

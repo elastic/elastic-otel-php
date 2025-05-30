@@ -30,6 +30,7 @@
 #include <Zend/zend_hash.h>
 #include <Zend/zend_stream.h>
 #include <Zend/zend_types.h>
+#include <ext/standard/info.h>
 
 #include <main/SAPI.h>
 #include <main/php_main.h>
@@ -457,6 +458,14 @@ std::pair<std::size_t, std::size_t> PhpBridge::getNewlyCompiledFiles(std::functi
 
 std::pair<int, int> PhpBridge::getPhpVersionMajorMinor() const {
     return {PHP_MAJOR_VERSION, PHP_MINOR_VERSION};
+}
+
+std::string PhpBridge::phpUname(char mode) const {
+    AutoZendString uname(php_get_uname(mode));
+    if (!uname.get()) {
+        return {};
+    }
+    return {ZSTR_VAL(uname.get()), ZSTR_LEN(uname.get())};
 }
 
 } // namespace elasticapm::php
