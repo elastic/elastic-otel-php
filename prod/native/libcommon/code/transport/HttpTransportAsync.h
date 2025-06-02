@@ -20,6 +20,7 @@
 #pragma once
 
 #include "HttpTransportAsyncInterface.h"
+#include "CiCharTraits.h"
 #include "ForkableInterface.h"
 #include "ConfigurationStorage.h"
 #include "CurlSender.h"
@@ -43,6 +44,7 @@
 #include <iostream>
 
 using namespace std::literals;
+using namespace std::string_view_literals;
 
 namespace elasticapm::php::transport {
 
@@ -109,6 +111,14 @@ public:
         pauseCondition_.notify_all();
     }
 
+    void updateRetryDelay(size_t endpointHash, std::chrono::milliseconds retryDelay) {
+        try {
+            endpoints_.updateRetryDelay(endpointHash, retryDelay);
+        } catch (std::runtime_error const &error) {
+            ELOGF_WARNING(log_, TRANSPORT, "HttpTransportAsync::updateRetryDelay unable to update retry delay %s", error.what());
+        }
+    }
+
 protected:
     void startThread() {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -162,6 +172,19 @@ protected:
 
             lockedPayloadsMutex.unlock();
 
+            std::function<void(std::string_view)> headerCallback = [endpointHash, this](std::string_view header) {
+                auto hdr = elasticapm::utils::traits_cast<elasticapm::utils::CiCharTraits>(header);
+                if (hdr.starts_with(elasticapm::utils::traits_cast<elasticapm::utils::CiCharTraits>("Retry-After: "sv))) {
+                    std::string_view value = header.substr("Retry-After: "sv.length());
+
+                    auto retryValue = elasticapm::utils::parseRetryAfter(value);
+                    if (retryValue.has_value() && retryValue.value().count() > 0) {
+                        ELOG_TRACE(log_, TRANSPORT, "HttpTransportAsync::send updating endpoint {} retry delay to {}ms", endpointHash, retryValue.value().count());
+                        endpoints_.updateRetryDelay(endpointHash, retryValue.value());
+                    }
+                }
+            };
+
             try {
                 auto [endpointUrl, headers, connId, conn, maxRetries, retryDelay] = endpoints_.getConnection(endpointHash);
                 try {
@@ -170,7 +193,7 @@ protected:
                     while (retry < maxRetries) {
                         std::string responseBuffer;
 
-                        auto responseCode = conn.sendPayload(endpointUrl, headers, payload, callback ? &responseBuffer : nullptr);
+                        auto responseCode = conn.sendPayload(endpointUrl, headers, payload, callback ? headerCallback : std::function<void(std::string_view)>{}, callback ? &responseBuffer : nullptr);
 
                         ELOGF_TRACE(log_, TRANSPORT, "HttpTransportAsync::send enpointHash: %X connectionId: %X payload size: %zu responseCode %d", endpointHash, connId, payload.size(), static_cast<int>(responseCode));
 

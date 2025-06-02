@@ -22,6 +22,7 @@
 #include "LoggerInterface.h"
 
 #include <chrono>
+#include <functional>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -47,7 +48,7 @@ public:
         }
     }
 
-    int16_t sendPayload(std::string const &endpointUrl, struct curl_slist *headers, std::vector<std::byte> const &payload, std::string *responseBuffer = nullptr) const;
+    int16_t sendPayload(std::string const &endpointUrl, struct curl_slist *headers, std::vector<std::byte> const &payload, std::function<void(std::string_view)> headerCallback, std::string *responseBuffer = nullptr) const;
 
 private:
     CURL *handle_ = nullptr;

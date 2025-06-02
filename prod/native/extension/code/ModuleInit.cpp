@@ -58,8 +58,17 @@ void logStartupPreamble(elasticapm::php::LoggerInterface *logger) {
     using namespace std::literals;
     ELOGF_NF(logger, level, "Elastic Distribution for OpenTelemetry PHP");
     ELOGF_NF(logger, level, "%*s%s", -colWidth, "Native part version:", ELASTIC_OTEL_VERSION);
-    ELOGF_NF(logger, level, "%*s%s", -colWidth, "Process command line:", elasticapm::utils::sanitizeKeyValueString(elasticapm::utils::getEnvName(EL_STRINGIFY(ELASTIC_OTEL_CFG_OPT_NAME_API_KEY)), elasticapm::osutils::getCommandLine()).c_str());
-    ELOGF_NF(logger, level, "%*s%s", -colWidth, "Process environment:", elasticapm::utils::sanitizeKeyValueString(elasticapm::utils::getEnvName(EL_STRINGIFY(ELASTIC_OTEL_CFG_OPT_NAME_API_KEY)), elasticapm::osutils::getProcessEnvironment()).c_str());
+    ELOGF_NF(logger, level, "%*s%s", -colWidth, "Process command line:", elasticapm::utils::sanitizeKeyValueString(elasticapm::utils::getEnvName(EL_STRINGIFY(ELASTIC_OTEL_API_KEY)), elasticapm::osutils::getCommandLine()).c_str());
+    ELOGF_NF(logger, level, "%*s%s", -colWidth, "Process environment:", elasticapm::utils::sanitizeKeyValueString(elasticapm::utils::getEnvName(EL_STRINGIFY(ELASTIC_OTEL_API_KEY)), elasticapm::osutils::getProcessEnvironment()).c_str());
+}
+
+void initOpAmp(opentelemetry::php::transport::OpAmp &opamp, elasticapm::php::ConfigurationSnapshot const &config) {
+    auto opampHeaders = elasticapm::utils::parseUrlEncodedKeyValueString(config.opamp_headers);
+    std::vector<std::pair<std::string_view, std::string_view>> opampHeadersView;
+    for (const auto &[k, v] : opampHeaders) {
+        opampHeadersView.push_back(std::pair<std::string_view, std::string_view>(k, v));
+    }
+    opamp.init(config.opamp_endpoint, opampHeadersView, config.opamp_send_timeout, config.opamp_send_max_retries, config.opamp_send_retry_delay);
 }
 
 void elasticApmModuleInit(int moduleType, int moduleNumber) {
@@ -100,17 +109,7 @@ void elasticApmModuleInit(int moduleType, int moduleNumber) {
         ELOGF_WARNING(globals->logger_, MODULE, "EDOT PHP bootstrap file (%s) is located outside of paths allowed by open_basedir ini setting. Read more details here https://elastic.github.io/opentelemetry/edot-sdks/php/setup/limitations.html", EAPM_GL(config_)->get(&elasticapm::php::ConfigurationSnapshot::bootstrap_php_part_file).c_str());
     }
 
-    std::string endpointUrl = globals->config_->get().opamp_endpoint;
-    if (!endpointUrl.ends_with("/v1/opamp")) {
-        endpointUrl += "/v1/opamp";
-    }
-
-    auto opampHeaders = elasticapm::utils::parseUrlEncodedKeyValueString(globals->config_->get().opamp_headers);
-    std::vector<std::pair<std::string_view, std::string_view>> opampHeadersView;
-    for (const auto &[k, v] : opampHeaders) {
-        opampHeadersView.push_back(std::pair<std::string_view, std::string_view>(k, v));
-    }
-    globals->opAmp_->init(std::move(endpointUrl), opampHeadersView, globals->config_->get().opamp_timeout, globals->config_->get().opamp_max_retries, globals->config_->get().opamp_retry_delay);
+    initOpAmp(*globals->opAmp_, globals->config_->get());
 }
 
 void elasticApmModuleShutdown( int moduleType, int moduleNumber ) {

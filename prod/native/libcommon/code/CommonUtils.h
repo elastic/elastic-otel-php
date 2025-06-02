@@ -87,4 +87,5 @@ bool isUtf8(std::string_view input);
 
 std::string percentDecode(std::string_view input);
 std::map<std::string, std::string> parseUrlEncodedKeyValueString(std::string_view input);
+std::optional<std::chrono::milliseconds> parseRetryAfter(std::string_view value);
 }

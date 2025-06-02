@@ -19,23 +19,21 @@
 
 #include "OpAmp.h"
 #include "ResourceDetector.h"
-
-// #include "WebSocketClient.h"
-// #include "CommonUtils.h"
-
-#include <opamp.pb.h>
-
 #include <format>
 
 #include <opentelemetry/semconv/service_attributes.h>
 #include <opentelemetry/semconv/deployment_attributes.h>
-#include <opentelemetry/semconv/os_attributes.h>
+#include <opamp.pb.h>
 
 using namespace std::literals;
 
 namespace opentelemetry::php::transport {
 
 void OpAmp::init(std::string endpointUrl, std::vector<std::pair<std::string_view, std::string_view>> const &endpointHeaders, std::chrono::milliseconds timeout, std::size_t maxRetries, std::chrono::milliseconds retryDelay) {
+    if (!endpointUrl.ends_with("/v1/opamp")) {
+        endpointUrl += "/v1/opamp";
+    }
+
     ELOG_DEBUG(log_, OPAMP, "Agent UID: '{}', endpoint: '{}'", boost::uuids::to_string(agentUid_), endpointUrl);
     for (auto const &[k, v] : endpointHeaders) {
         ELOG_DEBUG(log_, OPAMP, "Header: '{}: {}'", k, v);
@@ -96,8 +94,8 @@ void OpAmp::handleServerToAgent(const char *data, std::size_t size) {
         ELOG_WARNING(log_, OPAMP, "ServerToAgent error '{}', type {}", error.error_message(), static_cast<int>(error.type()));
 
         if (error.has_retry_info() && error.type() == opamp::proto::ServerErrorResponseType::ServerErrorResponseType_Unavailable) {
-            // TODO set retry interval
-            error.retry_info().retry_after_nanoseconds();
+            ELOG_WARNING(log_, OPAMP, "ServerToAgent updating retry interval to {}ms", std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::nanoseconds(error.retry_info().retry_after_nanoseconds())).count());
+            transport_->updateRetryDelay(endpointHash_, std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::nanoseconds(error.retry_info().retry_after_nanoseconds())));
         }
     }
 }

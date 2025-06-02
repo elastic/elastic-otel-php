@@ -337,5 +337,35 @@ TEST_F(CommonUtilsTest, parseUrlEncodedKeyValueString_ValueWithEqualSigns) {
     ASSERT_EQ(result.size(), 1);
     EXPECT_EQ(result["token"], "abc=123=xyz");
 }
+
+TEST_F(CommonUtilsTest, parseRetryAfter_parsesDeltaSeconds) {
+    std::optional<std::chrono::milliseconds> result = parseRetryAfter("120");
+    ASSERT_TRUE(result.has_value());
+    EXPECT_EQ(result.value(), std::chrono::seconds(120));
+}
+
+TEST_F(CommonUtilsTest, parseRetryAfter_rejectsInvalidString) {
+    std::optional<std::chrono::milliseconds> result = parseRetryAfter("not-a-number");
+    EXPECT_FALSE(result.has_value());
+}
+
+TEST_F(CommonUtilsTest, parseRetryAfter_parsesFutureHttpDate) {
+    // setting date to future, now+60s
+    std::time_t now = std::time(nullptr) + 60;
+    std::tm *gmt = std::gmtime(&now);
+    char buffer[64];
+    std::strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", gmt);
+
+    std::optional<std::chrono::milliseconds> result = parseRetryAfter(buffer);
+    ASSERT_TRUE(result.has_value());
+    EXPECT_GE(result.value(), std::chrono::milliseconds(50000));
+    EXPECT_LE(result.value(), std::chrono::milliseconds(61000));
+}
+
+TEST_F(CommonUtilsTest, parseRetryAfter_httpDateInThePastReturnsZero) {
+    std::optional<std::chrono::milliseconds> result = parseRetryAfter("Wed, 01 Jan 2000 00:00:00 GMT");
+    ASSERT_TRUE(result.has_value());
+    EXPECT_EQ(result.value(), std::chrono::milliseconds(0));
+}
 }
 

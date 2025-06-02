@@ -376,4 +376,41 @@ std::map<std::string, std::string> parseUrlEncodedKeyValueString(std::string_vie
 
     return result;
 }
+
+std::optional<std::chrono::milliseconds> parseRetryAfter(std::string_view value) {
+    // Try parsing as delta-seconds
+    try {
+        std::size_t idx;
+        int seconds = std::stoi(value.data(), &idx);
+        if (idx == value.length() && seconds >= 0) {
+            return std::chrono::seconds(seconds);
+        }
+    } catch (...) {
+        // Not an integer value, fall through to HTTP-date parsing
+    }
+
+    // Parse HTTP-date string in GMT format
+    std::tm tm = {};
+    std::istringstream ss(value.data());
+    ss.imbue(std::locale::classic());
+    ss >> std::get_time(&tm, "%a, %d %b %Y %H:%M:%S GMT");
+    if (ss.fail()) {
+        return std::nullopt;
+    }
+
+    // Convert parsed tm (assumed UTC) to std::chrono::sys_time
+    std::chrono::sys_days date = std::chrono::year(tm.tm_year + 1900) / std::chrono::month(tm.tm_mon + 1) / std::chrono::day(tm.tm_mday);
+
+    std::chrono::sys_time<std::chrono::seconds> target_time = date + std::chrono::hours(tm.tm_hour) + std::chrono::minutes(tm.tm_min) + std::chrono::seconds(tm.tm_sec);
+
+    // Get current time in system_clock (local time zone)
+    std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+    std::chrono::time_point<std::chrono::system_clock, std::chrono::seconds> now_rounded = std::chrono::floor<std::chrono::seconds>(now);
+
+    if (target_time <= now_rounded) {
+        return std::chrono::milliseconds(0);
+    }
+
+    return std::chrono::duration_cast<std::chrono::milliseconds>(target_time - now_rounded);
+}
 }
