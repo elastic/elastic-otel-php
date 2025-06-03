@@ -83,6 +83,7 @@ AgentGlobals::AgentGlobals(std::shared_ptr<LoggerInterface> logger,
 
 
 AgentGlobals::~AgentGlobals() {
+    ELOG_DEBUG(logger_, MODULE, "AgentGlobals shutdown");
     config_->removeAllConfigUpdateWatchers();
 }
 

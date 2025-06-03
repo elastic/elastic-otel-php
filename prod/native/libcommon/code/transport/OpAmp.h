@@ -83,10 +83,11 @@ protected:
     }
 
     void shutdownThread() {
+        ELOG_DEBUG(log_, OPAMP, "shutdownThread");
         {
             std::lock_guard<std::mutex> lock(mutex_);
             if (thread_) {
-                ELOG_DEBUG(log_, OPAMP, "shutdownThread");
+                ELOG_DEBUG(log_, OPAMP, "shutdownThread still working");
             }
 
             working_ = false;
@@ -94,9 +95,11 @@ protected:
         pauseCondition_.notify_all();
 
         if (thread_ && thread_->joinable()) {
+            ELOG_DEBUG(log_, OPAMP, "shutdownThread joining");
             thread_->join();
         }
         thread_.reset();
+        ELOG_DEBUG(log_, OPAMP, "shutdownThread done");
     }
 
     void opAmpHeartbeatTask() {

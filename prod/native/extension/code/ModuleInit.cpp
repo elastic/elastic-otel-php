@@ -63,6 +63,10 @@ void logStartupPreamble(elasticapm::php::LoggerInterface *logger) {
 }
 
 void initOpAmp(opentelemetry::php::transport::OpAmp &opamp, elasticapm::php::ConfigurationSnapshot const &config) {
+    if (!config.opamp_enabled) {
+        return;
+    }
+
     auto opampHeaders = elasticapm::utils::parseUrlEncodedKeyValueString(config.opamp_headers);
     std::vector<std::pair<std::string_view, std::string_view>> opampHeadersView;
     for (const auto &[k, v] : opampHeaders) {
@@ -113,6 +117,8 @@ void elasticApmModuleInit(int moduleType, int moduleNumber) {
 }
 
 void elasticApmModuleShutdown( int moduleType, int moduleNumber ) {
+    ELOG_DEBUG(ELASTICAPM_G(globals)->logger_, MODULE, "elasticApmModuleShutdown");
+
     if (!ELASTICAPM_G(globals)->sapi_->isSupported()) {
         return;
     }
@@ -133,25 +139,3 @@ void elasticApmModuleShutdown( int moduleType, int moduleNumber ) {
 
     unregisterSigSegvHandler();
 }
-
-// void elasticApmGetLastPhpError(zval* return_value) {
-//     if (!ELASTICAPM_G(lastErrorData)) {
-//         RETURN_NULL();
-//     }
-
-//     array_init( return_value );
-//     ELASTIC_OTEL_ZEND_ADD_ASSOC(return_value, "type", long, static_cast<zend_long>(ELASTICAPM_G(lastErrorData)->getType()));
-//     ELASTIC_OTEL_ZEND_ADD_ASSOC_NULLABLE_STRING( return_value, "fileName", ELASTICAPM_G(lastErrorData)->getFileName().data() );
-//     ELASTIC_OTEL_ZEND_ADD_ASSOC(return_value, "lineNumber", long, static_cast<zend_long>(ELASTICAPM_G(lastErrorData)->getLineNumber()));
-//     ELASTIC_OTEL_ZEND_ADD_ASSOC_NULLABLE_STRING( return_value, "message", ELASTICAPM_G(lastErrorData)->getMessage().data());
-//     Z_TRY_ADDREF_P((ELASTICAPM_G(lastErrorData)->getStackTrace()));
-//     ELASTIC_OTEL_ZEND_ADD_ASSOC(return_value, "stackTrace", zval, (ELASTICAPM_G(lastErrorData)->getStackTrace()));
-// }
-//
-// void elasticApmGetLastThrown(zval *return_value) {
-//     if (Z_TYPE(ELASTICAPM_G(lastException)) == IS_UNDEF) {
-//         RETURN_NULL();
-//     }
-
-//     RETURN_ZVAL(&ELASTICAPM_G(lastException), /* copy */ true, /* dtor */ false );
-// }
