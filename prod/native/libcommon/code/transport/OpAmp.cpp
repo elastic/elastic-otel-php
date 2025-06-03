@@ -69,6 +69,7 @@ void OpAmp::handleServerToAgent(const char *data, std::size_t size) {
     if (msg.has_remote_config()) {
         if (msg.remote_config().has_config()) {
             auto remoteHash = msg.remote_config().config_hash();
+            std::lock_guard<std::mutex> lock(configAccessMutex_);
             ELOG_DEBUG(log_, OPAMP, "Received remote config hash {}, previous was: {}", remoteHash, currentConfigHash_);
             if (currentConfigHash_ != remoteHash) {
                 configFiles_.clear();
@@ -141,10 +142,13 @@ void OpAmp::sendHeartbeat() {
 
     msg.set_instance_uid(reinterpret_cast<const char *>(agentUid_.data()), agentUid_.size());
 
-    if (!currentConfigHash_.empty()) {
-        auto remoteConfigStatus = msg.mutable_remote_config_status();
-        remoteConfigStatus->set_last_remote_config_hash(currentConfigHash_);
-        remoteConfigStatus->set_status(opamp::proto::RemoteConfigStatuses::RemoteConfigStatuses_APPLIED);
+    {
+        std::lock_guard<std::mutex> lock(configAccessMutex_);
+        if (!currentConfigHash_.empty()) {
+            auto remoteConfigStatus = msg.mutable_remote_config_status();
+            remoteConfigStatus->set_last_remote_config_hash(currentConfigHash_);
+            remoteConfigStatus->set_status(opamp::proto::RemoteConfigStatuses::RemoteConfigStatuses_APPLIED);
+        }
     }
 
     std::string payload;

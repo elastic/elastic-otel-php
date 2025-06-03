@@ -65,6 +65,11 @@ public:
 
     void init(std::string endpointUrl, std::vector<std::pair<std::string_view, std::string_view>> const &endpointHeaders, std::chrono::milliseconds timeout, std::size_t maxRetries, std::chrono::milliseconds retryDelay);
 
+    std::unordered_map<std::string, std::string> getConfiguration() {
+        std::lock_guard<std::mutex> lock(configAccessMutex_);
+        return configFiles_;
+    }
+
 protected:
     void sendInitialAgentToServer();
     void handleServerToAgent(const char *data, std::size_t size);
@@ -132,6 +137,7 @@ private:
     std::shared_ptr<elasticapm::php::transport::HttpTransportAsyncInterface> transport_;
     boost::uuids::uuid agentUid_{boost::uuids::random_generator()()};
 
+    std::mutex configAccessMutex_;
     std::string currentConfigHash_;
     std::unordered_map<std::string, std::string> configFiles_;
     std::shared_ptr<opentelemetry::php::ResourceDetector> resourceDetector_;

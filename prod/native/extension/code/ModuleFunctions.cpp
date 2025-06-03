@@ -27,6 +27,8 @@
 #include "ModuleFunctionsImpl.h"
 #include "InternalFunctionInstrumentation.h"
 #include "transport/HttpTransportAsync.h"
+#undef snprintf
+#include "transport/OpAmp.h"
 #include "PhpBridge.h"
 #include "OtlpExporter/LogsConverter.h"
 #include "OtlpExporter/MetricConverter.h"
@@ -315,6 +317,42 @@ PHP_FUNCTION(convert_metrics) {
     }
 }
 
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_elastic_get_remote_configuration, 0, 0, IS_ARRAY | IS_STRING | IS_NULL, 0)
+ZEND_ARG_TYPE_INFO(/* pass_by_ref: */ 0, fileName, IS_STRING, /* allow_null: */ 1)
+ZEND_END_ARG_INFO()
+
+PHP_FUNCTION(elastic_get_remote_configuration) {
+    zend_string *fileName = NULL;
+
+    ZEND_PARSE_PARAMETERS_START(0, 1)
+    Z_PARAM_OPTIONAL
+    Z_PARAM_STR_OR_NULL(fileName)
+    ZEND_PARSE_PARAMETERS_END();
+
+    std::optional<std::string> fname;
+    if (fileName != nullptr) {
+        fname.emplace(ZSTR_VAL(fileName), ZSTR_LEN(fileName));
+    }
+
+    auto config = ELASTICAPM_G(globals)->opAmp_->getConfiguration();
+    if (fname.has_value()) {
+        if (auto cfgFound = config.find(fname.value()); cfgFound != config.end()) {
+            RETURN_STRINGL(cfgFound->second.c_str(), cfgFound->second.length());
+        } else {
+            RETURN_NULL();
+        }
+    }
+
+    elasticapm::php::AutoZval configFiles;
+    configFiles.arrayInit();
+
+    for (auto const &item : config) {
+        configFiles.arrayAddAssocWithRef(item.first, elasticapm::php::AutoZval(item.second));
+    }
+
+    RETURN_ZVAL(configFiles.get(), 1, 0);
+}
+
 // clang-format off
 const zend_function_entry elastic_otel_functions[] = {
     PHP_FE( elastic_otel_is_enabled, elastic_otel_no_paramters_arginfo )
@@ -332,6 +370,7 @@ const zend_function_entry elastic_otel_functions[] = {
     ZEND_NS_FE( "Elastic\\OTel\\OtlpExporters", convert_logs, arginfo_elastic_convert_logs)
     ZEND_NS_FE( "Elastic\\OTel\\OtlpExporters", convert_metrics, arginfo_elastic_convert_metrics)
 
+    ZEND_NS_FALIAS( "Elastic\\OTel", get_remote_configuration, elastic_get_remote_configuration, arginfo_elastic_get_remote_configuration)
 
     PHP_FE_END
 };

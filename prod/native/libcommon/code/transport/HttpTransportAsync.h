@@ -179,7 +179,7 @@ protected:
 
                     auto retryValue = elasticapm::utils::parseRetryAfter(value);
                     if (retryValue.has_value() && retryValue.value().count() > 0) {
-                        ELOG_TRACE(log_, TRANSPORT, "HttpTransportAsync::send updating endpoint {} retry delay to {}ms", endpointHash, retryValue.value().count());
+                        ELOG_TRACE(log_, TRANSPORT, "HttpTransportAsync::send updating endpoint {:X} retry delay to {}ms", endpointHash, retryValue.value().count());
                         endpoints_.updateRetryDelay(endpointHash, retryValue.value());
                     }
                 }
