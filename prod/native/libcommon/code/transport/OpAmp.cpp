@@ -18,6 +18,7 @@
  */
 
 #include "OpAmp.h"
+#include "common/ProtobufHelper.h"
 #include "ResourceDetector.h"
 #include <format>
 
@@ -100,22 +101,6 @@ void OpAmp::handleServerToAgent(const char *data, std::size_t size) {
     }
 }
 
-template <typename KeyValue, typename ValueType>
-void addKeyValue(google::protobuf::RepeatedPtrField<KeyValue> *map, std::string key, ValueType const &value) {
-    auto kv = map->Add();
-    kv->set_key(std::move(key));
-    auto val = kv->mutable_value();
-    if constexpr (std::is_same_v<decltype(value), bool>) {
-        val->set_bool_value(value);
-    } else if constexpr (std::is_floating_point_v<std::remove_reference_t<decltype(value)>>) {
-        val->set_double_value(value);
-    } else if constexpr (!std::is_null_pointer_v<std::remove_reference_t<decltype(value)>> && std::is_convertible_v<decltype(value), std::string_view>) {
-        val->set_string_value(value);
-    } else {
-        val->set_int_value(value);
-    }
-}
-
 void OpAmp::sendInitialAgentToServer() {
     ::opamp::proto::AgentToServer msg;
     msg.set_instance_uid(reinterpret_cast<const char *>(agentUid_.data()), agentUid_.size());
@@ -125,16 +110,16 @@ void OpAmp::sendInitialAgentToServer() {
 
     // get deprecated if exists and send as modern value
     if (auto value = resourceDetector_->get(opentelemetry::semconv::deployment::kDeploymentEnvironment); !value.empty()) {
-        addKeyValue(attrs, opentelemetry::semconv::deployment::kDeploymentEnvironmentName, value);
+        common::addKeyValue(attrs, opentelemetry::semconv::deployment::kDeploymentEnvironmentName, value);
     }
 
     for (auto const &resource : *resourceDetector_) {
         if (!resource.second.empty()) {
-            addKeyValue(attrs, resource.first, resource.second);
+            common::addKeyValue(attrs, resource.first, resource.second);
         }
     }
 
-    addKeyValue(attrs, opentelemetry::semconv::service::kServiceInstanceId, boost::uuids::to_string(agentUid_));
+    common::addKeyValue(attrs, opentelemetry::semconv::service::kServiceInstanceId, boost::uuids::to_string(agentUid_));
 
     msg.set_capabilities(opamp::proto::AgentCapabilities::AgentCapabilities_AcceptsRemoteConfig | opamp::proto::AgentCapabilities::AgentCapabilities_ReportsStatus | opamp::proto::AgentCapabilities::AgentCapabilities_ReportsHeartbeat);
 
