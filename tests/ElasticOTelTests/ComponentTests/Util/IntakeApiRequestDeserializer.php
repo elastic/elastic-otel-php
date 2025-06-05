@@ -31,7 +31,7 @@ use ElasticOTelTests\Util\HttpContentTypes;
 use ElasticOTelTests\Util\HttpHeaderNames;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
 use ElasticOTelTests\Util\Log\Logger;
-use Google\Protobuf\RepeatedField;
+use Google\Protobuf\Internal\RepeatedField;
 use OpenTelemetry\Contrib\Otlp\ProtobufSerializer;
 use Opentelemetry\Proto\Collector\Trace\V1\ExportTraceServiceRequest;
 use Opentelemetry\Proto\Trace\V1\ResourceSpans;
@@ -67,11 +67,9 @@ final class IntakeApiRequestDeserializer
     }
 
     /**
-     * @template T
+     * @param array<string, RepeatedField> $repeatedFieldNameToObj
      *
-     * @param array<string, RepeatedField<T>> $repeatedFieldNameToObj
-     *
-     * @return array<string, mixed>
+     * @return array<string, int>
      */
     private static function buildLogContextForRepeatedField(array $repeatedFieldNameToObj): array
     {
@@ -87,37 +85,22 @@ final class IntakeApiRequestDeserializer
         $loggerProxyDebug = $logger->ifDebugLevelEnabledNoLine(__FUNCTION__);
 
         $resourceSpansRepeatedField = $exportTraceServiceRequest->getResourceSpans();
-        /**
-         * Google\Protobuf\Internal\RepeatedField is deprecated, and Google\Protobuf\RepeatedField is used instead.
-         *
-         * @var RepeatedField<ResourceSpans> $resourceSpansRepeatedField
-         */
         $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, '', self::buildLogContextForRepeatedField(compact('resourceSpansRepeatedField')));
 
         $result = [];
         foreach ($resourceSpansRepeatedField as $resourceSpans) {
             $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, '', compact('resourceSpans'));
-            Assert::assertInstanceOf(ResourceSpans::class, $resourceSpans); // @phpstan-ignore staticMethod.alreadyNarrowedType
+            Assert::assertInstanceOf(ResourceSpans::class, $resourceSpans);
             $scopeSpansRepeatedField = $resourceSpans->getScopeSpans();
-            /**
-             * Google\Protobuf\Internal\RepeatedField is deprecated, and Google\Protobuf\RepeatedField is used instead.
-             *
-             * @var RepeatedField<ScopeSpans> $scopeSpansRepeatedField
-             */
             $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, '', self::buildLogContextForRepeatedField(compact('scopeSpansRepeatedField')));
             foreach ($scopeSpansRepeatedField as $scopeSpans) {
                 $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, '', compact('scopeSpans'));
-                Assert::assertInstanceOf(ScopeSpans::class, $scopeSpans); // @phpstan-ignore staticMethod.alreadyNarrowedType
+                Assert::assertInstanceOf(ScopeSpans::class, $scopeSpans);
                 $spansRepeatedField = $scopeSpans->getSpans();
-                /**
-                 * Google\Protobuf\Internal\RepeatedField is deprecated, and Google\Protobuf\RepeatedField is used instead.
-                 *
-                 * @var RepeatedField<OTelProtoSpan> $spansRepeatedField
-                 */
                 $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, '', self::buildLogContextForRepeatedField(compact('spansRepeatedField')));
                 foreach ($spansRepeatedField as $otelProtoSpan) {
                     $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, '', compact('otelProtoSpan'));
-                    Assert::assertInstanceOf(OTelProtoSpan::class, $otelProtoSpan); // @phpstan-ignore staticMethod.alreadyNarrowedType
+                    Assert::assertInstanceOf(OTelProtoSpan::class, $otelProtoSpan);
                     $span = new Span($otelProtoSpan);
                     if (($reason = self::reasonToDiscard($span)) !== null) {
                         $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Span discarded', compact('reason', 'span'));
