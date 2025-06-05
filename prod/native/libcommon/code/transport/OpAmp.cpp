@@ -122,7 +122,7 @@ void OpAmp::sendInitialAgentToServer() {
 
     common::addKeyValue(attrs, opentelemetry::semconv::service::kServiceInstanceId, boost::uuids::to_string(agentUid_));
 
-    msg.set_capabilities(opamp::proto::AgentCapabilities::AgentCapabilities_AcceptsRemoteConfig | opamp::proto::AgentCapabilities::AgentCapabilities_ReportsStatus | opamp::proto::AgentCapabilities::AgentCapabilities_ReportsHeartbeat);
+    msg.set_capabilities(opamp::proto::AgentCapabilities::AgentCapabilities_AcceptsRemoteConfig | opamp::proto::AgentCapabilities::AgentCapabilities_ReportsStatus | opamp::proto::AgentCapabilities::AgentCapabilities_ReportsHeartbeat | opamp::proto::AgentCapabilities::AgentCapabilities_AcceptsOpAMPConnectionSettings | opamp::proto::AgentCapabilities::AgentCapabilities_ReportsRemoteConfig);
 
     std::string payload;
     if (!msg.SerializeToString(&payload)) {
