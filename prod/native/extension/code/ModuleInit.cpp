@@ -62,19 +62,6 @@ void logStartupPreamble(elasticapm::php::LoggerInterface *logger) {
     ELOGF_NF(logger, level, "%*s%s", -colWidth, "Process environment:", elasticapm::utils::sanitizeKeyValueString(elasticapm::utils::getEnvName(EL_STRINGIFY(ELASTIC_OTEL_API_KEY)), elasticapm::osutils::getProcessEnvironment()).c_str());
 }
 
-void initOpAmp(opentelemetry::php::transport::OpAmp &opamp, elasticapm::php::ConfigurationSnapshot const &config) {
-    if (!config.opamp_enabled) {
-        return;
-    }
-
-    auto opampHeaders = elasticapm::utils::parseUrlEncodedKeyValueString(config.opamp_headers);
-    std::vector<std::pair<std::string_view, std::string_view>> opampHeadersView;
-    for (const auto &[k, v] : opampHeaders) {
-        opampHeadersView.push_back(std::pair<std::string_view, std::string_view>(k, v));
-    }
-    opamp.init(config.opamp_endpoint, opampHeadersView, config.opamp_send_timeout, config.opamp_send_max_retries, config.opamp_send_retry_delay);
-}
-
 void elasticApmModuleInit(int moduleType, int moduleNumber) {
     auto const &sapi = *ELASTICAPM_G(globals)->sapi_;
     auto globals = ELASTICAPM_G(globals);
@@ -113,7 +100,7 @@ void elasticApmModuleInit(int moduleType, int moduleNumber) {
         ELOGF_WARNING(globals->logger_, MODULE, "EDOT PHP bootstrap file (%s) is located outside of paths allowed by open_basedir ini setting. Read more details here https://www.elastic.co/docs/reference/opentelemetry/edot-sdks/php/setup/limitations.html", EAPM_GL(config_)->get(&elasticapm::php::ConfigurationSnapshot::bootstrap_php_part_file).c_str());
     }
 
-    initOpAmp(*globals->opAmp_, globals->config_->get());
+    globals->opAmp_->init();
 }
 
 void elasticApmModuleShutdown( int moduleType, int moduleNumber ) {

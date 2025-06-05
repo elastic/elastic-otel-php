@@ -30,18 +30,32 @@ using namespace std::literals;
 
 namespace opentelemetry::php::transport {
 
-void OpAmp::init(std::string endpointUrl, std::vector<std::pair<std::string_view, std::string_view>> const &endpointHeaders, std::chrono::milliseconds timeout, std::size_t maxRetries, std::chrono::milliseconds retryDelay) {
+void OpAmp::init() {
+    if (!config_->get().opamp_enabled) {
+        ELOG_DEBUG(log_, OPAMP, "disabled");
+        return;
+    }
+
+    auto opampHeaders = elasticapm::utils::parseUrlEncodedKeyValueString(config_->get().opamp_headers);
+    std::vector<std::pair<std::string_view, std::string_view>> endpointHeaders;
+    for (const auto &[k, v] : opampHeaders) {
+        endpointHeaders.push_back(std::pair<std::string_view, std::string_view>(k, v));
+    }
+
+    std::string endpointUrl = config_->get().opamp_endpoint;
+
     if (!endpointUrl.ends_with("/v1/opamp")) {
         endpointUrl += "/v1/opamp";
     }
+    endpointHash_ = std::hash<std::string>{}(endpointUrl);
+    heartbeatInterval_ = {std::chrono::duration_cast<std::chrono::seconds>(config_->get().opamp_heartbeat_interval)};
 
-    ELOG_DEBUG(log_, OPAMP, "Agent UID: '{}', endpoint: '{}'", boost::uuids::to_string(agentUid_), endpointUrl);
+    ELOG_DEBUG(log_, OPAMP, "Agent UID: '{}', endpoint: '{}', endpoint hash: '{:X}', heartbeat interval: {}ms", boost::uuids::to_string(agentUid_), endpointUrl, endpointHash_, heartbeatInterval_.load());
     for (auto const &[k, v] : endpointHeaders) {
         ELOG_DEBUG(log_, OPAMP, "Header: '{}: {}'", k, v);
     }
 
-    endpointHash_ = std::hash<std::string>{}(endpointUrl);
-    transport_->initializeConnection(endpointUrl, endpointHash_, "application/x-protobuf"s, endpointHeaders, timeout, maxRetries, retryDelay);
+    transport_->initializeConnection(endpointUrl, endpointHash_, "application/x-protobuf"s, endpointHeaders, config_->get().opamp_send_timeout, config_->get().opamp_send_max_retries, config_->get().opamp_send_retry_delay);
     startThread();
     try {
         sendInitialAgentToServer();
@@ -57,7 +71,17 @@ void OpAmp::handleServerToAgent(const char *data, std::size_t size) {
         return;
     }
 
-    ELOG_DEBUG(log_, OPAMP, "ServerToAgent has_agent_identification: {}, has_command: {}, has_connection_settings: {}, has_custom_capabilities: {}, has_custom_message: {}, has_error_response: {}, has_packages_available: {}, has_remote_config: {}", msg.has_agent_identification(), msg.has_command(), msg.has_connection_settings(), msg.has_custom_capabilities(), msg.has_custom_message(), msg.has_error_response(), msg.has_packages_available(), msg.has_remote_config());
+    if (msg.has_agent_identification()) {
+        auto agentId = msg.agent_identification().new_instance_uid();
+        uint8_t data[16] = {};
+        std::memcpy(data, agentId.data(), std::min(sizeof(data), agentId.length()));
+        auto newAgentUid = boost::uuids::uuid(data);
+
+        ELOG_DEBUG(log_, OPAMP, "Server updated Agent UID from: '{}' to: '{}'. Data len: {}", boost::uuids::to_string(agentUid_), boost::uuids::to_string(newAgentUid), agentId.length());
+        agentUid_ = newAgentUid;
+    }
+
+    ELOG_DEBUG(log_, OPAMP, "ServerToAgent capabilities: 0x{:08X}, has_agent_identification: {}, has_command: {}, has_connection_settings: {}, has_custom_capabilities: {}, has_custom_message: {}, has_error_response: {}, has_packages_available: {}, has_remote_config: {}", msg.capabilities(), msg.has_agent_identification(), msg.has_command(), msg.has_connection_settings(), msg.has_custom_capabilities(), msg.has_custom_message(), msg.has_error_response(), msg.has_packages_available(), msg.has_remote_config());
 
     if (msg.has_connection_settings()) {
         if (msg.connection_settings().has_opamp()) {
@@ -85,9 +109,9 @@ void OpAmp::handleServerToAgent(const char *data, std::size_t size) {
 
     if (msg.has_custom_capabilities()) {
         auto const &customCapabilities = msg.custom_capabilities();
-        ELOG_DEBUG(log_, OPAMP, "Server capabilities count: {}", customCapabilities.capabilities_size());
+        ELOG_DEBUG(log_, OPAMP, "Server custom_capabilities count: {}", customCapabilities.capabilities_size());
         for (auto const &capability : customCapabilities.capabilities()) {
-            ELOG_DEBUG(log_, OPAMP, "Server reported capability: {}", capability);
+            ELOG_DEBUG(log_, OPAMP, "Server custom_capability: {}", capability);
         }
     }
 

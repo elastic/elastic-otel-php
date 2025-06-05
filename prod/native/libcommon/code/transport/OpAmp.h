@@ -63,7 +63,7 @@ public:
         pauseCondition_.notify_all();
     }
 
-    void init(std::string endpointUrl, std::vector<std::pair<std::string_view, std::string_view>> const &endpointHeaders, std::chrono::milliseconds timeout, std::size_t maxRetries, std::chrono::milliseconds retryDelay);
+    void init();
 
     std::unordered_map<std::string, std::string> getConfiguration() {
         std::lock_guard<std::mutex> lock(configAccessMutex_);
@@ -126,8 +126,6 @@ protected:
     void sendHeartbeat();
 
 private:
-    std::atomic<std::chrono::seconds> heartbeatInterval_ = 30s;
-
     std::mutex mutex_;
     std::unique_ptr<std::thread> thread_;
     std::condition_variable pauseCondition_;
@@ -139,6 +137,7 @@ private:
     std::shared_ptr<elasticapm::php::ConfigurationStorage> config_;
     std::shared_ptr<elasticapm::php::transport::HttpTransportAsyncInterface> transport_;
     boost::uuids::uuid agentUid_{boost::uuids::random_generator()()};
+    std::atomic<std::chrono::seconds> heartbeatInterval_ = 30s;
 
     std::mutex configAccessMutex_;
     std::string currentConfigHash_;
