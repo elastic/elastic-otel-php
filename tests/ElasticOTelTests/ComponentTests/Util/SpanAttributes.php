@@ -33,7 +33,7 @@ use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LoggableToString;
 use ElasticOTelTests\Util\Log\LogStreamInterface;
 use ElasticOTelTests\Util\TextUtilForTests;
-use Google\Protobuf\RepeatedField as ProtobufRepeatedField;
+use Google\Protobuf\Internal\RepeatedField as ProtobufRepeatedField;
 use Opentelemetry\Proto\Common\V1\KeyValue as OTelProtoKeyValue;
 use Override;
 use PHPUnit\Framework\Assert;
@@ -48,9 +48,6 @@ final class SpanAttributes implements ArrayReadInterface, Countable, LoggableInt
     /** @var array<string, AttributeValue> $keyToValueMap */
     private readonly array $keyToValueMap;
 
-    /**
-     * @param ProtobufRepeatedField<OTelProtoKeyValue> $protobufRepeatedField
-     */
     public function __construct(ProtobufRepeatedField $protobufRepeatedField)
     {
         $this->keyToValueMap = self::convertProtobufRepeatedFieldToMap($protobufRepeatedField);
@@ -76,9 +73,7 @@ final class SpanAttributes implements ArrayReadInterface, Countable, LoggableInt
                 return null;
             }
             $result = [];
-            // Google\Protobuf\Internal\RepeatedField is deprecated, and Google\Protobuf\RepeatedField is used instead.
-            // Google\Protobuf\RepeatedField implements IteratorAggregate so it's iterable.
-            foreach ($arrayValue->getValues() as $repeatedFieldSubValue) { // @phpstan-ignore foreach.nonIterable
+            foreach ($arrayValue->getValues() as $repeatedFieldSubValue) {
                 $result[] = $repeatedFieldSubValue;
             }
             return $result;
@@ -110,9 +105,7 @@ final class SpanAttributes implements ArrayReadInterface, Countable, LoggableInt
                 return null;
             }
             $result = [];
-            // Google\Protobuf\Internal\RepeatedField is deprecated, and Google\Protobuf\RepeatedField is used instead.
-            // Google\Protobuf\RepeatedField implements IteratorAggregate so it's iterable.
-            foreach ($kvListValue->getValues() as $repeatedFieldSubKey => $repeatedFieldSubValue) { // @phpstan-ignore foreach.nonIterable
+            foreach ($kvListValue->getValues() as $repeatedFieldSubKey => $repeatedFieldSubValue) {
                 Assert::assertTrue(is_int($repeatedFieldSubKey) || is_string($repeatedFieldSubKey));
                 Assert::assertArrayNotHasKey($repeatedFieldSubKey, $result);
                 $result[$repeatedFieldSubKey] = $repeatedFieldSubValue;
@@ -128,7 +121,7 @@ final class SpanAttributes implements ArrayReadInterface, Countable, LoggableInt
     }
 
     /**
-     * @param ProtobufRepeatedField<OTelProtoKeyValue> $protobufRepeatedField
+     * @param ProtobufRepeatedField $protobufRepeatedField
      *
      * @return array<string, AttributeValue>
      */
@@ -139,7 +132,7 @@ final class SpanAttributes implements ArrayReadInterface, Countable, LoggableInt
         $result = [];
         foreach ($protobufRepeatedField as $keyValue) {
             $dbgCtx->add(compact('keyValue'));
-            Assert::assertInstanceOf(OTelProtoKeyValue::class, $keyValue); // @phpstan-ignore staticMethod.alreadyNarrowedType
+            Assert::assertInstanceOf(OTelProtoKeyValue::class, $keyValue);
             Assert::assertArrayNotHasKey($keyValue->getKey(), $result);
             $result[$keyValue->getKey()] = self::extractValue($keyValue);
         }
