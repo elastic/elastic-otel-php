@@ -74,6 +74,17 @@ public:
         return {endpoint->second.getEndpoint(), endpoint->second.getHeaders(), endpoint->second.getConnectionId(), conn, maxRetries, retryDelay};
     }
 
+    void updateRetryDelay(size_t endpointHash, std::chrono::milliseconds retryDelay) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        auto const &endpoint = endpoints_.find(endpointHash);
+        if (endpoint == std::end(endpoints_)) {
+            std::stringstream stream;
+            stream << "HttpEnpoints can't update retryDelay for missing enpointHash:" << std::hex << endpointHash;
+            throw std::runtime_error(stream.str());
+        }
+        endpoint->second.setRetryDelay(retryDelay);
+    }
+
 protected:
     std::shared_ptr<LoggerInterface> log_;
     std::mutex mutex_;
