@@ -151,6 +151,22 @@ class SpanExpectationsBuilder
     /**
      * @return $this
      */
+    public function serverAddress(string $value): self
+    {
+        return $this->addAttribute(TraceAttributes::SERVER_ADDRESS, $value);
+    }
+
+    /**
+     * @return $this
+     */
+    public function serverPort(int $value): self
+    {
+        return $this->addAttribute(TraceAttributes::SERVER_PORT, $value);
+    }
+
+    /**
+     * @return $this
+     */
     public function stackTrace(StackTraceExpectations $stackTrace): self
     {
         return $this->addAttribute(TraceAttributes::CODE_STACKTRACE, $stackTrace);

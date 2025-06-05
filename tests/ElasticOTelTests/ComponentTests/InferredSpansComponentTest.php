@@ -57,8 +57,8 @@ use function debug_backtrace;
  */
 final class InferredSpansComponentTest extends ComponentTestCaseBase
 {
-    private const IS_INFERRED_SPANS_ENABLED_KEY = 'IS_INFERRED_SPANS_ENABLED';
-    private const CAPTURE_SLEEPS_KEY = 'CAPTURE_SLEEPS';
+    private const IS_INFERRED_SPANS_ENABLED_KEY = 'is_inferred_spans_enabled';
+    private const CAPTURE_SLEEPS_KEY = 'capture_sleeps';
 
     private const SLEEP_DURATION_SECONDS = 5;
     private const INFERRED_MIN_DURATION_SECONDS_TO_CAPTURE_SLEEPS = self::SLEEP_DURATION_SECONDS - 2;

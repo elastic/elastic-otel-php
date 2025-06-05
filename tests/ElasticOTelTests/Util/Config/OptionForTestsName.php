@@ -38,13 +38,24 @@ enum OptionForTestsName
     case app_code_ext_binary;
     case app_code_host_kind;
     case app_code_php_exe;
+
     case data_per_process;
     case data_per_request;
+
     case env_vars_to_pass_through;
+
     case escalated_reruns_prod_code_log_level_option_name;
     case escalated_reruns_max_count;
+
     case group;
+
     case log_level;
+
+    case mysql_host;
+    case mysql_port;
+    case mysql_user;
+    case mysql_password;
+    case mysql_db;
 
     public const ENV_VAR_NAME_PREFIX = 'ELASTIC_OTEL_PHP_TESTS_';
 

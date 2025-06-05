@@ -274,6 +274,18 @@ final class IterableUtil
     }
 
     /**
+     * @template T
+     *
+     * @param iterable<T> $iterable
+     *
+     * @return Generator<array{non-negative-int, T}>
+     */
+    public static function zipOneWithIndex(iterable $iterable): Generator
+    {
+        return self::zipWithOptionalIndex(/* withIndex */ true, $iterable); // @phpstan-ignore return.type
+    }
+
+    /**
      * @param iterable<mixed> $iterables
      *
      * @return Generator<mixed[]>

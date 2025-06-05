@@ -34,12 +34,6 @@ function main() {
     composer_command=(composer run-script -- run_component_tests)
 
     if [ -n "${ELASTIC_OTEL_PHP_TESTS_GROUP}" ]; then
-
-        if [ "${ELASTIC_OTEL_PHP_TESTS_GROUP}" == "requires_external_services" ]; then
-            echo "There no tests in requires_external_services group yet" | tee "${composer_run_component_tests_log_file}"
-            return
-        fi
-
         composer_command=("${composer_command[@]}" --group "${ELASTIC_OTEL_PHP_TESTS_GROUP}")
     fi
 

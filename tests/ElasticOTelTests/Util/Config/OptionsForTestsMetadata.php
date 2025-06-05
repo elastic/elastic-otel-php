@@ -55,13 +55,24 @@ final class OptionsForTestsMetadata
             [OptionForTestsName::app_code_php_exe, new NullableStringOptionMetadata()],
             [OptionForTestsName::app_code_bootstrap_php_part_file, new NullableStringOptionMetadata()],
             [OptionForTestsName::app_code_ext_binary, new NullableStringOptionMetadata()],
+
             [OptionForTestsName::data_per_process, new NullableCustomOptionMetadata($parseTestInfraDataPerProcess)],
             [OptionForTestsName::data_per_request, new NullableCustomOptionMetadata($parseTestInfraDataPerRequest)],
+
             [OptionForTestsName::env_vars_to_pass_through, new NullableWildcardListOptionMetadata()],
+
             [OptionForTestsName::escalated_reruns_max_count, new IntOptionMetadata(minValidValue: 0, maxValidValue: null, defaultValue: 10)],
             [OptionForTestsName::escalated_reruns_prod_code_log_level_option_name, new NullableStringOptionMetadata()],
-            [OptionForTestsName::group, new NullableStringOptionMetadata()],
+
+            [OptionForTestsName::group, new NullableTestGroupNameOptionMetadata()],
+
             [OptionForTestsName::log_level, new LogLevelOptionMetadata(LogLevel::info)],
+
+            [OptionForTestsName::mysql_host, new NullableStringOptionMetadata()],
+            [OptionForTestsName::mysql_port, new NullableIntOptionMetadata(1, 65535)],
+            [OptionForTestsName::mysql_user, new NullableStringOptionMetadata()],
+            [OptionForTestsName::mysql_password, new NullableStringOptionMetadata()],
+            [OptionForTestsName::mysql_db, new NullableStringOptionMetadata()],
         ];
         $this->optionsNameValueMap = self::convertPairsToMap($optNameMetaPairs, OptionForTestsName::cases());
     }
