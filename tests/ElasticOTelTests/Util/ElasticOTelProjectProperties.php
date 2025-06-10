@@ -75,7 +75,7 @@ final class ElasticOTelProjectProperties
             }
 
             $keyValue = explode(separator: '=', string: $line, limit: 2);
-            if (count($keyValue) == 0) {
+            if (empty($keyValue)) {
                 continue;
             }
 
