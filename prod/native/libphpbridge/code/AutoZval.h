@@ -124,6 +124,15 @@ public:
         arrayAddNextWithRef(const_cast<zval *>(val.get()));
     }
 
+    constexpr void arrayAddAssocWithRef(std::string_view key, zval *val) {
+        Z_TRY_ADDREF_P(val);
+        add_assoc_zval_ex(&value, key.data(), key.length(), val);
+    }
+
+    constexpr void arrayAddAssocWithRef(std::string_view key, AutoZval const &val) {
+        arrayAddAssocWithRef(key, const_cast<zval *>(val.get()));
+    }
+
     constexpr void set(NotZvalPointer auto &&val) {
         if constexpr (std::is_same_v<decltype(val), bool>) {
             ZVAL_BOOL(&value, val);

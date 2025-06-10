@@ -337,4 +337,80 @@ bool isUtf8(std::string_view input) {
 
     return true;
 }
+
+std::string percentDecode(std::string_view input) {
+    std::string result;
+    result.reserve(input.size());
+
+    for (size_t i = 0; i < input.size(); ++i) {
+        if (input[i] == '%' && i + 2 < input.size() && std::isxdigit(input[i + 1]) && std::isxdigit(input[i + 2])) {
+            std::string hex = {input[i + 1], input[i + 2]};
+            char decoded_char = static_cast<char>(std::stoi(hex, nullptr, 16));
+            result += decoded_char;
+            i += 2;
+        } else {
+            result += input[i];
+        }
+    }
+
+    return result;
+}
+
+std::map<std::string, std::string> parseUrlEncodedKeyValueString(std::string_view input) {
+    std::map<std::string, std::string> result;
+
+    while (!input.empty()) {
+        size_t commaPos = input.find(',');
+        std::string_view pair = input.substr(0, commaPos);
+
+        size_t equal_pos = pair.find('=');
+        if (equal_pos != std::string_view::npos) {
+            result.insert(std::make_pair(std::string(pair.substr(0, equal_pos)), percentDecode(pair.substr(equal_pos + 1))));
+        }
+
+        if (commaPos == std::string_view::npos) {
+            break;
+        }
+        input.remove_prefix(commaPos + 1);
+    }
+
+    return result;
+}
+
+std::optional<std::chrono::milliseconds> parseRetryAfter(std::string_view value) {
+    // Try parsing as delta-seconds
+    try {
+        std::size_t idx;
+        int seconds = std::stoi(value.data(), &idx);
+        if (idx == value.length() && seconds >= 0) {
+            return std::chrono::seconds(seconds);
+        }
+    } catch (...) {
+        // Not an integer value, fall through to HTTP-date parsing
+    }
+
+    // Parse HTTP-date string in GMT format
+    std::tm tm = {};
+    std::istringstream ss(value.data());
+    ss.imbue(std::locale::classic());
+    ss >> std::get_time(&tm, "%a, %d %b %Y %H:%M:%S GMT");
+    if (ss.fail()) {
+        return std::nullopt;
+    }
+
+    // Convert parsed tm (assumed UTC) to std::chrono::sys_time
+    std::chrono::sys_days date = std::chrono::year(tm.tm_year + 1900) / std::chrono::month(tm.tm_mon + 1) / std::chrono::day(tm.tm_mday);
+
+    std::chrono::sys_time<std::chrono::seconds> target_time = date + std::chrono::hours(tm.tm_hour) + std::chrono::minutes(tm.tm_min) + std::chrono::seconds(tm.tm_sec);
+
+    // Get current time in system_clock (local time zone)
+    std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+    std::chrono::time_point<std::chrono::system_clock, std::chrono::seconds> now_rounded = std::chrono::floor<std::chrono::seconds>(now);
+
+    if (target_time <= now_rounded) {
+        return std::chrono::milliseconds(0);
+    }
+
+    return std::chrono::duration_cast<std::chrono::milliseconds>(target_time - now_rounded);
+}
 }
