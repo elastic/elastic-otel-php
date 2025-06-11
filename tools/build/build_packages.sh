@@ -105,7 +105,7 @@ test_package() {
                 php:${PHP_VERSION} sh -c "ls /source/build/packages && ${INSTALL_SMOKE} && ${TEST_LICENSE_FILES} && ${UNINSTALL_SMOKE} && ls -alR /opt/elastic"
         ;;
         "rpm")
-            local INSTALL_PHP="cat /etc/redhat-release && dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-\$(grep -oP '(?<=release )\d+' /etc/redhat-release).noarch.rpm -y && dnf install https://rpms.remirepo.net/enterprise/remi-release-\$(grep -oP '(?<=release )\d+\.\d+' /etc/redhat-release).rpm -y && dnf install --setopt=install_weak_deps=False -y php${PHP_VERSION//./} php${PHP_VERSION//./}-syspaths"
+            local INSTALL_PHP="cat /etc/redhat-release && dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-\$(grep -oP '(?<=release )\d+' /etc/redhat-release).noarch.rpm -y && dnf install https://rpms.remirepo.net/enterprise/remi-release-9.rpm -y && dnf install --setopt=install_weak_deps=False -y php${PHP_VERSION//./} php${PHP_VERSION//./}-syspaths"
             local INSTALL_SMOKE="rpm -ivh /source/build/packages/${PKG_FILENAME} && php /source/packaging/test/smokeTest.php"
             local UNINSTALL_SMOKE="rpm -ve elastic-otel-php && php /source/packaging/test/smokeTestUninstalled.php"
 

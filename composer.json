@@ -26,6 +26,7 @@
         "slim/slim": "*"
     },
     "require-dev": {
+        "google/protobuf": "4.30.2",
         "ext-ctype": "*",
         "ext-curl": "*",
         "ext-mysqli": "*",
