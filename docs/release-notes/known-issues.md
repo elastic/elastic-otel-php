@@ -13,3 +13,4 @@ products:
 
 # Elastic Distribution of OpenTelemetry PHP known issues
 
+No known issues.
