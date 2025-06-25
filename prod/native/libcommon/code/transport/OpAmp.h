@@ -27,6 +27,10 @@
 
 #include <boost/core/noncopyable.hpp>
 #include <boost/uuid.hpp>
+#undef snprintf
+#include <boost/signals2.hpp>
+#undef snprintf
+
 #include <condition_variable>
 #include <memory>
 #include <string>
@@ -43,6 +47,9 @@ namespace opentelemetry::php::transport {
 
 class OpAmp : public elasticapm::php::ForkableInterface, public boost::noncopyable, public std::enable_shared_from_this<OpAmp> {
 public:
+    using configFiles_t = std::unordered_map<std::string, std::string>;
+    using configUpdated_t = boost::signals2::signal<void(configFiles_t const &)>;
+
     OpAmp(std::shared_ptr<elasticapm::php::LoggerInterface> log, std::shared_ptr<elasticapm::php::ConfigurationStorage> config, std::shared_ptr<elasticapm::php::transport::HttpTransportAsyncInterface> transport, std::shared_ptr<opentelemetry::php::ResourceDetector> resourceDetector) : log_(std::move(log)), config_(std::move(config)), transport_(std::move(transport)), resourceDetector_(std::move(resourceDetector)) {
     }
 
@@ -65,9 +72,21 @@ public:
 
     void init();
 
-    std::unordered_map<std::string, std::string> getConfiguration() {
+    configFiles_t getConfiguration() {
         std::lock_guard<std::mutex> lock(configAccessMutex_);
         return configFiles_;
+    }
+
+    boost::signals2::connection addConfigUpdateWatcher(configUpdated_t::slot_function_type watcher) {
+        return configUpdatedWatchers_.connect(std::move(watcher));
+    }
+
+    void removeConfigUpdateWatcher(boost::signals2::connection watcher) {
+        watcher.disconnect();
+    }
+
+    void removeAllConfigUpdateWatchers() {
+        configUpdatedWatchers_.disconnect_all_slots();
     }
 
 protected:
@@ -141,7 +160,9 @@ private:
 
     std::mutex configAccessMutex_;
     std::string currentConfigHash_;
-    std::unordered_map<std::string, std::string> configFiles_;
+    configFiles_t configFiles_;
+    configUpdated_t configUpdatedWatchers_;
+
     std::shared_ptr<opentelemetry::php::ResourceDetector> resourceDetector_;
 };
 

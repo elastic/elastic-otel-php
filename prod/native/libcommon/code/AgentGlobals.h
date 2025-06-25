@@ -24,13 +24,18 @@
 #include <functional>
 #include <memory>
 
-namespace opentelemetry::php {
-class ResourceDetector;
-}
+namespace opentelemetry {
 
-namespace opentelemetry::php::transport {
+namespace php {
+class ResourceDetector;
+namespace config {
+class ElasticDynamicConfigurationAdapter;
+}
+namespace transport {
 class OpAmp;
 }
+} // namespace php
+} // namespace opentelemetry
 
 namespace elasticapm::php {
 
@@ -83,6 +88,7 @@ public:
     std::shared_ptr<PeriodicTaskExecutor> periodicTaskExecutor_;
     std::shared_ptr<transport::HttpTransportAsync<transport::CurlSender, transport::HttpEndpoints> > httpTransportAsync_;
     std::shared_ptr<opentelemetry::php::ResourceDetector> resourceDetector_;
+    std::shared_ptr<opentelemetry::php::config::ElasticDynamicConfigurationAdapter> elasticDynamicConfig_;
     std::shared_ptr<opentelemetry::php::transport::OpAmp> opAmp_;
     std::shared_ptr<SharedMemoryState> sharedMemory_;
     std::shared_ptr<RequestScope> requestScope_;

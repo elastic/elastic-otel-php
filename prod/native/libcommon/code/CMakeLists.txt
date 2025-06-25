@@ -13,6 +13,7 @@ target_link_libraries(${_Target}
     PRIVATE CURL::libcurl
     PRIVATE opamp
     PRIVATE semconv
+    PRIVATE nlohmann_json::nlohmann_json
     )
 
 configure_file("elastic_otel_version.h.in" "${CMAKE_CURRENT_BINARY_DIR}/generated/elastic_otel_version.h")

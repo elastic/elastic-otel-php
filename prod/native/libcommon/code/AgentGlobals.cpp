@@ -35,6 +35,7 @@
 #include "transport/OpAmp.h"
 #include "DependencyAutoLoaderGuard.h"
 #include "LogFeature.h"
+#include "ElasticDynamicConfigurationAdapter.h"
 #include <signal.h>
 
 namespace elasticapm::php {
@@ -61,6 +62,7 @@ AgentGlobals::AgentGlobals(std::shared_ptr<LoggerInterface> logger,
     periodicTaskExecutor_(),
     httpTransportAsync_(std::make_shared<elasticapm::php::transport::HttpTransportAsync<>>(logger_, config_)),
     resourceDetector_(std::make_shared<opentelemetry::php::ResourceDetector>(bridge_)),
+    elasticDynamicConfig_(std::make_shared<opentelemetry::php::config::ElasticDynamicConfigurationAdapter>()),
     opAmp_(std::make_shared<opentelemetry::php::transport::OpAmp>(logger_, config_, httpTransportAsync_, resourceDetector_)),
     sharedMemory_(std::make_shared<elasticapm::php::SharedMemoryState>()),
     requestScope_(std::make_shared<elasticapm::php::RequestScope>(logger_, bridge_, sapi_, sharedMemory_, dependencyAutoLoaderGuard_, inferredSpans_, config_, [hs = hooksStorage_]() { hs->clear(); }, [this]() { return getPeriodicTaskExecutor();}))
@@ -85,6 +87,7 @@ AgentGlobals::AgentGlobals(std::shared_ptr<LoggerInterface> logger,
 AgentGlobals::~AgentGlobals() {
     ELOG_DEBUG(logger_, MODULE, "AgentGlobals shutdown");
     config_->removeAllConfigUpdateWatchers();
+    opAmp_->removeAllConfigUpdateWatchers();
 }
 
 std::shared_ptr<PeriodicTaskExecutor> AgentGlobals::getPeriodicTaskExecutor() {

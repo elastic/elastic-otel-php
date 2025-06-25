@@ -103,6 +103,7 @@ void OpAmp::handleServerToAgent(const char *data, std::size_t size) {
                     ELOG_DEBUG(log_, OPAMP, "config file: '{}' content type: '{}' body: '{}'", item.first, item.second.content_type(), item.second.body());
                     configFiles_[item.first] = item.second.body();
                 }
+                configUpdatedWatchers_(configFiles_);
             }
         }
     }

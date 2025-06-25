@@ -44,7 +44,7 @@ using namespace std::string_literals;
 
 class ConfigurationManager {
 public:
-    using readIniValue_t = std::function<std::optional<std::string>(std::string_view)>;
+    using optionValueProvider_t = std::function<std::optional<std::string>(std::string_view)>;
     struct OptionMetadata  {
         enum type { boolean, string, duration, loglevel, bytes } type;
         size_t offset;
@@ -53,10 +53,9 @@ public:
 
     using optionValue_t = std::variant<std::chrono::milliseconds, LogLevel, bool, std::string, std::size_t, std::nullopt_t>;
 
-    ConfigurationManager(readIniValue_t readIniValue) : readIniValue_(readIniValue) {
+    ConfigurationManager(optionValueProvider_t readIniValue) : readIniValue_(readIniValue) {
         current_.revision = getNextRevision();
     }
-
 
     //TODO class might be used in different threads, right now it is pretty safe as log is attached on globals init (for zts it should be in minit)
     void attachLogger(std::shared_ptr<LoggerInterface> logger) {
@@ -81,6 +80,10 @@ public:
 
     optionValue_t getOptionValue(std::string_view optionName, ConfigurationSnapshot const &snapshot) const;
 
+    void setReadDynamicOptionValue(optionValueProvider_t readDynamicOptionValue) {
+        readDynamicOptionValue_ = readDynamicOptionValue;
+    }
+
 //TODO test
     static std::string accessOptionStringValueByMetadata(OptionMetadata const &metadata, ConfigurationSnapshot const &snapshot);
 
@@ -90,12 +93,18 @@ private:
 
 
 private:
-    readIniValue_t readIniValue_;
+    optionValueProvider_t readIniValue_;
+    optionValueProvider_t readDynamicOptionValue_;
     std::atomic_uint64_t upcomingConfigRevision_ = 0;
     ConfigurationSnapshot current_;
     std::shared_ptr<LoggerInterface> logger_;
 
-    #define BUILD_METADATA(optname, type, secret) { EL_STRINGIFY(optname), {type, offsetof(ConfigurationSnapshot, optname), secret}}
+#define BUILD_METADATA(optname, type, secret)                      \
+    {                                                              \
+        EL_STRINGIFY(optname), {                                   \
+            type, offsetof(ConfigurationSnapshot, optname), secret \
+        }                                                          \
+    }
 
     // clang-format off
     std::map<std::string, OptionMetadata> options_ = {

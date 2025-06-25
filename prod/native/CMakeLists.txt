@@ -107,6 +107,7 @@ find_package(Boost 1.86 REQUIRED CONFIG)
 find_package(GTest 1.15.0 REQUIRED)
 find_package(magic_enum 0.9.6 REQUIRED)
 find_package(protobuf REQUIRED)
+find_package(nlohmann_json REQUIRED)
 
 foreach(_php_version ${_supported_php_versions})
     find_package(php-headers-${_php_version} ${_PROJECT_PROPERTIES_PHP_HEADERS_VERSION} REQUIRED)

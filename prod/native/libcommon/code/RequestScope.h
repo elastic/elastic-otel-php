@@ -60,6 +60,8 @@ public:
             return;
         }
 
+        ELOG_DEBUG(log_, REQUEST, "onRequestInit Config revision: {}", (*config_)->revision);
+
         requestCounter_++;
 
         if (requestCounter_ == 1) {
