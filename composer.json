@@ -26,6 +26,7 @@
         "slim/slim": "*"
     },
     "require-dev": {
+        "dealerdirect/phpcodesniffer-composer-installer": "1.0.0",
         "ext-ctype": "*",
         "ext-curl": "*",
         "ext-mysqli": "*",
