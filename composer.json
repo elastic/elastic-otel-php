@@ -26,6 +26,7 @@
         "slim/slim": "*"
     },
     "require-dev": {
+		"dealerdirect/phpcodesniffer-composer-installer": "1.0.0",
         "google/protobuf": "4.30.2",
         "ext-ctype": "*",
         "ext-curl": "*",
