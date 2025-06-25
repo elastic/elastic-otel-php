@@ -1031,7 +1031,7 @@ class DebugContextTest extends TestCaseBase
         }
         $dbgCtx->add(compact('assertionMsg'));
         self::assertNotNull($assertionMsg);
-        self::assertNotNull($testFuncLine);
+        self::assertNotNull($testFuncLine); // @phpstan-ignore staticMethod.alreadyNarrowedType
         self::assertSame($nonVendorCallsDepth, $actualNonVendorCallDepth);
 
         $addedText = DebugContext::extractAddedTextFromMessage($assertionMsg);
