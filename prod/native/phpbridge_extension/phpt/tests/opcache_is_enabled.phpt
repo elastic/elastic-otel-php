@@ -2,7 +2,6 @@
 Detection of opcache enabled state
 --INI--
 extension=/elastic/phpbridge.so
-zend_extension=opcache.so
 opcache.enable_cli=1
 opcache.optimization_level=-1
 --FILE--
