@@ -77,7 +77,7 @@ final class ListSlice implements Countable, IteratorAggregate, LoggableInterface
     #[Override]
     public function count(): int
     {
-        return $this->length;
+        return $this->length; // @phpstan-ignore return.type
     }
 
     #[Override]
@@ -93,7 +93,7 @@ final class ListSlice implements Countable, IteratorAggregate, LoggableInterface
      */
     public function clone(): self
     {
-        return new self($this->base, $this->offset, $this->length);
+        return new self($this->base, $this->offset, $this->length); // @phpstan-ignore argument.type
     }
 
     /**

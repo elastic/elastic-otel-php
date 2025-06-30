@@ -2,7 +2,6 @@
 Detection of opcache preload feature
 --INI--
 extension=/elastic/phpbridge.so
-zend_extension=opcache.so
 opcache.enable=1
 opcache.enable_cli=1
 opcache.optimization_level=-1

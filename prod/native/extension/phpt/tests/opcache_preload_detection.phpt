@@ -7,7 +7,6 @@ ELASTIC_OTEL_ENABLED=true
 extension=/elastic/elastic_otel_php.so
 elastic_otel.bootstrap_php_part_file={PWD}/includes/bootstrap_mock.inc
 elastic_otel.enabled = 1
-zend_extension=opcache.so
 opcache.enable=1
 opcache.enable_cli=1
 opcache.optimization_level=-1

@@ -1,0 +1,5 @@
+toc:
+  - file: index.md
+  - hidden: known-issues.md
+  - hidden: breaking-changes.md
+  - hidden: deprecations.md
