@@ -259,5 +259,113 @@ TEST_F(CommonUtilsTest, InvalidUtf8Strings) {
 TEST_F(CommonUtilsTest, EmptyString) {
     EXPECT_TRUE(isUtf8(""));
 }
+
+TEST_F(CommonUtilsTest, PercentDecode_BasicDecoding) {
+    EXPECT_EQ(percentDecode("Hello%20World"), "Hello World");
+    EXPECT_EQ(percentDecode("%41%42%43"), "ABC");
+    EXPECT_EQ(percentDecode("SimpleTest"), "SimpleTest");
+    EXPECT_EQ(percentDecode("123%25value"), "123%value");
+    EXPECT_EQ(percentDecode("%7Bkey%7D"), "{key}");
+}
+
+TEST_F(CommonUtilsTest, PercentDecode_MixedCharacters) {
+    EXPECT_EQ(percentDecode("Kot%20Rademenes%20Hator"), "Kot Rademenes Hator");
+    EXPECT_EQ(percentDecode("a%2Bb%3Dc"), "a+b=c");
+    EXPECT_EQ(percentDecode("%3Cxml%3E"), "<xml>");
+}
+
+TEST_F(CommonUtilsTest, PercentDecode_IncompleteOrInvalidEncoding) {
+    EXPECT_EQ(percentDecode("%"), "%");
+    EXPECT_EQ(percentDecode("%2"), "%2");
+    EXPECT_EQ(percentDecode("%GG"), "%GG"); // G is out of hex range
+    EXPECT_EQ(percentDecode("data%Z1end"), "data%Z1end");
+}
+
+TEST_F(CommonUtilsTest, PercentDecode_EmptyInput) {
+    EXPECT_EQ(percentDecode(""), "");
+}
+
+TEST_F(CommonUtilsTest, parseUrlEncodedKeyValueString_ParsesSinglePair) {
+    auto result = parseUrlEncodedKeyValueString("key=value");
+    ASSERT_EQ(result.size(), 1);
+    EXPECT_EQ(result["key"], "value");
+}
+
+TEST_F(CommonUtilsTest, parseUrlEncodedKeyValueString_ParsesMultiplePairs) {
+    auto result = parseUrlEncodedKeyValueString("a=1,b=2,c=3");
+    ASSERT_EQ(result.size(), 3);
+    EXPECT_EQ(result["a"], "1");
+    EXPECT_EQ(result["b"], "2");
+    EXPECT_EQ(result["c"], "3");
+}
+
+TEST_F(CommonUtilsTest, parseUrlEncodedKeyValueString_HandlesPercentDecoding) {
+    auto result = parseUrlEncodedKeyValueString("name=John%20Doe,city=New%20York");
+    ASSERT_EQ(result.size(), 2);
+    EXPECT_EQ(result["name"], "John Doe");
+    EXPECT_EQ(result["city"], "New York");
+}
+
+TEST_F(CommonUtilsTest, parseUrlEncodedKeyValueString_IgnoresMissingEquals) {
+    auto result = parseUrlEncodedKeyValueString("valid=ok,invalid,noequals=here");
+    ASSERT_EQ(result.size(), 2);
+    EXPECT_EQ(result["valid"], "ok");
+    EXPECT_EQ(result["noequals"], "here");
+    EXPECT_EQ(result.count("invalid"), 0);
+}
+
+TEST_F(CommonUtilsTest, parseUrlEncodedKeyValueString_HandlesEmptyString) {
+    auto result = parseUrlEncodedKeyValueString("");
+    EXPECT_TRUE(result.empty());
+}
+
+TEST_F(CommonUtilsTest, parseUrlEncodedKeyValueString_HandlesTrailingComma) {
+    auto result = parseUrlEncodedKeyValueString("x=1,y=2,");
+    ASSERT_EQ(result.size(), 2);
+    EXPECT_EQ(result["x"], "1");
+    EXPECT_EQ(result["y"], "2");
+}
+
+TEST_F(CommonUtilsTest, parseUrlEncodedKeyValueString_AllowsEmptyValue) {
+    auto result = parseUrlEncodedKeyValueString("key=");
+    ASSERT_EQ(result.size(), 1);
+    EXPECT_EQ(result["key"], "");
+}
+
+TEST_F(CommonUtilsTest, parseUrlEncodedKeyValueString_ValueWithEqualSigns) {
+    auto result = parseUrlEncodedKeyValueString("token=abc%3D123%3Dxyz");
+    ASSERT_EQ(result.size(), 1);
+    EXPECT_EQ(result["token"], "abc=123=xyz");
+}
+
+TEST_F(CommonUtilsTest, parseRetryAfter_parsesDeltaSeconds) {
+    std::optional<std::chrono::milliseconds> result = parseRetryAfter("120");
+    ASSERT_TRUE(result.has_value());
+    EXPECT_EQ(result.value(), std::chrono::seconds(120));
+}
+
+TEST_F(CommonUtilsTest, parseRetryAfter_rejectsInvalidString) {
+    std::optional<std::chrono::milliseconds> result = parseRetryAfter("not-a-number");
+    EXPECT_FALSE(result.has_value());
+}
+
+TEST_F(CommonUtilsTest, parseRetryAfter_parsesFutureHttpDate) {
+    // setting date to future, now+60s
+    std::time_t now = std::time(nullptr) + 60;
+    std::tm *gmt = std::gmtime(&now);
+    char buffer[64];
+    std::strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", gmt);
+
+    std::optional<std::chrono::milliseconds> result = parseRetryAfter(buffer);
+    ASSERT_TRUE(result.has_value());
+    EXPECT_GE(result.value(), std::chrono::milliseconds(50000));
+    EXPECT_LE(result.value(), std::chrono::milliseconds(61000));
+}
+
+TEST_F(CommonUtilsTest, parseRetryAfter_httpDateInThePastReturnsZero) {
+    std::optional<std::chrono::milliseconds> result = parseRetryAfter("Wed, 01 Jan 2000 00:00:00 GMT");
+    ASSERT_TRUE(result.has_value());
+    EXPECT_EQ(result.value(), std::chrono::milliseconds(0));
+}
 }
 

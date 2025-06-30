@@ -39,6 +39,11 @@ public:
         value_ = zend_string_init(data.data(), data.length(), 0);
     }
 
+    // WARNING: doesn't add reference
+    AutoZendString(zend_string *value) {
+        value_ = value;
+    }
+
     ~AutoZendString() {
         if (!value_) {
             return;
