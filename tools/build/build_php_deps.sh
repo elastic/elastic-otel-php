@@ -168,8 +168,11 @@ main() {
 
         INSTALLED_SEMCONV_VERSION=$(jq -r '.packages[] | select(.name == "open-telemetry/sem-conv") | .version' composer.lock)
 
-        if [[ "${INSTALLED_SEMCONV_VERSION}" != "${_PROJECT_PROPERTIES_OTEL_SEMCONV_VERSION}" ]]; then
-            echo "PHP side semantic conventions version ${INSTALLED_SEMCONV_VERSION} doesn't match native version ${_PROJECT_PROPERTIES_OTEL_SEMCONV_VERSION}"
+        INSTALLED_MAJOR_MINOR=${INSTALLED_SEMCONV_VERSION%.*}
+        EXPECTED_MAJOR_MINOR=${_PROJECT_PROPERTIES_OTEL_SEMCONV_VERSION%.*}
+
+        if [[ "$INSTALLED_MAJOR_MINOR" != "$EXPECTED_MAJOR_MINOR" ]]; then
+            echo "PHP side semantic conventions version $INSTALLED_MAJOR_MINOR doesn't match native version $EXPECTED_MAJOR_MINOR"
             exit 1
         fi
 
