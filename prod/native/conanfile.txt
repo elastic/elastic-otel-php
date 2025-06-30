@@ -9,6 +9,7 @@ php-headers-81/2.0
 php-headers-82/2.0
 php-headers-83/2.0
 php-headers-84/2.0
+nlohmann_json/3.12.0
 
 [layout]
 cmake_layout

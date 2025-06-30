@@ -44,7 +44,8 @@
 #include "PhpBridgeInterface.h"
 #include "RequestScope.h"
 #include "SharedMemoryState.h"
-
+#include "transport/OpAmp.h"
+#include "ElasticDynamicConfigurationAdapter.h"
 
 ZEND_DECLARE_MODULE_GLOBALS( elastic_otel )
 
@@ -114,12 +115,17 @@ static PHP_GINIT_FUNCTION(elastic_otel) {
 
     try {
         elastic_otel_globals->globals = new elasticapm::php::AgentGlobals(logger, std::move(logSinkStdErr), std::move(logSinkSysLog), std::move(logSinkFile), std::move(phpBridge), std::move(hooksStorage), std::move(inferredSpans), [](elasticapm::php::ConfigurationSnapshot &cfg) { return configManager.updateIfChanged(cfg); });
+
+        elastic_otel_globals->globals->opAmp_->addConfigUpdateWatcher([elasticDynamicCfg = elastic_otel_globals->globals->elasticDynamicConfig_](auto const &cfgFiles) {
+            elasticDynamicCfg->update(cfgFiles);
+            configManager.setReadDynamicOptionValue([dyn = elasticDynamicCfg](std::string_view optionName) -> std::optional<std::string> { return dyn->getOption(std::string(optionName)); }); // TODO should be done once on init, implement prioritized list of config data providers in CfgMngr
+            configManager.update();
+        });
+
     } catch (std::exception const &e) {
         ELOGF_CRITICAL(logger, MODULE, "Unable to allocate AgentGlobals. '%s'", e.what());
     }
 
-    // ZVAL_UNDEF(&elastic_otel_globals->lastException);
-    // new (&elastic_otel_globals->lastErrorData) std::unique_ptr<elasticapm::php::PhpErrorData>;
     elastic_otel_globals->captureErrors = false;
 }
 
@@ -128,12 +134,6 @@ PHP_GSHUTDOWN_FUNCTION(elastic_otel) {
         ELOGF_DEBUG(elastic_otel_globals->globals->logger_, MODULE, "%s: GSHUTDOWN called; parent PID: %d", __FUNCTION__, static_cast<int>(elasticapm::osutils::getParentProcessId()));
         delete elastic_otel_globals->globals;
     }
-
-    // if (elastic_otel_globals->lastErrorData) {
-    //     // ELASTIC_OTEL_LOG_DIRECT_WARNING( "%s: still holding error", __FUNCTION__);
-    //     // we need to relese any dangling php error data beacause it is already freed (it was allocated in request pool)
-    //     elastic_otel_globals->lastErrorData.release();
-    // }
 }
 
 zend_module_entry elastic_otel_fake = {STANDARD_MODULE_HEADER,

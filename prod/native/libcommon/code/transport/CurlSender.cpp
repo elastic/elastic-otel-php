@@ -18,10 +18,13 @@
  */
 
 #include "CurlSender.h"
+#include <functional>
 
 using namespace std::literals;
 
 namespace elasticapm::php::transport {
+
+using headersCallback_t = std::function<void(std::string_view)>;
 
 static int CurlDebugFunc(CURL *handle, curl_infotype type, char *data, size_t size, void *logger) {
     auto &log = *static_cast<std::shared_ptr<LoggerInterface> *>(logger);
@@ -33,7 +36,22 @@ static int CurlDebugFunc(CURL *handle, curl_infotype type, char *data, size_t si
 }
 
 static size_t CurlWriteFunc(char *data, size_t size, size_t nmemb, void *clientp) {
+    if (clientp != nullptr) {
+        std::string *buffer = static_cast<std::string *>(clientp);
+        buffer->append(data, size * nmemb);
+    }
     return size * nmemb;
+}
+
+static size_t CurlHeaderFunc(char *data, size_t size, size_t nItems, void *headersCallback) {
+    if (headersCallback == nullptr) {
+        return size * nItems;
+    }
+
+    std::string_view header(data, size * nItems - 2); // remove \r\n
+    (*static_cast<headersCallback_t *>(headersCallback))(header);
+
+    return size * nItems;
 }
 
 CurlSender::CurlSender(std::shared_ptr<LoggerInterface> logger, std::chrono::milliseconds timeout, bool verifyCert) : log_(std::move(logger)) {
@@ -54,6 +72,9 @@ CurlSender::CurlSender(std::shared_ptr<LoggerInterface> logger, std::chrono::mil
     curl_easy_setopt(handle_, CURLOPT_FOLLOWLOCATION, 1L);
     curl_easy_setopt(handle_, CURLOPT_FORBID_REUSE, 0L);
     curl_easy_setopt(handle_, CURLOPT_WRITEFUNCTION, CurlWriteFunc);
+    curl_easy_setopt(handle_, CURLOPT_WRITEDATA, nullptr);
+    curl_easy_setopt(handle_, CURLOPT_HEADERFUNCTION, CurlHeaderFunc);
+    curl_easy_setopt(handle_, CURLOPT_HEADERDATA, nullptr);
 
     if (log_ && log_->doesMeetsLevelCondition(LogLevel::logLevel_trace)) {
         curl_easy_setopt(handle_, CURLOPT_DEBUGFUNCTION, CurlDebugFunc);
@@ -62,13 +83,25 @@ CurlSender::CurlSender(std::shared_ptr<LoggerInterface> logger, std::chrono::mil
     }
 }
 
-int16_t CurlSender::sendPayload(std::string const &endpointUrl, struct curl_slist *headers, std::vector<std::byte> const &payload) const {
+int16_t CurlSender::sendPayload(std::string const &endpointUrl, struct curl_slist *headers, std::vector<std::byte> const &payload, std::function<void(std::string_view)> headerCallback, std::string *responseBuffer) const {
     curl_easy_setopt(handle_, CURLOPT_URL, endpointUrl.c_str());
     curl_easy_setopt(handle_, CURLOPT_HTTPHEADER, headers);
 
     curl_easy_setopt(handle_, CURLOPT_POSTFIELDS, payload.data());
     curl_easy_setopt(handle_, CURLOPT_POSTFIELDSIZE, payload.size());
     curl_easy_setopt(handle_, CURLOPT_POST, 1L);
+
+    if (responseBuffer) {
+        curl_easy_setopt(handle_, CURLOPT_WRITEDATA, responseBuffer);
+    } else {
+        curl_easy_setopt(handle_, CURLOPT_WRITEDATA, nullptr);
+    }
+
+    if (!headerCallback) {
+        curl_easy_setopt(handle_, CURLOPT_HEADERDATA, nullptr);
+    } else {
+        curl_easy_setopt(handle_, CURLOPT_HEADERDATA, &headerCallback);
+    }
 
     CURLcode res = curl_easy_perform(handle_);
     if (res != CURLE_OK) {

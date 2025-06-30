@@ -94,6 +94,7 @@ ConfigurationManager::optionValue_t ConfigurationManager::getOptionValue(std::st
 void ConfigurationManager::update() {
     ConfigurationSnapshot newConfig;
     newConfig.revision = getNextRevision();
+    ELOG_DEBUG(logger_, CONFIG, "ConfigurationManager::update new revision: {}", newConfig.revision);
 
     for (auto const &entry : options_) {
         auto optionVal = fetchStringValue(entry.first);
@@ -141,6 +142,13 @@ void ConfigurationManager::update() {
 }
 
 std::optional<std::string> ConfigurationManager::fetchStringValue(std::string_view name) {
+    if (readDynamicOptionValue_) {
+        auto dynamicValue = readDynamicOptionValue_(name);
+        if (dynamicValue.has_value()) {
+            return dynamicValue;
+        }
+    }
+
     auto iniName = utils::getIniName(name);
     auto value = readIniValue_(iniName);
     if (value.has_value()) {

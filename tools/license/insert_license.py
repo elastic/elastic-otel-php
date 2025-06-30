@@ -46,7 +46,6 @@ def find_php_tag(lines):
             return i
     return -1
 
-
 def replace_header(content, php_file):
     lines = content.splitlines(True)
     header_end_index = find_header_end(lines)
@@ -54,14 +53,11 @@ def replace_header(content, php_file):
 
     if header_start_index != -1:
         content = "".join(lines[0:header_start_index])
-        # if len(content) > 0:
-        #     content += "\n"
         content += new_header
 
     if header_end_index != -1:
         content += "".join(lines[header_end_index + 1:])
     return content
-
 
 def file_contains_license(filepath):
     with open(filepath, 'r') as file:
@@ -83,7 +79,6 @@ def insert_license(content, php_file):
     if php_file:
         lines = content.splitlines()
         tag_start = find_php_tag(lines)
-        print(tag_start)
         content = "\n".join(lines[0:tag_start + 1])
         content += "\n\n" + new_header
         content += "\n".join(lines[tag_start + 1:])
@@ -91,9 +86,18 @@ def insert_license(content, php_file):
     else:
         return new_header + "\n" + content
 
+def add_header_to_files(directory, extensions, exclude_dirs):
+    exclude_dirs = [os.path.abspath(path) for path in exclude_dirs]
+    for root, dirs, files in os.walk(directory):
+        abs_root = os.path.abspath(root)
 
-def add_header_to_files(directory, extensions):
-    for root, _, files in os.walk(directory):
+        # Skip excluded dirs
+        if any(abs_root.startswith(excl) for excl in exclude_dirs):
+            continue
+
+        # Modify dirs in-place to prevent os.walk from recursing into them
+        dirs[:] = [d for d in dirs if not os.path.abspath(os.path.join(root, d)).startswith(tuple(exclude_dirs))]
+
         for filename in files:
             if any(filename.endswith("." + ext) for ext in extensions):
                 filepath = os.path.join(root, filename)
@@ -110,11 +114,11 @@ def add_header_to_files(directory, extensions):
                 with open(filepath, 'w') as file:
                     file.write(content)
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Add or replace header in files.')
     parser.add_argument('directory', type=str, help='The directory to process.')
+    parser.add_argument('--exclude', type=str, action='append', default=[], help='Directory to exclude. Can be specified multiple times.')
     parser.add_argument('extensions', type=str, nargs='+', help='List of file extensions to process, e.g., cpp h hpp')
 
     args = parser.parse_args()
-    add_header_to_files(args.directory, args.extensions)
+    add_header_to_files(args.directory, args.extensions, args.exclude)
