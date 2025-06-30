@@ -80,6 +80,10 @@ public:
         return retryDelay_;
     }
 
+    void setRetryDelay(std::chrono::milliseconds retryDelay) {
+        retryDelay_ = retryDelay;
+    }
+
 private:
     void fillCurlHeaders(std::string_view contentType, enpointHeaders_t const &headers) {
         if (!contentType.empty()) {

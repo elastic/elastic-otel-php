@@ -13,9 +13,13 @@ read_properties() {
         key=$(echo $key | sed 's/^[ \t]*//;s/[ \t]*$//')
         value=$(echo $value | sed 's/^[ \t]*//;s/[ \t]*$//')
 
+        if [[ -z "$key" || "$key" =~ ^# ]]; then
+            continue
+        fi
+
         if [[ -n "$key" && -n "$value" ]]; then
             local var_name="${prefix}_$(echo $key | tr '[:lower:]' '[:upper:]')"
             export "$var_name"="$value"
         fi
-    done < "$file"
+    done <"$file"
 }

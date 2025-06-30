@@ -25,6 +25,7 @@
 #include "LogLevel.h"
 
 #include <chrono>
+#include <map>
 #include <memory>
 #include <optional>
 #include <regex>
@@ -83,4 +84,8 @@ std::optional<std::string> getConnectionDetailsFromURL(std::string const &url);
 std::unordered_map<elasticapm::php::LogFeature, LogLevel> parseLogFeatures(std::shared_ptr<elasticapm::php::LoggerInterface> logger, std::string_view logFeatures);
 
 bool isUtf8(std::string_view input);
+
+std::string percentDecode(std::string_view input);
+std::map<std::string, std::string> parseUrlEncodedKeyValueString(std::string_view input);
+std::optional<std::chrono::milliseconds> parseRetryAfter(std::string_view value);
 }

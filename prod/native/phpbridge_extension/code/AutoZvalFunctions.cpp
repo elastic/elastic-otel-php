@@ -223,6 +223,28 @@ PHP_METHOD(AutoZval, arrayAddNextWithRef) {
     RETURN_ZVAL(array, 1, 0);
 }
 
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_arrayAddAssocWithRef, 0, 3, IS_ARRAY, 0)
+ZEND_ARG_ARRAY_INFO(0, array, 0)
+ZEND_ARG_TYPE_INFO(0, key, IS_STRING, 0)
+ZEND_ARG_INFO(0, value)
+ZEND_END_ARG_INFO()
+PHP_METHOD(AutoZval, arrayAddAssocWithRef) {
+    zval *array;
+    zend_string *keyzs;
+    zval *value;
+    ZEND_PARSE_PARAMETERS_START(3, 3)
+    Z_PARAM_ARRAY(array)
+    Z_PARAM_STR(keyzs)
+    Z_PARAM_ZVAL(value)
+    ZEND_PARSE_PARAMETERS_END();
+
+    std::string_view key({ZSTR_VAL(keyzs), ZSTR_LEN(keyzs)});
+
+    elasticapm::php::AutoZval az(array);
+    az.arrayAddAssocWithRef(key, value);
+    RETURN_ZVAL(array, 1, 0);
+}
+
 using RecursiveArrayVisitor_t = std::function<void(elasticapm::php::AutoZval const &array, std::function<void(elasticapm::php::AutoZval const &)> const &processElement)>;
 
 void iteratePrintAutoZval(elasticapm::php::AutoZval const &val, RecursiveArrayVisitor_t const &arrayVisitor) {
@@ -331,6 +353,7 @@ static const zend_function_entry autozval_methods[] = {
     PHP_ME(AutoZval, setDouble, arginfo_setDouble, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
     PHP_ME(AutoZval, arrayInit, arginfo_arrayInit, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
     PHP_ME(AutoZval, arrayAddNextWithRef, arginfo_arrayAddNextWithRef, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
+    PHP_ME(AutoZval, arrayAddAssocWithRef, arginfo_arrayAddNextWithRef, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
     PHP_ME(AutoZval, iterateArray, arginfo_iterateArray, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
     PHP_ME(AutoZval, iterateKeyValueArray, arginfo_iterateKeyValueArray, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
     PHP_FE_END

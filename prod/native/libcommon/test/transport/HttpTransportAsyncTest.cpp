@@ -34,7 +34,7 @@ public:
     CurlSenderMock(std::shared_ptr<LoggerInterface> logger, std::chrono::milliseconds timeout, bool verifyCert) {
     }
 
-    MOCK_METHOD(int16_t, sendPayload, (std::string const &endpointUrl, struct curl_slist *headers, std::vector<std::byte> const &payload), (const));
+    MOCK_METHOD(int16_t, sendPayload, (std::string const &endpointUrl, struct curl_slist *headers, std::vector<std::byte> const &payload, std::function<void(std::string_view)> headerCallback, std::string *responseBuffer), (const));
 };
 
 class HttpEndpointsMock : public boost::noncopyable {
@@ -46,6 +46,7 @@ public:
 
     MOCK_METHOD(bool, add, (std::string endpointUrl, size_t endpointHash, bool verifyServerCertificate, std::string contentType, HttpEndpoint::enpointHeaders_t const &endpointHeaders, std::chrono::milliseconds timeout, std::size_t maxRetries, std::chrono::milliseconds retryDelay));
     MOCK_METHOD((std::tuple<std::string, curl_slist *, HttpEndpoint::connectionId_t, CurlSenderMock &, std::size_t, std::chrono::milliseconds>), getConnection, (std::size_t endpointHash));
+    MOCK_METHOD(void, updateRetryDelay, (size_t endpointHash, std::chrono::milliseconds retryDelay));
 };
 
 class TestableHttpTransportAsync : public HttpTransportAsync<::testing::StrictMock<CurlSenderMock>, ::testing::StrictMock<HttpEndpointsMock>> {
@@ -60,6 +61,7 @@ private:
     FRIEND_TEST(HttpTransportAsyncTest, enqueue);
     FRIEND_TEST(HttpTransportAsyncTest, enqueueOverLimit);
     FRIEND_TEST(HttpTransportAsyncTest, enqueueAndSend);
+    FRIEND_TEST(HttpTransportAsyncTest, enqueueAndSendWithResponseCallback);
     FRIEND_TEST(HttpTransportAsyncTest, enqueueAndSendRetry);
     FRIEND_TEST(HttpTransportAsyncTest, enqueueAndSendRetryUntilMaxRetriesAndDropPayload);
     FRIEND_TEST(HttpTransportAsyncTest, enqueueAndSendNoRetryOnClientError);
@@ -141,10 +143,43 @@ TEST_F(HttpTransportAsyncTest, enqueueAndSend) {
         std::unique_lock<std::mutex> lock(mutex);
 
         EXPECT_CALL(transport_.endpoints_, getConnection(1234)).Times(1).WillRepeatedly(::testing::Return(::testing::ByMove(std::make_tuple("http://local/traces"s, static_cast<curl_slist *>(nullptr), HttpEndpoint::connectionId_t(900), std::ref(sender), static_cast<std::size_t>(2), 100ms))));
-        EXPECT_CALL(sender, sendPayload("http://local/traces", ::testing::_, ::testing::_)).Times(::testing::AnyNumber()).WillRepeatedly(::testing::Return(200));
+        EXPECT_CALL(sender, sendPayload("http://local/traces", ::testing::_, ::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber()).WillRepeatedly(::testing::Return(200));
         transport_.send(lock);
     }
 
+    ASSERT_EQ(transport_.payloadsToSend_.size(), 0ul);
+}
+
+TEST_F(HttpTransportAsyncTest, enqueueAndSendWithResponseCallback) {
+    HttpEndpoint::enpointHeaders_t headers;
+    TestableHttpTransportAsync transport_{log_, config_};
+
+    std::vector<std::byte> data(1024);
+
+    bool callbackCalled = false;
+
+    auto callback = [&callbackCalled](int16_t responseCode, std::span<std::byte> data) {
+        callbackCalled = true;
+        ASSERT_EQ(responseCode, 200);
+        ASSERT_EQ(data.size(), 0ul);
+    };
+
+    ASSERT_EQ(transport_.payloadsToSend_.size(), 0ul);
+    transport_.enqueue(1234, {data.begin(), data.end()}, callback);
+    ASSERT_EQ(transport_.payloadsToSend_.size(), 1ul);
+
+    CurlSenderMock sender(log_, 100ms, false);
+
+    {
+        std::mutex mutex;
+        std::unique_lock<std::mutex> lock(mutex);
+
+        EXPECT_CALL(transport_.endpoints_, getConnection(1234)).Times(1).WillRepeatedly(::testing::Return(::testing::ByMove(std::make_tuple("http://local/traces"s, static_cast<curl_slist *>(nullptr), HttpEndpoint::connectionId_t(900), std::ref(sender), static_cast<std::size_t>(2), 100ms))));
+        EXPECT_CALL(sender, sendPayload("http://local/traces", ::testing::_, ::testing::_, ::testing::_, ::testing::_)).Times(::testing::AnyNumber()).WillRepeatedly(::testing::Return(200));
+        transport_.send(lock);
+    }
+
+    ASSERT_TRUE(callbackCalled);
     ASSERT_EQ(transport_.payloadsToSend_.size(), 0ul);
 }
 
@@ -166,8 +201,8 @@ TEST_F(HttpTransportAsyncTest, enqueueAndSendRetry) {
         EXPECT_CALL(transport_.endpoints_, getConnection(1234)).WillRepeatedly(::testing::Return(::testing::ByMove(std::make_tuple("http://local/traces"s, static_cast<curl_slist *>(nullptr), HttpEndpoint::connectionId_t(900), std::ref(sender), static_cast<std::size_t>(2), 100ms))));
 
         ::testing::InSequence s;
-        EXPECT_CALL(sender, sendPayload("http://local/traces", ::testing::_, ::testing::_)).Times(1).WillOnce(::testing::Return(429));
-        EXPECT_CALL(sender, sendPayload("http://local/traces", ::testing::_, ::testing::_)).Times(1).WillOnce(::testing::Return(200));
+        EXPECT_CALL(sender, sendPayload("http://local/traces", ::testing::_, ::testing::_, ::testing::_, ::testing::_)).Times(1).WillOnce(::testing::Return(429));
+        EXPECT_CALL(sender, sendPayload("http://local/traces", ::testing::_, ::testing::_, ::testing::_, ::testing::_)).Times(1).WillOnce(::testing::Return(200));
 
         transport_.send(lock);
     }
@@ -193,7 +228,7 @@ TEST_F(HttpTransportAsyncTest, enqueueAndSendRetryUntilMaxRetriesAndDropPayload)
         std::unique_lock<std::mutex> lock(mutex);
 
         EXPECT_CALL(transport_.endpoints_, getConnection(1234)).WillRepeatedly(::testing::Return(::testing::ByMove(std::make_tuple("http://local/traces"s, static_cast<curl_slist *>(nullptr), HttpEndpoint::connectionId_t(900), std::ref(sender), static_cast<std::size_t>(maxReties), 100ms))));
-        EXPECT_CALL(sender, sendPayload("http://local/traces", ::testing::_, ::testing::_)).Times(maxReties).WillRepeatedly(::testing::Return(429));
+        EXPECT_CALL(sender, sendPayload("http://local/traces", ::testing::_, ::testing::_, ::testing::_, ::testing::_)).Times(maxReties).WillRepeatedly(::testing::Return(429));
         transport_.send(lock);
     }
 
@@ -212,7 +247,7 @@ TEST_F(HttpTransportAsyncTest, enqueueAndSendNoRetryOnClientError) {
 
     {
         EXPECT_CALL(transport.endpoints_, getConnection(1234)).WillRepeatedly(::testing::Return(::testing::ByMove(std::make_tuple("http://local/traces"s, static_cast<curl_slist *>(nullptr), HttpEndpoint::connectionId_t(900), std::ref(sender), static_cast<std::size_t>(3), 100ms))));
-        EXPECT_CALL(sender, sendPayload("http://local/traces", ::testing::_, ::testing::_)).Times(1).WillOnce(::testing::Return(400));
+        EXPECT_CALL(sender, sendPayload("http://local/traces", ::testing::_, ::testing::_, ::testing::_, ::testing::_)).Times(1).WillOnce(::testing::Return(400));
 
         std::mutex mutex;
         std::unique_lock<std::mutex> lock(mutex);
@@ -239,7 +274,7 @@ TEST_F(HttpTransportAsyncTest, destructorSendTimeout) {
 
         EXPECT_CALL(transport.endpoints_, getConnection(1234)).WillRepeatedly(::testing::Return(::testing::ByMove(std::make_tuple("http://local/traces"s, static_cast<curl_slist *>(nullptr), HttpEndpoint::connectionId_t(900), std::ref(sender), static_cast<std::size_t>(3), 100ms))));
 
-        EXPECT_CALL(sender, sendPayload("http://local/traces", ::testing::_, ::testing::_)).Times(::testing::Exactly(1)).WillRepeatedly(::testing::DoAll(::testing::Invoke([]() { std::this_thread::sleep_for(10ms); }), ::testing::Return(200)));
+        EXPECT_CALL(sender, sendPayload("http://local/traces", ::testing::_, ::testing::_, ::testing::_, ::testing::_)).Times(::testing::Exactly(1)).WillRepeatedly(::testing::DoAll(::testing::Invoke([]() { std::this_thread::sleep_for(10ms); }), ::testing::Return(200)));
 
         // We're enqueuing 4 payloads, but sending will take at least 10ms. The destructor timeout is set for 5ms, so only the first payload will be sent. Times(::testing::Exactly(1)) will do the job and will fail if it tries to send any further payloads.
         std::vector<std::byte> data(1024);
