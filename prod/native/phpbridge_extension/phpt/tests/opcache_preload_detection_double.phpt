@@ -6,7 +6,6 @@ Detection of double detection of opcache preload - in case we will not be able t
 Expected to fail, preload should be detected only once
 --INI--
 extension=/elastic/phpbridge.so
-zend_extension=opcache.so
 opcache.enable=1
 opcache.enable_cli=1
 opcache.optimization_level=-1
