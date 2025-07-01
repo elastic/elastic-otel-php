@@ -115,6 +115,15 @@ class SpanExpectationsBuilder
         return $this->addAttribute(TraceAttributes::CODE_FUNCTION_NAME, $methodName);
     }
 
+    /**
+     * @return $this
+     */
+    public function nameAndCodeFunctionUsingClassMethod(string $className, string $methodName, ?bool $isStaticMethod = null): self
+    {
+        $this->nameUsingClassMethod($className, $methodName, $isStaticMethod);
+        return $this->addAttribute(TraceAttributes::CODE_FUNCTION_NAME, $className . self::CLASS_AND_METHOD_SEPARATOR . $methodName);
+    }
+
     private static function buildNameFromClassMethod(?string $classicName, ?string $methodName, /** @noinspection PhpUnusedParameterInspection */ ?bool $isStaticMethod = null): ?string
     {
         if ($methodName === null) {

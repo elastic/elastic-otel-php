@@ -9,7 +9,6 @@ ELASTIC_OTEL_LOG_LEVEL_STDERR=DEBUG
 ELASTIC_OTEL_ENABLED=true
 --INI--
 elastic_otel.enabled = 1
-zend_extension=opcache.so
 opcache.enable=1
 opcache.enable_cli=1
 opcache.optimization_level=-1
