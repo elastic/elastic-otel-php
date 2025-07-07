@@ -87,8 +87,7 @@ final class RemoteConfigHandler
                 self::logDebug(
                     'Encountered an option that is not supported as remote configuration option'
                     . '; option name: ' . $remoteOptName
-                    . '; value type: ' . get_debug_type($remoteOptVal)
-                    . '; value: ' . $remoteOptVal,
+                    . '; value type: '  . get_debug_type($remoteOptVal),
                     __LINE__,
                     __FUNCTION__
                 );
