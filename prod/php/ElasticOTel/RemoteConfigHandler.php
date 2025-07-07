@@ -27,6 +27,8 @@ namespace Elastic\OTel;
 
 use Elastic\OTel\Util\ArrayUtil;
 use Elastic\OTel\Util\StaticClassTrait;
+use OpenTelemetry\SDK\Common\Configuration\Configuration as OTelSdkConfiguration;
+use OpenTelemetry\SDK\Common\Configuration\Variables as OTelSdkConfigurationVariables;
 
 /**
  * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
@@ -76,6 +78,20 @@ final class RemoteConfigHandler
         self::parseAndApply($remoteConfigContent);
     }
 
+    private static function checkRemoteConfigIsCompatibleWithLocal(): bool
+    {
+        if (!OTelSdkConfiguration::has(OTelSdkConfigurationVariables::OTEL_EXPERIMENTAL_CONFIG_FILE)) {
+            return true;
+        }
+
+        self::logError(
+              'Remote/Central configuration (AKA OpAMP) is not compatible with ' . OTelSdkConfigurationVariables::OTEL_EXPERIMENTAL_CONFIG_FILE . ' OpenTelemetry SDK option',
+              __LINE__
+            , __FUNCTION__
+        );
+        return false;
+    }
+
     private static function parseAndApply(string $remoteConfigContent): void
     {
         if (($remoteOptNameToVal = self::decodeRemoteConfig($remoteConfigContent)) === null) {
@@ -93,12 +109,20 @@ final class RemoteConfigHandler
                 );
                 continue;
             }
+
             if (!is_scalar($remoteOptVal)) {
                 self::logError('Remote config value is not a scalar; remoteOptName: ' . $remoteOptName . '; value type: ' . get_debug_type($remoteOptVal), __LINE__, __FUNCTION__);
                 continue;
             }
-            if (!putenv($envVarName . '=' . $remoteOptVal)) {
-                self::logDebug('putenv returned false; env var: name: ' . $envVarName . '; value: ' . $remoteOptVal, __LINE__, __FUNCTION__);
+
+            if (!self::checkRemoteConfigIsCompatibleWithLocal()) {
+                continue;
+            }
+
+            if (putenv($envVarName . '=' . $remoteOptVal)) {
+                self::logDebug('Successfully set environment variable; env var: name: ' . $envVarName . '; value: ' . $remoteOptVal . '; option name: ' . $remoteOptName, __LINE__, __FUNCTION__);
+            } else {
+                self::logDebug('putenv returned false; env var: name: ' . $envVarName . '; value: ' . $remoteOptVal . '; option name: ' . $remoteOptName, __LINE__, __FUNCTION__);
             }
         }
     }
@@ -133,7 +157,7 @@ final class RemoteConfigHandler
     /**
      * @return ?array<array-key, mixed>
      */
-    public static function decodeRemoteConfig(string $remoteConfigContent): ?array
+    private static function decodeRemoteConfig(string $remoteConfigContent): ?array
     {
         $decodedData = json_decode($remoteConfigContent, /* assoc: */ true);
         if ($decodedData === null) {
