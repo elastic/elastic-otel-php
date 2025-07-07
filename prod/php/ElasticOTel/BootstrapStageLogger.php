@@ -230,7 +230,12 @@ final class BootstrapStageLogger
         return self::processClassNameForLog($class) . '::' . $func;
     }
 
-    private static function logWithLevel(int $statementLevel, string $message, string $file, int $line, string $class, string $func): void
+    public static function logWithLevel(int $statementLevel, string $message, string $file, int $line, string $class, string $func): void
+    {
+        self::logWithFeatureAndLevel(Log\LogFeature::BOOTSTRAP, $statementLevel, $message, $file, $line, $class, $func);
+    }
+
+    public static function logWithFeatureAndLevel(int $feature, int $statementLevel, string $message, string $file, int $line, string $class, string $func): void
     {
         if (!self::isEnabledForLevel($statementLevel)) {
             return;
@@ -239,7 +244,7 @@ final class BootstrapStageLogger
         elastic_otel_log_feature(
             0 /* $isForced */,
             $statementLevel,
-            Log\LogFeature::BOOTSTRAP,
+            $feature,
             self::processSourceCodeFilePathForLog($file),
             $line,
             self::processClassFunctionNameForLog($class, $func),
