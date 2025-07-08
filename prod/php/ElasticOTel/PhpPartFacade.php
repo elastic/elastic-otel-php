@@ -124,14 +124,11 @@ final class PhpPartFacade
             self::registerAsyncTransportFactory();
             self::registerOtelLogWriter();
 
-
             /** @noinspection PhpInternalEntityUsedInspection */
             if (SdkAutoloader::isExcludedUrl()) {
                 BootstrapStageLogger::logDebug('Url is excluded', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
                 return false;
             }
-
-
 
             Traces\ElasticRootSpan::startRootSpan(function () {
                 PhpPartFacade::$rootSpanEnded = true;
@@ -141,6 +138,8 @@ final class PhpPartFacade
             });
 
             self::$singletonInstance = new self();
+
+            RemoteConfigHandler::fetchAndApply();
 
             if (elastic_otel_get_config_option_by_name('inferred_spans_enabled')) {
                 self::$singletonInstance->inferredSpans = new InferredSpans(
