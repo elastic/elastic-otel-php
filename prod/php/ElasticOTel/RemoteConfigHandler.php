@@ -85,9 +85,9 @@ final class RemoteConfigHandler
         }
 
         self::logError(
-              'Remote/Central configuration (AKA OpAMP) is not compatible with ' . OTelSdkConfigurationVariables::OTEL_EXPERIMENTAL_CONFIG_FILE . ' OpenTelemetry SDK option',
-              __LINE__
-            , __FUNCTION__
+            'Remote/Central configuration (AKA OpAMP) is not compatible with ' . OTelSdkConfigurationVariables::OTEL_EXPERIMENTAL_CONFIG_FILE . ' OpenTelemetry SDK option',
+            __LINE__,
+            __FUNCTION__
         );
         return false;
     }
