@@ -28,9 +28,9 @@ To check for security updates, go to [Security announcements for the Elastic sta
 % *
 
 
-## 1.1.0
+## 1.1.0 [edot-php-1.1.0-release-notes]
 
-### Features and enhancements [edot-php-1.1.0-release-notes]
+### Features and enhancements [edot-php-1.1.0-features-enhancements]
 
 - OpAMP remote configuration support (Technical preview) (PR [#243](https://github.com/elastic/elastic-otel-php/pull/243))
 - Updated opentelemetry-auto-pdo package to 0.1.1  (PR [#233](https://github.com/elastic/elastic-otel-php/pull/233))
@@ -51,7 +51,7 @@ To check for security updates, go to [Security announcements for the Elastic sta
 
 ## 1.0.0 [edot-php-1.0.0-release-notes]
 
-### Features and enhancements [edot-php-1.0.0-release-notes]
+### Features and enhancements [edot-php-1.0.0-features-enhancements]
 
 - OTLP protobuf built-in native serialization (PR [#198](https://github.com/elastic/elastic-otel-php/pull/198)).
 - Moved EDOT PHP documentation to elastic/opentelemetry (PR [#197](https://github.com/elastic/elastic-otel-php/pull/197)).
