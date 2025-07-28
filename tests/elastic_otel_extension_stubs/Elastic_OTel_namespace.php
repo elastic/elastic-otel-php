@@ -19,12 +19,18 @@
  * under the License.
  */
 
+/** @noinspection PhpUnusedParameterInspection */
+
 declare(strict_types=1);
 
-if (!extension_loaded('elastic_otel')) {
-    require __DIR__ . '/global_namespace.php';
-    require __DIR__ . '/Elastic_OTel_namespace.php';
-    require __DIR__ . '/Elastic_OTel_HttpTransport_namespace.php';
-    require __DIR__ . '/Elastic_OTel_InferredSpans_namespace.php';
-    require __DIR__ . '/Elastic_OTel_OtlpExporters_namespace.php';
+namespace Elastic\OTel;
+
+/**
+ * This function is implemented by the extension
+ *
+ * @return ?array<array-key, mixed>
+ */
+function get_remote_configuration(): ?array // @phpstan-ignore return.unusedType
+{
+    return ['dummy file name' => 'dummy file content (JSON)'];
 }
