@@ -63,6 +63,8 @@ public:
 
     std::pair<int, int> getPhpVersionMajorMinor() const final;
 
+    std::string phpUname(char mode) const final;
+
 private:
     std::shared_ptr<elasticapm::php::LoggerInterface> log_;
 };

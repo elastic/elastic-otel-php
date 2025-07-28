@@ -73,9 +73,14 @@ final class ElasticOTelProjectProperties
             if (trim($line) === '') {
                 continue;
             }
-            $dbgCtx->add(compact('line'));
+
             $keyValue = explode(separator: '=', string: $line, limit: 2);
+            if (count($keyValue) == 1) {
+                continue;
+            }
+
             $dbgCtx->add(compact('keyValue'));
+            $dbgCtx->add(compact('line'));
             Assert::assertCount(2, $keyValue);
             $propName = trim($keyValue[0]);
             $propValue = trim($keyValue[1]);

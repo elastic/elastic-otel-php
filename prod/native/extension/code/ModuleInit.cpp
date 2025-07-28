@@ -35,6 +35,7 @@
 #include "RequestScope.h"
 #include "SigSegvHandler.h"
 #include "os/OsUtils.h"
+#include "transport/OpAmp.h"
 
 #include <curl/curl.h>
 #include <inttypes.h> // PRIu64
@@ -57,8 +58,8 @@ void logStartupPreamble(elasticapm::php::LoggerInterface *logger) {
     using namespace std::literals;
     ELOGF_NF(logger, level, "Elastic Distribution for OpenTelemetry PHP");
     ELOGF_NF(logger, level, "%*s%s", -colWidth, "Native part version:", ELASTIC_OTEL_VERSION);
-    ELOGF_NF(logger, level, "%*s%s", -colWidth, "Process command line:", elasticapm::utils::sanitizeKeyValueString(elasticapm::utils::getEnvName(EL_STRINGIFY(ELASTIC_OTEL_CFG_OPT_NAME_API_KEY)), elasticapm::osutils::getCommandLine()).c_str());
-    ELOGF_NF(logger, level, "%*s%s", -colWidth, "Process environment:", elasticapm::utils::sanitizeKeyValueString(elasticapm::utils::getEnvName(EL_STRINGIFY(ELASTIC_OTEL_CFG_OPT_NAME_API_KEY)), elasticapm::osutils::getProcessEnvironment()).c_str());
+    ELOGF_NF(logger, level, "%*s%s", -colWidth, "Process command line:", elasticapm::utils::sanitizeKeyValueString(elasticapm::utils::getEnvName(EL_STRINGIFY(ELASTIC_OTEL_API_KEY)), elasticapm::osutils::getCommandLine()).c_str());
+    ELOGF_NF(logger, level, "%*s%s", -colWidth, "Process environment:", elasticapm::utils::sanitizeKeyValueString(elasticapm::utils::getEnvName(EL_STRINGIFY(ELASTIC_OTEL_API_KEY)), elasticapm::osutils::getProcessEnvironment()).c_str());
 }
 
 void elasticApmModuleInit(int moduleType, int moduleNumber) {
@@ -98,9 +99,13 @@ void elasticApmModuleInit(int moduleType, int moduleNumber) {
     if (php_check_open_basedir_ex(EAPM_GL(config_)->get(&elasticapm::php::ConfigurationSnapshot::bootstrap_php_part_file).c_str(), false) != 0) {
         ELOGF_WARNING(globals->logger_, MODULE, "EDOT PHP bootstrap file (%s) is located outside of paths allowed by open_basedir ini setting. Read more details here https://www.elastic.co/docs/reference/opentelemetry/edot-sdks/php/setup/limitations.html", EAPM_GL(config_)->get(&elasticapm::php::ConfigurationSnapshot::bootstrap_php_part_file).c_str());
     }
+
+    globals->opAmp_->init();
 }
 
 void elasticApmModuleShutdown( int moduleType, int moduleNumber ) {
+    ELOG_DEBUG(ELASTICAPM_G(globals)->logger_, MODULE, "elasticApmModuleShutdown");
+
     if (!ELASTICAPM_G(globals)->sapi_->isSupported()) {
         return;
     }
@@ -121,25 +126,3 @@ void elasticApmModuleShutdown( int moduleType, int moduleNumber ) {
 
     unregisterSigSegvHandler();
 }
-
-// void elasticApmGetLastPhpError(zval* return_value) {
-//     if (!ELASTICAPM_G(lastErrorData)) {
-//         RETURN_NULL();
-//     }
-
-//     array_init( return_value );
-//     ELASTIC_OTEL_ZEND_ADD_ASSOC(return_value, "type", long, static_cast<zend_long>(ELASTICAPM_G(lastErrorData)->getType()));
-//     ELASTIC_OTEL_ZEND_ADD_ASSOC_NULLABLE_STRING( return_value, "fileName", ELASTICAPM_G(lastErrorData)->getFileName().data() );
-//     ELASTIC_OTEL_ZEND_ADD_ASSOC(return_value, "lineNumber", long, static_cast<zend_long>(ELASTICAPM_G(lastErrorData)->getLineNumber()));
-//     ELASTIC_OTEL_ZEND_ADD_ASSOC_NULLABLE_STRING( return_value, "message", ELASTICAPM_G(lastErrorData)->getMessage().data());
-//     Z_TRY_ADDREF_P((ELASTICAPM_G(lastErrorData)->getStackTrace()));
-//     ELASTIC_OTEL_ZEND_ADD_ASSOC(return_value, "stackTrace", zval, (ELASTICAPM_G(lastErrorData)->getStackTrace()));
-// }
-//
-// void elasticApmGetLastThrown(zval *return_value) {
-//     if (Z_TYPE(ELASTICAPM_G(lastException)) == IS_UNDEF) {
-//         RETURN_NULL();
-//     }
-
-//     RETURN_ZVAL(&ELASTICAPM_G(lastException), /* copy */ true, /* dtor */ false );
-// }
