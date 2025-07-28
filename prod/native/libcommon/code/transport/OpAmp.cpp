@@ -31,7 +31,7 @@ using namespace std::literals;
 namespace opentelemetry::php::transport {
 
 void OpAmp::init() {
-    if (!config_->get().opamp_enabled) {
+    if (config_->get().opamp_endpoint.empty()) {
         ELOG_DEBUG(log_, OPAMP, "disabled");
         return;
     }
@@ -60,7 +60,7 @@ void OpAmp::init() {
     try {
         sendInitialAgentToServer();
     } catch (std::exception const &e) {
-        ELOG_WARNING(log_, OPAMP, "Unable to send heartbeat {}", e.what());
+        ELOG_WARNING(log_, OPAMP, "Unable to send initial message {}", e.what());
     }
 }
 
@@ -145,7 +145,9 @@ void OpAmp::sendInitialAgentToServer() {
         }
     }
 
-    common::addKeyValue(attrs, opentelemetry::semconv::service::kServiceInstanceId, boost::uuids::to_string(agentUid_));
+    if (auto value = resourceDetector_->get(opentelemetry::semconv::service::kServiceInstanceId); value.empty()) {
+        common::addKeyValue(attrs, opentelemetry::semconv::service::kServiceInstanceId, boost::uuids::to_string(agentUid_));
+    }
 
     msg.set_capabilities(opamp::proto::AgentCapabilities::AgentCapabilities_AcceptsRemoteConfig | opamp::proto::AgentCapabilities::AgentCapabilities_ReportsStatus | opamp::proto::AgentCapabilities::AgentCapabilities_ReportsHeartbeat | opamp::proto::AgentCapabilities::AgentCapabilities_AcceptsOpAMPConnectionSettings | opamp::proto::AgentCapabilities::AgentCapabilities_ReportsRemoteConfig);
 
