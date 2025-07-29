@@ -19,6 +19,7 @@
 
 #include "OpAmp.h"
 #include "common/ProtobufHelper.h"
+#include "CommonUtils.h"
 #include "ResourceDetector.h"
 #include <format>
 
@@ -44,9 +45,19 @@ void OpAmp::init() {
 
     std::string endpointUrl = config_->get().opamp_endpoint;
 
-    if (!endpointUrl.ends_with("/v1/opamp")) {
-        endpointUrl += "/v1/opamp";
+    auto url = elasticapm::utils::parseUrl(endpointUrl);
+    if (url.has_value()) {
+        if (!url.value().query.has_value()) {
+            endpointUrl += "/v1/opamp";
+        } else if (url.value().query.value() == "/" || url.value().query.value().empty()) {
+            endpointUrl += "v1/opamp";
+        }
+    } else {
+        if (!endpointUrl.ends_with("/v1/opamp")) {
+            endpointUrl += "/v1/opamp";
+        }
     }
+
     endpointHash_ = std::hash<std::string>{}(endpointUrl);
     heartbeatInterval_ = {std::chrono::duration_cast<std::chrono::seconds>(config_->get().opamp_heartbeat_interval)};
 
