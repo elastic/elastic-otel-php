@@ -130,7 +130,6 @@ private:
         BUILD_METADATA(ELASTIC_OTEL_INFERRED_SPANS_MIN_DURATION, OptionMetadata::type::duration, false),
         BUILD_METADATA(ELASTIC_OTEL_DEPENDENCY_AUTOLOADER_GUARD_ENABLED, OptionMetadata::type::boolean, false),
         BUILD_METADATA(ELASTIC_OTEL_NATIVE_OTLP_SERIALIZER_ENABLED, OptionMetadata::type::boolean, false),
-        BUILD_METADATA(ELASTIC_OTEL_OPAMP_ENABLED, OptionMetadata::type::boolean, false),
         BUILD_METADATA(ELASTIC_OTEL_OPAMP_HEADERS, OptionMetadata::type::string, false),
         BUILD_METADATA(ELASTIC_OTEL_OPAMP_ENDPOINT, OptionMetadata::type::string, false),
         BUILD_METADATA(ELASTIC_OTEL_OPAMP_HEARTBEAT_INTERVAL, OptionMetadata::type::duration, false),
