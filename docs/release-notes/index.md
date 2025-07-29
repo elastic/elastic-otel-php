@@ -27,6 +27,11 @@ To check for security updates, go to [Security announcements for the Elastic sta
 % ### Fixes [edot-php-X.X.X-fixes]
 % *
 
+## 1.1.1 [edot-php-1.1.1-release-notes]
+
+### Fixes [edot-php-1.1.1-fixes]
+
+- Controlling the OpAMP activation using the ELASTIC_OTEL_OPAMP_ENDPOINT environment variable ([#245](https://github.com/elastic/elastic-otel-php/issues/245)) (PR [#245](https://github.com/elastic/elastic-otel-php/pull/245))
 
 ## 1.1.0 [edot-php-1.1.0-release-notes]
 
