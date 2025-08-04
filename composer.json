@@ -16,6 +16,7 @@
         "open-telemetry/opentelemetry-auto-laravel": "1.1.0",
         "open-telemetry/opentelemetry-auto-mysqli": "0.0.2",
         "open-telemetry/opentelemetry-auto-pdo": "0.1.1",
+        "open-telemetry/opentelemetry-auto-postgresql": "dev-main",
         "open-telemetry/opentelemetry-auto-slim": "1.1.0",
         "open-telemetry/sdk": "1.6.0",
         "php-http/guzzle7-adapter": "^1.0",
@@ -30,6 +31,7 @@
         "ext-ctype": "*",
         "ext-curl": "*",
         "ext-mysqli": "*",
+        "ext-pgsql": "*",
         "ext-pdo": "*",
         "ext-zlib": "*",
         "guzzlehttp/guzzle": "^7.9.3",
@@ -62,6 +64,7 @@
             "ext-mysqli": "8.1",
             "ext-curl": "8.1",
             "ext-pdo": "8.1",
+            "ext-pgsql": "8.1",
             "ext-opentelemetry": "0",
             "ext-otel_instrumentation": "0"
         }
