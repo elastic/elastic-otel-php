@@ -46,11 +46,11 @@ jobs:
       #   uses: docker/setup-qemu-action@v3
       #   with:
       #     platforms: arm64
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           name: build-native-${{ matrix.arch }}
           path: prod/native/_build/${{ matrix.arch }}-release/
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
             name: php-dependencies
       - name: Build packages
