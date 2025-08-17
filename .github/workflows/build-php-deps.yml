@@ -19,7 +19,7 @@ jobs:
     env:
       COMPOSER_ALLOW_SUPERUSER: 1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Build PHP dependencies
         run: |
           source ./tools/read_properties.sh

@@ -24,6 +24,6 @@ jobs:
     env:
       PHP_VERSION: ${{ matrix.php-version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Invoke test_php_static_and_unit.sh
         run: ./tools/test/test_php_static_and_unit.sh --php_versions "${PHP_VERSION}"
