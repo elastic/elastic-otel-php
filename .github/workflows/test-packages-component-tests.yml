@@ -27,9 +27,9 @@ jobs:
     env:
       MATRIX_ROW: ${{ matrix.row }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Download built packages
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           pattern: packages-*
           path: ${{ env.BUILD_PACKAGES_SUB_DIR }}
