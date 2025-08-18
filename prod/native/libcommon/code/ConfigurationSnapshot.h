@@ -51,7 +51,6 @@
 
 #define ELASTIC_OTEL_NATIVE_OTLP_SERIALIZER_ENABLED native_otlp_serializer_enabled
 
-#define ELASTIC_OTEL_OPAMP_ENABLED opamp_enabled
 #define ELASTIC_OTEL_OPAMP_HEADERS opamp_headers
 #define ELASTIC_OTEL_OPAMP_ENDPOINT opamp_endpoint
 
@@ -91,9 +90,8 @@ struct ConfigurationSnapshot {
     bool ELASTIC_OTEL_DEPENDENCY_AUTOLOADER_GUARD_ENABLED = true;
     bool ELASTIC_OTEL_NATIVE_OTLP_SERIALIZER_ENABLED = true;
 
-    bool ELASTIC_OTEL_OPAMP_ENABLED = false;
     std::string ELASTIC_OTEL_OPAMP_HEADERS;
-    std::string ELASTIC_OTEL_OPAMP_ENDPOINT = "http://localhost:4320/v1/opamp";
+    std::string ELASTIC_OTEL_OPAMP_ENDPOINT;
     std::chrono::milliseconds ELASTIC_OTEL_OPAMP_HEARTBEAT_INTERVAL = 30s;
     std::chrono::milliseconds ELASTIC_OTEL_OPAMP_SEND_TIMEOUT = 10s;
     std::size_t ELASTIC_OTEL_OPAMP_SEND_MAX_RETRIES = 3;

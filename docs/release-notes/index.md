@@ -27,9 +27,36 @@ To check for security updates, go to [Security announcements for the Elastic sta
 % ### Fixes [edot-php-X.X.X-fixes]
 % *
 
+## 1.1.1 [edot-php-1.1.1-release-notes]
+
+### Fixes [edot-php-1.1.1-fixes]
+
+- Controlling the OpAMP activation using the ELASTIC_OTEL_OPAMP_ENDPOINT environment variable ([#245](https://github.com/elastic/elastic-otel-php/issues/245)) (PR [#245](https://github.com/elastic/elastic-otel-php/pull/245))
+
+## 1.1.0 [edot-php-1.1.0-release-notes]
+
+### Features and enhancements [edot-php-1.1.0-features-enhancements]
+
+- OpAMP remote configuration support (Technical preview) (PR [#243](https://github.com/elastic/elastic-otel-php/pull/243))
+- Updated opentelemetry-auto-pdo package to 0.1.1  (PR [#233](https://github.com/elastic/elastic-otel-php/pull/233))
+- Updated open-telemetry/sdk (PR [#235](https://github.com/elastic/elastic-otel-php/pull/235))
+- Added component test for MySQLi auto-instrumentation (PR [#181](https://github.com/elastic/elastic-otel-php/pull/181))
+
+### Other [edot-php-1.1.0-other]
+
+- Enable std::format in logger (PR [#207](https://github.com/elastic/elastic-otel-php/pull/207))
+- Added checks to ensure OTLP exporters native implementation is in sync with upstream PHP implementation (PR [#201](https://github.com/elastic/elastic-otel-php/pull/201))
+- AutoZval phpt tests ([#202](https://github.com/elastic/elastic-otel-php/issues/202)) (PR [#203](https://github.com/elastic/elastic-otel-php/pull/203))
+- Removed direct loading of opcache.so in phpt tests (PR [#237](https://github.com/elastic/elastic-otel-php/pull/237))
+- Updated dev packages  (PR [#230](https://github.com/elastic/elastic-otel-php/pull/230))
+- Add docs CI files (PR [#227](https://github.com/elastic/elastic-otel-php/pull/227))
+- Add release notes files (PR [#218](https://github.com/elastic/elastic-otel-php/pull/218))
+- Fixed packages build script and static checks ([#216](https://github.com/elastic/elastic-otel-php/issues/216)) (PR [#220](https://github.com/elastic/elastic-otel-php/pull/220))
+- Update EDOT links (PR [#212](https://github.com/elastic/elastic-otel-php/pull/212))
+
 ## 1.0.0 [edot-php-1.0.0-release-notes]
 
-### Features and enhancements [edot-php-1.0.0-release-notes]
+### Features and enhancements [edot-php-1.0.0-features-enhancements]
 
 - OTLP protobuf built-in native serialization (PR [#198](https://github.com/elastic/elastic-otel-php/pull/198)).
 - Moved EDOT PHP documentation to elastic/opentelemetry (PR [#197](https://github.com/elastic/elastic-otel-php/pull/197)).
