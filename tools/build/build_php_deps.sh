@@ -167,12 +167,11 @@ main() {
             composer_cmd_to_adapt_config_platform_php_req="&& composer config --global platform.php 8.2"
         fi
 
-        local composer_ignore_platform_req_cmd_opts="--ignore-platform-req=ext-mysqli --ignore-platform-req=ext-pgsql --ignore-platform-req=ext-opentelemetry"
-
+        # `composer ... prepare-and-install` is executed before `composer ... validate`
+        # because `composer ... prepare-and-install` creates composer.lock that `composer ... validate` expects to exist
         local vendor_dir="${PWD}/prod/php/vendor_${PHP_VERSION}"
         docker run --rm \
             -v "${PWD}:/sources" \
-            -v "${composer_lock_file}:/sources/composer.lock:ro" \
             -v "${vendor_dir}:/sources/vendor" \
             -e "GITHUB_SHA=${GITHUB_SHA}" \
             -w /sources \
@@ -182,8 +181,10 @@ main() {
                 && git config --global --add safe.directory /sources \
                 && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
                 ${composer_cmd_to_adapt_config_platform_php_req} \
-                && (composer --check-lock --no-check-all validate || (echo If composer.json was changed after running ./tools/build/generate_composer_lock_files.sh you need to run ./tools/build/generate_composer_lock_files.sh again && false)) \
-                && ELASTIC_OTEL_TOOLS_ALLOW_DIRECT_COMPOSER_COMMAND=true composer --no-interaction ${composer_ignore_platform_req_cmd_opts} install \
+                && composer run-script -- prepare-and-install \
+                && (composer --check-lock --no-check-all validate \
+                    || (echo If composer.json was changed after running ./tools/build/generate_composer_lock_files.sh you need to re-run ./tools/build/generate_composer_lock_files.sh && false)) \
+                && rm -f composer.lock \
                 ${GEN_NOTICE} \
             "
 

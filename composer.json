@@ -76,7 +76,7 @@
         "prepare-and-install": [
             "composer run-script -- prepare-for-install",
             "@putenv ELASTIC_OTEL_TOOLS_ALLOW_DIRECT_COMPOSER_COMMAND=true",
-            "composer --ignore-platform-req=ext-mysqli --ignore-platform-req=ext-pgsql --ignore-platform-req=ext-opentelemetry --no-interaction install"
+            "composer --ignore-platform-req=php --ignore-platform-req=ext-mysqli --ignore-platform-req=ext-pgsql --ignore-platform-req=ext-opentelemetry --no-interaction install"
         ],
         "pre-autoload-dump": [
             "./tools/build/configure_php_templates.sh"

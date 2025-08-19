@@ -47,14 +47,18 @@ main() {
     fi
 
     for PHP_VERSION in "${PHP_VERSIONS[@]}"; do
-        docker run --rm -v "${PWD}:/app" -w /app "php:${PHP_VERSION:0:1}.${PHP_VERSION:1:1}-cli" sh -c "\
-            cp -r ./prod/php/ ./prod_php_backup/ \
-            && apt-get update && apt-get install -y unzip \
-            && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
-            && composer run-script -- prepare-and-install \
-            && composer run-script -- static_check_and_run_unit_tests \
-            && rm -rf ./vendor composer.lock ./prod/php \
-            && mv ./prod_php_backup ./prod/php \
+        docker run --rm \
+            -v "${PWD}:/app" \
+            -w /app \
+            "php:${PHP_VERSION:0:1}.${PHP_VERSION:1:1}-cli" \
+            sh -c "\
+                cp -r ./prod/php/ ./prod_php_backup/ \
+                && apt-get update && apt-get install -y unzip \
+                && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
+                && composer run-script -- prepare-and-install \
+                && composer run-script -- static_check_and_run_unit_tests \
+                && rm -rf ./vendor composer.lock ./prod/php \
+                && mv ./prod_php_backup ./prod/php \
             "
     done
 }
