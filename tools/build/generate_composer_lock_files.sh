@@ -26,12 +26,10 @@ update_composer_lock_for_PHP_version() {
     docker run --rm \
         -v "${PWD}/composer.json:/repo_root/composer.json:ro" \
         -v "${composer_lock_temp_dir}:/composer_lock_temp_dir" \
-        -e COMPOSER_HOME=/composer_home \
         -w /repo_root \
         "php:${php_version_dot_separated}-cli" \
         sh -c "\
-            mkdir -p /composer_home \
-            && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
+            curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
             ${composer_cmd_to_adapt_config_platform_php_req} \
             && ELASTIC_OTEL_TOOLS_ALLOW_DIRECT_COMPOSER_COMMAND=true composer --no-install --no-interaction ${composer_ignore_platform_req_cmd_opts} update \
             && cp -f /repo_root/composer.lock /composer_lock_temp_dir/${composer_lock_filename} \
