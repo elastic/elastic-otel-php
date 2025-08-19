@@ -215,7 +215,7 @@ function main() {
 
     cat /repo_root/composer.json
 
-    composer install
+    composer run-script -- prepare-and-install
 
     end_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
