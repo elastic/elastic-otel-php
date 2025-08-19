@@ -13,24 +13,28 @@ update_composer_lock_for_PHP_version() {
     echo "Generating composer.lock for PHP ${php_version_dot_separated} ..."
 
     local composer_cmd_to_adapt_config_platform_php_req=""
-    if [[ "${php_version_dot_separated}" = "8.1" ]]; then
-        composer_cmd_to_adapt_config_platform_php_req="&& echo 'Forcing composer to assume that PHP version is 8.2' && composer config platform.php 8.2"
+    if [[ "${php_version_no_dot}" = "81" ]]; then
+        echo 'Forcing composer to assume that PHP version is 8.2'
+        composer_cmd_to_adapt_config_platform_php_req="&& composer config --global platform.php 8.2"
     fi
 
     local composer_lock_filename
     composer_lock_filename="$(build_composer_lock_file_name_for_PHP_version "${php_version_no_dot}")"
 
+    local composer_ignore_platform_req_cmd_opts="--ignore-platform-req=ext-mysqli --ignore-platform-req=ext-pgsql --ignore-platform-req=ext-opentelemetry"
+
     docker run --rm \
-        -v "${PWD}/composer.json:/original_composer.json:ro" \
+        -v "${PWD}/composer.json:/repo_root/composer.json:ro" \
         -v "${composer_lock_temp_dir}:/composer_lock_temp_dir" \
+        -e COMPOSER_HOME=/composer_home \
         -w /repo_root \
         "php:${php_version_dot_separated}-cli" \
         sh -c "\
-            curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
-            && cp /original_composer.json /repo_root/composer.json \
+            mkdir -p /composer_home \
+            && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
             ${composer_cmd_to_adapt_config_platform_php_req} \
-            && composer --no-install --no-interaction --no-scripts update \
-            && cp -f composer.lock /composer_lock_temp_dir/${composer_lock_filename} \
+            && ELASTIC_OTEL_TOOLS_ALLOW_DIRECT_COMPOSER_COMMAND=true composer --no-install --no-interaction ${composer_ignore_platform_req_cmd_opts} update \
+            && cp -f /repo_root/composer.lock /composer_lock_temp_dir/${composer_lock_filename} \
         "
 }
 

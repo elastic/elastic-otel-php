@@ -247,7 +247,8 @@ composer run-script -- prepare-and-install
 ```
 Instead of the usual `composer install`.
 This will copy composer's lock file for the current PHP version to `composer.lock`
-and run `composer --no-scripts install` to avoid infinite loop.
+and run `composer install`
+(with `ELASTIC_OTEL_TOOLS_ALLOW_DIRECT_COMPOSER_COMMAND` environment variable set to `true` to avoid infinite loop).
 
 ## To check which dependencies can be updated
 Run

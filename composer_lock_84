@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "a2a8279e01ef5e17a611310b6b97a1a6",
+    "content-hash": "13a9388e60244ca0911200a81ba94639",
     "packages": [
         {
             "name": "brick/math",
@@ -5289,14 +5289,6 @@
         "ext-pgsql": "*",
         "ext-pdo": "*",
         "ext-zlib": "*"
-    },
-    "platform-overrides": {
-        "ext-mysqli": "8.1",
-        "ext-curl": "8.1",
-        "ext-pdo": "8.1",
-        "ext-pgsql": "8.1",
-        "ext-opentelemetry": "0",
-        "ext-otel_instrumentation": "0"
     },
     "plugin-api-version": "2.6.0"
 }

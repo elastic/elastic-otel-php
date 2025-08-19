@@ -34,9 +34,28 @@ final class ComposeScripts
 {
     private static ?bool $isStderrDefined = null;
 
-    /** @noinspection PhpNoReturnAttributeCanBeAddedInspection */
+    private const ALLOW_DIRECT_COMPOSER_COMMAND_ENV_VAR_NAME = 'ELASTIC_OTEL_TOOLS_ALLOW_DIRECT_COMPOSER_COMMAND';
+
+    private static function shouldAllowDirectCommand(): bool
+    {
+        $envVarVal = getenv(self::ALLOW_DIRECT_COMPOSER_COMMAND_ENV_VAR_NAME);
+
+        if (!is_string($envVarVal)) {
+            return false;
+        }
+
+        return match (strtolower($envVarVal)) {
+            'true', '1' => true,
+            default => false,
+        };
+    }
+
     private static function installOrUpdate(): void
     {
+        if (self::shouldAllowDirectCommand()) {
+            return;
+        }
+
         self::log("Do not run `composer install' or `composer update' directly.");
 
         self::log(
@@ -54,13 +73,11 @@ final class ComposeScripts
         exit(1);
     }
 
-    /** @noinspection PhpNoReturnAttributeCanBeAddedInspection */
     public static function install(): void
     {
         self::installOrUpdate();
     }
 
-    /** @noinspection PhpNoReturnAttributeCanBeAddedInspection */
     public static function update(): void
     {
         self::installOrUpdate();

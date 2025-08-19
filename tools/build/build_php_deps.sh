@@ -147,28 +147,11 @@ main() {
             echo "This project depends on following packages for PHP ${PHP_VERSION:0:1}.${PHP_VERSION:1:1}" >>NOTICE
         fi
 
-        local composer_cmd_to_adapt_config_platform_php_req=""
-        if [[ "${PHP_VERSION}" = "81" ]]; then
-            composer_cmd_to_adapt_config_platform_php_req="&& echo 'Forcing composer to assume that PHP version is 8.2' && composer config platform.php 8.2"
-        fi
-
-        local vendor_dir="${PWD}/prod/php/vendor_${PHP_VERSION}"
-        docker run --rm \
-            -v "${PWD}:/sources" \
-            -v "${vendor_dir}:/sources/vendor" \
-            -e "GITHUB_SHA=${GITHUB_SHA}" \
-            -w /sources \
-            "php:${PHP_VERSION:0:1}.${PHP_VERSION:1:1}-cli" sh -c "\
-            apt-get update && apt-get install -y unzip git \
-            && git config --global --add safe.directory /sources \
-            && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
-            ${composer_cmd_to_adapt_config_platform_php_req} \
-            && composer run-script -- prepare-and-install-no-dev \
-            ${GEN_NOTICE}"
-
         local composer_lock_filename
         composer_lock_filename="$(build_composer_lock_file_name_for_PHP_version "${PHP_VERSION}")"
-        INSTALLED_SEMCONV_VERSION=$(jq -r '.packages[] | select(.name == "open-telemetry/sem-conv") | .version' "${PWD}/${composer_lock_filename}")
+        local composer_lock_file
+        composer_lock_file="${PWD}/${composer_lock_filename}"
+        INSTALLED_SEMCONV_VERSION=$(jq -r '.packages[] | select(.name == "open-telemetry/sem-conv") | .version' "${composer_lock_file}")
 
         INSTALLED_MAJOR_MINOR=${INSTALLED_SEMCONV_VERSION%.*}
         EXPECTED_MAJOR_MINOR=${_PROJECT_PROPERTIES_OTEL_SEMCONV_VERSION%.*}
@@ -178,11 +161,31 @@ main() {
             exit 1
         fi
 
-        if [ "${KEEP_COMPOSER_LOCK}" = true ]; then
-            echo "Keeping composer.lock file"
-        else
-            rm -f composer.lock
+        local composer_cmd_to_adapt_config_platform_php_req=""
+        if [[ "${PHP_VERSION}" = "81" ]]; then
+            echo 'Forcing composer to assume that PHP version is 8.2'
+            composer_cmd_to_adapt_config_platform_php_req="&& composer config --global platform.php 8.2"
         fi
+
+        local composer_ignore_platform_req_cmd_opts="--ignore-platform-req=ext-mysqli --ignore-platform-req=ext-pgsql --ignore-platform-req=ext-opentelemetry"
+
+        local vendor_dir="${PWD}/prod/php/vendor_${PHP_VERSION}"
+        docker run --rm \
+            -v "${PWD}:/sources" \
+            -v "${composer_lock_file}:/sources/composer.lock:ro" \
+            -v "${vendor_dir}:/sources/vendor" \
+            -e "GITHUB_SHA=${GITHUB_SHA}" \
+            -w /sources \
+            "php:${PHP_VERSION:0:1}.${PHP_VERSION:1:1}-cli" \
+            sh -c "\
+                apt-get update && apt-get install -y unzip git \
+                && git config --global --add safe.directory /sources \
+                && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
+                ${composer_cmd_to_adapt_config_platform_php_req} \
+                && (composer --check-lock --no-check-all validate || (echo If composer.json was changed after running ./tools/build/generate_composer_lock_files.sh you need to run ./tools/build/generate_composer_lock_files.sh again && false)) \
+                && ELASTIC_OTEL_TOOLS_ALLOW_DIRECT_COMPOSER_COMMAND=true composer --no-interaction ${composer_ignore_platform_req_cmd_opts} install \
+                ${GEN_NOTICE} \
+            "
 
         if [ "${SKIP_VERIFY}" = "false" ]; then
             verify_vendor_dir "${PHP_VERSION}" "${vendor_dir}"

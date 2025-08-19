@@ -61,14 +61,6 @@
             "dealerdirect/phpcodesniffer-composer-installer": true,
             "php-http/discovery": true,
             "tbachert/spi": true
-        },
-        "platform": {
-            "ext-mysqli": "8.1",
-            "ext-curl": "8.1",
-            "ext-pdo": "8.1",
-            "ext-pgsql": "8.1",
-            "ext-opentelemetry": "0",
-            "ext-otel_instrumentation": "0"
         }
     },
     "scripts": {
@@ -78,13 +70,13 @@
         "pre-update-cmd": [
             "ElasticOTelTools\\Build\\ComposeScripts::update"
         ],
-        "prepare-and-install": [
-            "ElasticOTelTools\\Build\\ComposeScripts::prepareForInstall",
-            "composer --no-scripts install"
+        "prepare-for-install": [
+            "ElasticOTelTools\\Build\\ComposeScripts::prepareForInstall"
         ],
-        "prepare-and-install-no-dev": [
-            "ElasticOTelTools\\Build\\ComposeScripts::prepareForInstall",
-            "composer --no-scripts --no-dev install"
+        "prepare-and-install": [
+            "composer run-script -- prepare-for-install",
+            "@putenv ELASTIC_OTEL_TOOLS_ALLOW_DIRECT_COMPOSER_COMMAND=true",
+            "composer --ignore-platform-req=ext-mysqli --ignore-platform-req=ext-pgsql --ignore-platform-req=ext-opentelemetry --no-interaction install"
         ],
         "pre-autoload-dump": [
             "./tools/build/configure_php_templates.sh"
@@ -93,21 +85,19 @@
             "@putenv ELASTIC_OTEL_ENABLED=false",
             "@putenv OTEL_PHP_DISABLED_INSTRUMENTATIONS=all",
             "@putenv OTEL_PHP_AUTOLOAD_ENABLED=false",
-            "parallel-lint ./prod/php/ ./tests/ --exclude ./tests/polyfills/"
+            "parallel-lint ./prod/php/ ./tests/ ./tools/ --exclude ./tests/polyfills/"
         ],
         "php_codesniffer_check": [
             "@putenv ELASTIC_OTEL_ENABLED=false",
             "@putenv OTEL_PHP_DISABLED_INSTRUMENTATIONS=all",
             "@putenv OTEL_PHP_AUTOLOAD_ENABLED=false",
-            "phpcs -s ./prod/php/",
-            "phpcs -s ./tests/"
+            "phpcs -s ./prod/php/ ./tests/ ./tools/"
         ],
         "php_codesniffer_fix": [
             "@putenv ELASTIC_OTEL_ENABLED=false",
             "@putenv OTEL_PHP_DISABLED_INSTRUMENTATIONS=all",
             "@putenv OTEL_PHP_AUTOLOAD_ENABLED=false",
-            "phpcbf ./prod/php/",
-            "phpcbf ./tests/"
+            "phpcbf ./prod/php/ ./tests/ ./tools/"
         ],
         "fix_code_format_for": [
             "@putenv ELASTIC_OTEL_ENABLED=false",
@@ -119,15 +109,13 @@
             "@putenv ELASTIC_OTEL_ENABLED=false",
             "@putenv OTEL_PHP_DISABLED_INSTRUMENTATIONS=all",
             "@putenv OTEL_PHP_AUTOLOAD_ENABLED=false",
-            "phpstan analyse --error-format=junit ./prod/php/ --level max --memory-limit=1G | tee build/elastic-otel-phpstan-junit.xml",
-            "phpstan analyse --error-format=junit ./tests/ --level max --memory-limit=1G --error-format=junit | tee build/tests-phpstan-junit.xml"
+            "phpstan analyse --level max --memory-limit=1G --error-format=junit ./prod/php/ ./tests/ ./tools/ | tee build/phpstan-junit.xml"
         ],
         "phpstan": [
             "@putenv ELASTIC_OTEL_ENABLED=false",
             "@putenv OTEL_PHP_DISABLED_INSTRUMENTATIONS=all",
             "@putenv OTEL_PHP_AUTOLOAD_ENABLED=false",
-            "phpstan analyse ./prod/php/ --memory-limit=1G",
-            "phpstan analyse ./tests/ --memory-limit=1G"
+            "phpstan analyse --memory-limit=1G ./prod/php/ ./tests/ ./tools/"
         ],
         "static_check": [
             "composer run-script -- parallel-lint",
