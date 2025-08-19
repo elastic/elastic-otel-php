@@ -3,7 +3,6 @@ set -e -o pipefail
 #set -x
 
 SKIP_NOTICE=false
-KEEP_COMPOSER_LOCK=false
 SKIP_VERIFY=false
 
 show_help() {
@@ -13,7 +12,6 @@ show_help() {
     echo "  --php_versions           Required. List of PHP versions separated by spaces (e.g., '81 82 83 84')."
     echo "  --skip_notice            Optional. Skip notice file generator. Default: false (i.e., NOTICE file is generated)."
     echo "  --skip_verify            Optional. Skip verify step. Default: false (i.e., verify step is executed)."
-    echo "  --keep_composer_lock     Optional. Keep composer.lock file."
     echo
     echo "Example:"
     echo "  $0 --php_versions '81 82 83 84' --skip_notice"
@@ -34,9 +32,6 @@ parse_args() {
             ;;
         --skip_verify)
             SKIP_VERIFY=true
-            ;;
-        --keep_composer_lock)
-            KEEP_COMPOSER_LOCK=true
             ;;
         --help)
             show_help
@@ -152,6 +147,11 @@ main() {
             echo "This project depends on following packages for PHP ${PHP_VERSION:0:1}.${PHP_VERSION:1:1}" >>NOTICE
         fi
 
+        local composer_cmd_to_adapt_config_platform_php_req=""
+        if [[ "${PHP_VERSION}" = "81" ]]; then
+            composer_cmd_to_adapt_config_platform_php_req="&& echo 'Forcing composer to assume that PHP version is 8.2' && composer config platform.php 8.2"
+        fi
+
         local vendor_dir="${PWD}/prod/php/vendor_${PHP_VERSION}"
         docker run --rm \
             -v "${PWD}:/sources" \
@@ -162,11 +162,13 @@ main() {
             apt-get update && apt-get install -y unzip git \
             && git config --global --add safe.directory /sources \
             && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
-            && composer --ignore-platform-req=php --no-dev install \
-            ${GEN_NOTICE} \
-            && chmod 666 /sources/composer.lock"
+            ${composer_cmd_to_adapt_config_platform_php_req} \
+            && composer run-script -- prepare-and-install-no-dev \
+            ${GEN_NOTICE}"
 
-        INSTALLED_SEMCONV_VERSION=$(jq -r '.packages[] | select(.name == "open-telemetry/sem-conv") | .version' composer.lock)
+        local composer_lock_filename
+        composer_lock_filename="$(build_composer_lock_file_name_for_PHP_version "${PHP_VERSION}")"
+        INSTALLED_SEMCONV_VERSION=$(jq -r '.packages[] | select(.name == "open-telemetry/sem-conv") | .version' "${PWD}/${composer_lock_filename}")
 
         INSTALLED_MAJOR_MINOR=${INSTALLED_SEMCONV_VERSION%.*}
         EXPECTED_MAJOR_MINOR=${_PROJECT_PROPERTIES_OTEL_SEMCONV_VERSION%.*}

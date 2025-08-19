@@ -48,6 +48,7 @@
     },
     "autoload-dev": {
         "psr-4": {
+            "ElasticOTelTools\\Build\\": "./tools/build/",
             "Elastic\\OTel\\": "./prod/php/ElasticOTel/",
             "ElasticOTelTests\\": "./tests/ElasticOTelTests/"
         }
@@ -70,6 +71,20 @@
         }
     },
     "scripts": {
+        "pre-install-cmd": [
+            "ElasticOTelTools\\Build\\ComposeScripts::install"
+        ],
+        "pre-update-cmd": [
+            "ElasticOTelTools\\Build\\ComposeScripts::update"
+        ],
+        "prepare-and-install": [
+            "ElasticOTelTools\\Build\\ComposeScripts::prepareForInstall",
+            "composer --no-scripts install"
+        ],
+        "prepare-and-install-no-dev": [
+            "ElasticOTelTools\\Build\\ComposeScripts::prepareForInstall",
+            "composer --no-scripts --no-dev install"
+        ],
         "pre-autoload-dump": [
             "./tools/build/configure_php_templates.sh"
         ],

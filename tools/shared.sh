@@ -197,3 +197,8 @@ function end_github_workflow_log_group() {
     local group_name="${1:?}"
     echo "::endgroup::${group_name}"
 }
+
+function build_composer_lock_file_name_for_PHP_version() {
+    local php_version_no_dot="${1:?}"
+    echo "composer_lock_${php_version_no_dot}"
+}
