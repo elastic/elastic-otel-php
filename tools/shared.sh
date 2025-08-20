@@ -233,7 +233,7 @@ generate_composer_json_for_prod() {
         "php:${lowest_supported_php_version_dot_separated}-cli-alpine" \
         sh -c "\
             curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
-            && composer --no-scripts --no-update --dev remove ext-mysqli \
+            && composer --no-scripts --no-update --dev --quiet remove ext-mysqli \
             && chown ${current_user_id}:${current_user_group_id} composer.json \
             && chmod +r,u+w composer.json \
         "
