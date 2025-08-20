@@ -243,7 +243,7 @@ There are multiple `composer.lock` files - one for each supported major.minor PH
 
 Run 
 ```
-composer run-script -- prepare-and-install
+composer run-script -- install-using-generated-lock-dev
 ```
 Instead of the usual `composer install`.
 This will copy composer's lock file for the current PHP version to `composer.lock`
@@ -260,7 +260,7 @@ composer outdated
 1) Update `composer.json` to the desired version of the dependency
 2) Run
 ```
-./tools/build/generate_composer_lock_files.sh && composer run-script -- prepare-and-install
+./tools/build/generate_composer_lock_files.sh && composer run-script -- install-using-generated-lock-dev
 ```
 instead of the usual `composer update`
 3) Commit the changes to the composer's lock files

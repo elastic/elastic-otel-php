@@ -200,5 +200,41 @@ function end_github_workflow_log_group() {
 
 function build_composer_lock_file_name_for_PHP_version() {
     local php_version_no_dot="${1:?}"
-    echo "composer_lock_${php_version_no_dot}"
+    local prod_or_dev="${2:?}"
+
+    echo "composer_lock_${php_version_no_dot}_${prod_or_dev}"
+}
+
+generate_composer_json_for_prod() {
+    # Make some inconsequential change to composer.json just to make the one for dev different from the one for production.
+    # So that the hash codes are different and ComposerAutoloaderInit<composer.json hash code> classes defined in vendor/composer/autoload_real.php
+    # in the installed package and component tests vendor directories have different names.
+    # Note that even though it is `require_once __DIR__ . '/composer/autoload_real.php'` in vendor/autoload.php
+    # it does not prevent `Cannot redeclare class` error because those two autoload_real.php files are located in different directories
+    # require_once does not help.
+
+    local composer_json_for_prod_full_path="${1:?}"
+
+    cp "${PWD}/composer.json" "${composer_json_for_prod_full_path}"
+
+    local lowest_supported_php_version_no_dot
+    lowest_supported_php_version_no_dot=$(get_lowest_supported_php_version)
+    local lowest_supported_php_version_dot_separated
+    lowest_supported_php_version_dot_separated=$(convert_no_dot_to_dot_separated_version "${lowest_supported_php_version_no_dot}")
+
+    local current_user_id
+    current_user_id="$(id -u)"
+    local current_user_group_id
+    current_user_group_id="$(id -g)"
+
+    docker run --rm \
+        -v "${composer_json_for_prod_full_path}:/repo_root/composer.json" \
+        -w "/repo_root" \
+        "php:${lowest_supported_php_version_dot_separated}-cli-alpine" \
+        sh -c "\
+            curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
+            && composer --no-scripts --no-update --dev remove ext-mysqli \
+            && chown ${current_user_id}:${current_user_group_id} composer.json \
+            && chmod +r,u+w composer.json \
+        "
 }

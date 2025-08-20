@@ -62,12 +62,12 @@ final class ComposeScripts
             "\n" . 'Instead of'
             . "\n" . "\t\t" . 'composer install'
             . "\n" . "\t" . 'run'
-            . "\n" . "\t\t" . 'composer run-script -- prepare-and-install'
+            . "\n" . "\t\t" . 'composer run-script -- install-using-generated-lock-dev'
             . "\n"
             . "\n" . 'Instead of'
             . "\n" . "\t\t" . 'composer update'
             . "\n" . "\t" . 'run'
-            . "\n" . "\t\t" . './tools/build/generate_composer_lock_files.sh && composer run-script -- prepare-and-install'
+            . "\n" . "\t\t" . './tools/build/generate_composer_lock_files.sh && composer run-script -- install-using-generated-lock-dev'
         );
 
         exit(1);
@@ -88,16 +88,16 @@ final class ComposeScripts
      *
      * @noinspection PhpUnused
      */
-    public static function prepareForInstall(): void
+    public static function prepareForInstallUsingGeneratedLockDev(): void
     {
         self::log('Preparing for compose install...');
 
-        self::copyComposeLockForCurrentVersion();
+        self::copyComposeLockCurrentPhpVersionDev();
 
         self::log('Prepared for compose install');
     }
 
-    private static function copyComposeLockForCurrentVersion(): void
+    private static function copyComposeLockCurrentPhpVersionDev(): void
     {
         self::log('Copying for composer\'s lock for the current PHP version (' . PHP_VERSION . ') to composer.lock ...');
 
@@ -106,7 +106,7 @@ final class ComposeScripts
         /**
          * @see build_composer_lock_file_name_for_PHP_version() finction in tool/shared.sh
          */
-        $srcFileName = 'composer_lock_' . PHP_MAJOR_VERSION . PHP_MINOR_VERSION;
+        $srcFileName = 'composer_lock_' . PHP_MAJOR_VERSION . PHP_MINOR_VERSION . '_' . 'dev';
         $srcFilePath = self::realFilePath($repoRootPath . DIRECTORY_SEPARATOR . $srcFileName);
         if (!file_exists($srcFilePath)) {
             throw new RuntimeException("File $srcFilePath does not exist");

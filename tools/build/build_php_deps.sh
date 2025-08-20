@@ -4,6 +4,8 @@ set -e -o pipefail
 
 SKIP_NOTICE=false
 SKIP_VERIFY=false
+current_user_id="$(id -u)"
+current_user_group_id="$(id -g)"
 
 show_help() {
     echo "Usage: $0 --php_versions <versions>"
@@ -45,6 +47,21 @@ parse_args() {
         esac
         shift
     done
+}
+
+validate_composer_json_for_prod() {
+    local temp_composer_json_for_prod
+    temp_composer_json_for_prod=$(mktemp)
+    generate_composer_json_for_prod "${temp_composer_json_for_prod}"
+    local has_compared_the_same="true"
+    diff "${PWD}/composer_prod.json" "${temp_composer_json_for_prod}" || has_compared_the_same="false"
+    if [ "${has_compared_the_same}" = "false" ]; then
+        echo "Diff between ${PWD}/composer_prod.json and ${temp_composer_json_for_prod}"
+        diff "${PWD}/composer_prod.json" "${temp_composer_json_for_prod}" || true
+        echo "It seems composer.json was changed after composer_prod.json was generated - you need to re-run ./tools/build/generate_composer_lock_files.sh"
+        return 1
+    fi
+    rm -f "${temp_composer_json_for_prod}"
 }
 
 verify_otel_proto_version() {
@@ -133,22 +150,27 @@ main() {
     if [ "$SKIP_NOTICE" = true ]; then
         echo "Skipping notice file generation..."
     else
-        GEN_NOTICE="&& echo 'Generating NOTICE file. This may take some time...' && php /sources/packaging/notice_generator.php >>/sources/NOTICE"
+        GEN_NOTICE="\
+            && echo 'Generating NOTICE file. This may take some time...' \
+            && php /sources/packaging/notice_generator.php >>/sources/NOTICE \
+            && chown ${current_user_id}:${current_user_group_id} /sources/NOTICE \
+            && chmod +r,u+w /sources/NOTICE \
+        "
     fi
 
     if [ "${SKIP_VERIFY}" != "false" ]; then
         echo "Skipping verify step"
     fi
 
-    for PHP_VERSION in "${PHP_VERSIONS[@]}"; do
-        mkdir -p "prod/php/vendor_${PHP_VERSION}"
+    validate_composer_json_for_prod
 
+    for PHP_VERSION in "${PHP_VERSIONS[@]}"; do
         if [ "$SKIP_NOTICE" = false ]; then
             echo "This project depends on following packages for PHP ${PHP_VERSION:0:1}.${PHP_VERSION:1:1}" >>NOTICE
         fi
 
         local composer_lock_filename
-        composer_lock_filename="$(build_composer_lock_file_name_for_PHP_version "${PHP_VERSION}")"
+        composer_lock_filename="$(build_composer_lock_file_name_for_PHP_version "${PHP_VERSION}" "prod")"
         local composer_lock_file
         composer_lock_file="${PWD}/${composer_lock_filename}"
         INSTALLED_SEMCONV_VERSION=$(jq -r '.packages[] | select(.name == "open-telemetry/sem-conv") | .version' "${composer_lock_file}")
@@ -170,8 +192,11 @@ main() {
         local composer_ignore_platform_req_cmd_opts="--ignore-platform-req=ext-mysqli --ignore-platform-req=ext-pgsql --ignore-platform-req=ext-opentelemetry"
 
         local vendor_dir="${PWD}/prod/php/vendor_${PHP_VERSION}"
+        mkdir -p "${vendor_dir}"
+
         docker run --rm \
             -v "${PWD}:/sources" \
+            -v "${PWD}/composer_prod.json:/sources/composer.json:ro" \
             -v "${composer_lock_file}:/sources/composer.lock:ro" \
             -v "${vendor_dir}:/sources/vendor" \
             -e "GITHUB_SHA=${GITHUB_SHA}" \
@@ -183,8 +208,10 @@ main() {
                 && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
                 ${composer_cmd_to_adapt_config_platform_php_req} \
                 && (composer --check-lock --no-check-all validate \
-                    || (echo If composer.json was changed after running ./tools/build/generate_composer_lock_files.sh you need to re-run ./tools/build/generate_composer_lock_files.sh && false)) \
-                && ELASTIC_OTEL_TOOLS_ALLOW_DIRECT_COMPOSER_COMMAND=true composer ${composer_ignore_platform_req_cmd_opts} --no-interaction install \
+                    || (echo It seems composer.json was changed after composer lock files were generated - you need to re-run ./tools/build/generate_composer_lock_files.sh && false)) \
+                && ELASTIC_OTEL_TOOLS_ALLOW_DIRECT_COMPOSER_COMMAND=true composer --no-dev --no-interaction ${composer_ignore_platform_req_cmd_opts} install \
+                && chown -R ${current_user_id}:${current_user_group_id} /sources/vendor \
+                && chmod -R +r,u+w /sources/vendor \
                 ${GEN_NOTICE} \
             "
 

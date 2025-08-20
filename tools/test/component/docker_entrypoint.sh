@@ -213,9 +213,13 @@ function main() {
     cp /repo_root/composer.json /repo_root/composer.json.original
     grep -v -E '"open-telemetry/opentelemetry-auto-.*":' /repo_root/composer.json.original > /repo_root/composer.json
 
+    echo "Echo content of /repo_root/composer.json:"
     cat /repo_root/composer.json
 
-    composer run-script -- prepare-and-install
+    echo "Echo content of /repo_root/composer.json:"
+    cat /repo_root/composer.json
+
+    composer run-script -- install-using-generated-lock-dev
 
     end_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
