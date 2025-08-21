@@ -183,13 +183,11 @@ main() {
             exit 1
         fi
 
-        local composer_cmd_to_adapt_config_platform_php_req=""
+        local composer_additional_cmd_opts="--ignore-platform-req=ext-mysqli --ignore-platform-req=ext-pgsql --ignore-platform-req=ext-opentelemetry"
         if [[ "${PHP_VERSION}" = "81" ]]; then
-            echo 'Forcing composer to assume that PHP version is 8.2'
-            composer_cmd_to_adapt_config_platform_php_req="&& composer config --global platform.php 8.2"
+            echo 'Adding PHP version to ignored platform requirements'
+            composer_additional_cmd_opts+=" --ignore-platform-req=php"
         fi
-
-        local composer_ignore_platform_req_cmd_opts="--ignore-platform-req=ext-mysqli --ignore-platform-req=ext-pgsql --ignore-platform-req=ext-opentelemetry"
 
         local vendor_dir="${PWD}/prod/php/vendor_${PHP_VERSION}"
         mkdir -p "${vendor_dir}"
@@ -206,10 +204,9 @@ main() {
                 apt-get update && apt-get install -y unzip git \
                 && git config --global --add safe.directory /sources \
                 && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
-                ${composer_cmd_to_adapt_config_platform_php_req} \
                 && (composer --check-lock --no-check-all validate \
                     || (echo It seems composer.json was changed after composer lock files were generated - you need to re-run ./tools/build/generate_composer_lock_files.sh && false)) \
-                && ELASTIC_OTEL_TOOLS_ALLOW_DIRECT_COMPOSER_COMMAND=true composer --no-dev --no-interaction ${composer_ignore_platform_req_cmd_opts} install \
+                && ELASTIC_OTEL_TOOLS_ALLOW_DIRECT_COMPOSER_COMMAND=true composer --no-dev --no-interaction ${composer_additional_cmd_opts} install \
                 && chown -R ${current_user_id}:${current_user_group_id} /sources/vendor \
                 && chmod -R +r,u+w /sources/vendor \
                 ${GEN_NOTICE} \

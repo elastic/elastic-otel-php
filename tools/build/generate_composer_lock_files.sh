@@ -19,13 +19,11 @@ generate_composer_lock_for_PHP_version() {
     local php_version_dot_separated
     php_version_dot_separated=$(convert_no_dot_to_dot_separated_version "${php_version_no_dot}")
 
-    local composer_cmd_to_adapt_config_platform_php_req=""
-    if [[ "${php_version_no_dot}" = "81" ]]; then
-        echo 'Forcing composer to assume that PHP version is 8.2'
-        composer_cmd_to_adapt_config_platform_php_req="&& composer config --global platform.php 8.2"
-    fi
-
     local composer_additional_cmd_opts="--ignore-platform-req=ext-mysqli --ignore-platform-req=ext-pgsql --ignore-platform-req=ext-opentelemetry"
+    if [[ "${php_version_no_dot}" = "81" ]]; then
+        echo 'Adding PHP version to ignored platform requirements'
+        composer_additional_cmd_opts+=" --ignore-platform-req=php"
+    fi
 
     local composer_json_full_path="${PWD}/composer.json"
     if [[ "${dev_or_prod}" = "prod" ]]; then
@@ -40,7 +38,6 @@ generate_composer_lock_for_PHP_version() {
         "php:${php_version_dot_separated}-cli-alpine" \
         sh -c "\
             curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
-            ${composer_cmd_to_adapt_config_platform_php_req} \
             && composer --no-scripts --no-install --no-interaction ${composer_additional_cmd_opts} update \
             && cp -f /repo_root/composer.lock /temp_dir_on_host/${composer_lock_filename} \
             && chown ${current_user_id}:${current_user_group_id} /temp_dir_on_host/${composer_lock_filename} \

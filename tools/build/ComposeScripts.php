@@ -99,7 +99,7 @@ final class ComposeScripts
 
     private static function copyComposeLockCurrentPhpVersionDev(): void
     {
-        self::log('Copying for composer\'s lock for the current PHP version (' . PHP_VERSION . ') to composer.lock ...');
+        self::log('Copying for composer\'s lock for the current PHP version (' . PHP_VERSION . ') to composer.lock');
 
         $repoRootPath = self::realFilePath(__DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..');
 
@@ -128,11 +128,70 @@ final class ComposeScripts
         return $result;
     }
 
-    private static function copyFile(string $from, string $to): void
+    private static function copyFile(string $fromFilePath, string $toFilePath): void
     {
-        if (!copy($from, $to)) {
-            throw new RuntimeException("Failed to copy file from `$from'' to `$to'");
+        self::log('Copying file ' . $fromFilePath . ' to ' . $toFilePath . '...');
+
+        // \copy works incorrectly on some PHP versions
+        // and produces an empty destination file instead of copying the contents
+        // if (!copy($from, $to)) {
+        //     throw new RuntimeException("Failed to copy file from `$from'' to `$to'");
+        // }
+
+        $fromFileSize = self::getFileSize($fromFilePath);
+        $fromFileContents = self::getFileContents($fromFilePath);
+        if (strlen($fromFileContents) !== $fromFileSize) {
+            throw new RuntimeException("File contents length does not match file size; file path: `$fromFilePath'; file size: $fromFileSize; contents length: " . strlen($fromFileContents));
         }
+
+        $toFileContentsWrittenSize = self::putFileContents($toFilePath, $fromFileContents);
+        if ($toFileContentsWrittenSize !== $fromFileSize) {
+            throw new RuntimeException(
+                "Length of contents written does not match contents length; file path: `$fromFilePath'; contents length: $fromFileSize; written length: $toFileContentsWrittenSize"
+            );
+        }
+
+        $toFileContents = self::getFileContents($toFilePath);
+        if ($fromFileContents !== $toFileContents) {
+            throw new RuntimeException(
+                "Written contents does not match the original; file: {from: `$fromFilePath'; to: `$toFilePath'}"
+                . "; contents length {from: $fromFileSize; to: " . strlen($toFileContents) . "}"
+                . "\n" . "contents:"
+                . "\n" . "from:"
+                . "\n" . $fromFileContents
+                . "\n" . "to:"
+                . "\n" . $toFileContents
+            );
+        }
+
+        self::log('Copied file ' . $fromFilePath . ' to ' . $toFilePath . '...');
+    }
+
+    private static function getFileContents(string $filePath): string
+    {
+        $result = file_get_contents($filePath);
+        if (!is_string($result)) {
+            throw new RuntimeException("Failed to get file contents; file path: `$filePath'");
+        }
+        return $result;
+    }
+
+    private static function putFileContents(string $filePath, string $contents): int
+    {
+        $result = file_put_contents($filePath, $contents);
+        if (!is_int($result)) {
+            throw new RuntimeException("Failed to put file contents; file path: `$filePath'; contents length: " . strlen($contents));
+        }
+        return $result;
+    }
+
+    private static function getFileSize(string $filePath): int
+    {
+        $result = filesize($filePath);
+        if (!is_int($result)) {
+            throw new RuntimeException("Failed to get file size; file path: `$filePath'");
+        }
+        return $result;
     }
 
     private static function log(string $text): void
