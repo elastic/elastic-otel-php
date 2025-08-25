@@ -56,7 +56,7 @@ main() {
                 mkdir -p /tmp/work_dir && cp -r /repo_root /tmp/work_dir/ && cd /tmp/work_dir/repo_root/ \
                 && apt-get update && apt-get install -y unzip \
                 && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
-                && composer run-script -- install-using-generated-lock-dev \
+                && composer run-script -- install-using-generated-lock-tests \
                 && composer run-script -- static_check_and_run_unit_tests \
             "
     done

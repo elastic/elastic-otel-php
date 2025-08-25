@@ -209,7 +209,7 @@ function main() {
         rm -f /repo_root/composer.lock
     fi
 
-    composer run-script -- install-using-generated-lock-dev
+    composer run-script -- install-using-generated-lock-tests
 
     end_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
