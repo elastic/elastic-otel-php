@@ -31,6 +31,7 @@
         "dealerdirect/phpcodesniffer-composer-installer": "1.0.0",
         "ext-ctype": "*",
         "ext-curl": "*",
+        "ext-mysqli": "*",
         "ext-pgsql": "*",
         "ext-pdo": "*",
         "ext-zlib": "*",
@@ -71,6 +72,13 @@
         ],
         "install-using-generated-lock-dev": [
             "ElasticOTelTools\\Build\\ComposeScripts::prepareForInstallUsingGeneratedLockDev",
+            "composer run-script -- install-direct-command"
+        ],
+        "install-using-generated-lock-tests": [
+            "ElasticOTelTools\\Build\\ComposeScripts::prepareForInstallUsingGeneratedLockTests",
+            "composer run-script -- install-direct-command"
+        ],
+        "install-direct-command": [
             "@putenv ELASTIC_OTEL_TOOLS_ALLOW_DIRECT_COMPOSER_COMMAND=true",
             "composer --ignore-platform-req=php --ignore-platform-req=ext-mysqli --ignore-platform-req=ext-pgsql --ignore-platform-req=ext-opentelemetry --no-interaction install"
         ],

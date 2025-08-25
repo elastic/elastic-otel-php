@@ -36,6 +36,11 @@ final class ComposeScripts
 
     private const ALLOW_DIRECT_COMPOSER_COMMAND_ENV_VAR_NAME = 'ELASTIC_OTEL_TOOLS_ALLOW_DIRECT_COMPOSER_COMMAND';
 
+    /**
+     * @see elastic_otel_php_build_tools_composer_lock_files_dir in tool/shared.sh
+     */
+    private const COMPOSER_LOCK_FILES_DIR_NAME = 'generated_composer_lock_files';
+
     private static function shouldAllowDirectCommand(): bool
     {
         $envVarVal = getenv(self::ALLOW_DIRECT_COMPOSER_COMMAND_ENV_VAR_NAME);
@@ -73,11 +78,21 @@ final class ComposeScripts
         exit(1);
     }
 
+    /**
+     * This function is used in scripts section of composer.json
+     *
+     * @noinspection PhpUnused
+     */
     public static function install(): void
     {
         self::installOrUpdate();
     }
 
+    /**
+     * This function is used in scripts section of composer.json
+     *
+     * @noinspection PhpUnused
+     */
     public static function update(): void
     {
         self::installOrUpdate();
@@ -92,22 +107,33 @@ final class ComposeScripts
     {
         self::log('Preparing for compose install...');
 
-        self::copyComposeLockCurrentPhpVersionDev();
+        self::copyComposeLockCurrentPhpVersion('dev');
 
         self::log('Prepared for compose install');
     }
 
-    private static function copyComposeLockCurrentPhpVersionDev(): void
+    /**
+     * This method is used in scripts section of composer.json
+     *
+     * @noinspection PhpUnused
+     */
+    public static function prepareForInstallUsingGeneratedLockTests(): void
     {
-        self::log('Copying for composer\'s lock for the current PHP version (' . PHP_VERSION . ') to composer.lock');
+        self::log('Preparing for compose install...');
+
+        self::copyComposeLockCurrentPhpVersion('tests');
+
+        self::log('Prepared for compose install');
+    }
+
+    private static function copyComposeLockCurrentPhpVersion(string $envKind): void
+    {
+        self::log('Copying for composer\'s lock for the current PHP version (' . PHP_VERSION . ') and env kind (' . $envKind . ') to composer.lock');
 
         $repoRootPath = self::realFilePath(__DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..');
 
-        /**
-         * @see build_composer_lock_file_name_for_PHP_version() finction in tool/shared.sh
-         */
-        $srcFileName = 'composer_lock_' . PHP_MAJOR_VERSION . PHP_MINOR_VERSION . '_' . 'dev';
-        $srcFilePath = self::realFilePath($repoRootPath . DIRECTORY_SEPARATOR . $srcFileName);
+        $srcFileName = self::buildComposerLockFileNameForCurrentPhpVersion($envKind);
+        $srcFilePath = self::realFilePath($repoRootPath . DIRECTORY_SEPARATOR . self::COMPOSER_LOCK_FILES_DIR_NAME . DIRECTORY_SEPARATOR . $srcFileName);
         if (!file_exists($srcFilePath)) {
             throw new RuntimeException("File $srcFilePath does not exist");
         }
@@ -116,7 +142,15 @@ final class ComposeScripts
 
         self::copyFile($srcFilePath, $dstFilePath);
 
-        self::log('Copied for composer\'s lock for the current PHP version (' . PHP_VERSION . ') to composer.lock');
+        self::log('Copied for composer\'s lock for the current PHP version (' . PHP_VERSION . ') and env kind (' . $envKind . ') to composer.lock');
+    }
+
+    private static function buildComposerLockFileNameForCurrentPhpVersion(string $envKind): string
+    {
+        /**
+         * @see build_composer_lock_file_name_for_PHP_version() finction in tool/shared.sh
+         */
+        return $envKind . '_' . PHP_MAJOR_VERSION . PHP_MINOR_VERSION . '.lock';
     }
 
     private static function realFilePath(string $path): string
