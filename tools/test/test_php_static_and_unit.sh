@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-set -xe -o pipefail
+set -e -o pipefail
+#set -x
 
 show_help() {
     echo "Usage: $0 --php_versions <versions>"
@@ -47,14 +48,16 @@ main() {
     fi
 
     for PHP_VERSION in "${PHP_VERSIONS[@]}"; do
-        docker run --rm -v "${PWD}:/app" -w /app "php:${PHP_VERSION:0:1}.${PHP_VERSION:1:1}-cli" sh -c "\
-            cp -r ./prod/php/ ./prod_php_backup/ \
-            && apt-get update && apt-get install -y unzip \
-            && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
-            && composer --ignore-platform-req=ext-opentelemetry --ignore-platform-req=php install \
-            && composer run-script -- static_check_and_run_unit_tests \
-            && rm -rf ./vendor composer.lock ./prod/php \
-            && mv ./prod_php_backup ./prod/php \
+        docker run --rm \
+            -v "${PWD}:/repo_root:ro" \
+            -w "/" \
+            "php:${PHP_VERSION:0:1}.${PHP_VERSION:1:1}-cli" \
+            sh -c "\
+                mkdir -p /tmp/work_dir && cp -r /repo_root /tmp/work_dir/ && cd /tmp/work_dir/repo_root/ \
+                && apt-get update && apt-get install -y unzip \
+                && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
+                && composer run-script -- install-using-generated-lock-tests \
+                && composer run-script -- static_check_and_run_unit_tests \
             "
     done
 }

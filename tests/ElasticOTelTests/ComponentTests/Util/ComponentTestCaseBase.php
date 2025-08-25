@@ -25,6 +25,7 @@ namespace ElasticOTelTests\ComponentTests\Util;
 
 use Elastic\OTel\Log\LogLevel;
 use ElasticOTelTests\Util\AmbientContextForTests;
+use ElasticOTelTests\Util\ArrayUtilForTests;
 use ElasticOTelTests\Util\ClassNameUtil;
 use ElasticOTelTests\Util\Config\CompositeRawSnapshotSource;
 use ElasticOTelTests\Util\Config\ConfigSnapshotForProd;
@@ -285,14 +286,21 @@ class ComponentTestCaseBase extends TestCaseBase
             $initiallyFailedTestException = $ex;
         }
 
-        $logger = self::getLoggerStatic(__NAMESPACE__, __CLASS__, __FILE__)->addAllContext(compact('dbgTestDesc'));
+        $logger = self::getLoggerStatic(__NAMESPACE__, __CLASS__, __FILE__)->addAllContext(compact('dbgTestDesc', 'initiallyFailedTestException'));
         $loggerProxyOutsideIt = $logger->ifCriticalLevelEnabledNoLine(__FUNCTION__);
+
+        $loggerProxyOutsideIt && $loggerProxyOutsideIt->log(__LINE__, 'Test case code exited by exception');
+
         if ($this->testCaseHandle === null) {
             $loggerProxyOutsideIt && $loggerProxyOutsideIt->log(__LINE__, 'Test failed but $this->testCaseHandle is null - NOT re-running the test with escalated log levels');
             throw $initiallyFailedTestException;
         }
         $initiallyFailedTestLogLevels = $this->getCurrentLogLevels($this->testCaseHandle);
-        $logger->addAllContext(compact('initiallyFailedTestLogLevels', 'initiallyFailedTestException'));
+        if (ArrayUtilForTests::isEmpty($initiallyFailedTestLogLevels)) {
+            $loggerProxyOutsideIt && $loggerProxyOutsideIt->log(__LINE__, 'Test failed but not even one app code host has started successfully - NOT re-running the test with escalated log levels');
+            throw $initiallyFailedTestException;
+        }
+        $logger->addAllContext(compact('initiallyFailedTestLogLevels'));
         $loggerProxyOutsideIt && $loggerProxyOutsideIt->log(__LINE__, 'Test failed');
 
         $escalatedLogLevelsSeq = self::generateLevelsForRunAndEscalateLogLevelOnFailure($initiallyFailedTestLogLevels, AmbientContextForTests::testConfig()->escalatedRerunsMaxCount);
@@ -352,17 +360,13 @@ class ComponentTestCaseBase extends TestCaseBase
         /** @var array<string, LogLevel> $result */
         $result = [];
         $prodCodeLogLevels = $testCaseHandle->getProdCodeLogLevels();
-        Assert::assertNotEmpty($prodCodeLogLevels);
-        $result[self::LOG_LEVEL_FOR_PROD_CODE_KEY] = self::findLogLevelByValue(min(array_map(fn(LogLevel $logLevel) => $logLevel->value, $prodCodeLogLevels)));
+        if (ArrayUtilForTests::isEmpty($prodCodeLogLevels)) {
+            return [];
+        }
+        /** @var non-empty-list<LogLevel> $prodCodeLogLevels */
+        $result[self::LOG_LEVEL_FOR_PROD_CODE_KEY] = LogLevel::from(min(array_map(fn(LogLevel $logLevel) => $logLevel->value, $prodCodeLogLevels)));
         $result[self::LOG_LEVEL_FOR_TEST_CODE_KEY] = AmbientContextForTests::testConfig()->logLevel;
         return $result;
-    }
-
-    public static function findLogLevelByValue(int $logLevelValue): LogLevel
-    {
-        $logLevel = LogLevel::tryFrom($logLevelValue);
-        Assert::assertNotNull($logLevel);
-        return $logLevel;
     }
 
     /**
@@ -399,7 +403,7 @@ class ComponentTestCaseBase extends TestCaseBase
             /** @var array<string, LogLevel> $currentLevels */
             $currentLevels = [];
             foreach (self::LOG_LEVEL_FOR_CODE_KEYS as $levelTypeKey) {
-                $currentLevels[$levelTypeKey] = self::findLogLevelByValue($baseLevelAsInt);
+                $currentLevels[$levelTypeKey] = LogLevel::from($baseLevelAsInt);
             }
             yield $currentLevels;
 
@@ -408,11 +412,11 @@ class ComponentTestCaseBase extends TestCaseBase
                     if ($baseLevelAsInt < $initialLevels[$levelTypeKey]->value + $delta) {
                         continue;
                     }
-                    $currentLevels[$levelTypeKey] = self::findLogLevelByValue($baseLevelAsInt - $delta);
+                    $currentLevels[$levelTypeKey] = LogLevel::from($baseLevelAsInt - $delta);
                     if (!$haveCurrentLevelsReachedInitial($currentLevels)) {
                         yield $currentLevels;
                     }
-                    $currentLevels[$levelTypeKey] = self::findLogLevelByValue($baseLevelAsInt);
+                    $currentLevels[$levelTypeKey] = LogLevel::from($baseLevelAsInt);
                 }
             }
         }
