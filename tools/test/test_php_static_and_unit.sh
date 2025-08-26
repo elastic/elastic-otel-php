@@ -85,7 +85,7 @@ main() {
                 && rm -rf ./vendor/ ./prod/php/vendor_* \
                 && cp -f /composer_to_use.json ./composer.json \
                 && cp -f /composer_to_use.lock ./composer.lock \
-                && apk update && apk add bash git unzip \
+                && apk update && apk add bash git \
                 && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
                 && composer --check-lock --no-check-all validate \
                 && ELASTIC_OTEL_TOOLS_ALLOW_DIRECT_COMPOSER_COMMAND=true composer --no-interaction ${composer_additional_cmd_opts[*]} install \
