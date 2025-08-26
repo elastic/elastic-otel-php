@@ -130,7 +130,7 @@ final class ComposeScripts
 
     private static function copyComposeLockCurrentPhpVersion(string $envKind): void
     {
-        self::log('Copying for composer\'s lock for the current PHP version (' . PHP_VERSION . ') and env kind (' . $envKind . ') to composer.lock');
+        self::log('Copying composer\'s lock for env kind (' . $envKind . ') and the current PHP version (' . PHP_VERSION . ') to composer.lock');
 
         $repoRootPath = self::realFilePath(__DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..');
 
@@ -144,7 +144,7 @@ final class ComposeScripts
 
         self::copyFile($srcFilePath, $dstFilePath);
 
-        self::log('Copied for composer\'s lock for the current PHP version (' . PHP_VERSION . ') and env kind (' . $envKind . ') to composer.lock');
+        self::log('Copied composer\'s lock for env kind (' . $envKind . ') and the current PHP version (' . PHP_VERSION . ') to composer.lock');
     }
 
     private static function buildComposerLockFileNameForCurrentPhpVersion(string $envKind): string

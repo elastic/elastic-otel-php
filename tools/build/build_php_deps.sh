@@ -49,18 +49,6 @@ parse_args() {
     done
 }
 
-verify_composer_json_in_sync_with_dev_copy() {
-    local dev_copy_full_path="${elastic_otel_php_build_tools_composer_lock_files_dir:?}/${elastic_otel_php_build_tools_composer_json_for_dev_file_name:?}"
-
-    diff "${dev_copy_full_path}" "${repo_root_dir}/composer.json" &> /dev/null || has_compared_the_same="false"
-    if [ "${has_compared_the_same}" = "false" ]; then
-        echo "Diff between ${dev_copy_full_path} and ${repo_root_dir}/composer.json"
-        diff "${dev_copy_full_path}" "${repo_root_dir}/composer.json" || true
-        echo "It seems composer.json was changed after generate_composer_lock_files.sh was run - you need to re-run ./tools/build/generate_composer_lock_files.sh"
-        exit 1
-    fi
-}
-
 verify_otel_proto_version() {
     local vendor_dir="${1:?}"
 
@@ -187,10 +175,10 @@ main() {
             exit 1
         fi
 
-        local composer_cmd_to_adapt_config_platform_php_req=""
+        local composer_additional_cmd_opts=(--ignore-platform-req=ext-mysqli --ignore-platform-req=ext-pgsql --ignore-platform-req=ext-opentelemetry)
         if [[ "${PHP_version_no_dot}" = "81" ]]; then
-            echo 'Forcing composer to assume that PHP version is 8.2'
-            composer_cmd_to_adapt_config_platform_php_req="&& composer config --global platform.php 8.2"
+            echo 'Forcing composer to ignore actual PHP version'
+            composer_additional_cmd_opts+=(--ignore-platform-req=php)
         fi
 
         local vendor_dir="${PWD}/prod/php/vendor_${PHP_version_no_dot}"
@@ -198,8 +186,6 @@ main() {
 
         local PHP_docker_image
         PHP_docker_image=$(build_light_PHP_docker_image_name_for_version_no_dot "${PHP_version_no_dot}")
-
-        local composer_additional_cmd_opts="--ignore-platform-req=ext-mysqli --ignore-platform-req=ext-pgsql --ignore-platform-req=ext-opentelemetry"
 
         local composer_json_full_path="${elastic_otel_php_build_tools_composer_lock_files_dir:?}/${elastic_otel_php_build_tools_composer_json_for_prod_file_name:?}"
 
@@ -215,8 +201,8 @@ main() {
                 apk update && apk add bash git unzip \
                 && git config --global --add safe.directory /repo_root \
                 && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
-                ${composer_cmd_to_adapt_config_platform_php_req} \
-                && ELASTIC_OTEL_TOOLS_ALLOW_DIRECT_COMPOSER_COMMAND=true composer --no-dev --no-interaction ${composer_additional_cmd_opts} install \
+                && composer --check-lock --no-check-all validate \
+                && ELASTIC_OTEL_TOOLS_ALLOW_DIRECT_COMPOSER_COMMAND=true composer --no-dev --no-interaction ${composer_additional_cmd_opts[*]} install \
                 && chown -R ${current_user_id}:${current_user_group_id} /repo_root/vendor \
                 && chmod -R +r,u+w /repo_root/vendor \
                 ${GEN_NOTICE} \

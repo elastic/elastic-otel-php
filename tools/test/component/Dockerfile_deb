@@ -10,6 +10,7 @@ RUN apt-get -qq update \
         gnupg2 \
         git \
         libcurl4 libcurl4-openssl-dev \
+        libpq-dev \
         libsqlite3-dev \
         libzip-dev \
         logrotate \
@@ -20,10 +21,8 @@ RUN apt-get -qq update \
         zlib1g-dev
 
 RUN docker-php-ext-install \
-        curl \
         mysqli \
-        pdo_mysql \
-        pdo_sqlite \
+        pgsql \
         zip
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -31,4 +30,4 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 ADD . /repo_root
 WORKDIR /repo_root
 
-ENTRYPOINT /repo_root/tools/test/component/docker_entrypoint.sh
+ENTRYPOINT exec /repo_root/tools/test/component/docker_entrypoint.sh

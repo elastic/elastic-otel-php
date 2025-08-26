@@ -12,6 +12,7 @@ RUN apk update \
         libzip-dev \
         logrotate \
         perl-utils \
+        postgresql-dev \
         procps \
         rsyslog \
         sqlite-dev \
@@ -21,7 +22,7 @@ RUN apk update \
 RUN docker-php-ext-install \
         curl \
         mysqli \
-        pdo_mysql \
+        pgsql \
         pdo_sqlite \
         zip
 
@@ -30,4 +31,4 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 ADD . /repo_root
 WORKDIR /repo_root
 
-ENTRYPOINT /repo_root/tools/test/component/docker_entrypoint.sh
+ENTRYPOINT exec /repo_root/tools/test/component/docker_entrypoint.sh

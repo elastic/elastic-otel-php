@@ -219,140 +219,14 @@ build_light_PHP_docker_image_name_for_version_no_dot() {
     echo "php:${PHP_version_dot_separated}-cli-alpine"
 }
 
-build_command_to_derive_composer_json_for_prod() {
-    # Make some inconsequential change to composer.json just to make the one for dev different from the one for production.
-    # So that the hash codes are different and ComposerAutoloaderInit<composer.json hash code> classes defined in vendor/composer/autoload_real.php
-    # in the installed package and component tests vendor directories have different names.
-    # Note that even though it is `require_once __DIR__ . '/composer/autoload_real.php'` in vendor/autoload.php
-    # it does not prevent `Cannot redeclare class` error because those two autoload_real.php files are located in different directories
-    # require_once does not help.
+verify_composer_json_in_sync_with_dev_copy() {
+    local dev_copy_full_path="${elastic_otel_php_build_tools_composer_lock_files_dir:?}/${elastic_otel_php_build_tools_composer_json_for_dev_file_name:?}"
 
-    echo "composer --no-scripts --no-update --dev --quiet remove ext-mysqli"
-}
-
-should_remove_package_from_composer_json_for_tests() {
-    package_to_check="${1:?}"
-
-    local package_prefixes_to_remove_if_present=("open-telemetry/opentelemetry-auto-")
-    local packages_to_remove_if_present=("open-telemetry/exporter-otlp")
-    packages_to_remove_if_present+=("open-telemetry/sdk")
-    packages_to_remove_if_present+=("php-http/guzzle7-adapter")
-    packages_to_remove_if_present+=("nyholm/psr7-server")
-
-    for package_prefix_to_remove_if_present in "${package_prefixes_to_remove_if_present[@]}" ; do
-        if [[ "${package_to_check}" == "${package_prefix_to_remove_if_present}"* ]]; then
-            echo "true"
-            return
-        fi
-    done
-
-    for package_to_remove_if_present in "${packages_to_remove_if_present[@]}" ; do
-        if [[ "${package_to_check}" == "${package_to_remove_if_present}" ]]; then
-            echo "true"
-            return
-        fi
-    done
-
-    echo "false"
-}
-
-build_command_to_derive_composer_json_for_tests() {
-    # composer json for tests is used in PHPUnit and application code for component tests context
-    # so we would like to not have any dependencies that we don't use in tests code and that should be loaded by EDOT package
-    # such as open-telemetry/opentelemetry-auto-*, etc.
-    # We would like to make sure that those dependencies are loaded by EDOT package and not loaded from tests vendor
-
-    mapfile -t list_of_prod_packages_in_quotes< <(jq '."require" | keys | .[]' "${repo_root_dir}/composer.json")
-
-    local list_of_prod_packages=()
-    for prod_package_in_quotes in "${list_of_prod_packages_in_quotes[@]:?}" ; do
-        local prod_package="${prod_package_in_quotes%\"}"
-        prod_package="${prod_package#\"}"
-        list_of_prod_packages+=("${prod_package}")
-    done
-
-    local prod_packages_to_remove=()
-    for prod_package in "${list_of_prod_packages[@]:?}" ; do
-        should_remove=$(should_remove_package_from_composer_json_for_tests "${prod_package}")
-        if [ "${should_remove}" == "true" ] ; then
-            prod_packages_to_remove+=("${prod_package}")
-        fi
-    done
-
-    if [ ${#prod_packages_to_remove[@]} -eq 0 ]; then
-        echo "There should be at least one package to remove to generate composer json derived for tests"
+    diff "${dev_copy_full_path}" "${repo_root_dir}/composer.json" &> /dev/null || has_compared_the_same="false"
+    if [ "${has_compared_the_same}" = "false" ]; then
+        echo "Diff between ${dev_copy_full_path} and ${repo_root_dir}/composer.json"
+        diff "${dev_copy_full_path}" "${repo_root_dir}/composer.json" || true
+        echo "It seems composer.json was changed after generate_composer_lock_files.sh was run - you need to re-run ./tools/build/generate_composer_lock_files.sh"
         exit 1
     fi
-
-    echo "composer --no-scripts --no-update --quiet remove ${prod_packages_to_remove[*]}"
-}
-
-function build_command_to_derive_composer_json() {
-    local env_kind="${1:?}"
-
-    case ${env_kind} in
-        prod)
-            build_command_to_derive_composer_json_for_prod
-            ;;
-        tests)
-            build_command_to_derive_composer_json_for_tests
-            ;;
-        *)
-            echo "There is no way to generate derived composer json for environment kind ${env_kind}"
-            exit 1
-            ;;
-    esac
-}
-
-function build_derived_composer_json_full_path() {
-    local env_kind="${1:?}"
-    local result_dir_full_path="${2:?}"
-
-    local derived_composer_json_file_name
-    case ${env_kind} in
-        prod)
-            derived_composer_json_file_name="${elastic_otel_php_build_tools_composer_json_for_prod_file_name}"
-            ;;
-        tests)
-            derived_composer_json_file_name="${elastic_otel_php_build_tools_composer_json_for_tests_file_name}"
-            ;;
-        *)
-            echo "There is no way to generate derived composer json for environment kind ${env_kind}"
-            exit 1
-            ;;
-    esac
-
-    echo "${result_dir_full_path}/${derived_composer_json_file_name}"
-}
-
-function generate_derived_composer_json() {
-    local original_composer_json_copy_full_path="${1:?}"
-    local env_kind="${2:?}"
-    local derived_composer_json_full_path="${3:?}"
-
-    local command_to_derive
-    command_to_derive="$(build_command_to_derive_composer_json "${env_kind}")"
-
-    cp -f "${original_composer_json_copy_full_path}" "${derived_composer_json_full_path}"
-
-    local current_user_id
-    current_user_id="$(id -u)"
-    local current_user_group_id
-    current_user_group_id="$(id -g)"
-
-    local lowest_supported_php_version_no_dot
-    lowest_supported_php_version_no_dot=$(get_lowest_supported_php_version)
-    local PHP_docker_image
-    PHP_docker_image=$(build_light_PHP_docker_image_name_for_version_no_dot "${lowest_supported_php_version_no_dot}")
-
-    docker run --rm \
-        -v "${derived_composer_json_full_path}:/repo_root/composer.json" \
-        -w "/repo_root" \
-        "${PHP_docker_image}" \
-        sh -c "\
-            curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
-            && ${command_to_derive} \
-            && chown ${current_user_id}:${current_user_group_id} composer.json \
-            && chmod +r,u+w composer.json \
-        "
 }

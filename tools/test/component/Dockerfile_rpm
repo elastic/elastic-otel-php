@@ -27,11 +27,13 @@ RUN dnf -y module reset php \
 RUN dnf -y install \
                 composer \
                 curl \
+                git \
                 php-cli \
                 php-curl \
                 php-json \
                 php-mbstring \
                 php-mysqli \
+                php-pgsql \
                 php-pdo_sqlite \
                 php-xml \
                 php-zip \
@@ -40,4 +42,4 @@ RUN dnf -y install \
 ADD . /repo_root
 WORKDIR /repo_root
 
-ENTRYPOINT /repo_root/tools/test/component/docker_entrypoint.sh
+ENTRYPOINT exec /repo_root/tools/test/component/docker_entrypoint.sh
