@@ -25,19 +25,16 @@ RUN dnf -y module reset php \
         ; fi
 
 RUN dnf -y install \
-                composer \
-                curl \
-                git \
-                php-cli \
-                php-curl \
-                php-json \
-                php-mbstring \
-                php-mysqli \
-                php-pgsql \
-                php-pdo_sqlite \
-                php-xml \
-                php-zip \
-                procps
+        composer \
+        git \
+        php-cli \
+        php-curl \
+        php-json \
+        php-mbstring \
+        php-mysqli \
+        php-pgsql \
+        php-zip \
+        procps
 
 ADD . /repo_root
 WORKDIR /repo_root

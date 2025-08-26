@@ -4,26 +4,18 @@ FROM php:${PHP_VERSION}-cli-alpine
 RUN ls -1 /etc/*release | xargs -i sh -c 'echo {} && cat {}'
 
 RUN apk update \
-  && apk add \
+    && apk add \
         bash \
-        curl \
-        curl-dev \
         git \
-        libzip-dev \
         logrotate \
         perl-utils \
         postgresql-dev \
         procps \
-        rsyslog \
-        sqlite-dev \
-        unzip \
-        wget
+        rsyslog
 
 RUN docker-php-ext-install \
-        curl \
         mysqli \
         pgsql \
-        pdo_sqlite \
         zip
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer

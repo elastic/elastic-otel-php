@@ -87,7 +87,7 @@ verify_otlp_exporters() {
         sh -c \
         "\
             mkdir /used_as_base && cd /used_as_base \
-            && apk update && apk add bash git unzip \
+            && apk update && apk add bash git \
             && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
             && composer require ${php_impl_package_name}:${elastic_otel_php_native_otlp_exporters_based_on_php_impl_version:?} \
             && composer --no-dev install \
@@ -198,7 +198,7 @@ main() {
             -w "/repo_root" \
             "${PHP_docker_image}" \
             sh -c "\
-                apk update && apk add bash git unzip \
+                apk update && apk add bash git \
                 && git config --global --add safe.directory /repo_root \
                 && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
                 && composer --check-lock --no-check-all validate \

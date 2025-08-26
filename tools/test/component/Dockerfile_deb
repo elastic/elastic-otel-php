@@ -5,19 +5,13 @@ RUN ls -1 /etc/*release | xargs -i sh -c 'echo {} && cat {}'
 
 RUN apt-get -qq update \
     && apt-get -qq -y --no-install-recommends install \
-        curl \
-        gnupg \
-        gnupg2 \
         git \
-        libcurl4 libcurl4-openssl-dev \
         libpq-dev \
-        libsqlite3-dev \
         libzip-dev \
         logrotate \
         procps \
         rsyslog \
         unzip \
-        wget \
         zlib1g-dev
 
 RUN docker-php-ext-install \
