@@ -9,7 +9,7 @@ RUN apt-get -qq update \
         libpq-dev \
         logrotate \
         procps \
-        rsyslog \
+        rsyslog
 
 RUN docker-php-ext-install \
         mysqli \
