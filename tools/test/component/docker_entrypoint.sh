@@ -205,17 +205,11 @@ function main() {
     current_github_workflow_log_group_name="Installing PHP dependencies using composer"
     start_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
-    if [ -f /repo_root/composer.lock ]; then
-        rm -f /repo_root/composer.lock
-    fi
-
-    # Remove "open-telemetry/opentelemetry-auto-.*": lines from composer.json
-    cp /repo_root/composer.json /repo_root/composer.json.original
-    grep -v -E '"open-telemetry/opentelemetry-auto-.*":' /repo_root/composer.json.original > /repo_root/composer.json
-
-    cat /repo_root/composer.json
-
-    composer install
+    cp -f /composer_to_use.json ./composer.json
+    cp -f /composer_to_use.lock ./composer.lock
+    rm -rf ./vendor/ ./prod/php/vendor_*/
+    composer --check-lock --no-check-all validate
+    ELASTIC_OTEL_TOOLS_ALLOW_DIRECT_COMPOSER_COMMAND=true composer --no-interaction install
 
     end_github_workflow_log_group "${current_github_workflow_log_group_name}"
 

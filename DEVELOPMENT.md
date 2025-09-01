@@ -230,7 +230,42 @@ https://artifactory.elastic.dev/ui/repos/tree/General/apm-agent-php-dev
 and in "raw" format here:
 https://artifactory.elastic.dev/ui/native/apm-agent-php-dev/
 
-## Documentation
+# Managing PHP 3rd party dependencies
+This documentation section describes how to manage PHP 3rd party dependencies
+i.e., `vendor` directory, `composer.json` and `composer.lock`
+
+We would like to have reproducible builds, so we need to ensure that the same
+versions of dependencies are used for each build of the source code repository snapshot.
+To achieve this, we committed `composer.lock` files to version control.
+There are multiple `composer.lock` files - one for each supported major.minor PHP version. 
+
+## To install dependencies
+
+Run 
+```
+composer run-script -- install-using-generated-lock-dev
+```
+Instead of the usual `composer install`.
+This will copy composer's lock file for the current PHP version to `composer.lock`
+and run `composer install`
+(with `ELASTIC_OTEL_TOOLS_ALLOW_DIRECT_COMPOSER_COMMAND` environment variable set to `true` to avoid infinite loop).
+
+## To check which dependencies can be updated
+Run
+```
+composer outdated
+```
+
+## To update dependencies
+1) Update `composer.json` to the desired version of the dependency
+2) Run
+```
+./tools/build/generate_composer_lock_files.sh && composer run-script -- install-using-generated-lock-dev
+```
+instead of the usual `composer update`
+3) Commit the changes to the composer's lock files
+
+# Documentation
 
 The official documentation is available at:
 [https://www.elastic.co/docs/reference/opentelemetry/edot-sdks/php/index.html](https://www.elastic.co/docs/reference/opentelemetry/edot-sdks/php/index.html)

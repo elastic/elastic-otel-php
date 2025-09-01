@@ -4,30 +4,22 @@ FROM php:${PHP_VERSION}-cli-alpine
 RUN ls -1 /etc/*release | xargs -i sh -c 'echo {} && cat {}'
 
 RUN apk update \
-  && apk add \
+    && apk add \
         bash \
-        curl \
-        curl-dev \
         git \
-        libzip-dev \
         logrotate \
         perl-utils \
+        postgresql-dev \
         procps \
-        rsyslog \
-        sqlite-dev \
-        unzip \
-        wget
+        rsyslog
 
 RUN docker-php-ext-install \
-        curl \
         mysqli \
-        pdo_mysql \
-        pdo_sqlite \
-        zip
+        pgsql
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 ADD . /repo_root
 WORKDIR /repo_root
 
-ENTRYPOINT /repo_root/tools/test/component/docker_entrypoint.sh
+ENTRYPOINT exec /repo_root/tools/test/component/docker_entrypoint.sh

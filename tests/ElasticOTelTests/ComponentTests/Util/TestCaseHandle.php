@@ -155,7 +155,7 @@ final class TestCaseHandle implements LoggableInterface
     }
 
     /**
-     * @return array<LogLevel>
+     * @return list<LogLevel>
      */
     public function getProdCodeLogLevels(): array
     {

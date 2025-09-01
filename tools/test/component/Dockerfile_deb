@@ -5,30 +5,19 @@ RUN ls -1 /etc/*release | xargs -i sh -c 'echo {} && cat {}'
 
 RUN apt-get -qq update \
     && apt-get -qq -y --no-install-recommends install \
-        curl \
-        gnupg \
-        gnupg2 \
         git \
-        libcurl4 libcurl4-openssl-dev \
-        libsqlite3-dev \
-        libzip-dev \
+        libpq-dev \
         logrotate \
         procps \
-        rsyslog \
-        unzip \
-        wget \
-        zlib1g-dev
+        rsyslog
 
 RUN docker-php-ext-install \
-        curl \
         mysqli \
-        pdo_mysql \
-        pdo_sqlite \
-        zip
+        pgsql
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 ADD . /repo_root
 WORKDIR /repo_root
 
-ENTRYPOINT /repo_root/tools/test/component/docker_entrypoint.sh
+ENTRYPOINT exec /repo_root/tools/test/component/docker_entrypoint.sh
