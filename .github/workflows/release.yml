@@ -44,9 +44,9 @@ jobs:
       id-token: write
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Download package artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           pattern: packages-*
           path: ${{ env.BUILD_PACKAGES }}
@@ -58,7 +58,7 @@ jobs:
           popd
           ls -R ${{ env.BUILD_PACKAGES }}
       - name: generate build provenance
-        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be  # v2.4.0
+        uses: actions/attest-build-provenance@v3
         with:
           subject-path: "${{ github.workspace }}/${{ env.BUILD_PACKAGES }}/*"
 
@@ -138,8 +138,8 @@ jobs:
             echo "Please set GITHUB_TOKEN in the environment to perform a release"
             exit 1
           fi
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v5
         with:
           name: signed-artifacts
           path: ${{ env.BUILD_PACKAGES }}
