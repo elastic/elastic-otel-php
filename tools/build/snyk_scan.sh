@@ -72,6 +72,11 @@ main() {
             exit 1
         fi
 
+        if [[ -z "${SNYK_TOKEN}" ]]; then
+            echo "Error: SNYK_TOKEN is not set. Please provide your Snyk token via environment variable."
+            exit 1
+        fi
+
         docker run --rm \
             --env SNYK_TOKEN \
             -v "${composer_json_full_path}:/repo_root/composer.json:ro" \
