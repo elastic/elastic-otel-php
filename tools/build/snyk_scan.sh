@@ -79,7 +79,12 @@ main() {
             -v "${composer_json_full_path}:/repo_root/composer.json:ro" \
             -v "${composer_lock_full_path}:/repo_root/composer.lock:ro" \
             -w /repo_root \
-            snyk/snyk:php snyk monitor --org="a8dc6395-2bbd-4724-9d9b-8cc417ecdb52" --project-name="elastic-otel-php-PHP${PHP_version_dot_separated}-prod" || true
+            snyk/snyk:php snyk monitor --org="a8dc6395-2bbd-4724-9d9b-8cc417ecdb52" --project-name="elastic-otel-php-PHP${PHP_version_dot_separated}-prod"
+
+        if [ $? -ne 0 ]; then
+            echo "Snyk scan failed for PHP version ${PHP_version_no_dot}"
+            exit 1
+        fi
     done
 }
 
