@@ -72,8 +72,6 @@ main() {
             exit 1
         fi
 
-        export SNYK_TOKEN=${SNYK_API_KEY}
-
         docker run --rm \
             --env SNYK_TOKEN \
             -v "${composer_json_full_path}:/repo_root/composer.json:ro" \

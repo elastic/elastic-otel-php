@@ -16,6 +16,8 @@ jobs:
     timeout-minutes: 300
     strategy:
       fail-fast: false
+    env:
+      SNYK_TOKEN: ${{ secrets.SNYK_API_KEY }}
     steps:
       - uses: actions/checkout@v5
       - name: Scan for vulnerabilities with Snyk
