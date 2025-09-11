@@ -1,0 +1,26 @@
+---
+
+name: scan-snyk
+
+on:
+  workflow_call: ~
+  workflow_dispatch: ~
+
+permissions:
+  contents: read
+
+jobs:
+  scan-snyk:
+    name: scan-snyk
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v5
+      - name: Scan for vulnerabilities with Snyk
+        run: |
+          source ./tools/read_properties.sh
+          read_properties elastic-otel-php.properties PROJECT_PROPERTIES
+          PHP_VERSIONS=${PROJECT_PROPERTIES_SUPPORTED_PHP_VERSIONS//[()]/}
+          ./tools/build/snyk_scan.sh --php_versions "${PHP_VERSIONS}"
