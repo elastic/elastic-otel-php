@@ -3,13 +3,14 @@ set -e -o pipefail
 #set -x
 
 show_help() {
-    echo "Usage: $0 --php_versions <versions>"
+    echo "Usage: $0 --php_versions <versions> --snyk_token <token>"
     echo
     echo "Arguments:"
     echo "  --php_versions           Required. List of PHP versions separated by spaces (e.g., '81 82 83 84')."
+    echo "  --snyk_token             Required. Snyk API token."
     echo
     echo "Example:"
-    echo "  $0 --php_versions '81 82 83 84'"
+    echo "  $0 --php_versions '81 82 83 84' --snyk_token 'your_token_here'"
 }
 
 # Function to parse arguments
@@ -20,6 +21,10 @@ parse_args() {
             # SC2206: Quote to prevent word splitting/globbing, or split robustly with mapfile or read -a.
             # shellcheck disable=SC2206
             PHP_versions_no_dot=($2)
+            shift
+            ;;
+        --snyk_token)
+            SNYK_TOKEN="$2"
             shift
             ;;
         --help)

@@ -25,4 +25,4 @@ jobs:
           source ./tools/read_properties.sh
           read_properties elastic-otel-php.properties PROJECT_PROPERTIES
           PHP_VERSIONS=${PROJECT_PROPERTIES_SUPPORTED_PHP_VERSIONS//[()]/}
-          ./tools/build/snyk_scan.sh --php_versions "${PHP_VERSIONS}"
+          ./tools/build/snyk_scan.sh --php_versions "${PHP_VERSIONS}" --snyk_token "${SNYK_TOKEN}"
