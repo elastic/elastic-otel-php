@@ -60,6 +60,12 @@ main() {
         exit 1
     fi
 
+    if [[ -z "${SNYK_TOKEN}" ]]; then
+        echo "Error: Missing Styk token required argument."
+        show_help
+        exit 1
+    fi
+
     for PHP_version_no_dot in "${PHP_versions_no_dot[@]}"; do
         echo "Scanning PHP dependencies for PHP version ${PHP_version_no_dot} ..."
 
@@ -77,10 +83,7 @@ main() {
             exit 1
         fi
 
-        if [[ -z "${SNYK_TOKEN}" ]]; then
-            echo "Error: SNYK_TOKEN is not set. Please provide your Snyk token via environment variable."
-            exit 1
-        fi
+
 
         docker run --rm \
             --env SNYK_TOKEN \
