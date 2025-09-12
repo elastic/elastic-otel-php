@@ -32,7 +32,6 @@ jobs:
   scan-snyk:
     uses: ./.github/workflows/scan-snyk.yml
     secrets: inherit
-    if: ${{ secrets.SNYK_API_KEY != '' }}
 
   build-native:
     uses: ./.github/workflows/build-native.yml

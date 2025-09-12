@@ -19,6 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Scan for vulnerabilities with Snyk
+        if: env.SNYK_TOKEN != ''
         run: |
           source ./tools/read_properties.sh
           read_properties elastic-otel-php.properties PROJECT_PROPERTIES
