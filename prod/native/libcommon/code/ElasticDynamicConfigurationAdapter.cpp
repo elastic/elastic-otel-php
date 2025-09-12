@@ -18,7 +18,8 @@
  */
 
 #include "ElasticDynamicConfigurationAdapter.h"
-
+#include "basic_macros.h"
+#include "ConfigurationSnapshot.h"
 #include <nlohmann/json.hpp>
 
 namespace opentelemetry::php::config {
@@ -84,9 +85,18 @@ ElasticDynamicConfigurationAdapter::optionsMap_t ElasticDynamicConfigurationAdap
                 loglevel = opt.second; // log level parser with emit warning
             }
 
-            result["log_level"s] = loglevel;
+            result[EL_STRINGIFY(ELASTIC_OTEL_LOG_LEVEL)] = loglevel;
+        }
+
+        if (opt.first == "infer_spans") {
+            if (opt.second == "true"s) {
+                result[EL_STRINGIFY(ELASTIC_OTEL_INFERRED_SPANS_ENABLED)] = "true"s;
+            } else if (opt.second == "false"s) {
+                result[EL_STRINGIFY(ELASTIC_OTEL_INFERRED_SPANS_ENABLED)] = "false"s;
+            }
         }
     }
+
     return result;
 }
 
