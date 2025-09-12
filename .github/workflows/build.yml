@@ -31,6 +31,7 @@ jobs:
 
   scan-snyk:
     uses: ./.github/workflows/scan-snyk.yml
+    secrets: inherit
 
   build-native:
     uses: ./.github/workflows/build-native.yml
