@@ -67,7 +67,10 @@ main() {
     fi
 
     for PHP_version_no_dot in "${PHP_versions_no_dot[@]}"; do
-        echo "Scanning PHP dependencies for PHP version ${PHP_version_no_dot} ..."
+        local PHP_version_dot_separated
+        PHP_version_dot_separated=$(convert_no_dot_to_dot_separated_version "${PHP_version_no_dot}")
+
+        echo "Scanning PHP dependencies for PHP version ${PHP_version_dot_separated} ..."
 
         local composer_lock_file_name
         composer_lock_file_name="$(build_composer_lock_file_name_for_PHP_version "prod" "${PHP_version_no_dot}")"
