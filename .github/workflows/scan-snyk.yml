@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Scan for vulnerabilities with Snyk
-        if: env.SNYK_TOKEN != ''
+        if: github.event_name != 'pull_request' || ( github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false && github.actor != 'dependabot[bot]' )
         run: |
           source ./tools/read_properties.sh
           read_properties elastic-otel-php.properties PROJECT_PROPERTIES
