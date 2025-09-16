@@ -6,7 +6,7 @@ cross_links:
   - apm-agent-php
 toc:
   - toc: release-notes
-  - toc: reference
+  - toc: reference/edot-php
 subs:
   motlp: Elastic Cloud Managed OTLP Endpoint
   edot: Elastic Distribution of OpenTelemetry

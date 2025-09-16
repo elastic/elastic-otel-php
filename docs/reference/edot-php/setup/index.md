@@ -33,11 +33,11 @@ Avoid using the PHP SDK alongside any other APM agent, including Elastic APM age
 
 ### Operating system and PHP version
 
-Refer to [Supported technologies](/reference/supported-technologies.md) for details about currently supported operating systems and PHP versions.
+Refer to [Supported technologies](/reference/edot-php/supported-technologies.md) for details about currently supported operating systems and PHP versions.
 
 ### Limitations
 
-Refer to [Limitations](/reference/setup/limitations.md) to learn about the limitations of EDOT PHP.
+Refer to [Limitations](/reference/edot-php/setup/limitations.md) to learn about the limitations of EDOT PHP.
 
 ## Download and install packages
 
