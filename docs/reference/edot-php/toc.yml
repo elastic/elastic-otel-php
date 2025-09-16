@@ -9,3 +9,5 @@ toc:
       - file: overhead.md
       - title: Troubleshooting
         crosslink: docs-content://troubleshoot/ingest/opentelemetry/edot-sdks/php/index.md
+      - title: Release notes
+        crosslink: elastic-otel-php://release-notes/index.md
