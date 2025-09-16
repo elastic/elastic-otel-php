@@ -80,3 +80,7 @@ phpstan.neon
 *.exe
 *.out
 *.app
+
+# Docs
+.artifacts
+docs/.artifacts
