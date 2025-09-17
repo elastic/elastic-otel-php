@@ -4,6 +4,7 @@ cross_links:
   - opentelemetry
   - elastic-agent
   - apm-agent-php
+  - elastic-otel-php
 toc:
   - toc: release-notes
   - toc: reference/edot-php
