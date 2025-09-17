@@ -4,7 +4,7 @@ FROM php:${PHP_VERSION}-cli
 USER root
 
 RUN apt-get update && apt-get install -y \
-        jq git unzip tar
+        jq git unzip tar libpq-dev
 
 ADD https://getcomposer.org/installer composer-setup.php
 
