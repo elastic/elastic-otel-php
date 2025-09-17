@@ -13,6 +13,6 @@ RUN php composer-setup.php --quiet --install-dir="/usr/local/bin" --filename="co
         && rm composer-setup.php
 
 RUN docker-php-ext-configure mysqli \
-        && docker-php-ext-install -j$(nproc) mysqli
+        && docker-php-ext-install -j$(nproc) mysqli pgsql
 
 USER php
