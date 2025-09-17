@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 set -e -o pipefail
-#set -x
 
 show_help() {
     echo "Usage: $0 --php_versions <versions> --snyk_token <token>"
@@ -55,17 +54,18 @@ main() {
     # SC2128: Expanding an array without an index only gives the first element.
     # shellcheck disable=SC2128
     if [[ -z "${PHP_versions_no_dot}" ]]; then
-        echo "Error: Missing required arguments."
+        echo "::error Missing required arguments."
         show_help
         exit 1
     fi
 
     if [[ -z "${SNYK_TOKEN}" ]]; then
-        echo "Error: Missing Styk token required argument."
+        echo "::error Missing Styk token required argument."
         show_help
         exit 1
     fi
 
+    failed_versions=()
     for PHP_version_no_dot in "${PHP_versions_no_dot[@]}"; do
         local PHP_version_dot_separated
         PHP_version_dot_separated=$(convert_no_dot_to_dot_separated_version "${PHP_version_no_dot}")
@@ -78,28 +78,35 @@ main() {
         local composer_json_full_path="${elastic_otel_php_build_tools_composer_lock_files_dir:?}/${elastic_otel_php_build_tools_composer_json_for_prod_file_name:?}"
 
         if [ ! -f "${composer_lock_full_path}" ]; then
-            echo "Error: Composer lock file not found at ${composer_lock_full_path}"
-            exit 1
+            echo "::error Composer lock file not found at ${composer_lock_full_path}"
+            failed_versions+=("${PHP_version_dot_separated}")
+            continue
         fi
         if [ ! -f "${composer_json_full_path}" ]; then
-            echo "Error: Composer JSON file not found at ${composer_json_full_path}"
-            exit 1
+            echo "::error Composer JSON file not found at ${composer_json_full_path}"
+            failed_versions+=("${PHP_version_dot_separated}")
+            continue
         fi
 
-
-
+        set +e
         docker run --rm \
             --env SNYK_TOKEN \
             -v "${composer_json_full_path}:/repo_root/composer.json:ro" \
             -v "${composer_lock_full_path}:/repo_root/composer.lock:ro" \
             -w /repo_root \
             snyk/snyk:php snyk monitor --org="a8dc6395-2bbd-4724-9d9b-8cc417ecdb52" --project-name="elastic-otel-php-PHP${PHP_version_dot_separated}-prod"
+        set -e
 
         if [ $? -ne 0 ]; then
-            echo "Snyk scan failed for PHP version ${PHP_version_no_dot}"
-            exit 1
+            echo "::error Snyk scan failed for PHP version ${PHP_version_dot_separated}"
+            failed_versions+=("${PHP_version_dot_separated}")
         fi
     done
+
+    if [ ${#failed_versions[@]} -ne 0 ]; then
+        echo "::error Snyk scan failed for the following PHP versions: ${failed_versions[*]}"
+        exit 1
+    fi
 }
 
 main "$@"
