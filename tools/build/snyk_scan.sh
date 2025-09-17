@@ -70,7 +70,7 @@ main() {
         local PHP_version_dot_separated
         PHP_version_dot_separated=$(convert_no_dot_to_dot_separated_version "${PHP_version_no_dot}")
 
-        echo "Scanning PHP dependencies for PHP version ${PHP_version_dot_separated} ..."
+        echo "::group::Scanning PHP dependencies for PHP version ${PHP_version_dot_separated} ..."
 
         local composer_lock_file_name
         composer_lock_file_name="$(build_composer_lock_file_name_for_PHP_version "prod" "${PHP_version_no_dot}")"
@@ -89,18 +89,34 @@ main() {
         fi
 
         set +e
+        export SNYK_TOKEN=$SNYK_TOKEN
         docker run --rm \
             --env SNYK_TOKEN \
             -v "${composer_json_full_path}:/repo_root/composer.json:ro" \
             -v "${composer_lock_full_path}:/repo_root/composer.lock:ro" \
             -w /repo_root \
             snyk/snyk:php snyk monitor --org="a8dc6395-2bbd-4724-9d9b-8cc417ecdb52" --project-name="elastic-otel-php-PHP${PHP_version_dot_separated}-prod"
-        set -e
 
         if [ $? -ne 0 ]; then
-            echo "::error Snyk scan failed for PHP version ${PHP_version_dot_separated}"
+            echo "::error Snyk monitor failed for PHP version ${PHP_version_dot_separated}. Rerun the scan again to see the error still exits."
             failed_versions+=("${PHP_version_dot_separated}")
         fi
+
+        export SNYK_TOKEN=$SNYK_TOKEN
+        docker run --rm \
+            --env SNYK_TOKEN \
+            -v "${composer_json_full_path}:/repo_root/composer.json:ro" \
+            -v "${composer_lock_full_path}:/repo_root/composer.lock:ro" \
+            -w /repo_root \
+            snyk/snyk:php snyk test
+
+        if [ $? -ne 0 ]; then
+            echo "::error Snyk scan failed for PHP version ${PHP_version_dot_separated}. At least one vulnerable dependency found."
+            failed_versions+=("${PHP_version_dot_separated}")
+        fi
+
+        echo "::endgroup::"
+        set -e
     done
 
     if [ ${#failed_versions[@]} -ne 0 ]; then
