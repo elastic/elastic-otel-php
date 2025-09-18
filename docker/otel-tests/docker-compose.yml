@@ -17,6 +17,7 @@ services:
       MONGODB_HOST: ${MONGODB_HOST:-mongodb}
       MONGODB_PORT: ${MONGODB_PORT:-27017}
       MYSQL_HOST: ${MYSQL_HOST:-mysql}
+      POSTGRESQL_HOST: ${POSTGRESQL_HOST:-postgresql}
 
   zipkin:
     image: openzipkin/zipkin-slim
