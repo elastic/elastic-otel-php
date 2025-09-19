@@ -13,7 +13,7 @@ products:
   - id: edot-sdk
 ---
 
-# Performance overhead of the EDOT SDK for PHP
+# Performance overhead for PHP in Elastic OpenTelemetry SDK
 
 This documentation outlines the performance implications of using the Elastic Distribution of OpenTelemetry SDK in PHP applications, and provides strategies to minimize overhead.
 
