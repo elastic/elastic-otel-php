@@ -73,7 +73,7 @@ for PHP_VERSION in "${PHP_VERSIONS[@]}"; do
     echo "::endgroup::"
 
     echo "::group::Starting dependency containers"
-    docker compose -f ${COMPOSE_FILE} up --force-recreate -d mysql
+    docker compose -f ${COMPOSE_FILE} up --force-recreate -d mysql postgresql
     echo "::endgroup::"
 
     VOLUMES=" -v ${PWD}:/source -v $(realpath ${RESULTS_PATH}):/results"
