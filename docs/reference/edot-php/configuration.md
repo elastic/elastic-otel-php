@@ -140,6 +140,16 @@ The following settings control Central configuration management through OpAMP.
 | ELASTIC_OTEL_OPAMP_SEND_MAX_RETRIES   | 3                              | Integer ≥ 0                                                                                   | Maximum number of retry attempts for failed message sends.                                                                                                                  |
 | ELASTIC_OTEL_OPAMP_SEND_RETRY_DELAY   | 10s                            | Integer number with time duration. Optional units: ms (default), s, m. It can't be set to 0. | Time to wait between retries of failed sends.                                                                                                                                |
 
+##### Central configuration settings
+
+You can modify the following settings for EDOT PHP through APM Agent Central Configuration
+
+| Setting       | Central configuration name | Type    |
+| ------------- | -------------------------- | ------- |
+| Logging level | logging_level              | Dynamic |
+
+Dynamic settings can be changed without having to restart the application/webserver process.
+
 ## Prevent logs export
 
 To prevent logs from being exported, set `OTEL_LOGS_EXPORTER` to `none`. However, application logs might still be gathered and exported by the Collector through the `filelog` receiver.
