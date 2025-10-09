@@ -144,7 +144,7 @@ You can modify the following settings for EDOT PHP through APM Agent Central Con
 
 | Setting       | Central configuration name | Type    | Versions |
 | ------------- | -------------------------- | ------- | -------- |
-| Logging level | logging_level              | Dynamic | {applies_to}`stack: preview 9.1, edot_php: preview 1.1.0` |
+| Logging level | logging_level              | Dynamic | {applies_to}`stack: preview 9.1` {applies_to}`edot_php: preview 1.1.0` |
 
 Dynamic settings can be changed without having to restart the application or webserver process.
 
