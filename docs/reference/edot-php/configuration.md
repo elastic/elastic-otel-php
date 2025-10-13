@@ -15,6 +15,11 @@ products:
 
 Learn how to configure the {{edot}} PHP (EDOT PHP) to send data to Elastic.
 
+Because the {{edot}} PHP is an extension of the OpenTelemetry PHP SDK, it supports:
+
+* [OpenTelemetry configuration options](#opentelemetry-configuration-options)
+* [Configuration options only available in EDOT PHP](#options-only-available-in-edot-php)
+
 ## Configuration method
 
 You can configure the OpenTelemetry SDK through the mechanisms [documented on the OpenTelemetry website](https://opentelemetry.io/docs/zero-code/php#configuration). EDOT PHP is typically configured with `OTEL_*` environment variables defined by the OpenTelemetry spec. For example:
@@ -23,14 +28,7 @@ You can configure the OpenTelemetry SDK through the mechanisms [documented on th
 export OTEL_EXPORTER_OTLP_ENDPOINT="https://********.cloud.es.io:443/"
 ```
 
-## Configuration options
-
-Because the {{edot}} PHP is an extension of the OpenTelemetry PHP SDK, it supports:
-
-* [OpenTelemetry configuration options](#opentelemetry-configuration-options)
-* [Configuration options only available in EDOT PHP](#options-only-available-in-edot-php)
-
-### OpenTelemetry configuration options
+## OpenTelemetry configuration options
 
 EDOT PHP supports all configuration options listed in the [OpenTelemetry General SDK Configuration documentation](https://opentelemetry.io/docs/languages/sdk-configuration/general/) and [OpenTelemetry PHP SDK](https://opentelemetry.io/docs/languages/php).
 
@@ -48,7 +46,7 @@ The most important OpenTelemetry options you should be aware of include:
 
 For full configuration options of PHP SDK, see the official [OpenTelemetry PHP SDK Configuration documentation](https://opentelemetry.io/docs/languages/php/sdk/#configuration).
 
-### Special considerations
+## Special considerations
 
 EDOT PHP supports background data transmission (non-blocking export), but only when the exporter is set to `http/protobuf` (OTLP over HTTP), which is the default configuration.
 If you change the exporter or the transport protocol, for example to gRPC or another format, telemetry data will be sent synchronously, potentially impacting request latency.
@@ -56,7 +54,7 @@ If you change the exporter or the transport protocol, for example to gRPC or ano
 EDOT PHP also sets the `OTEL_PHP_AUTOLOAD_ENABLED` option to `true` by default. This turns on automatic instrumentation without requiring any changes to your application code.
 Modifying this option will have no effect: EDOT will override it and enforce it as `true`.
 
-### Options only available in EDOT PHP
+## Options only available in EDOT PHP
 
 In addition to general OpenTelemetry configuration options, there are two kinds of configuration options that are only available in EDOT PHP.
 
@@ -82,14 +80,14 @@ elastic_otel.enabled=true
 
 `ELASTIC_OTEL_` options that are specific to Elastic and always live in EDOT PHP, meaning they will not be added to upstream, include the following.
 
-#### General configuration
+### General configuration
 
 | Option(s)            | Default | Accepted values | Description                                                 |
 | -------------------- | ------- | --------------- | ----------------------------------------------------------- |
 | ELASTIC_OTEL_ENABLED | `true`    | `true` or `false`   | Enables the automatic bootstrapping of instrumentation code |
 | ELASTIC_OTEL_NATIVE_OTLP_SERIALIZER_ENABLED   | `true`    | `true` or `false`   | Enables the native built-in OTLP Protobuf serializer for maximum performance |
 
-#### Asynchronous data sending configuration
+### Asynchronous data sending configuration
 
 | Option(s)                                     | Default | Accepted values                                                                                         | Description                                                                                                                          |
 | --------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
@@ -98,7 +96,7 @@ elastic_otel.enabled=true
 | ELASTIC_OTEL_MAX_SEND_QUEUE_SIZE              | `2MB`     | integer number with optional units: `B`, `MB` or `GB`                                                         | Set the maximum buffer size for asynchronous (background) transfer. It is set per worker process.                                    |
 | ELASTIC_OTEL_VERIFY_SERVER_CERT               | `true`    | `true` or `false`                                                                                           | Enables server certificate verification for asynchronous sending                                                                     |
 
-#### Logging configuration
+### Logging configuration
 
 | Option(s)                     | Default | Accepted values                                                                                                                               | Description                                                                                                                                                                                                                                                                                                                      |
 | ----------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -108,7 +106,7 @@ elastic_otel.enabled=true
 | ELASTIC_OTEL_LOG_LEVEL_SYSLOG | `OFF`     | `OFF`, `CRITICAL`, `ERROR`, `WARNING`, `INFO`, `DEBUG`, `TRACE`                                                                                             | Log level for file sink. Set to OFF if you don't want to log to file. This sink is recommended when you don't have write access to file system.                                                                                                                                                                                  |
 | ELASTIC_OTEL_LOG_FEATURES     |         | Comma separated string with `FEATURE=LEVEL` pairs.<br>Supported features:<br>`ALL`, `MODULE`, `REQUEST`, `TRANSPORT`, `BOOTSTRAP`, `HOOKS`, `INSTRUMENTATION` | Allows selective setting of log level for features. For example, "ALL=info,TRANSPORT=trace" will result in all other features logging at the info level, while the `TRANSPORT` feature logs at the trace level. It should be noted that the appropriate log level must be set for the sink. In the previous example, this would be `TRACE`. |
 
-#### Transaction span configuration
+### Transaction span configuration
 
 | Option(s)                                 | Default         | Accepted values                              | Description                                                                                                                                                                    |
 | ----------------------------------------- | --------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -117,7 +115,7 @@ elastic_otel.enabled=true
 | ELASTIC_OTEL_TRANSACTION_URL_GROUPS       |                 | Comma-separated list of wildcard expressions | Allows grouping multiple URL paths using wildcard expressions, such as `/user/*`. For example, `/user/Alice` and `/user/Bob` will be mapped to the transaction name `/user/*`. |
 | <option>                                  | <default value> | <description>                                |
 
-#### Inferred spans configuration
+### Inferred spans configuration
 
 | Option(s)                                      | Default | Accepted values                                                                                 | Description                                                                                                                                                                                                                                                                                                                                |
 | ---------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -127,7 +125,7 @@ elastic_otel.enabled=true
 | ELASTIC_OTEL_INFERRED_SPANS_SAMPLING_INTERVAL  | 50ms    | Integer number with time duration. Optional units: ms (default), s, m. It can't be set to 0.   | The frequency at which stack traces are gathered within a profiling session. The lower you set it, the more accurate the durations will be. This comes at the expense of higher overhead and more spans for potentially irrelevant operations. The minimal duration of a profiling-inferred span is the same as the value of this setting. |
 | ELASTIC_OTEL_INFERRED_SPANS_MIN_DURATION       | 0       | Integer number with time duration. Optional units: ms (default), s, m. _Disabled if set to 0_. | The minimum duration of an inferred span. Note that the min duration is also implicitly set by the sampling interval. However, increasing the sampling interval also decreases the accuracy of the duration of inferred spans.                                                                                                             |
 
-#### Central configuration
+### Central configuration
 
 The following settings control Central configuration management through OpAMP.
 
@@ -139,6 +137,16 @@ The following settings control Central configuration management through OpAMP.
 | ELASTIC_OTEL_OPAMP_SEND_TIMEOUT       | 10s                            | Integer number with time duration. Optional units: ms (default), s, m. It can't be set to 0. | Timeout duration for sending messages to the OpAMP server.                                                                                                                   |
 | ELASTIC_OTEL_OPAMP_SEND_MAX_RETRIES   | 3                              | Integer ≥ 0                                                                                   | Maximum number of retry attempts for failed message sends.                                                                                                                  |
 | ELASTIC_OTEL_OPAMP_SEND_RETRY_DELAY   | 10s                            | Integer number with time duration. Optional units: ms (default), s, m. It can't be set to 0. | Time to wait between retries of failed sends.                                                                                                                                |
+
+#### Central configuration settings
+
+You can modify the following settings for EDOT PHP through APM Agent Central Configuration
+
+| Setting       | Central configuration name | Type    | Versions |
+| ------------- | -------------------------- | ------- | -------- |
+| Logging level | logging_level              | Dynamic | {applies_to}`stack: preview 9.1` {applies_to}`edot_php: preview 1.1.0` |
+
+Dynamic settings can be changed without having to restart the application or webserver process.
 
 ## Prevent logs export
 
