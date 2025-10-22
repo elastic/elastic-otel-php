@@ -129,7 +129,7 @@ final class CurlAutoInstrumentationTest extends ComponentTestCaseBase
         $enableCurlInstrumentationForClient = $appCodeArgs->getBool(self::ENABLE_CURL_INSTRUMENTATION_FOR_CLIENT_KEY);
         if ($enableCurlInstrumentationForClient) {
             self::assertTrue(class_exists(CurlInstrumentation::class, autoload: false));
-            self::assertSame(CurlInstrumentation::NAME, self::AUTO_INSTRUMENTATION_NAME);
+            self::assertSame(CurlInstrumentation::NAME, self::AUTO_INSTRUMENTATION_NAME); // @phpstan-ignore staticMethod.alreadyNarrowedType
         }
 
         $requestParams = $appCodeArgs->getObject(self::HTTP_APP_CODE_REQUEST_PARAMS_FOR_SERVER_KEY, HttpAppCodeRequestParams::class);

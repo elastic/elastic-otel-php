@@ -76,9 +76,7 @@ final class SpanAttributes implements ArrayReadInterface, Countable, LoggableInt
                 return null;
             }
             $result = [];
-            // Google\Protobuf\Internal\RepeatedField is deprecated, and Google\Protobuf\RepeatedField is used instead.
-            // Google\Protobuf\RepeatedField implements IteratorAggregate so it's iterable.
-            foreach ($arrayValue->getValues() as $repeatedFieldSubValue) { // @phpstan-ignore foreach.nonIterable
+            foreach ($arrayValue->getValues() as $repeatedFieldSubValue) {
                 $result[] = $repeatedFieldSubValue;
             }
             return $result;
@@ -110,9 +108,7 @@ final class SpanAttributes implements ArrayReadInterface, Countable, LoggableInt
                 return null;
             }
             $result = [];
-            // Google\Protobuf\Internal\RepeatedField is deprecated, and Google\Protobuf\RepeatedField is used instead.
-            // Google\Protobuf\RepeatedField implements IteratorAggregate so it's iterable.
-            foreach ($kvListValue->getValues() as $repeatedFieldSubKey => $repeatedFieldSubValue) { // @phpstan-ignore foreach.nonIterable
+            foreach ($kvListValue->getValues() as $repeatedFieldSubKey => $repeatedFieldSubValue) {
                 Assert::assertTrue(is_int($repeatedFieldSubKey) || is_string($repeatedFieldSubKey));
                 Assert::assertArrayNotHasKey($repeatedFieldSubKey, $result);
                 $result[$repeatedFieldSubKey] = $repeatedFieldSubValue;
