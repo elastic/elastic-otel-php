@@ -43,9 +43,9 @@ final class ArrayUtilForTests
     }
 
     /**
-     * @template T
-     * @param    T[] $array
-     * @return   T
+     * @template       T
+     * @param          T[] $array
+     * @phpstan-return T
      */
     public static function getFirstValue(array $array): mixed
     {
@@ -53,9 +53,9 @@ final class ArrayUtilForTests
     }
 
     /**
-     * @template T
-     * @param    T[] $array
-     * @return   T
+     * @template       T
+     * @param          T[] $array
+     * @phpstan-return T
      */
     public static function getSingleValue(array $array): mixed
     {
@@ -324,5 +324,13 @@ final class ArrayUtilForTests
     public static function isValidIndexOf(int $index, array|Countable $container): bool
     {
         return RangeUtil::isValidIndexOfCountable($index, count($container));
+    }
+
+    /**
+     * @phpstan-assert-if-true array-key $x
+     */
+    public static function isOfArrayKeyType(mixed $x): bool
+    {
+        return is_int($x) || is_string($x);
     }
 }

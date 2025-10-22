@@ -38,7 +38,7 @@ final class AssertEx
 {
     use StaticClassTrait;
 
-    /** 10 milliseconds (10000 microseconds) precision */
+    /** 10 milliseconds (10,000 microseconds) precision */
     public const TIMESTAMP_COMPARISON_PRECISION_MICROSECONDS = 10000;
 
     /** @noinspection PhpUnused */
@@ -81,8 +81,8 @@ final class AssertEx
      * @template TKey of array-key
      * @template TValue
      *
-     * @phpstan-param TKey                                          $expectedKey
-     * @phpstan-param TValue                                        $expectedValue
+     * @phpstan-param TKey $expectedKey
+     * @phpstan-param TValue $expectedValue
      * @phpstan-param array<TKey, TValue>|ArrayAccess<TKey, TValue> $actualArray
      */
     public static function arrayHasKeyWithSameValue(string|int $expectedKey, mixed $expectedValue, array|ArrayAccess $actualArray, string $message = ''): void
@@ -95,8 +95,8 @@ final class AssertEx
      * @template TKey of array-key
      * @template TValue
      *
-     * @phpstan-param TKey                                          $expectedKey
-     * @phpstan-param TValue                                        $expectedValue
+     * @phpstan-param TKey $expectedKey
+     * @phpstan-param TValue $expectedValue
      * @phpstan-param array<TKey, TValue>|ArrayAccess<TKey, TValue> $actualArray
      *
      * @noinspection PhpUnused
@@ -112,7 +112,7 @@ final class AssertEx
      *
      * @param ?T $actual
      *
-     * @return T
+     * @phpstan-return T
      */
     public static function notNull(mixed $actual, string $message = ''): mixed
     {
@@ -125,7 +125,7 @@ final class AssertEx
      *
      * @param T $actual
      *
-     * @return T
+     * @phpstan-return T
      *
      * @phpstan-assert !empty $actual
      */
@@ -156,6 +156,8 @@ final class AssertEx
     }
 
     /**
+     * @noinspection PhpUnused
+     *
      * @return non-empty-string
      */
     public static function isNonEmptyString(mixed $actual, string $message = ''): string
@@ -255,10 +257,10 @@ final class AssertEx
 
     /**
      * Asserts that the callable throws a specified throwable.
-     * If successful and the inspection callable is not null
+     * If successful and the $inspect is not null,
      * then it is called and the caught exception is passed as argument.
      *
-     * @param callable(): mixed          $execute
+     * @param callable(): mixed $execute
      * @param ?callable(Throwable): void $inspect
      */
     public static function throws(string $class, callable $execute, string $message = '', ?callable $inspect = null): void
@@ -304,7 +306,6 @@ final class AssertEx
         Assert::assertTrue(array_is_list($actual));
     }
 
-    /** @noinspection PhpUnused */
     public static function sameEx(mixed $expected, mixed $actual, string $message = ''): void
     {
         $isNumeric = function (mixed $value): bool {
@@ -318,6 +319,19 @@ final class AssertEx
         } else {
             Assert::assertSame($expected, $actual, $message);
         }
+    }
+
+    /**
+     * @template T of int|string
+     *
+     * @phpstan-param T $expected
+     * @phpstan-param T $actual
+     *
+     * @noinspection PhpUnusedParameterInspection
+     */
+    public static function sameConstValues(int|string $expected, int|string $actual, string $message = ''): void
+    {
+        self::sameEx($expected, $actual);
     }
 
     /**
@@ -511,5 +525,16 @@ final class AssertEx
     public static function isValidIndexOf(int $index, array|Countable $container): void
     {
         Assert::assertTrue(RangeUtil::isValidIndexOfCountable($index, count($container)));
+    }
+
+    /**
+     * @phpstan-assert array-key $actual
+     */
+    public static function ofArrayKeyType(mixed $actual): void
+    {
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
+        $dbgCtx->add(['actual type' => get_debug_type($actual)]);
+        $dbgCtx->add(compact('actual'));
+        Assert::assertTrue(ArrayUtilForTests::isOfArrayKeyType($actual));
     }
 }

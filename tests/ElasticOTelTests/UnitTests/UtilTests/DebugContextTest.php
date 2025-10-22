@@ -169,6 +169,8 @@ class DebugContextTest extends TestCaseBase
             self::assertStringContainsString(__CLASS__, $actualCtxDesc, $dbgCtxStr);
             self::assertSame(count($expectedCtx), count($actualCtx), $dbgCtxStr);
             foreach (IterableUtil::zip(IterableUtil::keys($expectedCtx), IterableUtil::keys($actualCtx)) as [$expectedKey, $actualKey]) {
+                AssertEx::ofArrayKeyType($expectedKey);
+                AssertEx::ofArrayKeyType($actualKey);
                 $dbgCtx = array_merge($dbgCtx, compact('expectedKey', 'actualKey'));
                 $dbgCtxStr = LoggableToString::convert($dbgCtx);
                 self::assertSame($expectedKey, $actualKey, $dbgCtxStr);

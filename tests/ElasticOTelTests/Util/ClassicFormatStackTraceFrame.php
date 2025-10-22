@@ -72,6 +72,7 @@ final class ClassicFormatStackTraceFrame implements LoggableInterface
     {
         $nonNullProps = [];
         foreach ($this as $propName => $propVal) { // @phpstan-ignore foreach.nonIterable
+            /** @var string $propName */
             if ($propVal === null || $propName === 'isStaticMethod') {
                 continue;
             }
