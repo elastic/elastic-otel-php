@@ -27,13 +27,13 @@ use Elastic\OTel\Util\StaticClassTrait;
 use PHPUnit\Framework\AssertionFailedError;
 
 /**
- * @phpstan-type Context array<string, mixed>
- * @phpstan-type ContextsStack array<string, Context>
+ * @phpstan-import-type PreProcessMessageCallback from AssertionFailedError
+ *
+ * @phpstan-type CallStack non-empty-list<ClassicFormatStackTraceFrame>
+ * @phpstan-type ScopeContext array<string, mixed>
+ * @phpstan-type ScopeNameToContext array<string, ScopeContext>
  * @phpstan-type ConfigOptionName DebugContextConfig::*_OPTION_NAME
  * @phpstan-type ConfigStore array<ConfigOptionName, bool>
- *
- * @phpstan-import-type PreProcessMessageCallback from AssertionFailedError
- * @phpstan-type StackTraceSegment ListSlice<ClassicFormatStackTraceFrame>
  */
 final class DebugContext
 {
@@ -47,8 +47,8 @@ final class DebugContext
      * Out parameter is used instead of return value to make harder to discard the scope object reference
      * thus making stay alive until the scope ends
      *
-     * @param ?DebugContextScopeRef   &$scopeVar
-     * @param Context                  $initialCtx
+     * @param ?DebugContextScopeRef &$scopeVar
+     * @param ScopeContext           $initialCtx
      *
      * @param-out DebugContextScopeRef $scopeVar
      */
@@ -58,7 +58,7 @@ final class DebugContext
     }
 
     /**
-     * @return ContextsStack
+     * @return ScopeNameToContext
      */
     public static function getContextsStack(): array
     {
@@ -81,7 +81,7 @@ final class DebugContext
     }
 
     /**
-     * @return ?ContextsStack
+     * @return ?ScopeNameToContext
      */
     public static function extractContextsStackFromMessage(string $message): ?array
     {

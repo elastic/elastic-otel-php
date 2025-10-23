@@ -70,7 +70,7 @@ final class ArrayUtilForTests
      *
      * @return  T
      */
-    public static function &getLastValue(array $array)
+    public static function getLastValue(array $array)
     {
         Assert::assertNotEmpty($array);
         return $array[array_key_last($array)];

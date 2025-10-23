@@ -113,6 +113,8 @@ final class AssertEx
      * @param ?T $actual
      *
      * @phpstan-return T
+     *
+     * @phpstan-assert !null $actual
      */
     public static function notNull(mixed $actual, string $message = ''): mixed
     {
@@ -121,15 +123,46 @@ final class AssertEx
     }
 
     /**
+     * @param string $actual
+     * @param string $message
+     *
+     * @return non-empty-string
+     *
+     * @phpstan-assert non-empty-string $actual
+     */
+    public static function notEmptyString(string $actual, string $message = ''): string
+    {
+        Assert::assertNotEmpty($actual, $message);
+        return $actual;
+    }
+
+    /**
      * @template T
      *
-     * @param T $actual
+     * @param array<T> $actual
      *
-     * @phpstan-return T
+     * @return non-empty-array<T>
      *
-     * @phpstan-assert !empty $actual
+     * @phpstan-assert non-empty-array<T> $actual
+     *
+     * @noinspection PhpUnused
      */
-    public static function notEmpty(mixed $actual, string $message = ''): mixed
+    public static function notEmptyArray(array $actual, string $message = ''): array
+    {
+        Assert::assertNotEmpty($actual, $message);
+        return $actual;
+    }
+
+    /**
+     * @template T
+     *
+     * @param list<T> $actual
+     *
+     * @return non-empty-list<T>
+     *
+     * @phpstan-assert non-empty-list<T> $actual
+     */
+    public static function notEmptyList(array $actual, string $message = ''): array
     {
         Assert::assertNotEmpty($actual, $message);
         return $actual;
@@ -299,11 +332,32 @@ final class AssertEx
     }
 
     /**
-     * @param array<array-key, mixed> $actual
+     * @template TValue
+     *
+     * @param array<TValue> $actual
+     *
+     * @phpstan-assert list<TValue> $actual
+     *
+     * @return list<TValue>
      */
-    public static function arrayIsList(array $actual): void
+    public static function arrayIsList(array $actual): array
     {
-        Assert::assertTrue(array_is_list($actual));
+        Assert::assertIsList($actual);
+        return $actual;
+    }
+
+    /**
+     * @template TValue
+     *
+     * @param array<TValue> $actual
+     *
+     * @phpstan-assert non-empty-list<TValue> $actual
+     *
+     * @return non-empty-list<TValue>
+     */
+    public static function arrayIsNotEmptyList(array $actual): array
+    {
+        return self::notEmptyList(self::arrayIsList($actual));
     }
 
     public static function sameEx(mixed $expected, mixed $actual, string $message = ''): void

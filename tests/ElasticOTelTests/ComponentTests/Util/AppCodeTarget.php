@@ -23,9 +23,6 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
-use ElasticOTelTests\Util\AssertEx;
-use PHPUnit\Framework\Assert;
-
 final class AppCodeTarget
 {
     public ?string $appCodeClass = null;
@@ -36,9 +33,6 @@ final class AppCodeTarget
      */
     public static function asRouted(array $appCodeClassMethod): AppCodeTarget
     {
-        AssertEx::arrayIsList($appCodeClassMethod);
-        Assert::assertCount(2, $appCodeClassMethod); /** @phpstan-ignore staticMethod.alreadyNarrowedType */
-
         $thisObj = new AppCodeTarget();
         $thisObj->appCodeClass = $appCodeClassMethod[0];
         $thisObj->appCodeMethod = $appCodeClassMethod[1];
