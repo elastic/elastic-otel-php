@@ -15,7 +15,8 @@ RUN apk update \
 
 RUN docker-php-ext-install \
         mysqli \
-        pgsql
+        pgsql \
+        zip
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
