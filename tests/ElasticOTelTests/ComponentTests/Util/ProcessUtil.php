@@ -121,8 +121,8 @@ final class ProcessUtil
     }
 
     /**
-     * @phpstan-param EnvVars                              $envVars
-     * @phpstan-param array<array{string, string, string}> $descriptorSpec
+     * @phpstan-param EnvVars                                   $envVars
+     * @phpstan-param array<int, array{string, string, string}> $descriptorSpec
      */
     private static function startProcessImpl(string $adaptedCmd, array $envVars, array $descriptorSpec, bool $isBackground): int
     {

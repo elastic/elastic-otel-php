@@ -34,8 +34,6 @@ final class DebugContextConfig
 
     public const ENABLED_OPTION_NAME = 'enabled';
     public const ENABLED_DEFAULT_VALUE = true;
-    public const USE_DESTRUCTORS_OPTION_NAME = 'use_destructors';
-    public const USE_DESTRUCTORS_DEFAULT_VALUE = true;
     public const ADD_TO_ASSERTION_MESSAGE_OPTION_NAME = 'add_to_assertion_message';
     public const ADD_TO_ASSERTION_MESSAGE_DEFAULT_VALUE = true;
     public const AUTO_CAPTURE_THIS_OPTION_NAME = 'auto_capture_this';
@@ -49,7 +47,6 @@ final class DebugContextConfig
     public const DEFAULT_VALUES
         = [
             self::ENABLED_OPTION_NAME                  => self::ENABLED_DEFAULT_VALUE,
-            self::USE_DESTRUCTORS_OPTION_NAME          => self::USE_DESTRUCTORS_DEFAULT_VALUE,
             self::ADD_TO_ASSERTION_MESSAGE_OPTION_NAME => self::ADD_TO_ASSERTION_MESSAGE_DEFAULT_VALUE,
             self::AUTO_CAPTURE_THIS_OPTION_NAME        => self::AUTO_CAPTURE_THIS_DEFAULT_VALUE,
             self::AUTO_CAPTURE_ARGS_OPTION_NAME        => self::AUTO_CAPTURE_ARGS_DEFAULT_VALUE,
@@ -76,11 +73,6 @@ final class DebugContextConfig
     public static function enabled(?bool $newValue = null): bool
     {
         return DebugContextSingleton::singletonInstance()->readWriteConfigOption(self::ENABLED_OPTION_NAME, $newValue);
-    }
-
-    public static function useDestructors(?bool $newValue = null): bool
-    {
-        return DebugContextSingleton::singletonInstance()->readWriteConfigOption(self::USE_DESTRUCTORS_OPTION_NAME, $newValue);
     }
 
     public static function addToAssertionMessage(?bool $newValue = null): bool

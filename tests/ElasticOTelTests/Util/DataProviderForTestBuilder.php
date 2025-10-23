@@ -119,7 +119,7 @@ final class DataProviderForTestBuilder
             function (array $resultSoFar) use ($values): iterable {
                 $expectedKeyForList = 0;
                 foreach (self::adaptArrayToMultiUseIterable($values)() as $key => $val) {
-                    yield array_merge($resultSoFar, ($key === $expectedKeyForList) ? [$val] : [$key => $val]);
+                    yield array_merge($resultSoFar, (($key === $expectedKeyForList) || !ArrayUtilForTests::isOfArrayKeyType($key)) ? [$val] : [$key => $val]);
                     ++$expectedKeyForList;
                 }
             }

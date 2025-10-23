@@ -144,12 +144,13 @@ function gather_logs () {
     extract_log_ending
 
     # Setting ownership/permissions to allow docker host to read files copied to /elastic_otel_php_tests/logs/
-    chown -R "${ELASTIC_OTEL_PHP_TESTS_DOCKER_RUNNING_USER_ID:?}:${ELASTIC_OTEL_PHP_TESTS_DOCKER_RUNNING_USER_GROUP_ID:?}" /elastic_otel_php_tests/logs/*
-    chmod -R +r,u+w /elastic_otel_php_tests/logs/*
+    chown -R "${ELASTIC_OTEL_PHP_TESTS_DOCKER_RUNNING_USER_ID:?}:${ELASTIC_OTEL_PHP_TESTS_DOCKER_RUNNING_USER_GROUP_ID:?}" /elastic_otel_php_tests/logs
+    chmod -R 777 /elastic_otel_php_tests/logs
 
-    current_github_workflow_log_group_name="Content of /elastic_otel_php_tests/logs/"
+    current_github_workflow_log_group_name="Content of /elastic_otel_php_tests/logs after setting ownership/permissions"
     start_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
+    ls -ld /elastic_otel_php_tests/logs
     ls -l -R /elastic_otel_php_tests/logs/
 
     end_github_workflow_log_group "${current_github_workflow_log_group_name}"
