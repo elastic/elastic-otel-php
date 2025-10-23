@@ -25,6 +25,7 @@ namespace ElasticOTelTests\ComponentTests;
 
 use Composer\InstalledVersions;
 use Elastic\OTel\OverrideOTelSdkResourceAttributes;
+use Elastic\OTel\PhpPartVersion;
 use ElasticOTelTests\ComponentTests\Util\AppCodeHostParams;
 use ElasticOTelTests\ComponentTests\Util\AppCodeRequestParams;
 use ElasticOTelTests\ComponentTests\Util\AppCodeTarget;
@@ -38,6 +39,8 @@ use ElasticOTelTests\Util\Config\OptionForProdName;
 use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\IterableUtil;
 use ElasticOTelTests\Util\MixedMap;
+use ElasticOTelTests\Util\RangeUtil;
+use ElasticOTelTests\Util\TextUtilForTests;
 use OpenTelemetry\SemConv\ResourceAttributes;
 use PHPUnit\Framework\Assert;
 
@@ -167,9 +170,44 @@ final class SdkDistroAttributesTest extends ComponentTestCaseBase
         $dbgCtx->add(compact('rootSpan'));
         (new AttributesExpectations(attributes: [self::DID_APP_CODE_FINISH_SUCCESSFULLY_KEY => true], notAllowedAttributes: $notExpectedAttributes))->assertMatches($rootSpan->attributes);
 
-        $distroVersionInAppContext = $rootSpan->attributes->getString(self::DISTRO_VERSION_IN_APP_CONTEXT);
-        $expectedResourceAttributes[ResourceAttributes::TELEMETRY_DISTRO_VERSION] = $distroVersionInAppContext;
+        $removeVersionSuffix = function (string $inputVer): string {
+            $suffixStartPos = null;
+            foreach (IterableUtil::zipOneWithIndex(TextUtilForTests::iterateOverChars($inputVer)) as [$currentCharPos, $currentCharAsciiCode]) {
+                if (!(RangeUtil::isInClosedRange(ord('0'), $currentCharAsciiCode, ord('9')) || ($currentCharAsciiCode === ord('.')))) {
+                    $suffixStartPos = $currentCharPos;
+                    break;
+                }
+            }
 
+            if ($suffixStartPos === null) {
+                return $inputVer;
+            }
+            self::assertGreaterThan(0, $suffixStartPos);
+
+            return substr($inputVer, 0, $suffixStartPos);
+        };
+
+        $distroVersionInAppContext = $rootSpan->attributes->getString(self::DISTRO_VERSION_IN_APP_CONTEXT);
+        $dbgCtx->add(compact('distroVersionInAppContext'));
+        $dbgCtx->add(['PhpPartVersion::VALUE' => PhpPartVersion::VALUE]);
+        $phpPartVerWithoutSuffix = $removeVersionSuffix(PhpPartVersion::VALUE);
+        $dbgCtx->add(compact('phpPartVerWithoutSuffix'));
+        /**
+         * @see OverrideOTelSdkResourceAttributes::buildDistroVersion
+         */
+        $distroVerSlashPos = strpos($distroVersionInAppContext, '/');
+        if ($distroVerSlashPos === false) {
+            self::assertSame($phpPartVerWithoutSuffix, $removeVersionSuffix($distroVersionInAppContext));
+        } else {
+            self::assertGreaterThan(0, $distroVerSlashPos);
+            self::assertLessThan(strlen($distroVersionInAppContext) - 1, $distroVerSlashPos);
+            $nativePartVerInAppContext = substr($distroVersionInAppContext, 0, $distroVerSlashPos);
+            self::assertSame($phpPartVerWithoutSuffix, $removeVersionSuffix($nativePartVerInAppContext));
+            $phpPartVerInAppContext = substr($distroVersionInAppContext, $distroVerSlashPos + 1);
+            self::assertSame($phpPartVerWithoutSuffix, $removeVersionSuffix($phpPartVerInAppContext));
+        }
+
+        $expectedResourceAttributes[ResourceAttributes::TELEMETRY_DISTRO_VERSION] = $distroVersionInAppContext;
         $resources = IterableUtil::toList($exportedData->resources());
         $dbgCtx->add(compact('resources'));
         AssertEx::isPositiveInt(count($resources));
