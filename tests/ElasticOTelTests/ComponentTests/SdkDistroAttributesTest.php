@@ -24,12 +24,13 @@ declare(strict_types=1);
 namespace ElasticOTelTests\ComponentTests;
 
 use Composer\InstalledVersions;
-use Elastic\OTel\PhpPartVersion;
+use Elastic\OTel\OverrideOTelSdkResourceAttributes;
 use ElasticOTelTests\ComponentTests\Util\AppCodeHostParams;
 use ElasticOTelTests\ComponentTests\Util\AppCodeRequestParams;
 use ElasticOTelTests\ComponentTests\Util\AppCodeTarget;
 use ElasticOTelTests\ComponentTests\Util\ComponentTestCaseBase;
 use ElasticOTelTests\ComponentTests\Util\AttributesExpectations;
+use ElasticOTelTests\ComponentTests\Util\OTelUtil;
 use ElasticOTelTests\ComponentTests\Util\WaitForEventCounts;
 use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\BoolUtil;
@@ -44,13 +45,15 @@ use PHPUnit\Framework\Assert;
  * @group smoke
  * @group does_not_require_external_services
  */
-final class SdkDistroAttributesComponentTest extends ComponentTestCaseBase
+final class SdkDistroAttributesTest extends ComponentTestCaseBase
 {
     private const SHOULD_SET_SERVICE_NAME_KEY = 'should_set_service_name';
     private const SHOULD_SET_SERVICE_VERSION_KEY = 'should_set_service_version';
 
     private const SERVICE_NAME = 'my_service';
-    private const SERVICE_VERSION = '1.2.3-dirty/1.2.3';
+    private const SERVICE_VERSION = '333.22.1-dirty/1.22.333';
+
+    private const DISTRO_VERSION_IN_APP_CONTEXT = 'distro_version_in_app_context';
 
     private const DEFAULT_SERVICE_NAME = 'unknown_service:php';
 
@@ -100,6 +103,7 @@ final class SdkDistroAttributesComponentTest extends ComponentTestCaseBase
     public static function appCodeForTestAttributes(MixedMap $appCodeArgs): void
     {
         self::appCodeSetsHowFinishedAttributes($appCodeArgs);
+        OTelUtil::addActiveSpanAttributes([self::DISTRO_VERSION_IN_APP_CONTEXT => OverrideOTelSdkResourceAttributes::getDistroVersion()]);
     }
 
     private static function getOTelSdkVersion(): string
@@ -140,7 +144,6 @@ final class SdkDistroAttributesComponentTest extends ComponentTestCaseBase
 
         $expectedResourceAttributes = [
             ResourceAttributes::TELEMETRY_DISTRO_NAME    => 'elastic',
-            ResourceAttributes::TELEMETRY_DISTRO_VERSION => PhpPartVersion::VALUE,
             ResourceAttributes::TELEMETRY_SDK_LANGUAGE   => 'php',
             ResourceAttributes::TELEMETRY_SDK_NAME       => 'opentelemetry',
             ResourceAttributes::TELEMETRY_SDK_VERSION    => self::getOTelSdkVersion(),
@@ -163,6 +166,9 @@ final class SdkDistroAttributesComponentTest extends ComponentTestCaseBase
         $rootSpan = $exportedData->singleRootSpan();
         $dbgCtx->add(compact('rootSpan'));
         (new AttributesExpectations(attributes: [self::DID_APP_CODE_FINISH_SUCCESSFULLY_KEY => true], notAllowedAttributes: $notExpectedAttributes))->assertMatches($rootSpan->attributes);
+
+        $distroVersionInAppContext = $rootSpan->attributes->getString(self::DISTRO_VERSION_IN_APP_CONTEXT);
+        $expectedResourceAttributes[ResourceAttributes::TELEMETRY_DISTRO_VERSION] = $distroVersionInAppContext;
 
         $resources = IterableUtil::toList($exportedData->resources());
         $dbgCtx->add(compact('resources'));

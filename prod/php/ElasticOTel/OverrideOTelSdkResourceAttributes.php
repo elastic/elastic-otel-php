@@ -36,16 +36,13 @@ use OpenTelemetry\SemConv\ResourceAttributes;
  */
 final class OverrideOTelSdkResourceAttributes implements ResourceDetectorInterface
 {
-    private function __construct(
-        public readonly string $distroVersion
-    ) {
-    }
+    private static ?string $distroVersion = null;
 
     public static function register(string $elasticOTelNativePartVersion): void
     {
-        $distroVersion = self::buildDistroVersion($elasticOTelNativePartVersion);
-        Registry::registerResourceDetector(self::class, new self($distroVersion));
-        BootstrapStageLogger::logDebug('Registered; distroVersion: ' . $distroVersion, __FILE__, __LINE__, __CLASS__, __FUNCTION__);
+        self::$distroVersion = self::buildDistroVersion($elasticOTelNativePartVersion);
+        Registry::registerResourceDetector(self::class, new self());
+        BootstrapStageLogger::logDebug('Registered; distroVersion: ' . self::$distroVersion, __FILE__, __LINE__, __CLASS__, __FUNCTION__);
     }
 
     public function getResource(): ResourceInfo
@@ -62,7 +59,7 @@ final class OverrideOTelSdkResourceAttributes implements ResourceDetectorInterfa
 
         $attributes = [
             ResourceAttributes::TELEMETRY_DISTRO_NAME => 'elastic',
-            ResourceAttributes::TELEMETRY_DISTRO_VERSION => $this->distroVersion,
+            ResourceAttributes::TELEMETRY_DISTRO_VERSION => self::getDistroVersion(),
         ];
 
         BootstrapStageLogger::logDebug('Returning attributes: ' . json_encode($attributes), __FILE__, __LINE__, __CLASS__, __FUNCTION__);
@@ -78,5 +75,10 @@ final class OverrideOTelSdkResourceAttributes implements ResourceDetectorInterfa
         $logMsg = 'Native part and PHP part versions do not match. native part version: ' . $elasticOTelNativePartVersion . '; PHP part version: ' . PhpPartVersion::VALUE;
         BootstrapStageLogger::logWarning($logMsg, __FILE__, __LINE__, __CLASS__, __FUNCTION__);
         return $elasticOTelNativePartVersion . '/' . PhpPartVersion::VALUE;
+    }
+
+    public static function getDistroVersion(): string
+    {
+        return self::$distroVersion ?? PhpPartVersion::VALUE;
     }
 }
