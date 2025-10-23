@@ -33,8 +33,11 @@ RUN dnf -y update \
         php-mbstring \
         php-mysqli \
         php-pgsql \
+        php-zip \
         procps \
-        which
+        which \
+        zip
+
 
 ADD . /repo_root
 WORKDIR /repo_root
