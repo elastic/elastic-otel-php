@@ -12,7 +12,6 @@
         "php": "8.1.*||8.2.*||8.3.*||8.4.*",
         "brick/math": "0.13.1",
         "open-telemetry/exporter-otlp": "1.2.1",
-        "open-telemetry/gen-otlp-protobuf": "1.5.0",
         "open-telemetry/opentelemetry-auto-curl": "0.0.3",
         "open-telemetry/opentelemetry-auto-http-async": "1.1.0",
         "open-telemetry/opentelemetry-auto-laravel": "1.1.0",
