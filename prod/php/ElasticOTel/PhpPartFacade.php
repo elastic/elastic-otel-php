@@ -108,7 +108,7 @@ final class PhpPartFacade
             InstrumentationBridge::singletonInstance()->bootstrap();
             self::prepareForOTelSdk();
             self::registerAutoloaderForVendorDir();
-            OverrideOTelSdkResourceAttributes::register();
+            OverrideOTelSdkResourceAttributes::register($elasticOTelNativePartVersion);
             self::registerNativeOtlpSerializer();
             self::registerAsyncTransportFactory();
             self::registerOtelLogWriter();
