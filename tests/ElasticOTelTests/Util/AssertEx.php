@@ -376,14 +376,14 @@ final class AssertEx
     }
 
     /**
-     * @template T of int|string
+     * @template T
      *
      * @phpstan-param T $expected
      * @phpstan-param T $actual
      *
      * @noinspection PhpUnusedParameterInspection
      */
-    public static function sameConstValues(int|string $expected, int|string $actual, string $message = ''): void
+    public static function sameConstValues(mixed $expected, mixed $actual, string $message = ''): void
     {
         self::sameEx($expected, $actual);
     }
