@@ -28,171 +28,116 @@ use ElasticOTelTests\Util\Log\LogStreamInterface;
 use PHPUnit\Framework\Assert;
 
 /**
- * @phpstan-import-type Context from DebugContext
- * @phpstan-import-type StackTraceSegment from DebugContext
+ * @phpstan-import-type ScopeContext from DebugContext
+ * @phpstan-import-type CallStack from DebugContext
  */
 final class DebugContextScope implements LoggableInterface
 {
-    /** @var Context[] */
-    private array $lowerSubScopesContexts;
-
-    /** @var Context */
-    private array $topSubScopeContext;
+    /** @var non-empty-list<ScopeContext> */
+    private array $subScopesContexts;
 
     /**
-     * @param StackTraceSegment $stackTraceSegment
-     * @param Context           $initialCtx
+     * @param non-negative-int $callStackFrameIndex
+     * @param ScopeContext     $initialCtx
      */
     public function __construct(
-        private readonly ListSlice $stackTraceSegment,
+        private readonly DebugContextSingleton $containingStack,
+        public readonly int $callStackFrameIndex,
         array $initialCtx
     ) {
-        Assert::assertNotEmpty($stackTraceSegment);
-        $this->topSubScopeContext = $initialCtx;
-        $this->lowerSubScopesContexts = [];
+        $this->subScopesContexts = [$initialCtx];
     }
 
     /**
-     * @param Context  $from
-     * @param Context &$to
+     * @param ScopeContext  $from
+     * @param ScopeContext &$to
      *
-     * @param-out Context $to
+     * @param-out ScopeContext $to
      */
     public static function appendContext(array $from, /* in,out */ array &$to): void
     {
-        // Remove keys that exist in new context to make the new entry the last in added order
+        // Remove keys that exist in the new context to make the new entry the last in added order
         ArrayUtilForTests::removeByKeys(/* in,out */ $to, IterableUtil::keys($from));
         ArrayUtilForTests::append(from: $from, to: $to);
     }
 
     /**
-     * @param Context $ctx
+     * @param ScopeContext $ctx
      */
     public function add(array $ctx): void
     {
-        self::appendContext(from: $ctx, to: $this->topSubScopeContext);
-    }
-
-    public function pushSubScope(): void
-    {
-        $this->lowerSubScopesContexts[] = $this->topSubScopeContext;
-        $this->topSubScopeContext = [];
+        self::appendContext(from: $ctx, to: $this->subScopesContexts[array_key_last($this->subScopesContexts)]);
     }
 
     /**
-     * @phpstan-param Context $ctx
+     * @phpstan-param ScopeContext $ctx
      */
-    public function resetTopSubScope(array $ctx): void
+    public function pushSubScope(array $ctx = []): void
     {
-        $this->topSubScopeContext = $ctx;
+        $this->subScopesContexts[] = $ctx;
     }
 
     public function popSubScope(): void
     {
-        Assert::assertNotEmpty($this->lowerSubScopesContexts);
-        $this->topSubScopeContext = AssertEx::notNull(array_pop($this->lowerSubScopesContexts));
+        Assert::assertGreaterThanOrEqual(2, $this->subScopesContexts);
+        AssertEx::notNull(array_pop($this->subScopesContexts)); // @phpstan-ignore assign.propertyType
     }
 
     /**
-     * @param StackTraceSegment $currentStackTraceTopSegment
-     *
-     * @param-out non-negative-int $matchingFrameIndex
-     * @param-out bool $matchingFrameHasSameLine
-     *
-     * @phpstan-assert-if-true non-negative-int $matchingFrameIndex
-     * @phpstan-assert-if-true bool $matchingFrameHasSameLine
+     * @phpstan-param ScopeContext $ctx
      */
-    public function syncWithCallStack(ListSlice $currentStackTraceTopSegment, /* out */ ?int &$matchingFrameIndex, /* out */ ?bool &$matchingFrameHasSameLine): bool
+    public function resetTopSubScope(array $ctx): void
     {
-        $thisStackTraceSegmentCount = count($this->stackTraceSegment);
-        Assert::assertGreaterThan(0, $thisStackTraceSegmentCount);
-        if ($currentStackTraceTopSegment->count() < $thisStackTraceSegmentCount) {
+        $this->popSubScope();
+        $this->pushSubScope($ctx);
+    }
+
+    /**
+     * @param CallStack $newCallStack
+     * @param non-negative-int $newCallStackFromFrameIndex
+     */
+    public function syncWithCallStack(array $newCallStack, int $newCallStackFromFrameIndex): bool
+    {
+        if (!RangeUtil::isInClosedRange($newCallStackFromFrameIndex, $this->callStackFrameIndex, count($newCallStack) - 1)) {
             return false;
         }
 
-        $currentCallStackTraceSubSegment = IterableUtil::takeUpTo($currentStackTraceTopSegment, $thisStackTraceSegmentCount);
-        /** @var int $frameIndex */
-        /** @var ClassicFormatStackTraceFrame $thisStackTraceFrame */
-        /** @var ClassicFormatStackTraceFrame $currentStackTraceFrame */
-        foreach (IterableUtil::zipWithIndex($this->stackTraceSegment, $currentCallStackTraceSubSegment) as [$frameIndex, $thisStackTraceFrame, $currentStackTraceFrame]) {
-            if (!$thisStackTraceFrame->canBeSameCall($currentStackTraceFrame)) {
+        foreach (RangeUtil::generateFromToIncluding($newCallStackFromFrameIndex, $this->callStackFrameIndex) as $frameIndex) {
+            /** @var non-negative-int $frameIndex */
+            $oldFrame = $this->containingStack->getSyncedWithCallStack()[$frameIndex];
+            $newFrame = $newCallStack[$frameIndex];
+            if (!$oldFrame->canBeSameCall($newFrame)) {
                 return false;
             }
-            Assert::assertLessThan($thisStackTraceSegmentCount, $frameIndex);
-            // If source code line is different that means that all the scopes up to top of the scopes stack
-            // are for calls different from the ones on the current calls stack trace
-            if (($frameIndex !== ($thisStackTraceSegmentCount - 1)) && ($thisStackTraceFrame->line !== $currentStackTraceFrame->line)) {
+            // If source code line is different that means that all the scopes up to the top of the stack
+            // are for calls different from the ones on the current calls stack
+            if (($frameIndex !== $this->callStackFrameIndex) && ($oldFrame->line !== $newFrame->line)) {
                 return false;
             }
         }
 
-        // $this->stackTraceSegment should not be empty so foreach loop above should iterate at least once
-        // so $thisStackTraceFrame and $currentStackTraceFrame should be defined
-        $matchingFrameHasSameLine = ($thisStackTraceFrame->line === $currentStackTraceFrame->line); // @phpstan-ignore variable.undefined, variable.undefined
-        $thisStackTraceFrame->line = $currentStackTraceFrame->line; // @phpstan-ignore variable.undefined, variable.undefined
-        $matchingFrameIndex = $thisStackTraceSegmentCount - 1; // @phpstan-ignore paramOut.type
         return true;
     }
 
     /**
-     * @return Context
+     * @return ScopeContext
      */
     public function getContext(): array
     {
         $result = [];
-        foreach ($this->lowerSubScopesContexts as $subScopeCtx) {
+        foreach ($this->subScopesContexts as $subScopeCtx) {
             self::appendContext(from: $subScopeCtx, to: $result);
         }
-        self::appendContext(from: $this->topSubScopeContext, to: $result);
         return $result;
-    }
-
-    public function getName(): string
-    {
-        $topStackFrame = $this->stackTraceSegment->getLastValue();
-        $classMethodPart = '';
-        if ($topStackFrame->class !== null) {
-            $classMethodPart .= $topStackFrame->class;
-        }
-        if ($topStackFrame->function !== null) {
-            if ($classMethodPart !== '') {
-                $classMethodPart .= '::';
-            }
-            $classMethodPart .= $topStackFrame->function;
-        }
-
-        $fileLinePart = '';
-        if ($topStackFrame->file !== null) {
-            $fileLinePart .= $topStackFrame->file;
-            if ($topStackFrame->line !== null) {
-                $fileLinePart .= ':' . $topStackFrame->line;
-            }
-        }
-
-        if ($classMethodPart === '') {
-            return $fileLinePart;
-        }
-
-        return $classMethodPart . ' [' . $fileLinePart . ']';
-    }
-
-    /**
-     * @param Context $initialCtx
-     */
-    public function reset(array $initialCtx): void
-    {
-        $this->topSubScopeContext = $initialCtx;
-        $this->lowerSubScopesContexts = [];
     }
 
     public function toLog(LogStreamInterface $stream): void
     {
         $stream->toLogAs(
             [
-                'stackTraceSegment' => $this->stackTraceSegment,
-                'lower sub scopes count' => count($this->lowerSubScopesContexts),
-                'top sub scope count' => count($this->topSubScopeContext)
-            ]
+                'callStackFrameIndex' => $this->callStackFrameIndex,
+                'subScopesContexts count' => count($this->subScopesContexts),
+            ],
         );
     }
 }

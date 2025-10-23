@@ -23,6 +23,7 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests;
 
+use ArrayAccess;
 use ElasticOTelTests\ComponentTests\Util\AppCodeHostParams;
 use ElasticOTelTests\ComponentTests\Util\AppCodeRequestParams;
 use ElasticOTelTests\ComponentTests\Util\AppCodeTarget;
@@ -32,6 +33,7 @@ use ElasticOTelTests\ComponentTests\Util\PDOSpanExpectationsBuilder;
 use ElasticOTelTests\ComponentTests\Util\SpanExpectations;
 use ElasticOTelTests\ComponentTests\Util\SpanSequenceExpectations;
 use ElasticOTelTests\ComponentTests\Util\WaitForEventCounts;
+use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\ClassNameUtil;
 use ElasticOTelTests\Util\Config\OptionForProdName;
 use ElasticOTelTests\Util\DataProviderForTestBuilder;
@@ -155,7 +157,7 @@ final class PDOAutoInstrumentationTest extends ComponentTestCaseBase
         $isAutoInstrumentationEnabled = $appCodeArgs->getBool(self::IS_AUTO_INSTRUMENTATION_ENABLED_KEY);
         if ($isAutoInstrumentationEnabled) {
             self::assertTrue(class_exists(PDOInstrumentation::class, autoload: false));
-            self::assertSame(PDOInstrumentation::NAME, self::AUTO_INSTRUMENTATION_NAME); // @phpstan-ignore staticMethod.alreadyNarrowedType
+            AssertEx::sameConstValues(PDOInstrumentation::NAME, self::AUTO_INSTRUMENTATION_NAME);
         }
 
         $dbName = $appCodeArgs->getString(DbAutoInstrumentationUtilForTests::DB_NAME_KEY);
@@ -184,6 +186,7 @@ final class PDOAutoInstrumentationTest extends ComponentTestCaseBase
         self::assertNotFalse($queryResult = $pdo->query(self::SELECT_SQL));
         foreach ($queryResult as $row) {
             $dbgCtx = LoggableToString::convert(['$row' => $row, '$queryResult' => $queryResult]);
+            /** @var ArrayAccess<string, mixed> $row */
             $msgText = $row['text'];
             self::assertIsString($msgText);
             self::assertArrayHasKey($msgText, self::MESSAGES, $dbgCtx);

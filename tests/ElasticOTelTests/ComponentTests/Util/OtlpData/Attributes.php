@@ -39,7 +39,6 @@ use ElasticOTelTests\Util\Log\LoggableToString;
 use ElasticOTelTests\Util\Log\LogStreamInterface;
 use ElasticOTelTests\Util\TextUtilForTests;
 use Google\Protobuf\RepeatedField as ProtobufRepeatedField;
-use Google\Protobuf\Internal\RepeatedField as ProtobufRepeatedFieldInternal;
 use Opentelemetry\Proto\Common\V1\KeyValue as OTelProtoKeyValue;
 use Override;
 use PHPUnit\Framework\Assert;
@@ -60,14 +59,14 @@ final class Attributes implements ArrayReadInterface, Countable, LoggableInterfa
     }
 
     /**
-     * @param ProtobufRepeatedField<OTelProtoKeyValue>|ProtobufRepeatedFieldInternal $source
+     * @param ProtobufRepeatedField<OTelProtoKeyValue> $source
      */
-    public static function deserializeFromOTelProto(ProtobufRepeatedField|ProtobufRepeatedFieldInternal $source): self
+    public static function deserializeFromOTelProto(ProtobufRepeatedField $source): self
     {
         DebugContext::getCurrentScope(/* out */ $dbgCtx);
 
         $keyToValueMap = [];
-        foreach ($source as $keyValue) { // @phpstan-ignore foreach.nonIterable
+        foreach ($source as $keyValue) {
             $dbgCtx->add(compact('keyValue'));
             Assert::assertInstanceOf(OTelProtoKeyValue::class, $keyValue); // @phpstan-ignore staticMethod.alreadyNarrowedType
             Assert::assertArrayNotHasKey($keyValue->getKey(), $keyToValueMap);
@@ -97,9 +96,7 @@ final class Attributes implements ArrayReadInterface, Countable, LoggableInterfa
                 return null;
             }
             $result = [];
-            // Google\Protobuf\Internal\RepeatedField is deprecated, and Google\Protobuf\RepeatedField is used instead.
-            // Google\Protobuf\RepeatedField implements IteratorAggregate so it's iterable.
-            foreach ($arrayValue->getValues() as $repeatedFieldSubValue) { // @phpstan-ignore foreach.nonIterable
+            foreach ($arrayValue->getValues() as $repeatedFieldSubValue) {
                 $result[] = $repeatedFieldSubValue;
             }
             return $result;
@@ -131,9 +128,7 @@ final class Attributes implements ArrayReadInterface, Countable, LoggableInterfa
                 return null;
             }
             $result = [];
-            // Google\Protobuf\Internal\RepeatedField is deprecated, and Google\Protobuf\RepeatedField is used instead.
-            // Google\Protobuf\RepeatedField implements IteratorAggregate so it's iterable.
-            foreach ($kvListValue->getValues() as $repeatedFieldSubKey => $repeatedFieldSubValue) { // @phpstan-ignore foreach.nonIterable
+            foreach ($kvListValue->getValues() as $repeatedFieldSubKey => $repeatedFieldSubValue) {
                 Assert::assertTrue(is_int($repeatedFieldSubKey) || is_string($repeatedFieldSubKey));
                 Assert::assertArrayNotHasKey($repeatedFieldSubKey, $result);
                 $result[$repeatedFieldSubKey] = $repeatedFieldSubValue;
@@ -215,6 +210,7 @@ final class Attributes implements ArrayReadInterface, Countable, LoggableInterfa
         return AssertEx::notNull($this->tryToGetBool($attributeName));
     }
 
+    /** @noinspection PhpUnused */
     public function getFloat(string $attributeName): float
     {
         return AssertEx::notNull($this->tryToGetFloat($attributeName));

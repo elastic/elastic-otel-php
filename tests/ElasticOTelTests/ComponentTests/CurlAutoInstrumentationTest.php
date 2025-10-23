@@ -40,6 +40,7 @@ use ElasticOTelTests\ComponentTests\Util\ResourcesClient;
 use ElasticOTelTests\ComponentTests\Util\SpanExpectationsBuilder;
 use ElasticOTelTests\ComponentTests\Util\UrlUtil;
 use ElasticOTelTests\ComponentTests\Util\WaitForEventCounts;
+use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\Config\OptionForProdName;
 use ElasticOTelTests\Util\Config\OptionForTestsName;
 use ElasticOTelTests\Util\DataProviderForTestBuilder;
@@ -129,7 +130,7 @@ final class CurlAutoInstrumentationTest extends ComponentTestCaseBase
         $enableCurlInstrumentationForClient = $appCodeArgs->getBool(self::ENABLE_CURL_INSTRUMENTATION_FOR_CLIENT_KEY);
         if ($enableCurlInstrumentationForClient) {
             self::assertTrue(class_exists(CurlInstrumentation::class, autoload: false));
-            self::assertSame(CurlInstrumentation::NAME, self::AUTO_INSTRUMENTATION_NAME); // @phpstan-ignore staticMethod.alreadyNarrowedType
+            AssertEx::sameConstValues(CurlInstrumentation::NAME, self::AUTO_INSTRUMENTATION_NAME);
         }
 
         $requestParams = $appCodeArgs->getObject(self::HTTP_APP_CODE_REQUEST_PARAMS_FOR_SERVER_KEY, HttpAppCodeRequestParams::class);

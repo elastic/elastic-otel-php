@@ -10,6 +10,7 @@
     ],
     "require": {
         "php": "8.1.*||8.2.*||8.3.*||8.4.*",
+        "brick/math": "0.13.1",
         "open-telemetry/exporter-otlp": "1.2.1",
         "open-telemetry/sem-conv": "1.32.0"
     },
@@ -30,8 +31,8 @@
         "php-ds/php-ds": "^1.7.0",
         "php-parallel-lint/php-console-highlighter": "^1.0",
         "php-parallel-lint/php-parallel-lint": "1.4.0",
-        "phpstan/phpstan": "2.1.17",
-        "phpstan/phpstan-phpunit": "^2.0",
+        "phpstan/phpstan": "2.1.31",
+        "phpstan/phpstan-phpunit": "2.0.7",
         "phpunit/phpunit": "^10.5.47",
         "react/http": "^1.11",
         "slevomat/coding-standard": "8.19.1",

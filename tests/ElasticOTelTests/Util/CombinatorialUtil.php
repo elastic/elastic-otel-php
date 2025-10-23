@@ -75,7 +75,7 @@ final class CombinatorialUtil
     }
 
     /**
-     * @param array<mixed>           $values
+     * @param array<mixed>                  $values
      * @param array<mixed, iterable<mixed>> $restOfIterables
      *
      * @return iterable<array<mixed>>

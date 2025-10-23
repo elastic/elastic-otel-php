@@ -67,6 +67,7 @@ verify_otel_proto_version() {
         echo "Versions in elastic-otel-php.properties and ${gen_otlp_protobuf_version_file_path} are different"
         echo "Version in elastic-otel-php.properties: ${otel_proto_version_in_properties_file}"
         echo "Version in ${gen_otlp_protobuf_version_file_path}: ${otel_proto_version_in_gen_otlp_protobuf}"
+        echo "To fix it change otel_proto_version in elastic-otel-php.properties to ${otel_proto_version_in_gen_otlp_protobuf}"
         return 1
     fi
 }

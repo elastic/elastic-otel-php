@@ -33,7 +33,6 @@ use ElasticOTelTests\Util\AmbientContextForTests;
 use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
 use Google\Protobuf\RepeatedField as ProtobufRepeatedField;
-use Google\Protobuf\Internal\RepeatedField as ProtobufRepeatedFieldInternal;
 
 /**
  * Code in this file is part of implementation internals and thus it is not covered by the backward compatibility.
@@ -48,22 +47,22 @@ final class DeserializationUtil
      * @template TSourceElementType
      * @template TResultElementType
      *
-     * @param ProtobufRepeatedField<TSourceElementType>|ProtobufRepeatedFieldInternal $source
+     * @param ProtobufRepeatedField<mixed> $source
      * @param callable(TSourceElementType): ?TResultElementType $deserializeElement
      *
      * @return TResultElementType[]
      */
-    public static function deserializeArrayFromOTelProto(ProtobufRepeatedField|ProtobufRepeatedFieldInternal $source, callable $deserializeElement): array
+    public static function deserializeArrayFromOTelProto(ProtobufRepeatedField $source, callable $deserializeElement): array
     {
         $logCtx = compact('source');
-        $logCtx['source count'] = count($source); // @phpstan-ignore argument.type
+        $logCtx['source count'] = count($source);
         $logger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__)->addAllContext($logCtx);
         $loggerProxyDebug = $logger->ifDebugLevelEnabledNoLine(__FUNCTION__);
 
         DebugContext::getCurrentScope(/* out */ $dbgCtx, $logCtx);
 
         $result = [];
-        foreach ($source as $sourceElement) { // @phpstan-ignore foreach.nonIterable
+        foreach ($source as $sourceElement) {
             $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, '', compact('sourceElement'));
             if (($resultElement = $deserializeElement($sourceElement)) === null) {
                 continue;

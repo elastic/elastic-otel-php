@@ -25,9 +25,12 @@ namespace ElasticOTelTests\Util;
 
 use Elastic\OTel\Util\ArrayUtil;
 use Elastic\OTel\Util\SingletonInstanceTrait;
+use ElasticOTelTests\Util\Log\LogCategoryForTests;
 use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LoggableToString;
 use ElasticOTelTests\Util\Log\LoggableTrait;
+use ElasticOTelTests\Util\Log\Logger;
+use ElasticOTelTests\Util\Log\LogStreamInterface;
 use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\AssertionFailedError;
 use ReflectionClass;
@@ -37,8 +40,10 @@ use ReflectionParameter;
 use stdClass;
 
 /**
- * @phpstan-import-type Context from DebugContext
- * @phpstan-import-type ContextsStack from DebugContext
+ * @phpstan-import-type CallStack from DebugContext
+ * @phpstan-import-type ScopeContext from DebugContext
+ * @phpstan-import-type ScopeNameToContext from DebugContext
+ *
  * @phpstan-type ConfigOptionName DebugContextConfig::*_OPTION_NAME
  * @phpstan-type ConfigStore array<ConfigOptionName, bool>
  *
@@ -55,16 +60,42 @@ final class DebugContextSingleton implements LoggableInterface
     /** @var ConfigStore */
     private array $config = DebugContextConfig::DEFAULT_VALUES;
 
-    /** @var DebugContextScope[] */
+    /** @var ?CallStack */
+    private ?array $syncedWithCallStack = null;
+
+    /** @var list<DebugContextScope> */
     private array $addedContextScopesStack = [];
 
     private StackTraceUtil $stackTraceUtil;
+
+    private Logger $logger;
 
     private function __construct()
     {
         $this->stackTraceUtil = new StackTraceUtil(AmbientContextForTests::loggerFactory());
 
         $this->applyConfig();
+
+        $this->logger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__)->addAllContext(compact('this'));
+        $this->assertValid();
+    }
+
+    public function assertValid(): void
+    {
+        Assert::assertSame($this->syncedWithCallStack === null, ArrayUtilForTests::isEmpty($this->addedContextScopesStack));
+
+        if ($this->syncedWithCallStack !== null) {
+            /** @var ?non-negative-int $prevCallStackFrameIndex */
+            $prevCallStackFrameIndex = null;
+            foreach ($this->addedContextScopesStack as $scope) {
+                AssertEx::notNull($this->syncedWithCallStack);
+                AssertEx::isValidIndexOf($scope->callStackFrameIndex, $this->syncedWithCallStack); // @phpstan-ignore staticMethod.alreadyNarrowedType
+                if ($prevCallStackFrameIndex !== null) {
+                    Assert::assertGreaterThan($prevCallStackFrameIndex, $scope->callStackFrameIndex);
+                }
+                $prevCallStackFrameIndex = $scope->callStackFrameIndex;
+            }
+        }
     }
 
     /**
@@ -87,11 +118,15 @@ final class DebugContextSingleton implements LoggableInterface
 
     private function applyConfig(): void
     {
+        $this->assertValid();
+
         AssertionFailedError::$preprocessMessage = $this->config[DebugContextConfig::ADD_TO_ASSERTION_MESSAGE_OPTION_NAME] ? $this->addToFailedAssertionMessage(...) : null;
 
         if (!$this->config[DebugContextConfig::ENABLED_OPTION_NAME]) {
-            $this->addedContextScopesStack = [];
+            $this->resetImpl();
         }
+
+        $this->assertValid();
     }
 
     /**
@@ -110,105 +145,177 @@ final class DebugContextSingleton implements LoggableInterface
     }
 
     /**
-     * @param ?DebugContextScopeRef   &$scopeVar
-     * @param Context                  $initialCtx
-     * @param non-negative-int         $numberOfStackFramesToSkip
+     * @param ?DebugContextScopeRef &$scopeVar
+     * @param ScopeContext           $initialCtx
+     * @param non-negative-int       $numberOfStackFramesToSkip
      *
      * @param-out DebugContextScopeRef $scopeVar
      */
     public function getCurrentScope(/* out */ ?DebugContextScopeRef &$scopeVar, array $initialCtx, int $numberOfStackFramesToSkip): void
     {
         Assert::assertNull($scopeVar);
+        $this->assertValid();
 
         if (!$this->config[DebugContextConfig::ENABLED_OPTION_NAME]) {
             $scopeVar = self::getNoopRefSingleton();
             return;
         }
 
-        $stackTrace = $this->captureStackTraceTopFrameLast($numberOfStackFramesToSkip + 1);
+        $this->syncScopesStackWithCallStack($numberOfStackFramesToSkip + 1, newScopeAboutToBePushed: true);
 
-        // Do not use the top frame for sync since the top frame should be used for the new (current) scope
-        $remainingStackTraceTopStartIndex = $this->syncScopesStackWithCallStack((new ListSlice($stackTrace))->withoutSuffix(1));
-        // Construct a new stack trace top segment that does include the top frame
-        $remainingStackTraceTop = new ListSlice($stackTrace, $remainingStackTraceTopStartIndex);
-
-        $newScope = new DebugContextScope($remainingStackTraceTop, $initialCtx);
+        $newScope = new DebugContextScope($this, callStackFrameIndex: count($this->getSyncedWithCallStack()) - 1, initialCtx: $initialCtx);
         $this->addedContextScopesStack[] = $newScope;
-        $scopeVar = new DebugContextScopeRef($this, $newScope);
+        $scopeVar = new DebugContextScopeRef($newScope);
+
+        $this->assertValid();
     }
 
     /**
      * @param non-negative-int $numberOfStackFramesToSkip
      *
-     * @return ContextsStack
+     * @return ScopeNameToContext
      */
     public function getContextsStack(int $numberOfStackFramesToSkip): array
     {
+        $this->assertValid();
+
         if (!$this->config[DebugContextConfig::ENABLED_OPTION_NAME]) {
             return [];
         }
 
         $onlyAddedContext = $this->config[DebugContextConfig::ONLY_ADDED_CONTEXT_OPTION_NAME];
-        $stackTrace = $this->captureStackTraceTopFrameLast($numberOfStackFramesToSkip + 1, includeArgs: !$onlyAddedContext && $this->config[DebugContextConfig::AUTO_CAPTURE_ARGS_OPTION_NAME]);
-        $syncRetVal = $this->syncScopesStackWithCallStack(new ListSlice($stackTrace), returnFrameIndexesForScopes: !$onlyAddedContext);
+        $this->syncScopesStackWithCallStack($numberOfStackFramesToSkip + 1);
 
-        /** @var ?non-negative-int $lastNonVendorFrameIndex */
-        $lastNonVendorFrameIndex = null;
         if ($onlyAddedContext) {
-            $scopesStack = $this->addedContextScopesStack;
+            /** @var list<Pair<string, ScopeContext>> $scopesNameContextStackTopLast */
+            $scopesNameContextStackTopLast = array_map(
+                fn($scope) => new Pair(self::buildScopeNameForCallStackFrame($this->getSyncedWithCallStack()[$scope->callStackFrameIndex]), $scope->getContext()),
+                $this->addedContextScopesStack
+            );
         } else {
+            /** @var array<non-negative-int, DebugContextScope> $frameIndexToScope */
             $frameIndexToScope = [];
-            /** @var non-empty-list<non-negative-int> $frameIndexesForScopes */
-            $frameIndexesForScopes = $syncRetVal;
-            foreach (IterableUtil::zipOneWithIndex($frameIndexesForScopes) as [$scopeIndex, $frameIndex]) {
-                $frameIndexToScope[$frameIndex] = $this->addedContextScopesStack[$scopeIndex];
+            /** @var DebugContextScope $scope */
+            foreach (IterableUtil::zipOneWithIndex($this->addedContextScopesStack) as [$scopeIndex, $scope]) {
+                $frameIndexToScope[$scope->callStackFrameIndex] = $this->addedContextScopesStack[$scopeIndex];
             }
 
-            /** @var DebugContextScope[] $scopesStack */
-            $scopesStack = [];
             $trimVendorFrames = $this->config[DebugContextConfig::TRIM_VENDOR_FRAMES_OPTION_NAME];
-            foreach (RangeUtil::generateUpTo(count($stackTrace)) as $stackTraceFrameIndex) {
-                $stackTraceFrame = $stackTrace[$stackTraceFrameIndex];
+            /** @var ?non-negative-int $lastNonVendorFrameIndex */
+            $lastNonVendorFrameIndex = null;
+
+            $autoCapturedArgs = $this->config[DebugContextConfig::AUTO_CAPTURE_ARGS_OPTION_NAME];
+            $callStackTrace = $autoCapturedArgs ? $this->captureStackTraceTopFrameLast($numberOfStackFramesToSkip + 1, includeArgs: true) : $this->getSyncedWithCallStack();
+            /** @var list<Pair<string, ScopeContext>> $scopesNameContextStackTopLast */
+            $scopesNameContextStackTopLast = [];
+            foreach (IterableUtil::zipOneWithIndex($callStackTrace) as [$callStackFrameIndex, $callStackFrame]) {
                 if ($trimVendorFrames) {
-                    $isSourceCodeFileFromVendor = ($stackTraceFrame->file !== null) && self::isSourceCodeFileFromVendor($stackTraceFrame->file);
+                    $isSourceCodeFileFromVendor = ($callStackFrame->file !== null) && self::isSourceCodeFileFromVendor($callStackFrame->file);
                     if ($lastNonVendorFrameIndex === null) {
                         if ($isSourceCodeFileFromVendor) {
                             continue;
                         }
                     }
                     if (!$isSourceCodeFileFromVendor) {
-                        $lastNonVendorFrameIndex = count($scopesStack);
+                        $lastNonVendorFrameIndex = count($scopesNameContextStackTopLast);
                     }
                 }
-                $scopesStack[] = $this->buildScopeForStackTraceFrame($stackTraceFrame, ArrayUtil::getValueIfKeyExistsElse($stackTraceFrameIndex, $frameIndexToScope, null));
+                $scopesNameContextStackTopLast[] = new Pair(
+                    self::buildScopeNameForCallStackFrame($callStackFrame),
+                    $this->buildScopeContextForCallStackFrame($callStackFrame, ArrayUtil::getValueIfKeyExistsElse($callStackFrameIndex, $frameIndexToScope, null))
+                );
             }
-            if ($trimVendorFrames && !ArrayUtilForTests::isEmpty($scopesStack)) {
+
+            if ($trimVendorFrames && !ArrayUtilForTests::isEmpty($scopesNameContextStackTopLast)) {
                 Assert::assertNotNull($lastNonVendorFrameIndex);
-                AssertEx::countAtLeast($lastNonVendorFrameIndex + 1, $scopesStack);
+                AssertEx::countAtLeast($lastNonVendorFrameIndex + 1, $scopesNameContextStackTopLast);
             } else {
                 Assert::assertNull($lastNonVendorFrameIndex);
             }
 
             // Keep one vendor frame above the last non-vendor frame - this vendor frame corresponds to Assert::assertXyz() or Assert::fail() call
-            if ($lastNonVendorFrameIndex !== null && ArrayUtilForTests::isValidIndexOf($lastNonVendorFrameIndex + 2, $scopesStack)) {
-                ArrayUtilForTests::popFromIndex($scopesStack, $lastNonVendorFrameIndex + 2);
+            if ($lastNonVendorFrameIndex !== null && ArrayUtilForTests::isValidIndexOf($lastNonVendorFrameIndex + 2, $scopesNameContextStackTopLast)) {
+                ArrayUtilForTests::popFromIndex($scopesNameContextStackTopLast, $lastNonVendorFrameIndex + 2);
             }
         }
 
-        $totalCount = count($scopesStack);
+        $totalCount = count($scopesNameContextStackTopLast);
         $result = [];
         /** @var non-negative-int $scopeIndex */
-        /** @var DebugContextScope $scope */
-        foreach (IterableUtil::iterateListWithIndex(ArrayUtilForTests::iterateListInReverse($scopesStack)) as [$scopeIndex, $scope]) {
-            $name = 'Scope ' . ($scopeIndex + 1) . ' out of ' . $totalCount . ': ' . $scope->getName();
-            $result[$name] = $scope->getContext();
+        /** @var Pair<string, ScopeContext> $scopeNameContext */
+        foreach (IterableUtil::iterateListWithIndex(ArrayUtilForTests::iterateListInReverse($scopesNameContextStackTopLast)) as [$scopeIndex, $scopeNameContext]) {
+            $name = 'Scope ' . ($scopeIndex + 1) . ' out of ' . $totalCount . ': ' . $scopeNameContext->first;
+            $result[$name] = $scopeNameContext->second;
         }
+
+        $this->assertValid();
         return $result;
+    }
+
+    private static function buildScopeNameForCallStackFrame(ClassicFormatStackTraceFrame $callStackFrame): string
+    {
+        $classMethodPart = '';
+        if ($callStackFrame->class !== null) {
+            $classMethodPart .= $callStackFrame->class;
+        }
+        if ($callStackFrame->function !== null) {
+            if ($classMethodPart !== '') {
+                $classMethodPart .= '::';
+            }
+            $classMethodPart .= $callStackFrame->function;
+        }
+
+        $fileLinePart = '';
+        if ($callStackFrame->file !== null) {
+            $fileLinePart .= $callStackFrame->file;
+            if ($callStackFrame->line !== null) {
+                $fileLinePart .= ':' . $callStackFrame->line;
+            }
+        }
+
+        if ($classMethodPart === '') {
+            return $fileLinePart;
+        }
+
+        return $classMethodPart . ' [' . $fileLinePart . ']';
+    }
+
+    /**
+     * @return ScopeContext
+     */
+    private function buildScopeContextForCallStackFrame(ClassicFormatStackTraceFrame $callStackFrame, ?DebugContextScope $scopeWithAddedContext): array
+    {
+        $ctx = [];
+
+        // $this should be the first since $this is a hidden argument before the explicit arguments
+        if ($this->config[DebugContextConfig::AUTO_CAPTURE_THIS_OPTION_NAME] && $callStackFrame->thisObj !== null) {
+            $ctx[DebugContext::THIS_CONTEXT_KEY] = $callStackFrame->thisObj;
+        }
+
+        // then the explicit arguments
+        if ($this->config[DebugContextConfig::AUTO_CAPTURE_ARGS_OPTION_NAME]) {
+            ArrayUtilForTests::append(from: self::buildFuncArgsNamesToValues($callStackFrame), to: $ctx);
+        }
+
+        // and the added context is the last
+        if ($scopeWithAddedContext !== null) {
+            ArrayUtilForTests::append(from: $scopeWithAddedContext->getContext(), to: $ctx);
+        }
+
+        return $ctx;
     }
 
     public function reset(): void
     {
+        $this->assertValid();
+        $this->resetImpl();
+        $this->assertValid();
+    }
+
+    private function resetImpl(): void
+    {
         $this->addedContextScopesStack = [];
+        $this->syncedWithCallStack = null;
     }
 
     /**
@@ -228,53 +335,68 @@ final class DebugContextSingleton implements LoggableInterface
     /**
      * @param non-negative-int $numberOfStackFramesToSkip
      *
-     * @return ClassicFormatStackTraceFrame[]
+     * @return CallStack
      */
     private function captureStackTraceTopFrameLast(int $numberOfStackFramesToSkip, bool $includeArgs = false): array
     {
         // Always capture $this since it's used to determine if two stack trace frames represent the same call
-        return array_reverse($this->stackTraceUtil->captureInClassicFormat(offset: $numberOfStackFramesToSkip + 1, includeThisObj: true, includeArgs: $includeArgs));
+        $callStackTraceTopFrameFirst = $this->stackTraceUtil->captureInClassicFormat(offset: $numberOfStackFramesToSkip + 1, includeThisObj: true, includeArgs: $includeArgs);
+        return AssertEx::arrayIsNotEmptyList(array_reverse($callStackTraceTopFrameFirst));
     }
 
     /**
-     * @param ListSlice<ClassicFormatStackTraceFrame> $stackTrace
-     *
-     * @return ($returnFrameIndexesForScopes is true ? list<non-negative-int> : non-negative-int)
+     * @param non-negative-int $numberOfStackFramesToSkip
      */
-    private function syncScopesStackWithCallStack(ListSlice $stackTrace, bool $returnFrameIndexesForScopes = false): array|int
+    private function syncScopesStackWithCallStack(int $numberOfStackFramesToSkip, bool $newScopeAboutToBePushed = false): void
     {
-        if ($returnFrameIndexesForScopes) {
-            $frameIndexesForScopes = [];
-        }
+        ($loggerProxy = $this->logger->ifTraceLevelEnabled(__LINE__, __FUNCTION__)) && $loggerProxy->includeStackTrace()->log('Entered');
+
+        $newCallStack = $this->captureStackTraceTopFrameLast($numberOfStackFramesToSkip + 1);
+        $newCallStackFromFrameIndex = 0;
+
+        /** @var ?non-negative-int $popScopesFromIndex */
         $popScopesFromIndex = null;
-        $remainingStackTraceTop = $stackTrace->clone();
+
         /** @var non-negative-int $scopeIndex */
         /** @var DebugContextScope $scope */
         foreach (IterableUtil::iterateListWithIndex($this->addedContextScopesStack) as [$scopeIndex, $scope]) {
-            if (!$scope->syncWithCallStack($remainingStackTraceTop, /* out */ $matchingFrameIndex, /* out */ $matchingFrameHasSameLine)) {
+            // If a new scope is about to be pushed, then the top call stack frame should be used the new scope,
+            //  so the top call stack frame should not be used for the sync
+            if (!$scope->syncWithCallStack($newCallStack, $newCallStackFromFrameIndex) || ($newScopeAboutToBePushed && $scope->callStackFrameIndex === array_key_last($newCallStack))) {
                 $popScopesFromIndex = $scopeIndex;
                 break;
             }
-            // If source code line is different that means that all the scopes up to top of the scopes stack
-            // are for calls different from the ones on the current calls stack trace
-            // so we should pop those scopes as stale
-            if (!$matchingFrameHasSameLine && ($scopeIndex !== count($this->addedContextScopesStack) - 1)) {
+
+            if ($scopeIndex === (count($this->addedContextScopesStack) - 1)) {
+                break;
+            }
+
+            // If source code line is different that means that all the scopes up to the top of the scope stack
+            // are for calls different from the ones on the current calls stack, so we should pop those scopes as stale.
+            if (
+                $this->getSyncedWithCallStack()[$scope->callStackFrameIndex]->line !== $newCallStack[$scope->callStackFrameIndex]->line
+                || !ArrayUtilForTests::isValidIndexOf($scope->callStackFrameIndex + 1, $newCallStack)
+            ) {
                 $popScopesFromIndex = $scopeIndex + 1;
                 break;
             }
-            $remainingStackTraceTop = $remainingStackTraceTop->withoutPrefix($matchingFrameIndex + 1);
-            if ($returnFrameIndexesForScopes) {
-                $frameIndexesForScopes[] = $remainingStackTraceTop->offset - 1;
-            }
+
+            $newCallStackFromFrameIndex = $scope->callStackFrameIndex + 1;
         }
 
         if ($popScopesFromIndex !== null) {
-            Assert::assertLessThan(count($this->addedContextScopesStack), $popScopesFromIndex);
-            ArrayUtilForTests::popFromIndex(/* in,out */ $this->addedContextScopesStack, $popScopesFromIndex);
+            if ($popScopesFromIndex === 0) {
+                $this->resetImpl();
+            } else {
+                AssertEx::isValidIndexOf($popScopesFromIndex, $this->addedContextScopesStack); // @phpstan-ignore staticMethod.alreadyNarrowedType
+                ArrayUtilForTests::popFromIndex(/* in,out */ $this->addedContextScopesStack, $popScopesFromIndex); // @phpstan-ignore assign.propertyType
+                AssertEx::arrayIsNotEmptyList($this->addedContextScopesStack);
+            }
         }
 
-        /** @var list<non-negative-int> $frameIndexesForScopes */
-        return $returnFrameIndexesForScopes ? $frameIndexesForScopes : $remainingStackTraceTop->offset; // @phpstan-ignore variable.undefined
+        if ($newScopeAboutToBePushed || !ArrayUtilForTests::isEmpty($this->addedContextScopesStack)) {
+            $this->syncedWithCallStack = AssertEx::arrayIsNotEmptyList($newCallStack);
+        }
     }
 
     private function getNoopRefSingleton(): DebugContextScopeRef
@@ -283,35 +405,10 @@ final class DebugContextSingleton implements LoggableInterface
         static $result = null;
 
         if ($result === null) {
-            $result = new DebugContextScopeRef($this, null);
+            $result = new DebugContextScopeRef(null);
         }
 
         return $result;
-    }
-
-    /**
-     * @param non-negative-int $numberOfStackFramesToSkip
-     */
-    public function popTopScope(DebugContextScope $scopeToPop, int $numberOfStackFramesToSkip): void
-    {
-        // Relevant call stack trace starts from this function caller
-        $stackTrace = $this->captureStackTraceTopFrameLast($numberOfStackFramesToSkip + 1);
-
-        // Do not use the top frame for sync since the top frame is for the scope that should be pop-ed
-        $this->syncScopesStackWithCallStack((new ListSlice($stackTrace)));
-
-        /** @var ?non-positive-int $scopeToPopIndex */
-        $scopeToPopIndex = null;
-        foreach (IterableUtil::iterateListWithIndex($this->addedContextScopesStack) as [$currentScopeIndex, $currentScope]) {
-            if ($currentScope === $scopeToPop) {
-                $scopeToPopIndex = $currentScopeIndex;
-                break;
-            }
-        }
-        if ($scopeToPopIndex !== null) {
-            AssertEx::isValidIndexOf($scopeToPopIndex, $this->addedContextScopesStack);
-            ArrayUtilForTests::popFromIndex($this->addedContextScopesStack, $scopeToPopIndex);
-        }
     }
 
     /**
@@ -339,7 +436,7 @@ final class DebugContextSingleton implements LoggableInterface
     }
 
     /**
-     * @return Context
+     * @return ScopeContext
      */
     private static function buildFuncArgsNamesToValues(ClassicFormatStackTraceFrame $stackTraceFrame): array
     {
@@ -354,26 +451,6 @@ final class DebugContextSingleton implements LoggableInterface
             $result[$argName] = $stackTraceFrame->args[$argIndex];
         }
         return $result;
-    }
-
-    private function buildScopeForStackTraceFrame(ClassicFormatStackTraceFrame $stackTraceFrame, ?DebugContextScope $scopeWithAddedContext): DebugContextScope
-    {
-        $ctx = [];
-
-        $onlyAddedContext = $this->config[DebugContextConfig::ONLY_ADDED_CONTEXT_OPTION_NAME];
-        if (!$onlyAddedContext && $this->config[DebugContextConfig::AUTO_CAPTURE_THIS_OPTION_NAME] && ($stackTraceFrame->thisObj !== null)) {
-            $ctx[DebugContext::THIS_CONTEXT_KEY] = $stackTraceFrame->thisObj;
-        }
-
-        if (!$onlyAddedContext && $this->config[DebugContextConfig::AUTO_CAPTURE_ARGS_OPTION_NAME]) {
-            ArrayUtilForTests::append(from: self::buildFuncArgsNamesToValues($stackTraceFrame), to: $ctx);
-        }
-
-        if ($scopeWithAddedContext !== null) {
-            ArrayUtilForTests::append(from: $scopeWithAddedContext->getContext(), to: $ctx);
-        }
-
-        return new DebugContextScope(new ListSlice([$stackTraceFrame]), $ctx);
     }
 
     /**
@@ -486,7 +563,7 @@ final class DebugContextSingleton implements LoggableInterface
     }
 
     /**
-     * @return ?ContextsStack
+     * @return ?ScopeNameToContext
      *
      * @noinspection PhpDocMissingThrowsInspection
      */
@@ -503,5 +580,24 @@ final class DebugContextSingleton implements LoggableInterface
 
         $decodedContextsStack = JsonUtil::decode($addedText, asAssocArray: true);
         return AssertEx::isArray($decodedContextsStack); // @phpstan-ignore return.type
+    }
+
+    /**
+     * @return CallStack
+     */
+    public function getSyncedWithCallStack(): array
+    {
+        AssertEx::notNull($this->syncedWithCallStack);
+        return $this->syncedWithCallStack;
+    }
+
+    public function toLog(LogStreamInterface $stream): void
+    {
+        $stream->toLogAs(
+            [
+                'scopes count' => count($this->addedContextScopesStack),
+                'scopes' => $this->addedContextScopesStack,
+            ],
+        );
     }
 }

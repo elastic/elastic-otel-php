@@ -193,7 +193,11 @@ class ComponentTestCaseBase extends TestCaseBase
             return $variants;
         }
         foreach ($variants as $key => $value) {
-            return [$key => $value];
+            if (ArrayUtilForTests::isOfArrayKeyType($key)) {
+                return [$key => $value];
+            } else {
+                return [$value];
+            }
         }
         return [];
     }
@@ -448,7 +452,7 @@ class ComponentTestCaseBase extends TestCaseBase
      *
      * @return TValue
      */
-    public static function &assertAndGetFromArrayByKey(array $array, $key)
+    public static function &assertAndGetFromArrayByKey(array $array, int|string $key)
     {
         Assert::assertArrayHasKey($key, $array);
         return $array[$key];

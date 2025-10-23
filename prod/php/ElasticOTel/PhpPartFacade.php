@@ -31,7 +31,6 @@ use Elastic\OTel\Log\ElasticLogWriter;
 use Elastic\OTel\Util\HiddenConstructorTrait;
 use OpenTelemetry\API\Globals;
 use OpenTelemetry\SDK\Registry;
-use OpenTelemetry\SDK\Resource\ResourceInfoFactory;
 use OpenTelemetry\SDK\SdkAutoloader;
 use OpenTelemetry\API\Trace\Span;
 use OpenTelemetry\API\Trace\SpanKind;
@@ -148,15 +147,6 @@ final class PhpPartFacade
             BootstrapStageLogger::logCriticalThrowable($throwable, 'One of the steps in bootstrap sequence has thrown', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
             return false;
         }
-
-        ///////////////////////////////////////////////////////////////////////////
-        // TODO: Sergey Kleyman: BEGIN: REMOVE: ::
-        ///////////////////////////////////////
-        ResourceInfoFactory::defaultResourceDummy();
-        BootstrapStageLogger::logInfo('Called ResourceInfoFactory::defaultResourceDummy()', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
-        ///////////////////////////////////////
-        // END: REMOVE
-        ////////////////////////////////////////////////////////////////////////////
 
         BootstrapStageLogger::logDebug('Successfully completed bootstrap sequence', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
         return true;

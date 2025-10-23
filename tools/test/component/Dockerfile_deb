@@ -7,13 +7,15 @@ RUN apt-get -qq update \
     && apt-get -qq -y --no-install-recommends install \
         git \
         libpq-dev \
+        libzip-dev \
         logrotate \
         procps \
         rsyslog
 
 RUN docker-php-ext-install \
         mysqli \
-        pgsql
+        pgsql \
+        zip
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
