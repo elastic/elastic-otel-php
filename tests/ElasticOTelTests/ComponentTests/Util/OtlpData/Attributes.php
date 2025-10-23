@@ -19,9 +19,14 @@
  * under the License.
  */
 
+/**
+ * @noinspection PhpDeprecationInspection
+ * Google\Protobuf\Internal\RepeatedField is deprecated, and Google\Protobuf\RepeatedField is used instead.
+ */
+
 declare(strict_types=1);
 
-namespace ElasticOTelTests\ComponentTests\Util;
+namespace ElasticOTelTests\ComponentTests\Util\OtlpData;
 
 use Countable;
 use Elastic\OTel\Util\ArrayUtil;
@@ -34,6 +39,7 @@ use ElasticOTelTests\Util\Log\LoggableToString;
 use ElasticOTelTests\Util\Log\LogStreamInterface;
 use ElasticOTelTests\Util\TextUtilForTests;
 use Google\Protobuf\RepeatedField as ProtobufRepeatedField;
+use Google\Protobuf\Internal\RepeatedField as ProtobufRepeatedFieldInternal;
 use Opentelemetry\Proto\Common\V1\KeyValue as OTelProtoKeyValue;
 use Override;
 use PHPUnit\Framework\Assert;
@@ -43,17 +49,32 @@ use PHPUnit\Framework\Assert;
  *
  * @implements ArrayReadInterface<string, AttributeValue>
  */
-final class SpanAttributes implements ArrayReadInterface, Countable, LoggableInterface
+final class Attributes implements ArrayReadInterface, Countable, LoggableInterface
 {
-    /** @var array<string, AttributeValue> $keyToValueMap */
-    private readonly array $keyToValueMap;
+    /**
+     * @param array<string, AttributeValue> $keyToValueMap
+     */
+    public function __construct(
+        private readonly array $keyToValueMap
+    ) {
+    }
 
     /**
-     * @param ProtobufRepeatedField<OTelProtoKeyValue> $protobufRepeatedField
+     * @param ProtobufRepeatedField<OTelProtoKeyValue>|ProtobufRepeatedFieldInternal $source
      */
-    public function __construct(ProtobufRepeatedField $protobufRepeatedField)
+    public static function deserializeFromOTelProto(ProtobufRepeatedField|ProtobufRepeatedFieldInternal $source): self
     {
-        $this->keyToValueMap = self::convertProtobufRepeatedFieldToMap($protobufRepeatedField);
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
+
+        $keyToValueMap = [];
+        foreach ($source as $keyValue) { // @phpstan-ignore foreach.nonIterable
+            $dbgCtx->add(compact('keyValue'));
+            Assert::assertInstanceOf(OTelProtoKeyValue::class, $keyValue); // @phpstan-ignore staticMethod.alreadyNarrowedType
+            Assert::assertArrayNotHasKey($keyValue->getKey(), $keyToValueMap);
+            $keyToValueMap[$keyValue->getKey()] = self::extractValue($keyValue);
+        }
+
+        return new self($keyToValueMap);
     }
 
     /**
@@ -125,26 +146,6 @@ final class SpanAttributes implements ArrayReadInterface, Countable, LoggableInt
         }
 
         Assert::fail('Unknown value type; ' . LoggableToString::convert(compact('keyValue')));
-    }
-
-    /**
-     * @param ProtobufRepeatedField<OTelProtoKeyValue> $protobufRepeatedField
-     *
-     * @return array<string, AttributeValue>
-     */
-    private static function convertProtobufRepeatedFieldToMap(ProtobufRepeatedField $protobufRepeatedField): array
-    {
-        DebugContext::getCurrentScope(/* out */ $dbgCtx);
-
-        $result = [];
-        foreach ($protobufRepeatedField as $keyValue) {
-            $dbgCtx->add(compact('keyValue'));
-            Assert::assertInstanceOf(OTelProtoKeyValue::class, $keyValue); // @phpstan-ignore staticMethod.alreadyNarrowedType
-            Assert::assertArrayNotHasKey($keyValue->getKey(), $result);
-            $result[$keyValue->getKey()] = self::extractValue($keyValue);
-        }
-
-        return $result;
     }
 
     #[Override]

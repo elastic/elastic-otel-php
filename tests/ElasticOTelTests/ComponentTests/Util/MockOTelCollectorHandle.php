@@ -36,7 +36,7 @@ use PHPUnit\Framework\Assert;
 final class MockOTelCollectorHandle extends HttpServerHandle
 {
     private readonly Logger $logger;
-    private int $nextIntakeApiRequestIndexToFetch = 0;
+    private int $nextIntakeDataRequestIndexToFetch = 0;
 
     public function __construct(HttpServerHandle $httpSpawnedProcessHandle)
     {
@@ -70,7 +70,7 @@ final class MockOTelCollectorHandle extends HttpServerHandle
             HttpMethods::GET,
             MockOTelCollector::MOCK_API_URI_PREFIX . MockOTelCollector::GET_AGENT_TO_OTEL_COLLECTOR_EVENTS_URI_SUBPATH,
             [
-                MockOTelCollector::FROM_INDEX_HEADER_NAME => strval($this->nextIntakeApiRequestIndexToFetch),
+                MockOTelCollector::FROM_INDEX_HEADER_NAME => strval($this->nextIntakeDataRequestIndexToFetch),
                 MockOTelCollector::SHOULD_WAIT_HEADER_NAME => BoolUtil::toString($shouldWait),
             ]
         );
@@ -80,7 +80,7 @@ final class MockOTelCollectorHandle extends HttpServerHandle
         if (ArrayUtilForTests::isEmpty($newEvents)) {
             $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Fetched NO new data from agent receiver events');
         } else {
-            $this->nextIntakeApiRequestIndexToFetch += count($newEvents);
+            $this->nextIntakeDataRequestIndexToFetch += count($newEvents);
             $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Fetched new data from agent receiver events', ['count(newEvents)' => count($newEvents)]);
         }
         return $newEvents;
@@ -88,7 +88,7 @@ final class MockOTelCollectorHandle extends HttpServerHandle
 
     public function cleanTestScoped(): void
     {
-        $this->nextIntakeApiRequestIndexToFetch = 0;
+        $this->nextIntakeDataRequestIndexToFetch = 0;
 
         $response = $this->sendRequest(HttpMethods::POST, TestInfraHttpServerProcessBase::CLEAN_TEST_SCOPED_URI_PATH);
         Assert::assertSame(HttpStatusCodes::OK, $response->getStatusCode());

@@ -172,6 +172,16 @@ final class AssertEx
     }
 
     /**
+     * @return non-negative-int
+     */
+    public static function isNonNegativeInt(mixed $actual, string $message = ''): int
+    {
+        Assert::assertIsInt($actual, $message);
+        Assert::assertGreaterThanOrEqual(0, $actual, $message);
+        return $actual; // @phpstan-ignore return.type
+    }
+
+    /**
      * @return positive-int
      */
     public static function isPositiveInt(mixed $actual, string $message = ''): int

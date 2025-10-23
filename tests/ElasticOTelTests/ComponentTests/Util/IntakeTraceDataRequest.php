@@ -23,28 +23,34 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
-use OpenTelemetry\SemConv\TraceAttributes;
+use ElasticOTelTests\ComponentTests\Util\OtlpData\ExportTraceServiceRequest;
+use ElasticOTelTests\Util\Log\LoggableTrait;
+use ElasticOTelTests\Util\MonotonicTime;
+use ElasticOTelTests\Util\SystemTime;
 use Override;
-use PHPUnit\Framework\Assert;
 
 /**
- * @phpstan-import-type AttributeValue from SpanAttributes
- * @phpstan-type ArrayValue AttributeValue|ExpectationsInterface
- *
- * @extends ArrayExpectations<string, ArrayValue>
+ * @phpstan-import-type HttpHeaders from IntakeDataRequest
  */
-final class SpanAttributesArrayExpectations extends ArrayExpectations
+final class IntakeTraceDataRequest extends IntakeDataRequest
 {
+    use LoggableTrait;
+
     /**
-     * @phpstan-param string $key
+     * @param HttpHeaders $httpHeaders
      */
+    public function __construct(
+        MonotonicTime $monotonicTime,
+        SystemTime $systemTime,
+        array $httpHeaders,
+        public readonly ExportTraceServiceRequest $deserialized,
+    ) {
+        parent::__construct($monotonicTime, $systemTime, $httpHeaders);
+    }
+
     #[Override]
-    protected function assertArrayValueMatches(string|int $key, mixed $expectedValue, mixed $actualValue): void
+    public function isEmptyAfterDeserialization(): bool
     {
-        if ($key === TraceAttributes::URL_SCHEME) {
-            Assert::assertEqualsIgnoringCase($expectedValue, $actualValue);
-        } else {
-            parent::assertArrayValueMatches($key, $expectedValue, $actualValue); // @phpstan-ignore argument.type
-        }
+        return $this->deserialized->isEmptyAfterDeserialization();
     }
 }

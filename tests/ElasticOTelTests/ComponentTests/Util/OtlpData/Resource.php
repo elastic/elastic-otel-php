@@ -21,34 +21,30 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTests\ComponentTests\Util;
+namespace ElasticOTelTests\ComponentTests\Util\OtlpData;
 
-use ElasticOTelTests\Util\Log\LoggableInterface;
-use ElasticOTelTests\Util\Log\LoggableTrait;
-use ElasticOTelTests\Util\MonotonicTime;
-use ElasticOTelTests\Util\SystemTime;
+use ElasticOTelTests\Util\AssertEx;
+use Opentelemetry\Proto\Resource\V1\Resource as OTelProtoResource;
 
-final class IntakeApiRequest extends AgentToOTeCollectorEvent implements LoggableInterface
+/**
+ * @see https://github.com/open-telemetry/opentelemetry-proto/blob/v1.8.0/opentelemetry/proto/resource/v1/resource.proto#L28
+ */
+class Resource
 {
-    use LoggableTrait;
-
     /**
-     * @param array<string, string[]> $headers
+     * @param non-negative-int $droppedAttributesCount
      */
     public function __construct(
-        MonotonicTime $monotonicTime,
-        SystemTime $systemTime,
-        public readonly array $headers,
-        public readonly string $bodyBase64Encoded,
+        public readonly Attributes $attributes,
+        public readonly int $droppedAttributesCount,
     ) {
-        parent::__construct($monotonicTime, $systemTime);
     }
 
-    /**
-     * @return string[]
-     */
-    protected static function propertiesExcludedFromLog(): array
+    public static function deserializeFromOTelProto(OTelProtoResource $source): self
     {
-        return ['bodyBase64Encoded'];
+        return new self(
+            attributes: Attributes::deserializeFromOTelProto($source->getAttributes()),
+            droppedAttributesCount: AssertEx::isNonNegativeInt($source->getDroppedAttributesCount()),
+        );
     }
 }

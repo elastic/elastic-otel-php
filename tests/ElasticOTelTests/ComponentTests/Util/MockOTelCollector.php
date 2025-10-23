@@ -19,6 +19,8 @@
  * under the License.
  */
 
+/** @noinspection PhpInternalEntityUsedInspection */
+
 declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
@@ -26,8 +28,10 @@ namespace ElasticOTelTests\ComponentTests\Util;
 use Elastic\OTel\Util\ArrayUtil;
 use Elastic\OTel\Util\NumericUtil;
 use Elastic\OTel\Util\TextUtil;
+use ElasticOTelTests\ComponentTests\Util\OtlpData\ExportTraceServiceRequest;
 use ElasticOTelTests\Util\AmbientContextForTests;
 use ElasticOTelTests\Util\ArrayUtilForTests;
+use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\BoolUtil;
 use ElasticOTelTests\Util\Clock;
 use ElasticOTelTests\Util\ExceptionUtil;
@@ -37,6 +41,8 @@ use ElasticOTelTests\Util\HttpStatusCodes;
 use ElasticOTelTests\Util\JsonUtil;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
 use ElasticOTelTests\Util\Log\Logger;
+use OpenTelemetry\Contrib\Otlp\ProtobufSerializer;
+use Opentelemetry\Proto\Collector\Trace\V1\ExportTraceServiceRequest as OTelProtoExportTraceServiceRequest;
 use Override;
 use PHPUnit\Framework\Assert;
 use Psr\Http\Message\ResponseInterface;
@@ -45,10 +51,13 @@ use React\Http\Message\Response;
 use React\Promise\Promise;
 use React\Socket\ConnectionInterface;
 
+/**
+ * @phpstan-import-type HttpHeaders from IntakeDataRequest
+ */
 final class MockOTelCollector extends TestInfraHttpServerProcessBase
 {
     public const MOCK_API_URI_PREFIX = '/mock_OTel_Collector_API/';
-    private const INTAKE_API_URI = '/v1/traces';
+    private const INTAKE_EXPORTED_TRACE_DATA_URI_PATH = '/v1/traces';
     public const GET_AGENT_TO_OTEL_COLLECTOR_EVENTS_URI_SUBPATH = 'get_Agent_to_OTel_Collector_events';
     public const FROM_INDEX_HEADER_NAME = RequestHeadersRawSnapshotSource::HEADER_NAMES_PREFIX . 'FROM_INDEX';
     public const SHOULD_WAIT_HEADER_NAME = RequestHeadersRawSnapshotSource::HEADER_NAMES_PREFIX . 'SHOULD_WAIT';
@@ -111,8 +120,8 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
     #[Override]
     protected function processRequest(ServerRequestInterface $request): null|ResponseInterface|Promise
     {
-        if ($request->getUri()->getPath() === self::INTAKE_API_URI) {
-            return $this->processIntakeApiRequest($request);
+        if ($request->getUri()->getPath() === self::INTAKE_EXPORTED_TRACE_DATA_URI_PATH) {
+            return $this->processIntakeTraceDataRequest($request);
         }
 
         if (TextUtil::isPrefixOf(self::MOCK_API_URI_PREFIX, $request->getUri()->getPath())) {
@@ -130,39 +139,70 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
     #[Override]
     protected function shouldRequestHaveSpawnedProcessInternalId(ServerRequestInterface $request): bool
     {
-        return $request->getUri()->getPath() !== self::INTAKE_API_URI;
+        return $request->getUri()->getPath() !== self::INTAKE_EXPORTED_TRACE_DATA_URI_PATH;
     }
 
-    private function processIntakeApiRequest(ServerRequestInterface $request): ResponseInterface
+    /**
+     * @param HttpHeaders $httpHeaders
+     */
+    private static function verifyIntakeDataRequest(array $httpHeaders, int $bodySize): void
+    {
+        $contentLength = HttpClientUtilForTests::getSingleHeaderValue(HttpHeaderNames::CONTENT_LENGTH, $httpHeaders);
+        AssertEx::stringSameAsInt($bodySize, $contentLength);
+
+        $contentType = HttpClientUtilForTests::getSingleHeaderValue(HttpHeaderNames::CONTENT_TYPE, $httpHeaders);
+        Assert::assertSame(HttpContentTypes::PROTOBUF, $contentType);
+    }
+
+    /**
+     * @param callable(string): IntakeDataRequest $deserialize
+     */
+    private function processIntakeDataRequest(ServerRequestInterface $request, callable $deserialize): ResponseInterface
     {
         Assert::assertNotNull($this->reactLoop);
 
-        if ($request->getBody()->getSize() === 0) {
-            return $this->buildIntakeApiErrorResponse(/* status */ HttpStatusCodes::BAD_REQUEST, 'Intake API request should not have empty body');
+        $body = $request->getBody()->getContents();
+        $bodySize = strlen($body);
+        $logger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__)->addAllContext(compact('bodySize'));
+        $loggerProxyDebug = $logger->ifDebugLevelEnabledNoLine(__FUNCTION__);
+        $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Deserializing intake trace data request');
+        Assert::assertSame($bodySize, $request->getBody()->getSize());
+
+        if ($bodySize === 0) {
+            return $this->buildIntakeDataErrorResponse(/* status */ HttpStatusCodes::BAD_REQUEST, 'Intake API request should not have empty body');
         }
 
-        $newRequest = new IntakeApiRequest(
-            AmbientContextForTests::clock()->getMonotonicClockCurrentTime(),
-            AmbientContextForTests::clock()->getSystemClockCurrentTime(),
-            $request->getHeaders(), // @phpstan-ignore argument.type
-            base64_encode($request->getBody()->getContents()),
-        );
+        self::verifyIntakeDataRequest($request->getHeaders(), $bodySize); // @phpstan-ignore argument.type
 
-        ($loggerProxyDebug = $this->logger->ifDebugLevelEnabledNoLine(__FUNCTION__))
-        && $loggerProxyDebug->log(__LINE__, 'Received request for Intake API', ['newRequest' => $newRequest]);
+        $deserializedRequest = $deserialize($body);
+        $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Deserialized intake data request', compact('deserializedRequest'));
 
-        if ($loggerProxyDebug !== null) {
-            $exportedData = IntakeApiRequestDeserializer::deserialize($newRequest);
-            if ($exportedData->isEmpty()) {
-                $loggerProxyDebug->log(__LINE__, 'All of the contents has been discarded');
-            } else {
-                $loggerProxyDebug->log(__LINE__, 'Contents', compact('exportedData'));
-            }
+        if ($deserializedRequest->isEmptyAfterDeserialization()) {
+            $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'All data has been discarded by deserialization');
         }
 
-        $this->addAgentToOTeCollectorEvent($newRequest);
+        $this->addAgentToOTeCollectorEvent($deserializedRequest);
 
         return new Response(/* status: */ 202);
+    }
+
+    private function processIntakeTraceDataRequest(ServerRequestInterface $request): ResponseInterface
+    {
+        return $this->processIntakeDataRequest(
+            $request,
+            function (string $body) use ($request): IntakeTraceDataRequest {
+                $serializer = ProtobufSerializer::getDefault();
+                $otelProtoRequest = new OTelProtoExportTraceServiceRequest();
+                $serializer->hydrate($otelProtoRequest, $body);
+
+                return new IntakeTraceDataRequest(
+                    AmbientContextForTests::clock()->getMonotonicClockCurrentTime(),
+                    AmbientContextForTests::clock()->getSystemClockCurrentTime(),
+                    $request->getHeaders(), // @phpstan-ignore argument.type
+                    ExportTraceServiceRequest::deserializeFromOTelProto($otelProtoRequest),
+                );
+            },
+        );
     }
 
     /**
@@ -171,7 +211,7 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
     private function processMockApiRequest(ServerRequestInterface $request): Promise|ResponseInterface
     {
         return match ($command = substr($request->getUri()->getPath(), strlen(self::MOCK_API_URI_PREFIX))) {
-            self::GET_AGENT_TO_OTEL_COLLECTOR_EVENTS_URI_SUBPATH => $this->getIntakeApiRequests($request),
+            self::GET_AGENT_TO_OTEL_COLLECTOR_EVENTS_URI_SUBPATH => $this->getIntakeDataRequests($request),
             default => $this->buildErrorResponse(HttpStatusCodes::BAD_REQUEST, 'Unknown Mock API command `' . $command . '\''),
         };
     }
@@ -179,7 +219,7 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
     /**
      * @return ResponseInterface|Promise<ResponseInterface>
      */
-    private function getIntakeApiRequests(ServerRequestInterface $request): Promise|ResponseInterface
+    private function getIntakeDataRequests(ServerRequestInterface $request): Promise|ResponseInterface
     {
         $fromIndex = intval(self::getRequiredRequestHeader($request, self::FROM_INDEX_HEADER_NAME));
         $shouldWait = BoolUtil::fromString(self::getRequiredRequestHeader($request, self::SHOULD_WAIT_HEADER_NAME));
@@ -285,7 +325,7 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
         ($pendingDataRequest->callToSendResponse)($this->fulfillDataRequest($pendingDataRequest->fromIndex));
     }
 
-    protected function buildIntakeApiErrorResponse(int $status, string $message): ResponseInterface
+    protected function buildIntakeDataErrorResponse(int $status, string $message): ResponseInterface
     {
         return new Response(status: $status, headers: [HttpHeaderNames::CONTENT_TYPE => HttpContentTypes::TEXT], body: $message);
     }

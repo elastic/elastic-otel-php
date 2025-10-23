@@ -26,13 +26,13 @@ namespace ElasticOTelTests\ComponentTests;
 use ElasticOTelTests\ComponentTests\Util\AppCodeHostParams;
 use ElasticOTelTests\ComponentTests\Util\AppCodeRequestParams;
 use ElasticOTelTests\ComponentTests\Util\AppCodeTarget;
+use ElasticOTelTests\ComponentTests\Util\AttributesExpectations;
 use ElasticOTelTests\ComponentTests\Util\ComponentTestCaseBase;
 use ElasticOTelTests\ComponentTests\Util\HttpAppCodeHostHandle;
 use ElasticOTelTests\ComponentTests\Util\HttpAppCodeRequestParams;
-use ElasticOTelTests\ComponentTests\Util\Span;
-use ElasticOTelTests\ComponentTests\Util\SpanAttributesExpectations;
+use ElasticOTelTests\ComponentTests\Util\OtlpData\Span;
+use ElasticOTelTests\ComponentTests\Util\OtlpData\SpanKind;
 use ElasticOTelTests\ComponentTests\Util\SpanExpectationsBuilder;
-use ElasticOTelTests\ComponentTests\Util\SpanKind;
 use ElasticOTelTests\ComponentTests\Util\UrlUtil;
 use ElasticOTelTests\ComponentTests\Util\WaitForEventCounts;
 use ElasticOTelTests\Util\ArrayUtilForTests;
@@ -131,7 +131,7 @@ final class TransactionSpanTest extends ComponentTestCaseBase
             $expectedRootSpanKind = SpanKind::server;
             /** @var HttpAppCodeHostHandle $appCodeHost */
             $expectedRootSpanUrlParts = UrlUtil::buildUrlPartsWithDefaults(port: $appCodeHost->httpServerHandle->getMainPort());
-            $rootSpanAttributesExpectations = new SpanAttributesExpectations(
+            $rootSpanAttributesExpectations = new AttributesExpectations(
                 [
                     TraceAttributes::HTTP_REQUEST_METHOD       => HttpAppCodeRequestParams::DEFAULT_HTTP_REQUEST_METHOD,
                     TraceAttributes::SERVER_ADDRESS            => $expectedRootSpanUrlParts->host,
@@ -144,7 +144,7 @@ final class TransactionSpanTest extends ComponentTestCaseBase
             );
         } else {
             $expectedRootSpanKind = SpanKind::server;
-            $rootSpanAttributesExpectations = new SpanAttributesExpectations(
+            $rootSpanAttributesExpectations = new AttributesExpectations(
                 attributes:           [
                                           self::DID_APP_CODE_FINISH_SUCCESSFULLY_KEY => true,
                                       ],

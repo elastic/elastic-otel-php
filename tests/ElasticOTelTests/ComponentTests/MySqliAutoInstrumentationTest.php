@@ -291,7 +291,7 @@ final class MySqliAutoInstrumentationTest extends ComponentTestCaseBase
         $isAutoInstrumentationEnabled = $appCodeArgs->getBool(self::IS_AUTO_INSTRUMENTATION_ENABLED_KEY);
         if ($isAutoInstrumentationEnabled) {
             self::assertTrue(class_exists(MySqliInstrumentation::class, autoload: false));
-            self::assertSame(MySqliInstrumentation::NAME, self::AUTO_INSTRUMENTATION_NAME);
+            self::assertSame(MySqliInstrumentation::NAME, self::AUTO_INSTRUMENTATION_NAME); // @phpstan-ignore staticMethod.alreadyNarrowedType
         }
 
         $isOOPApi = $appCodeArgs->getBool(self::IS_OOP_API_KEY);
@@ -440,7 +440,7 @@ final class MySqliAutoInstrumentationTest extends ComponentTestCaseBase
         $dbgCtx->add(compact('exportedData'));
 
         $actualDbSpans = [];
-        foreach ($exportedData->spans as $span) {
+        foreach ($exportedData->spans() as $span) {
             if ($span->attributes->keyExists(TraceAttributes::DB_SYSTEM_NAME)) {
                 $actualDbSpans[] = $span;
             }

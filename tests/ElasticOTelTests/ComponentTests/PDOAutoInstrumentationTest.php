@@ -155,7 +155,7 @@ final class PDOAutoInstrumentationTest extends ComponentTestCaseBase
         $isAutoInstrumentationEnabled = $appCodeArgs->getBool(self::IS_AUTO_INSTRUMENTATION_ENABLED_KEY);
         if ($isAutoInstrumentationEnabled) {
             self::assertTrue(class_exists(PDOInstrumentation::class, autoload: false));
-            self::assertSame(PDOInstrumentation::NAME, self::AUTO_INSTRUMENTATION_NAME);
+            self::assertSame(PDOInstrumentation::NAME, self::AUTO_INSTRUMENTATION_NAME); // @phpstan-ignore staticMethod.alreadyNarrowedType
         }
 
         $dbName = $appCodeArgs->getString(DbAutoInstrumentationUtilForTests::DB_NAME_KEY);
@@ -258,7 +258,7 @@ final class PDOAutoInstrumentationTest extends ComponentTestCaseBase
         $dbgCtx->add(compact('exportedData'));
 
         $actualDbSpans = [];
-        foreach ($exportedData->spans as $span) {
+        foreach ($exportedData->spans() as $span) {
             if ($span->attributes->keyExists(TraceAttributes::DB_SYSTEM_NAME)) {
                 $actualDbSpans[] = $span;
             }
