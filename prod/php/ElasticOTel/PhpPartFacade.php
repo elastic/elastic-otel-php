@@ -102,19 +102,13 @@ final class PhpPartFacade
         }
 
         try {
-            require __DIR__ . DIRECTORY_SEPARATOR . 'Autoloader.php';
-            Autoloader::register(__DIR__);
+            require __DIR__ . DIRECTORY_SEPARATOR . 'AutoloaderElasticOTelClasses.php';
+            AutoloaderElasticOTelClasses::register(__DIR__);
 
             InstrumentationBridge::singletonInstance()->bootstrap();
-            self::prepareForOTelSdk($elasticOTelNativePartVersion);
+            self::prepareForOTelSdk();
             self::registerAutoloaderForVendorDir();
-            ///////////////////////////////////////////////////////////////////////////
-            // TODO: Sergey Kleyman: BEGIN: REMOVE: ::
-            ///////////////////////////////////////
-            InstrumentationBridge::singletonInstance()->retryDelayedHooks();
-            ///////////////////////////////////////
-            // END: REMOVE
-            ////////////////////////////////////////////////////////////////////////////
+            OverrideOTelSdkResourceAttributes::register();
             self::registerNativeOtlpSerializer();
             self::registerAsyncTransportFactory();
             self::registerOtelLogWriter();
@@ -201,10 +195,9 @@ final class PhpPartFacade
         }
     }
 
-    private static function prepareForOTelSdk(string $elasticOTelNativePartVersion): void
+    private static function prepareForOTelSdk(): void
     {
         self::setEnvVar('OTEL_PHP_AUTOLOAD_ENABLED', 'true');
-        OverrideOTelSdkResourceAttributes::registerHook($elasticOTelNativePartVersion);
     }
 
     private static function registerAutoloaderForVendorDir(): void

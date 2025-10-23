@@ -23,8 +23,9 @@ declare(strict_types=1);
 
 namespace Elastic\OTel;
 
-use Elastic\OTel\Util\StaticClassTrait;
 use OpenTelemetry\SDK\Common\Attribute\Attributes;
+use OpenTelemetry\SDK\Registry;
+use OpenTelemetry\SDK\Resource\ResourceDetectorInterface;
 use OpenTelemetry\SDK\Resource\ResourceInfo;
 use OpenTelemetry\SemConv\ResourceAttributes;
 
@@ -33,74 +34,23 @@ use OpenTelemetry\SemConv\ResourceAttributes;
  *
  * @internal
  */
-final class OverrideOTelSdkResourceAttributes
+final class OverrideOTelSdkResourceAttributes implements ResourceDetectorInterface
 {
-    use StaticClassTrait;
-
-    public const INSTRUMENTED_CLASS_NAME = "OpenTelemetry\\SDK\\Resource\\ResourceInfoFactory";
-    public const INSTRUMENTED_METHOD_NAME = 'defaultResource';
-
-    public static function registerHook(string $elasticOTelNativePartVersion): void
+    public static function register(): void
     {
-        $elasticOTelVersion = self::buildElasticOTelVersion($elasticOTelNativePartVersion);
+        Registry::registerResourceDetector(self::class, new self());
+    }
+
+    public function getResource(): ResourceInfo
+    {
         BootstrapStageLogger::logDebug(
-            'Registering post hook for ' . self::INSTRUMENTED_CLASS_NAME . '::' . self::INSTRUMENTED_METHOD_NAME .
-            '; elasticOTelVersion: ' . $elasticOTelVersion . ' ...',
+            'Entered; PhpPartVersion::VALUE: ' . PhpPartVersion::VALUE,
             __FILE__,
             __LINE__,
             __CLASS__,
             __FUNCTION__,
         );
 
-        InstrumentationBridge::singletonInstance()->hook(
-            class: self::INSTRUMENTED_CLASS_NAME,
-            function: self::INSTRUMENTED_METHOD_NAME,
-            post: static function ($thisObj, array $args, mixed $retVal) use ($elasticOTelVersion): mixed {
-                BootstrapStageLogger::logDebug(
-                    'Entered post hook for ' . self::INSTRUMENTED_CLASS_NAME . '::' . self::INSTRUMENTED_METHOD_NAME .
-                    '; elasticOTelVersion: ' . $elasticOTelVersion . '; retVal type: ' . get_debug_type($retVal),
-                    __FILE__,
-                    __LINE__,
-                    __CLASS__,
-                    __FUNCTION__,
-                );
-
-                if (!($retVal instanceof ResourceInfo)) {
-                    BootstrapStageLogger::logError(
-                        'Intercepted call return value has unexpected type: ' . get_debug_type($retVal) .
-                        ' (expected ' . ResourceInfo::class . ') - exiting without overriding',
-                        __FILE__,
-                        __LINE__,
-                        __CLASS__,
-                        __FUNCTION__,
-                    );
-                    return $retVal;
-                }
-                /** @var ResourceInfo $retVal */
-
-                return $retVal->merge(self::buildOverridingResourceInfo($retVal, $elasticOTelVersion));
-            }
-        );
-    }
-
-    private static function buildElasticOTelVersion(string $nativePartVersion): string
-    {
-        if ($nativePartVersion === PhpPartVersion::VALUE) {
-            return $nativePartVersion;
-        }
-
-        BootstrapStageLogger::logWarning(
-            'Native part and PHP part versions do not match. native part version: ' . $nativePartVersion . '; PHP part version: ' . PhpPartVersion::VALUE,
-            __FILE__,
-            __LINE__,
-            __CLASS__,
-            __FUNCTION__
-        );
-        return $nativePartVersion . '/' . PhpPartVersion::VALUE;
-    }
-
-    private static function buildOverridingResourceInfo(ResourceInfo $base, string $elasticOTelVersion): ResourceInfo
-    {
         /**
          * @see https://github.com/elastic/apm/blob/9a8390a161db1cab0f7e27f03111ff4bececf523/specs/agents/otel-distribution.md?plain=1#L79
          * @see https://github.com/elastic/opentelemetry-lib/blob/434982a9d78a9b0ee1f47bccb9f03d6b7bf3570f/enrichments/internal/elastic/resource.go#L102
@@ -113,8 +63,17 @@ final class OverrideOTelSdkResourceAttributes
 
         $attributes = [
             ResourceAttributes::TELEMETRY_DISTRO_NAME => 'elastic',
-            ResourceAttributes::TELEMETRY_DISTRO_VERSION => $elasticOTelVersion,
+            ResourceAttributes::TELEMETRY_DISTRO_VERSION => PhpPartVersion::VALUE,
         ];
-        return ResourceInfo::create(Attributes::create($attributes), $base->getSchemaUrl());
+
+        BootstrapStageLogger::logDebug(
+            'Exiting; attributes: ' . json_encode($attributes),
+            __FILE__,
+            __LINE__,
+            __CLASS__,
+            __FUNCTION__,
+        );
+
+        return ResourceInfo::create(Attributes::create($attributes), ResourceAttributes::SCHEMA_URL);
     }
 }
