@@ -52,6 +52,8 @@ final class SdkDistroAttributesComponentTest extends ComponentTestCaseBase
     private const SERVICE_NAME = 'my_service';
     private const SERVICE_VERSION = '1.2.3-dirty/1.2.3';
 
+    private const DEFAULT_SERVICE_NAME = 'unknown_service:php';
+
     /**
      * @return iterable<string, array{MixedMap}>
      */
@@ -145,11 +147,7 @@ final class SdkDistroAttributesComponentTest extends ComponentTestCaseBase
         ];
         $notExpectedAttributes = [];
 
-        if ($testArgs->getBool(self::SHOULD_SET_SERVICE_NAME_KEY)) {
-            $expectedResourceAttributes[ResourceAttributes::SERVICE_NAME] = self::SERVICE_NAME;
-        } else {
-            $notExpectedAttributes[] = ResourceAttributes::SERVICE_NAME;
-        }
+        $expectedResourceAttributes[ResourceAttributes::SERVICE_NAME] = $testArgs->getBool(self::SHOULD_SET_SERVICE_NAME_KEY) ? self::SERVICE_NAME : self::DEFAULT_SERVICE_NAME;
 
         if ($testArgs->getBool(self::SHOULD_SET_SERVICE_VERSION_KEY)) {
             $expectedResourceAttributes[ResourceAttributes::SERVICE_VERSION] = self::SERVICE_VERSION;

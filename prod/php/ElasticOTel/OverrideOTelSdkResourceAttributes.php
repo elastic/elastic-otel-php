@@ -42,30 +42,6 @@ final class OverrideOTelSdkResourceAttributes
 
     public static function registerHook(string $elasticOTelNativePartVersion): void
     {
-        InstrumentationBridge::singletonInstance()->hook(
-            class: self::INSTRUMENTED_CLASS_NAME,
-            function: 'defaultResourceDummy',
-            pre: static function ($obj, array $params) {
-                BootstrapStageLogger::logDebug(
-                    'Entered pre hook for ' . self::INSTRUMENTED_CLASS_NAME . '::defaultResourceDummy' .
-                    '; obj type: ' . get_debug_type($obj),
-                    __FILE__,
-                    __LINE__,
-                    __CLASS__,
-                    __FUNCTION__,
-                );
-            },
-            post: static function ($thisObj, array $args, mixed $retVal): void {
-                BootstrapStageLogger::logDebug(
-                    'Entered post hook for ' . self::INSTRUMENTED_CLASS_NAME . '::defaultResourceDummy',
-                    __FILE__,
-                    __LINE__,
-                    __CLASS__,
-                    __FUNCTION__,
-                );
-            }
-        );
-
         $elasticOTelVersion = self::buildElasticOTelVersion($elasticOTelNativePartVersion);
         BootstrapStageLogger::logDebug(
             'Registering post hook for ' . self::INSTRUMENTED_CLASS_NAME . '::' . self::INSTRUMENTED_METHOD_NAME .
@@ -79,16 +55,6 @@ final class OverrideOTelSdkResourceAttributes
         InstrumentationBridge::singletonInstance()->hook(
             class: self::INSTRUMENTED_CLASS_NAME,
             function: self::INSTRUMENTED_METHOD_NAME,
-            pre: static function ($obj, array $params) {
-                BootstrapStageLogger::logDebug(
-                    'Entered pre hook for ' . self::INSTRUMENTED_CLASS_NAME . '::' . self::INSTRUMENTED_METHOD_NAME .
-                    '; obj type: ' . get_debug_type($obj),
-                    __FILE__,
-                    __LINE__,
-                    __CLASS__,
-                    __FUNCTION__,
-                );
-            },
             post: static function ($thisObj, array $args, mixed $retVal) use ($elasticOTelVersion): mixed {
                 BootstrapStageLogger::logDebug(
                     'Entered post hook for ' . self::INSTRUMENTED_CLASS_NAME . '::' . self::INSTRUMENTED_METHOD_NAME .
