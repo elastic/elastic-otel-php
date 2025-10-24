@@ -215,7 +215,11 @@ final class TestCaseHandle implements LoggableInterface
         };
     }
 
-    /** @noinspection PhpUnused */
+    public function getResourcesCleaner(): ResourcesCleanerHandle
+    {
+        return $this->resourcesCleaner;
+    }
+
     public function getResourcesClient(): ResourcesClient
     {
         return $this->resourcesCleaner->getClient();

@@ -56,7 +56,7 @@ abstract class HttpServerStarter
     private readonly Logger $logger;
 
     protected function __construct(
-        protected readonly string $dbgServerDesc
+        protected readonly string $dbgProcessNamePrefix
     ) {
         $this->logger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__)->addAllContext(compact('this'));
     }
@@ -71,7 +71,7 @@ abstract class HttpServerStarter
      *
      * @return EnvVars
      */
-    abstract protected function buildEnvVarsForSpawnedProcess(string $spawnedProcessInternalId, array $ports): array;
+    abstract protected function buildEnvVarsForSpawnedProcess(string $dbgProcessName, string $spawnedProcessInternalId, array $ports): array;
 
     /**
      * @param int[] $portsInUse
@@ -85,6 +85,7 @@ abstract class HttpServerStarter
         /** @var ?int $lastTriedPort */
         $lastTriedPort = ArrayUtilForTests::isEmpty($portsInUse) ? null : ArrayUtilForTests::getLastValue($portsInUse);
         for ($tryCount = 0; $tryCount < self::MAX_TRIES_TO_START_SERVER; ++$tryCount) {
+            $dbgProcessName = DbgProcessNameGenerator::generate($this->dbgProcessNamePrefix);
             /** @var int[] $currentTryPorts */
             $currentTryPorts = [];
             self::findFreePortsToListen($portsInUse, $portsToAllocateCount, $lastTriedPort, /* out */ $currentTryPorts);
@@ -99,29 +100,29 @@ abstract class HttpServerStarter
             $lastTriedPort = ArrayUtilForTests::getLastValue($currentTryPorts);
             $currentTrySpawnedProcessInternalId = InfraUtilForTests::generateSpawnedProcessInternalId();
             $cmdLine = $this->buildCommandLine($currentTryPorts);
-            $envVars = $this->buildEnvVarsForSpawnedProcess($currentTrySpawnedProcessInternalId, $currentTryPorts);
+            $envVars = $this->buildEnvVarsForSpawnedProcess($dbgProcessName, $currentTrySpawnedProcessInternalId, $currentTryPorts);
 
             $logger = $this->logger->inherit()->addAllContext(
                 array_merge(
-                    ['dbgServerDesc' => $this->dbgServerDesc, 'maxTries' => self::MAX_TRIES_TO_START_SERVER],
+                    ['dbgProcessName' => $dbgProcessName, 'maxTries' => self::MAX_TRIES_TO_START_SERVER],
                     compact('tryCount', 'currentTryPorts', 'currentTrySpawnedProcessInternalId', 'cmdLine', 'envVars')
                 )
             );
             $loggerProxyDebug = $logger->ifDebugLevelEnabledNoLine(__FUNCTION__);
 
             $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Starting HTTP server...');
-            ProcessUtil::startBackgroundProcess($cmdLine, $envVars);
+            ProcessUtil::startBackgroundProcess($dbgProcessName, $cmdLine, $envVars);
 
             $pid = -1;
-            if ($this->isHttpServerRunning($currentTrySpawnedProcessInternalId, $currentTryPorts[0], $logger, /* ref */ $pid)) {
+            if ($this->isHttpServerRunning($dbgProcessName, $currentTrySpawnedProcessInternalId, $currentTryPorts[0], $logger, /* ref */ $pid)) {
                 $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Started HTTP server', compact('pid'));
-                return new HttpServerHandle($this->dbgServerDesc, $pid, $currentTrySpawnedProcessInternalId, $currentTryPorts);
+                return new HttpServerHandle($dbgProcessName, $pid, $currentTrySpawnedProcessInternalId, $currentTryPorts);
             }
 
             $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Failed to start HTTP server');
         }
 
-        throw new ComponentTestsInfraException(ExceptionUtil::buildMessage('Failed to start HTTP server', ['dbgServerDesc' => $this->dbgServerDesc]));
+        throw new ComponentTestsInfraException(ExceptionUtil::buildMessage('Failed to start HTTP server', ['dbgProcessNamePrefix' => $this->dbgProcessNamePrefix]));
     }
 
     /**
@@ -183,13 +184,13 @@ abstract class HttpServerStarter
         return $candidate;
     }
 
-    private function isHttpServerRunning(string $spawnedProcessInternalId, int $port, Logger $logger, int &$pid): bool
+    private function isHttpServerRunning(string $dbgProcessName, string $spawnedProcessInternalId, int $port, Logger $logger, int &$pid): bool
     {
         /** @var ?Throwable $lastThrown */
         $lastThrown = null;
         $dataPerRequest = new TestInfraDataPerRequest(spawnedProcessInternalId: $spawnedProcessInternalId);
         $checkResult = (new PollingCheck(
-            $this->dbgServerDesc . ' started',
+            $dbgProcessName . ' started',
             self::MAX_WAIT_SERVER_START_MICROSECONDS
         ))->run(
             function () use ($port, $dataPerRequest, $logger, &$lastThrown, &$pid) {

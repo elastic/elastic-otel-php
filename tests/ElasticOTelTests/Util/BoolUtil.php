@@ -56,7 +56,16 @@ final class BoolUtil
 
     public static function fromString(string $stringVal): bool
     {
-        return $stringVal === 'true';
+        /** @var list<string> $trueStringValues */
+        static $trueStringValues = ['true', 'yes', 'on', '1'];
+
+        foreach ($trueStringValues as $trueStringValue) {
+            if (strcasecmp($stringVal, $trueStringValue) === 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
