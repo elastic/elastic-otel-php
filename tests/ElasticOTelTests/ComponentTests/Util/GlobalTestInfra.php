@@ -90,7 +90,7 @@ final class GlobalTestInfra
     private function startResourcesCleaner(): ResourcesCleanerHandle
     {
         $httpServerHandle = TestInfraHttpServerStarter::startTestInfraHttpServer(
-            dbgServerDesc: ClassNameUtil::fqToShort(ResourcesCleaner::class),
+            dbgProcessNamePrefix: ClassNameUtil::fqToShort(ResourcesCleaner::class),
             runScriptName: 'runResourcesCleaner.php',
             portsInUse: $this->portsInUse,
             portsToAllocateCount: 1,
@@ -103,7 +103,7 @@ final class GlobalTestInfra
     private function startMockOTelCollector(ResourcesCleanerHandle $resourcesCleaner): MockOTelCollectorHandle
     {
         $httpServerHandle = TestInfraHttpServerStarter::startTestInfraHttpServer(
-            dbgServerDesc: ClassNameUtil::fqToShort(MockOTelCollector::class),
+            dbgProcessNamePrefix: ClassNameUtil::fqToShort(MockOTelCollector::class),
             runScriptName: 'runMockOTelCollector.php',
             portsInUse: $this->portsInUse,
             portsToAllocateCount: 2,

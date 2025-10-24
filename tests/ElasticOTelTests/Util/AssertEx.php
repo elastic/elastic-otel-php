@@ -272,6 +272,15 @@ final class AssertEx
     }
 
     /**
+     * @return null
+     */
+    public static function isNull(mixed $actual, string $message = '')
+    {
+        Assert::assertNull($actual, $message);
+        return null;
+    }
+
+    /**
      * @template TKey of array-key
      * @template TValue
      *
@@ -330,9 +339,9 @@ final class AssertEx
      *
      * @noinspection PhpUnused
      */
-    public static function countAtLeast(int $expectedMinCount, mixed $haystack): void
+    public static function countAtLeast(int $expectedMinCount, mixed $haystack, string $message = ''): void
     {
-        Assert::assertGreaterThanOrEqual($expectedMinCount, count($haystack));
+        Assert::assertGreaterThanOrEqual($expectedMinCount, count($haystack), $message);
     }
 
     public static function stringIsInt(string $actual, string $message = ''): int
