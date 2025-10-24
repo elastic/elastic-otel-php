@@ -223,6 +223,7 @@ function main() {
     fi
     start_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
+    export ELASTIC_OTEL_PHP_TESTS_LOGS_DIRECTORY="/elastic_otel_php_tests/logs"
     /repo_root/tools/test/component/test_installed_package_one_matrix_row.sh
 }
 

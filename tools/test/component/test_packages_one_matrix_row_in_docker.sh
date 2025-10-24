@@ -158,7 +158,6 @@ function main() {
 
     ensure_dir_exists_and_empty "${logs_dir}"
     touch "${logs_dir}/z_dummy_file_to_make_directory_non-empty"
-    export ELASTIC_OTEL_PHP_TESTS_LOGS_DIRECTORY="${logs_dir}"
 
     # All environment variables matching ELASTIC_OTEL_PHP_TESTS_* are passed to the docker container
     # SC2034: <env var> appears unused. Verify use (or export if used externally).
