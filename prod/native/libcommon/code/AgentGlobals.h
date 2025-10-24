@@ -51,6 +51,10 @@ class LoggerSinkInterface;
 class LogSinkFile;
 class InstrumentedFunctionHooksStorageInterface;
 class DependencyAutoLoaderGuard;
+namespace coordinator {
+class CoordinatorMessagesDispatcher;
+class CoordinatorProcess;
+} // namespace coordinator
 namespace transport {
 class CurlSender;
 class HttpEndpoints;
@@ -92,7 +96,8 @@ public:
     std::shared_ptr<opentelemetry::php::transport::OpAmp> opAmp_;
     std::shared_ptr<SharedMemoryState> sharedMemory_;
     std::shared_ptr<RequestScope> requestScope_;
-
+    std::shared_ptr<coordinator::CoordinatorMessagesDispatcher> messagesDispatcher_;
+    std::shared_ptr<coordinator::CoordinatorProcess> coordinatorProcess_;
 };
 
 } // namespace elasticapm::php

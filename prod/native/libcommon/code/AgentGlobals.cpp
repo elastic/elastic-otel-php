@@ -31,6 +31,8 @@
 #include "InstrumentedFunctionHooksStorage.h"
 #include "CommonUtils.h"
 #include "ResourceDetector.h"
+#include "coordinator/CoordinatorProcess.h"
+#include "coordinator/CoordinatorMessagesDispatcher.h"
 #include "transport/HttpTransportAsync.h"
 #include "transport/OpAmp.h"
 #include "DependencyAutoLoaderGuard.h"
@@ -65,7 +67,9 @@ AgentGlobals::AgentGlobals(std::shared_ptr<LoggerInterface> logger,
     elasticDynamicConfig_(std::make_shared<opentelemetry::php::config::ElasticDynamicConfigurationAdapter>()),
     opAmp_(std::make_shared<opentelemetry::php::transport::OpAmp>(logger_, config_, httpTransportAsync_, resourceDetector_)),
     sharedMemory_(std::make_shared<elasticapm::php::SharedMemoryState>()),
-    requestScope_(std::make_shared<elasticapm::php::RequestScope>(logger_, bridge_, sapi_, sharedMemory_, dependencyAutoLoaderGuard_, inferredSpans_, config_, [hs = hooksStorage_]() { hs->clear(); }, [this]() { return getPeriodicTaskExecutor();}))
+    requestScope_(std::make_shared<elasticapm::php::RequestScope>(logger_, bridge_, sapi_, sharedMemory_, dependencyAutoLoaderGuard_, inferredSpans_, config_, [hs = hooksStorage_]() { hs->clear(); }, [this]() { return getPeriodicTaskExecutor();})),
+    messagesDispatcher_(std::make_shared<elasticapm::php::coordinator::CoordinatorMessagesDispatcher>(logger_, httpTransportAsync_)),
+    coordinatorProcess_(std::make_shared<elasticapm::php::coordinator::CoordinatorProcess>(logger_, messagesDispatcher_))
     {
         config_->addConfigUpdateWatcher([logger = logger_, stderrsink = logSinkStdErr_, syslogsink = logSinkSysLog_, filesink = logSinkFile_](ConfigurationSnapshot const &cfg) {
             stderrsink->setLevel(cfg.log_level_stderr);

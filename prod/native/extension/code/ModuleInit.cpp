@@ -36,6 +36,7 @@
 #include "SigSegvHandler.h"
 #include "os/OsUtils.h"
 #include "transport/OpAmp.h"
+#include "coordinator/CoordinatorProcess.h"
 
 #include <curl/curl.h>
 #include <inttypes.h> // PRIu64
@@ -87,6 +88,11 @@ void elasticApmModuleInit(int moduleType, int moduleNumber) {
     if (EAPM_CFG(bootstrap_php_part_file).empty()) {
         ELOGF_WARNING(globals->logger_, MODULE, "bootstrap_php_part_file configuration option is not set - extension will be disabled");
         return;
+    }
+
+    if (globals->coordinatorProcess_->start()) {
+        delete globals;
+        std::exit(0);
     }
 
     ELOGF_DEBUG(globals->logger_, MODULE, "MINIT Replacing hooks");
