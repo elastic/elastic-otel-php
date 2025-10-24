@@ -28,6 +28,8 @@ use Elastic\OTel\Log\LogLevel;
 use ElasticOTelTests\Util\AmbientContextForTests;
 use ElasticOTelTests\Util\BoolUtil;
 use ElasticOTelTests\Util\ClassNameUtil;
+use ElasticOTelTests\Util\EnvVarUtil;
+use ElasticOTelTests\Util\ExceptionUtil;
 use ElasticOTelTests\Util\HttpMethods;
 use ElasticOTelTests\Util\HttpStatusCodes;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
@@ -39,6 +41,9 @@ use ElasticOTelTests\Util\Log\LoggingSubsystem;
 use PHPUnit\Framework\TestCase;
 use Throwable;
 
+/**
+ * @phpstan-import-type EnvVars from EnvVarUtil
+ */
 abstract class SpawnedProcessBase implements LoggableInterface
 {
     use LoggableTrait;
@@ -52,8 +57,8 @@ abstract class SpawnedProcessBase implements LoggableInterface
     {
         $this->logger = self::buildLogger()->addAllContext(compact('this'));
 
-        ($loggerProxy = $this->logger->ifDebugLevelEnabled(__LINE__, __FUNCTION__))
-        && $loggerProxy->log('Done', ['AmbientContext::testConfig()' => AmbientContextForTests::testConfig(), 'Environment variables' => EnvVarUtilForTests::getAll()]);
+        ($loggerProxy = $this->logger->ifInfoLevelEnabled(__LINE__, __FUNCTION__))
+        && $loggerProxy->log('Finishing constructor...', ['test config' => AmbientContextForTests::testConfig(), 'environment variables' => EnvVarUtilForTests::getAll()]);
     }
 
     private static function buildLogger(): Logger
@@ -154,14 +159,33 @@ abstract class SpawnedProcessBase implements LoggableInterface
             new UrlParts(port: AmbientContextForTests::testConfig()->dataPerProcess()->resourcesCleanerPort, path: ResourcesCleaner::REGISTER_PROCESS_TO_TERMINATE_URI_PATH),
             new TestInfraDataPerRequest(spawnedProcessInternalId: $resCleanerId),
             [
-                ResourcesCleaner::PID_QUERY_HEADER_NAME            => strval(getmypid()),
-                ResourcesCleaner::IS_TEST_SCOPED_QUERY_HEADER_NAME => BoolUtil::toString($this->isThisProcessTestScoped()),
-            ]
+                ResourcesCleaner::DBG_PROCESS_NAME_HEADER_NAME => AmbientContextForTests::dbgProcessName(),
+                ResourcesCleaner::PID_HEADER_NAME => strval(getmypid()),
+                ResourcesCleaner::IS_TEST_SCOPED_HEADER_NAME => BoolUtil::toString($this->isThisProcessTestScoped()),
+            ],
         );
         if ($response->getStatusCode() !== HttpStatusCodes::OK) {
             throw new ComponentTestsInfraException('Failed to register with ' . ClassNameUtil::fqToShort(ResourcesCleaner::class));
         }
 
         $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Successfully registered with ' . ClassNameUtil::fqToShort(ResourcesCleaner::class));
+    }
+
+
+    /**
+     * @phpstan-param EnvVars $envVars
+     */
+    public static function startProcessAndWaitForItToExit(string $dbgProcessName, string $command, array $envVars): void
+    {
+        $logger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__);
+        $logger->addAllContext(compact('dbgProcessName', 'command', 'envVars'));
+
+        $procInfo = ProcessUtil::startProcessAndWaitForItToExit($dbgProcessName, $command, $envVars, /* maxWaitTimeInMicroseconds - 30 seconds */ 30 * 1000 * 1000);
+        $logger->addAllContext(compact('procInfo'));
+
+        if ($procInfo['exitCode'] === SpawnedProcessBase::FAILURE_PROCESS_EXIT_CODE) {
+            ($loggerProxyError = $logger->ifErrorLevelEnabled(__LINE__, __FUNCTION__)) && $loggerProxyError->log('Process exited with the failure exit code');
+            throw new ComponentTestsInfraException(ExceptionUtil::buildMessage('Process exited with the failure exit code', $logger->getContext()));
+        }
     }
 }

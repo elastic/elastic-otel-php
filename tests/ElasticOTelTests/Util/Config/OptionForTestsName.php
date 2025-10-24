@@ -50,6 +50,7 @@ enum OptionForTestsName
     case group;
 
     case log_level;
+    case logs_directory;
 
     case mysql_host;
     case mysql_port;

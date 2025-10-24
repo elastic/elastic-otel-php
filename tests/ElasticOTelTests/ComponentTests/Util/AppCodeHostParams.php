@@ -58,7 +58,7 @@ class AppCodeHostParams implements LoggableInterface
     public string $spawnedProcessInternalId;
 
     public function __construct(
-        public readonly string $dbgProcessName
+        public readonly string $dbgProcessNamePrefix
     ) {
         $this->prodOptions = new Map();
     }

@@ -79,7 +79,7 @@ final class ResourcesClient
             HttpMethods::POST,
             new UrlParts(port: $this->resourcesCleanerPort, path: ResourcesCleaner::REGISTER_FILE_TO_DELETE_URI_PATH),
             new TestInfraDataPerRequest(spawnedProcessInternalId: $this->resourcesCleanerSpawnedProcessInternalId),
-            [ResourcesCleaner::PATH_QUERY_HEADER_NAME => $fullPath, ResourcesCleaner::IS_TEST_SCOPED_QUERY_HEADER_NAME => BoolUtil::toString($isTestScoped)] /* <- headers */
+            [ResourcesCleaner::PATH_HEADER_NAME => $fullPath, ResourcesCleaner::IS_TEST_SCOPED_HEADER_NAME => BoolUtil::toString($isTestScoped)] /* <- headers */
         );
         if ($response->getStatusCode() !== HttpStatusCodes::OK) {
             throw new ComponentTestsInfraException('Failed to register with ' . ClassNameUtil::fqToShort(ResourcesCleaner::class));
