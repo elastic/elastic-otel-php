@@ -44,7 +44,11 @@ public:
     using task_t = std::function<void(time_point_t)>;
     using worker_init_t = std::function<void()>;
 
-    PeriodicTaskExecutor(std::vector<task_t> periodicTasks, worker_init_t workerInit = {}) : periodicTasks_(periodicTasks), workerInit_(std::move(workerInit)),  thread_(getThreadWorkerFunction()) {
+    PeriodicTaskExecutor(std::vector<task_t> periodicTasks, worker_init_t workerInit = {}) : periodicTasks_(), workerInit_(std::move(workerInit)), thread_() {
+        for (auto &task : periodicTasks) {
+            periodicTasks_.push_back(std::make_shared<task_t>(std::move(task)));
+        }
+        thread_ = std::thread(getThreadWorkerFunction());
     }
 
     ~PeriodicTaskExecutor() {
@@ -53,6 +57,11 @@ public:
         if (thread_.joinable()) {
             thread_.join();
         }
+    }
+
+    void addTask(task_t task) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        periodicTasks_.push_back(std::make_shared<task_t>(std::move(task)));
     }
 
     void work() {
@@ -72,8 +81,15 @@ public:
 
             lock.unlock();
             std::this_thread::sleep_for(sleepInterval_);
-            for (auto const &task : periodicTasks_) {
-                task(std::chrono::time_point_cast<std::chrono::milliseconds>(clock_t::now()));
+
+            std::vector<std::shared_ptr<task_t>> tasksSnapshot;
+            {
+                std::lock_guard<std::mutex> lock(mutex_);
+                tasksSnapshot = periodicTasks_;
+            }
+
+            for (auto const &task : tasksSnapshot) {
+                (*task)(std::chrono::time_point_cast<std::chrono::milliseconds>(clock_t::now()));
             }
             lock.lock();
         }
@@ -128,7 +144,7 @@ private:
 private:
 
     std::chrono::milliseconds sleepInterval_ = std::chrono::milliseconds(20);
-    std::vector<task_t> periodicTasks_;
+    std::vector<std::shared_ptr<task_t>> periodicTasks_;
     worker_init_t workerInit_;
     std::mutex mutex_;
     std::thread thread_;
