@@ -184,6 +184,9 @@ function main() {
     echo "ls -l"
     ls -l
 
+    php -r "echo ini_get('memory_limit');"
+    php -i | grep "memory_limit" || true
+
     repo_root_dir="$( realpath "${this_script_dir}/../../.." )"
     source "${repo_root_dir}/tools/shared.sh"
 
