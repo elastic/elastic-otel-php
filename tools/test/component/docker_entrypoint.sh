@@ -184,7 +184,28 @@ function main() {
     echo "ls -l"
     ls -l
 
-    php -r "echo ini_get('memory_limit');"
+    if [[ -z "${PHP_INI_SCAN_DIR}" ]]; then
+        # If you include an empty path segment (i.e., with a leading colon),
+        # PHP will also scan the directory specified during compilation (via the --with-config-file-scan-dir option).
+        # :/some_dir scans the compile-time directory and then /some_dir
+        export PHP_INI_SCAN_DIR=:/elastic_otel_php_tests/php_ini_scan_dir
+    else
+        export PHP_INI_SCAN_DIR=${PHP_INI_SCAN_DIR}:/elastic_otel_php_tests/php_ini_scan_dir
+    fi
+    echo "ls -l /elastic_otel_php_tests/php_ini_scan_dir"
+    ls -l /elastic_otel_php_tests/php_ini_scan_dir
+
+    echo 'Set environment variables:'
+    env | sort
+
+    echo 'PHP version:'
+    php -v
+
+    echo 'Installed PHP extensions (php -m):'
+    php -m
+
+    echo "php -r \"echo ini_get('memory_limit');\" => "
+    php -r "echo ini_get('memory_limit') . PHP_EOL;"
     php -i | grep "memory_limit" || true
 
     repo_root_dir="$( realpath "${this_script_dir}/../../.." )"
