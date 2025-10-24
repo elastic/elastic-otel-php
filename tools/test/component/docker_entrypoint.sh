@@ -204,7 +204,7 @@ function main() {
     echo 'Installed PHP extensions (php -m):'
     php -m
 
-    echo "php -r \"echo ini_get('memory_limit');\" => "
+    echo -n "php -r \"echo ini_get('memory_limit');\" => "
     php -r "echo ini_get('memory_limit') . PHP_EOL;"
     php -i | grep "memory_limit" || true
 
