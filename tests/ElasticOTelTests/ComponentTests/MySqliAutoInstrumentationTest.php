@@ -440,7 +440,7 @@ final class MySqliAutoInstrumentationTest extends ComponentTestCaseBase
         $dbgCtx->add(compact('exportedData'));
 
         $actualDbSpans = [];
-        foreach ($exportedData->spans as $span) {
+        foreach ($exportedData->spans() as $span) {
             if ($span->attributes->keyExists(TraceAttributes::DB_SYSTEM_NAME)) {
                 $actualDbSpans[] = $span;
             }

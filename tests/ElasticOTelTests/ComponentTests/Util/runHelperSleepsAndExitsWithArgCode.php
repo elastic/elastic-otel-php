@@ -23,32 +23,6 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
-use ElasticOTelTests\Util\Log\LoggableInterface;
-use ElasticOTelTests\Util\Log\LoggableTrait;
-use ElasticOTelTests\Util\MonotonicTime;
-use ElasticOTelTests\Util\SystemTime;
+require __DIR__ . '/../../../bootstrap.php';
 
-final class IntakeApiRequest extends AgentToOTeCollectorEvent implements LoggableInterface
-{
-    use LoggableTrait;
-
-    /**
-     * @param array<string, string[]> $headers
-     */
-    public function __construct(
-        MonotonicTime $monotonicTime,
-        SystemTime $systemTime,
-        public readonly array $headers,
-        public readonly string $bodyBase64Encoded,
-    ) {
-        parent::__construct($monotonicTime, $systemTime);
-    }
-
-    /**
-     * @return string[]
-     */
-    protected static function propertiesExcludedFromLog(): array
-    {
-        return ['bodyBase64Encoded'];
-    }
-}
+HelperSleepsAndExitsWithArgCode::run();

@@ -23,12 +23,27 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
-use ElasticOTelTests\ComponentTests\Util\OtlpData\Span;
+use ElasticOTelTests\Util\Log\LoggableTrait;
+use ElasticOTelTests\Util\MonotonicTime;
+use ElasticOTelTests\Util\SystemTime;
 
-interface IsEnoughExportedDataInterface
+/**
+ * @phpstan-type HttpHeaders array<string, string[]>
+ */
+abstract class IntakeDataRequest extends AgentToOTeCollectorEvent
 {
+    use LoggableTrait;
+
     /**
-     * @param iterable<Span> $spans
+     * @param HttpHeaders $httpHeaders
      */
-    public function isEnough(iterable $spans): bool;
+    public function __construct(
+        MonotonicTime $monotonicTime,
+        SystemTime $systemTime,
+        public readonly array $httpHeaders,
+    ) {
+        parent::__construct($monotonicTime, $systemTime);
+    }
+
+    abstract public function isEmptyAfterDeserialization(): bool;
 }

@@ -207,6 +207,16 @@ final class AssertEx
     }
 
     /**
+     * @return non-negative-int
+     */
+    public static function isNonNegativeInt(mixed $actual, string $message = ''): int
+    {
+        Assert::assertIsInt($actual, $message);
+        Assert::assertGreaterThanOrEqual(0, $actual, $message);
+        return $actual; // @phpstan-ignore return.type
+    }
+
+    /**
      * @return positive-int
      */
     public static function isPositiveInt(mixed $actual, string $message = ''): int
@@ -259,6 +269,15 @@ final class AssertEx
     {
         Assert::assertNotNull($actual, $message);
         return $actual;
+    }
+
+    /**
+     * @return null
+     */
+    public static function isNull(mixed $actual, string $message = '')
+    {
+        Assert::assertNull($actual, $message);
+        return null;
     }
 
     /**
@@ -320,9 +339,9 @@ final class AssertEx
      *
      * @noinspection PhpUnused
      */
-    public static function countAtLeast(int $expectedMinCount, mixed $haystack): void
+    public static function countAtLeast(int $expectedMinCount, mixed $haystack, string $message = ''): void
     {
-        Assert::assertGreaterThanOrEqual($expectedMinCount, count($haystack));
+        Assert::assertGreaterThanOrEqual($expectedMinCount, count($haystack), $message);
     }
 
     public static function stringIsInt(string $actual, string $message = ''): int

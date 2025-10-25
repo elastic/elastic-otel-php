@@ -140,9 +140,9 @@ final class InferredSpansComponentTest extends ComponentTestCaseBase
         self::mySleep(self::TIME_NANOSLEEP_FUNC_NAME, $isCurrentRunToGetExpectedHelperData, /* ref */ $expectedHelperData);
 
         if ($isCurrentRunToGetExpectedHelperData) {
-            // Slice 1 frame for this function call since this function call is converted to inferred span
-            // and properties from the stack frame converted to inferred span go to CODE_FILE_PATH and CODE_LINE_NUMBER attributes
-            // this method is special case since it's called by call_user_func so there should not be CODE_FILE_PATH and CODE_LINE_NUMBER attributes
+            // Slice 1 frame for this function call since this function call is converted to an inferred span
+            // and properties from the stack frame converted to an inferred span go to CODE_FILE_PATH and CODE_LINE_NUMBER attributes.
+            // This method is a special case since it's called by call_user_func, so there should not be CODE_FILE_PATH and CODE_LINE_NUMBER attributes.
             $expectedHelperData[__FUNCTION__] = [self::STACK_TRACE_KEY => array_slice(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS), offset: 1)];
             OTelUtil::addActiveSpanAttributes([self::EXPECTED_HELPER_DATA_KEY => PhpSerializationUtil::serializeToString($expectedHelperData)]);
         }
@@ -183,7 +183,7 @@ final class InferredSpansComponentTest extends ComponentTestCaseBase
          */
         $doDummyRunToGetExpectedHelperData = function () use ($setupAndCallAppCode, $dbgCtx): array {
             $testCaseHandle = $setupAndCallAppCode(isCurrentRunToGetExpectedHelperData: true);
-            // For dummy run to get expected helper data inferred spans feature is disabled so only local root span should be created
+            // For the dummy run to get expected helper data inferred spans feature is disabled so only a local root span should be created
             $exportedData = $testCaseHandle->waitForEnoughExportedData(WaitForEventCounts::spans(1));
             $dbgCtx->add(compact('exportedData'));
             $this->tearDownTestCaseHandle();
@@ -199,9 +199,9 @@ final class InferredSpansComponentTest extends ComponentTestCaseBase
         $expectedHelperData = $doDummyRunToGetExpectedHelperData();
         $testCaseHandle = $setupAndCallAppCode(isCurrentRunToGetExpectedHelperData: false);
 
-        // Number of inferred spans is at least 4: 3 sleep spans + 1 span for appCode method
+        // Inferred spans count is at least 4: 3 sleep spans + 1 span for appCode method
         $expectedInferredSpansMinCount = $isInferredSpansEnabled ? (($shouldCaptureSleeps ? 3 : 0) + 1) : 0;
-        // Number of regular (i.e., not inferred) spans is 1 - the automatic root span
+        // Regular (i.e., not inferred) spans count is 1 - the automatic root span
         $expectedSpanMinCount = $expectedInferredSpansMinCount + 1;
         $exportedData = $testCaseHandle->waitForEnoughExportedData(
             $isInferredSpansEnabled ? WaitForEventCounts::spansAtLeast($expectedSpanMinCount) : WaitForEventCounts::spans($expectedSpanMinCount)
@@ -209,7 +209,7 @@ final class InferredSpansComponentTest extends ComponentTestCaseBase
         $dbgCtx->add(compact('exportedData'));
 
         $rootSpan = IterableUtil::singleValue($exportedData->findRootSpans());
-        foreach ($exportedData->spans as $span) {
+        foreach ($exportedData->spans() as $span) {
             self::assertSame($rootSpan->traceId, $span->traceId);
         }
 

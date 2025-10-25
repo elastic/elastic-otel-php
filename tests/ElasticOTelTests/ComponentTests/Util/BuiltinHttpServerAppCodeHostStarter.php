@@ -37,7 +37,7 @@ final class BuiltinHttpServerAppCodeHostStarter extends HttpServerStarter
         private readonly HttpAppCodeHostParams $appCodeHostParams,
         private readonly ResourcesCleanerHandle $resourcesCleaner
     ) {
-        parent::__construct($appCodeHostParams->dbgProcessName);
+        parent::__construct($appCodeHostParams->dbgProcessNamePrefix);
     }
 
     /**
@@ -65,7 +65,7 @@ final class BuiltinHttpServerAppCodeHostStarter extends HttpServerStarter
 
     /** @inheritDoc */
     #[Override]
-    protected function buildEnvVarsForSpawnedProcess(string $spawnedProcessInternalId, array $ports): array
+    protected function buildEnvVarsForSpawnedProcess(string $dbgProcessName, string $spawnedProcessInternalId, array $ports): array
     {
         Assert::assertCount(1, $ports);
         return InfraUtilForTests::addTestInfraDataPerProcessToEnvVars(
@@ -73,7 +73,7 @@ final class BuiltinHttpServerAppCodeHostStarter extends HttpServerStarter
             $spawnedProcessInternalId,
             $ports,
             $this->resourcesCleaner,
-            $this->appCodeHostParams->dbgProcessName
+            $dbgProcessName
         );
     }
 }

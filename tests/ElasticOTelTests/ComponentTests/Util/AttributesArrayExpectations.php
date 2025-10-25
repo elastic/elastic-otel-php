@@ -23,25 +23,29 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
-final class RawExportedData
+use ElasticOTelTests\ComponentTests\Util\OtlpData\Attributes;
+use OpenTelemetry\SemConv\TraceAttributes;
+use Override;
+use PHPUnit\Framework\Assert;
+
+/**
+ * @phpstan-import-type AttributeValue from Attributes
+ * @phpstan-type ArrayValue AttributeValue|ExpectationsInterface
+ *
+ * @extends ArrayExpectations<string, ArrayValue>
+ */
+final class AttributesArrayExpectations extends ArrayExpectations
 {
     /**
-     * @param IntakeApiConnection[] $intakeApiConnections
+     * @phpstan-param string $key
      */
-    public function __construct(
-        public readonly array $intakeApiConnections,
-    ) {
-    }
-
-    /**
-     * @return iterable<IntakeApiRequest>
-     *
-     * @noinspection PhpUnused
-     */
-    public function getAllIntakeApiRequests(): iterable
+    #[Override]
+    protected function assertArrayValueMatches(string|int $key, mixed $expectedValue, mixed $actualValue): void
     {
-        foreach ($this->intakeApiConnections as $intakeApiConnection) {
-            yield from $intakeApiConnection->requests;
+        if ($key === TraceAttributes::URL_SCHEME) {
+            Assert::assertEqualsIgnoringCase($expectedValue, $actualValue);
+        } else {
+            parent::assertArrayValueMatches($key, $expectedValue, $actualValue); // @phpstan-ignore argument.type
         }
     }
 }

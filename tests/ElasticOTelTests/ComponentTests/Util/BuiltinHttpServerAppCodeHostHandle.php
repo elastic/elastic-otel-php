@@ -34,8 +34,7 @@ final class BuiltinHttpServerAppCodeHostHandle extends HttpAppCodeHostHandle
      */
     public function __construct(TestCaseHandle $testCaseHandle, Closure $setParamsFunc, ResourcesCleanerHandle $resourcesCleaner, array $portsInUse, string $dbgInstanceName)
     {
-        $dbgProcessName = ClassNameUtil::fqToShort(BuiltinHttpServerAppCodeHost::class) . '(' . $dbgInstanceName . ')';
-        $appCodeHostParams = new HttpAppCodeHostParams($dbgProcessName);
+        $appCodeHostParams = new HttpAppCodeHostParams(dbgProcessNamePrefix: ClassNameUtil::fqToShort(BuiltinHttpServerAppCodeHost::class) . '_' . $dbgInstanceName);
         $setParamsFunc($appCodeHostParams);
 
         $httpServerHandle = BuiltinHttpServerAppCodeHostStarter::startBuiltinHttpServerAppCodeHost($appCodeHostParams, $resourcesCleaner, $portsInUse);

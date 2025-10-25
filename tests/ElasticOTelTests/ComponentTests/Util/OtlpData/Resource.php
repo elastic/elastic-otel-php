@@ -21,14 +21,30 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTests\ComponentTests\Util;
+namespace ElasticOTelTests\ComponentTests\Util\OtlpData;
 
-use ElasticOTelTests\ComponentTests\Util\OtlpData\Span;
+use ElasticOTelTests\Util\AssertEx;
+use Opentelemetry\Proto\Resource\V1\Resource as OTelProtoResource;
 
-interface IsEnoughExportedDataInterface
+/**
+ * @see https://github.com/open-telemetry/opentelemetry-proto/blob/v1.8.0/opentelemetry/proto/resource/v1/resource.proto#L28
+ */
+class Resource
 {
     /**
-     * @param iterable<Span> $spans
+     * @param non-negative-int $droppedAttributesCount
      */
-    public function isEnough(iterable $spans): bool;
+    public function __construct(
+        public readonly Attributes $attributes,
+        public readonly int $droppedAttributesCount,
+    ) {
+    }
+
+    public static function deserializeFromOTelProto(OTelProtoResource $source): self
+    {
+        return new self(
+            attributes: Attributes::deserializeFromOTelProto($source->getAttributes()),
+            droppedAttributesCount: AssertEx::isNonNegativeInt($source->getDroppedAttributesCount()),
+        );
+    }
 }

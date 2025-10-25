@@ -26,6 +26,7 @@ namespace ElasticOTelTests\ComponentTests\Util;
 use Elastic\OTel\Util\StaticClassTrait;
 use ElasticOTelTests\Util\AmbientContextForTests;
 use ElasticOTelTests\Util\ArrayUtilForTests;
+use ElasticOTelTests\Util\BoolUtil;
 use ElasticOTelTests\Util\Config\IniRawSnapshotSource;
 use ElasticOTelTests\Util\Config\OptionForProdName;
 use ElasticOTelTests\Util\Config\OptionForTestsName;
@@ -101,5 +102,29 @@ final class InfraUtilForTests
         }
 
         return $result;
+    }
+
+    /**
+     * @param int[] $ports
+     *
+     * @return EnvVars
+     */
+    public static function buildEnvVarsForSpawnedProcessWithoutAppCode(string $dbgProcessName, string $spawnedProcessInternalId, array $ports, ?ResourcesCleanerHandle $resourcesCleaner): array
+    {
+        $baseEnvVars = EnvVarUtilForTests::getAll();
+        $additionalEnvVars = [
+            OptionForProdName::autoload_enabled->toEnvVarName()          => BoolUtil::toString(false),
+            OptionForProdName::disabled_instrumentations->toEnvVarName() => ConfigUtilForTests::PROD_DISABLED_INSTRUMENTATIONS_ALL,
+            OptionForProdName::enabled->toEnvVarName()                   => BoolUtil::toString(false),
+        ];
+        ArrayUtilForTests::append(from: $additionalEnvVars, to: $baseEnvVars);
+
+        return InfraUtilForTests::addTestInfraDataPerProcessToEnvVars(
+            $baseEnvVars,
+            $spawnedProcessInternalId,
+            $ports,
+            $resourcesCleaner,
+            $dbgProcessName
+        );
     }
 }

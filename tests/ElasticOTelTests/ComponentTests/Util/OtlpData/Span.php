@@ -21,9 +21,12 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTests\ComponentTests\Util;
+namespace ElasticOTelTests\ComponentTests\Util\OtlpData;
 
 use Elastic\OTel\Util\TextUtil;
+use ElasticOTelTests\ComponentTests\Util\IdGenerator;
+use ElasticOTelTests\ComponentTests\Util\TestInfraHttpServerProcessBase;
+use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\FlagsUtil;
 use ElasticOTelTests\Util\IterableUtil;
 use ElasticOTelTests\Util\Log\LoggableInterface;
@@ -32,33 +35,70 @@ use ElasticOTelTests\Util\Log\LogStreamInterface;
 use ElasticOTelTests\Util\TextUtilForTests;
 use Opentelemetry\Proto\Trace\V1\Span as OTelProtoSpan;
 use Opentelemetry\Proto\Trace\V1\SpanFlags as OTelProtoSpanFlags;
+use OpenTelemetry\SemConv\TraceAttributes;
 use PHPUnit\Framework\Assert;
 
 final class Span implements LoggableInterface
 {
     use LoggableTrait;
 
-    public readonly SpanAttributes $attributes;
-    public readonly string $id;
-    public readonly SpanKind $kind;
-    public readonly string $name;
-    public readonly ?string $parentId;
-    public readonly string $traceId;
-    public readonly int $flags;
-    public readonly float $startTimeUnixNano;
-    public readonly float $endTimeUnixNano;
+    /**
+     * @param non-negative-int $droppedAttributesCount
+     */
+    public function __construct(
+        public readonly Attributes $attributes,
+        public readonly int $droppedAttributesCount,
+        public readonly string $id,
+        public readonly SpanKind $kind,
+        public readonly string $name,
+        public readonly ?string $parentId,
+        public readonly string $traceId,
+        public readonly int $flags,
+        public readonly float $startTimeUnixNano,
+        public readonly float $endTimeUnixNano,
+    ) {
+    }
 
-    public function __construct(OTelProtoSpan $protoSpan)
+    public static function deserializeFromOTelProto(OTelProtoSpan $source): self
     {
-        $this->attributes = new SpanAttributes($protoSpan->getAttributes());
-        $this->id = self::convertId($protoSpan->getSpanId());
-        $this->kind = SpanKind::fromOTelProtoSpanKind($protoSpan->getKind());
-        $this->name = $protoSpan->getName();
-        $this->parentId = self::convertNullableId($protoSpan->getParentSpanId());
-        $this->traceId = self::convertId($protoSpan->getTraceId());
-        $this->flags = $protoSpan->getFlags();
-        $this->startTimeUnixNano = self::convertTimeUnixNano($protoSpan->getStartTimeUnixNano());
-        $this->endTimeUnixNano = self::convertTimeUnixNano($protoSpan->getEndTimeUnixNano());
+        return new self(
+            attributes: Attributes::deserializeFromOTelProto($source->getAttributes()),
+            droppedAttributesCount: AssertEx::isNonNegativeInt($source->getDroppedAttributesCount()),
+            id: self::convertId($source->getSpanId()),
+            kind: SpanKind::fromOTelProtoSpanKind($source->getKind()),
+            name: $source->getName(),
+            parentId: self::convertNullableId($source->getParentSpanId()),
+            traceId: self::convertId($source->getTraceId()),
+            flags: $source->getFlags(),
+            startTimeUnixNano: self::convertTimeUnixNano($source->getStartTimeUnixNano()),
+            endTimeUnixNano: self::convertTimeUnixNano($source->getEndTimeUnixNano()),
+        );
+    }
+
+    public static function reasonToDiscard(Span $span): ?string
+    {
+        /** @var string[] $attributesToCheckForTestsInfraUrlSubPath */
+        static $attributesToCheckForTestsInfraUrlSubPath = [TraceAttributes::URL_PATH, TraceAttributes::URL_FULL, TraceAttributes::URL_ORIGINAL];
+        foreach ($attributesToCheckForTestsInfraUrlSubPath as $attributeName) {
+            if (($reason = self::reasonToDiscardIfOptionalAttributeContainsString($span->attributes, $attributeName, TestInfraHttpServerProcessBase::BASE_URI_PATH)) !== null) {
+                return $reason;
+            }
+        }
+
+        return null;
+    }
+
+    private static function reasonToDiscardIfOptionalAttributeContainsString(Attributes $attributes, string $attributeName, string $subString): ?string
+    {
+        if (
+            (($attributeValue = $attributes->tryToGetString($attributeName)) !== null)
+            &&
+            str_contains($attributeValue, $subString)
+        ) {
+            return 'Attribute (key: `' . $attributeName . '\', value: `' . $attributeValue . '\') contains `' . $subString . '\'';
+        }
+
+        return null;
     }
 
     private static function convertNullableId(string $binaryId): ?string

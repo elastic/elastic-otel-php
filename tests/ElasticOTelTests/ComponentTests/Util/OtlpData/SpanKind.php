@@ -21,7 +21,7 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTests\ComponentTests\Util;
+namespace ElasticOTelTests\ComponentTests\Util\OtlpData;
 
 use Elastic\OTel\Util\ArrayUtil;
 use ElasticOTelTests\Util\EnumUtilForTestsTrait;

@@ -23,7 +23,6 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
-use ElasticOTelTests\Util\ArrayUtilForTests;
 use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LoggableTrait;
 use PHPUnit\Framework\Assert;
@@ -32,16 +31,13 @@ final class ExportedDataAccumulator implements LoggableInterface
 {
     use LoggableTrait;
 
-    /** @var IntakeApiConnection[] */
-    private array $closedIntakeApiConnections = [];
+    /** @var IntakeDataConnection[] */
+    private array $closedIntakeDataConnections = [];
 
-    private ?AgentToOTelCollectorConnectionStarted $openIntakeApiConnection = null;
+    private ?AgentToOTelCollectorConnectionStarted $openIntakeDataConnection = null;
 
-    /** @var IntakeApiRequest[] */
-    private array $openIntakeApiConnectionRequests = [];
-
-    /** @var Span[] */
-    private array $spans = [];
+    /** @var IntakeTraceDataRequest[] */
+    private array $openIntakeDataConnectionRequests = [];
 
     /**
      * @param AgentToOTeCollectorEvent[] $events
@@ -49,8 +45,8 @@ final class ExportedDataAccumulator implements LoggableInterface
     public function addAgentToOTeCollectorEvents(array $events): void
     {
         foreach ($events as $event) {
-            if ($event instanceof IntakeApiRequest) {
-                $this->addIntakeApiRequest($event);
+            if ($event instanceof IntakeTraceDataRequest) {
+                $this->addIntakeDataRequest($event);
             } elseif ($event instanceof AgentToOTelCollectorConnectionStarted) {
                 $this->addNewConnection($event);
             }
@@ -59,35 +55,32 @@ final class ExportedDataAccumulator implements LoggableInterface
 
     private function addNewConnection(AgentToOTelCollectorConnectionStarted $event): void
     {
-        if ($this->openIntakeApiConnection === null) {
-            Assert::assertCount(0, $this->openIntakeApiConnectionRequests);
+        if ($this->openIntakeDataConnection === null) {
+            Assert::assertCount(0, $this->openIntakeDataConnectionRequests);
         } else {
-            $this->closedIntakeApiConnections[] = new IntakeApiConnection($this->openIntakeApiConnection, $this->openIntakeApiConnectionRequests);
-            $this->openIntakeApiConnectionRequests = [];
+            $this->closedIntakeDataConnections[] = new IntakeDataConnection($this->openIntakeDataConnection, $this->openIntakeDataConnectionRequests);
+            $this->openIntakeDataConnectionRequests = [];
         }
 
-        $this->openIntakeApiConnection = $event;
+        $this->openIntakeDataConnection = $event;
     }
 
-    private function addIntakeApiRequest(IntakeApiRequest $intakeApiRequest): void
+    private function addIntakeDataRequest(IntakeTraceDataRequest $intakeDataRequest): void
     {
-        $this->openIntakeApiConnectionRequests[] = $intakeApiRequest;
-
-        $newDataParsed = IntakeApiRequestDeserializer::deserialize($intakeApiRequest);
-        ArrayUtilForTests::append(from: $newDataParsed->spans, to: $this->spans);
+        $this->openIntakeDataConnectionRequests[] = $intakeDataRequest;
     }
 
     public function isEnough(IsEnoughExportedDataInterface $isEnoughExportedData): bool
     {
-        return $isEnoughExportedData->isEnough($this->spans);
+        return $isEnoughExportedData->isEnough($this->getAccumulatedData()->spans());
     }
 
     public function getAccumulatedData(): ExportedData
     {
-        $intakeApiConnections = $this->closedIntakeApiConnections;
-        if ($this->openIntakeApiConnection !== null) {
-            $intakeApiConnections[] = new IntakeApiConnection($this->openIntakeApiConnection, $this->openIntakeApiConnectionRequests);
+        $intakeDataConnections = $this->closedIntakeDataConnections;
+        if ($this->openIntakeDataConnection !== null) {
+            $intakeDataConnections[] = new IntakeDataConnection($this->openIntakeDataConnection, $this->openIntakeDataConnectionRequests);
         }
-        return new ExportedData(new RawExportedData($intakeApiConnections), $this->spans);
+        return new ExportedData($intakeDataConnections);
     }
 }

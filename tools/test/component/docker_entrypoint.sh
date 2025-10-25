@@ -2,6 +2,28 @@
 set -e -o pipefail
 #set -x
 
+function print_info_about_environment () {
+    echo "Current directory: ${PWD}"
+
+    echo "ls -l"
+    ls -l
+
+    echo 'Set environment variables (env):'
+    env | sort
+
+    echo -n 'PHP version (php -v):'
+    php -v
+
+    echo 'Installed PHP extensions (php -m):'
+    php -m
+
+    echo 'PHP info (php -i):'
+    php -i
+
+    echo -n "php -r \"echo ini_get('memory_limit');\" => "
+    php -r "echo ini_get('memory_limit') . PHP_EOL;"
+}
+
 function install_package_file() {
     local package_file_full_path=${1:?}
 
@@ -179,10 +201,22 @@ function main() {
     repo_root_dir="$( realpath "${this_script_dir}/../../.." )"
     source "${repo_root_dir}/tools/shared.sh"
 
-    echo "Current directory: ${PWD}"
+    echo 'Before setting PHP_INI_SCAN_DIR'
+    print_info_about_environment
 
-    echo "ls -l"
-    ls -l
+    if [[ -z "${PHP_INI_SCAN_DIR}" ]]; then
+        # If you include an empty path segment (i.e., with a leading colon),
+        # PHP will also scan the directory specified during compilation (via the --with-config-file-scan-dir option).
+        # :/some_dir scans the compile-time directory and then /some_dir
+        export PHP_INI_SCAN_DIR=:/elastic_otel_php_tests/php_ini_scan_dir
+    else
+        export PHP_INI_SCAN_DIR=${PHP_INI_SCAN_DIR}:/elastic_otel_php_tests/php_ini_scan_dir
+    fi
+    echo "ls -l /elastic_otel_php_tests/php_ini_scan_dir"
+    ls -l /elastic_otel_php_tests/php_ini_scan_dir
+
+    echo 'After setting PHP_INI_SCAN_DIR'
+    print_info_about_environment
 
     repo_root_dir="$( realpath "${this_script_dir}/../../.." )"
     source "${repo_root_dir}/tools/shared.sh"
@@ -202,6 +236,8 @@ function main() {
     end_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
     install_elastic_otel_package
+    echo 'After installing Elastic OTel (EDOT)'
+    print_info_about_environment
 
     current_github_workflow_log_group_name="Installing PHP dependencies using composer"
     start_github_workflow_log_group "${current_github_workflow_log_group_name}"
@@ -223,6 +259,7 @@ function main() {
     fi
     start_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
+    export ELASTIC_OTEL_PHP_TESTS_LOGS_DIRECTORY="/elastic_otel_php_tests/logs"
     /repo_root/tools/test/component/test_installed_package_one_matrix_row.sh
 }
 

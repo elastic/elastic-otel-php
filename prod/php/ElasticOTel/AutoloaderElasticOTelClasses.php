@@ -30,7 +30,7 @@ namespace Elastic\OTel;
  *
  * @internal
  */
-final class Autoloader
+final class AutoloaderElasticOTelClasses
 {
     private const AUTOLOAD_FQ_CLASS_NAME_PREFIX = 'Elastic\\OTel\\';
 

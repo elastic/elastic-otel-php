@@ -61,6 +61,7 @@ final class ConfigSnapshotForTests implements LoggableInterface
     public readonly ?TestGroupName $group; // @phpstan-ignore property.uninitializedReadonly
 
     public readonly LogLevel $logLevel; // @phpstan-ignore property.uninitializedReadonly
+    public readonly ?string $logsDirectory; // @phpstan-ignore property.uninitializedReadonly
 
     public readonly ?string $mysqlHost; // @phpstan-ignore property.uninitializedReadonly
     public readonly ?int $mysqlPort; // @phpstan-ignore property.uninitializedReadonly
@@ -78,6 +79,8 @@ final class ConfigSnapshotForTests implements LoggableInterface
         $this->validateFileExistsIfSet(OptionForTestsName::app_code_php_exe);
         $this->validateFileExistsIfSet(OptionForTestsName::app_code_bootstrap_php_part_file);
         $this->validateFileExistsIfSet(OptionForTestsName::app_code_ext_binary);
+
+        $this->validateDirectoryExistsOrCanBeCreatedIfSet(OptionForTestsName::logs_directory);
     }
 
     public function appCodeHostKind(): AppCodeHostKind
@@ -145,14 +148,50 @@ final class ConfigSnapshotForTests implements LoggableInterface
     {
         $propertyName = TextUtil::snakeToCamelCase($optName->name);
         $propertyValue = $this->$propertyName;
-        if ($propertyValue !== null) {
-            Assert::assertIsString($propertyValue);
-            if (!file_exists($propertyValue)) {
-                $envVarName = $optName->toEnvVarName();
+        if ($propertyValue === null) {
+            return;
+        }
+        Assert::assertIsString($propertyValue);
+
+        $envVarName = $optName->toEnvVarName();
+
+        if (!file_exists($propertyValue)) {
+            throw new ConfigException(
+                ExceptionUtil::buildMessage('Option for a file path is set, but it points to a file that does not exist', compact('optName', 'envVarName', 'propertyValue'))
+            );
+        }
+
+        if (!is_file($propertyValue)) {
+            throw new ConfigException(
+                ExceptionUtil::buildMessage('Option for a file path is set, but the path points to an entity that is not a regular file', compact('optName', 'envVarName', 'propertyValue'))
+            );
+        }
+    }
+
+    private function validateDirectoryExistsOrCanBeCreatedIfSet(OptionForTestsName $optName): void
+    {
+        $propertyName = TextUtil::snakeToCamelCase($optName->name);
+        $propertyValue = $this->$propertyName;
+        if ($propertyValue === null) {
+            return;
+        }
+        Assert::assertIsString($propertyValue);
+
+        $envVarName = $optName->toEnvVarName();
+
+        if (file_exists($propertyValue)) {
+            if (!is_dir($propertyValue)) {
                 throw new ConfigException(
-                    ExceptionUtil::buildMessage('Option for a file path is set but it points to a file that does not exist', compact('optName', 'envVarName', 'propertyValue'))
+                    ExceptionUtil::buildMessage('Option for a directory path is set, but the path points to an entity that is not a directory', compact('optName', 'envVarName', 'propertyValue'))
                 );
             }
+            return;
+        }
+
+        if (!mkdir($propertyValue)) {
+            throw new ConfigException(
+                ExceptionUtil::buildMessage('Option for a directory path is set, but attempt to create the directory failed', compact('optName', 'envVarName', 'propertyValue'))
+            );
         }
     }
 

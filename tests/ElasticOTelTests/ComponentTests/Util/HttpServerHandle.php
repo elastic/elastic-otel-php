@@ -43,7 +43,7 @@ class HttpServerHandle implements LoggableInterface
      * @param int[] $ports
      */
     public function __construct(
-        public readonly string $dbgServerDesc,
+        public readonly string $dbgProcessName,
         public readonly int $spawnedProcessOsId,
         public readonly string $spawnedProcessInternalId,
         public readonly array $ports
@@ -74,11 +74,7 @@ class HttpServerHandle implements LoggableInterface
         $response = $this->sendRequest(HttpMethods::POST, TestInfraHttpServerProcessBase::EXIT_URI_PATH);
         Assert::assertSame(HttpStatusCodes::OK, $response->getStatusCode());
 
-        $hasExited = ProcessUtil::waitForProcessToExit(
-            $this->dbgServerDesc,
-            $this->spawnedProcessOsId,
-            10 * 1000 * 1000 /* <- maxWaitTimeInMicroseconds - 10 seconds */
-        );
+        $hasExited = ProcessUtil::waitForProcessToExitUsingPid($this->dbgProcessName, $this->spawnedProcessOsId, /* maxWaitTimeInMicroseconds - 10 seconds */ 10 * 1000 * 1000);
         Assert::assertTrue($hasExited);
     }
 }
