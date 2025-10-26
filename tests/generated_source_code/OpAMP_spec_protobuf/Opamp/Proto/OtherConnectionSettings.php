@@ -66,6 +66,20 @@ class OtherConnectionSettings extends \Google\Protobuf\Internal\Message
      * Generated from protobuf field <code>map<string, string> other_settings = 4;</code>
      */
     private $other_settings;
+    /**
+     * Optional connection specific TLS settings.
+     * Status: [Development]
+     *
+     * Generated from protobuf field <code>.opamp.proto.TLSConnectionSettings tls = 5;</code>
+     */
+    protected $tls = null;
+    /**
+     * Optional connection specific proxy settings.
+     * Status: [Development]
+     *
+     * Generated from protobuf field <code>.opamp.proto.ProxyConnectionSettings proxy = 6;</code>
+     */
+    protected $proxy = null;
 
     /**
      * Constructor.
@@ -91,6 +105,12 @@ class OtherConnectionSettings extends \Google\Protobuf\Internal\Message
      *     @type array|\Google\Protobuf\Internal\MapField $other_settings
      *           Other connection settings. These are Agent-specific and are up to the Agent
      *           interpret.
+     *     @type \Opamp\Proto\TLSConnectionSettings $tls
+     *           Optional connection specific TLS settings.
+     *           Status: [Development]
+     *     @type \Opamp\Proto\ProxyConnectionSettings $proxy
+     *           Optional connection specific proxy settings.
+     *           Status: [Development]
      * }
      */
     public function __construct($data = NULL) {
@@ -238,6 +258,82 @@ class OtherConnectionSettings extends \Google\Protobuf\Internal\Message
     {
         $arr = GPBUtil::checkMapField($var, \Google\Protobuf\Internal\GPBType::STRING, \Google\Protobuf\Internal\GPBType::STRING);
         $this->other_settings = $arr;
+
+        return $this;
+    }
+
+    /**
+     * Optional connection specific TLS settings.
+     * Status: [Development]
+     *
+     * Generated from protobuf field <code>.opamp.proto.TLSConnectionSettings tls = 5;</code>
+     * @return \Opamp\Proto\TLSConnectionSettings|null
+     */
+    public function getTls()
+    {
+        return $this->tls;
+    }
+
+    public function hasTls()
+    {
+        return isset($this->tls);
+    }
+
+    public function clearTls()
+    {
+        unset($this->tls);
+    }
+
+    /**
+     * Optional connection specific TLS settings.
+     * Status: [Development]
+     *
+     * Generated from protobuf field <code>.opamp.proto.TLSConnectionSettings tls = 5;</code>
+     * @param \Opamp\Proto\TLSConnectionSettings $var
+     * @return $this
+     */
+    public function setTls($var)
+    {
+        GPBUtil::checkMessage($var, \Opamp\Proto\TLSConnectionSettings::class);
+        $this->tls = $var;
+
+        return $this;
+    }
+
+    /**
+     * Optional connection specific proxy settings.
+     * Status: [Development]
+     *
+     * Generated from protobuf field <code>.opamp.proto.ProxyConnectionSettings proxy = 6;</code>
+     * @return \Opamp\Proto\ProxyConnectionSettings|null
+     */
+    public function getProxy()
+    {
+        return $this->proxy;
+    }
+
+    public function hasProxy()
+    {
+        return isset($this->proxy);
+    }
+
+    public function clearProxy()
+    {
+        unset($this->proxy);
+    }
+
+    /**
+     * Optional connection specific proxy settings.
+     * Status: [Development]
+     *
+     * Generated from protobuf field <code>.opamp.proto.ProxyConnectionSettings proxy = 6;</code>
+     * @param \Opamp\Proto\ProxyConnectionSettings $var
+     * @return $this
+     */
+    public function setProxy($var)
+    {
+        GPBUtil::checkMessage($var, \Opamp\Proto\ProxyConnectionSettings::class);
+        $this->proxy = $var;
 
         return $this;
     }

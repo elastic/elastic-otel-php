@@ -59,6 +59,20 @@ class OpAMPConnectionSettings extends \Google\Protobuf\Internal\Message
      * Generated from protobuf field <code>uint64 heartbeat_interval_seconds = 4;</code>
      */
     protected $heartbeat_interval_seconds = 0;
+    /**
+     * Optional connection specific TLS settings.
+     * Status: [Development]
+     *
+     * Generated from protobuf field <code>.opamp.proto.TLSConnectionSettings tls = 5;</code>
+     */
+    protected $tls = null;
+    /**
+     * Optional connection specific proxy settings.
+     * Status: [Development]
+     *
+     * Generated from protobuf field <code>.opamp.proto.ProxyConnectionSettings proxy = 6;</code>
+     */
+    protected $proxy = null;
 
     /**
      * Constructor.
@@ -90,6 +104,12 @@ class OpAMPConnectionSettings extends \Google\Protobuf\Internal\Message
      *           A heartbeat is used to keep the connection active and inform the server that the Agent
      *           is still alive and active.
      *           If this field has no value or is set to 0, the Agent should not send any heartbeats.
+     *           Status: [Development]
+     *     @type \Opamp\Proto\TLSConnectionSettings $tls
+     *           Optional connection specific TLS settings.
+     *           Status: [Development]
+     *     @type \Opamp\Proto\ProxyConnectionSettings $proxy
+     *           Optional connection specific proxy settings.
      *           Status: [Development]
      * }
      */
@@ -252,6 +272,82 @@ class OpAMPConnectionSettings extends \Google\Protobuf\Internal\Message
     {
         GPBUtil::checkUint64($var);
         $this->heartbeat_interval_seconds = $var;
+
+        return $this;
+    }
+
+    /**
+     * Optional connection specific TLS settings.
+     * Status: [Development]
+     *
+     * Generated from protobuf field <code>.opamp.proto.TLSConnectionSettings tls = 5;</code>
+     * @return \Opamp\Proto\TLSConnectionSettings|null
+     */
+    public function getTls()
+    {
+        return $this->tls;
+    }
+
+    public function hasTls()
+    {
+        return isset($this->tls);
+    }
+
+    public function clearTls()
+    {
+        unset($this->tls);
+    }
+
+    /**
+     * Optional connection specific TLS settings.
+     * Status: [Development]
+     *
+     * Generated from protobuf field <code>.opamp.proto.TLSConnectionSettings tls = 5;</code>
+     * @param \Opamp\Proto\TLSConnectionSettings $var
+     * @return $this
+     */
+    public function setTls($var)
+    {
+        GPBUtil::checkMessage($var, \Opamp\Proto\TLSConnectionSettings::class);
+        $this->tls = $var;
+
+        return $this;
+    }
+
+    /**
+     * Optional connection specific proxy settings.
+     * Status: [Development]
+     *
+     * Generated from protobuf field <code>.opamp.proto.ProxyConnectionSettings proxy = 6;</code>
+     * @return \Opamp\Proto\ProxyConnectionSettings|null
+     */
+    public function getProxy()
+    {
+        return $this->proxy;
+    }
+
+    public function hasProxy()
+    {
+        return isset($this->proxy);
+    }
+
+    public function clearProxy()
+    {
+        unset($this->proxy);
+    }
+
+    /**
+     * Optional connection specific proxy settings.
+     * Status: [Development]
+     *
+     * Generated from protobuf field <code>.opamp.proto.ProxyConnectionSettings proxy = 6;</code>
+     * @param \Opamp\Proto\ProxyConnectionSettings $var
+     * @return $this
+     */
+    public function setProxy($var)
+    {
+        GPBUtil::checkMessage($var, \Opamp\Proto\ProxyConnectionSettings::class);
+        $this->proxy = $var;
 
         return $this;
     }

@@ -127,6 +127,13 @@ class AgentCapabilities
      * Generated from protobuf enum <code>AgentCapabilities_ReportsAvailableComponents = 16384;</code>
      */
     const AgentCapabilities_ReportsAvailableComponents = 16384;
+    /**
+     * The agent will report ConnectionSettingsOffers status via AgentToServer.connection_settings_status field.
+     * Status: [Development]
+     *
+     * Generated from protobuf enum <code>AgentCapabilities_ReportsConnectionSettingsStatus = 32768;</code>
+     */
+    const AgentCapabilities_ReportsConnectionSettingsStatus = 32768;
 
     private static $valueToName = [
         self::AgentCapabilities_Unspecified => 'AgentCapabilities_Unspecified',
@@ -145,6 +152,7 @@ class AgentCapabilities
         self::AgentCapabilities_ReportsRemoteConfig => 'AgentCapabilities_ReportsRemoteConfig',
         self::AgentCapabilities_ReportsHeartbeat => 'AgentCapabilities_ReportsHeartbeat',
         self::AgentCapabilities_ReportsAvailableComponents => 'AgentCapabilities_ReportsAvailableComponents',
+        self::AgentCapabilities_ReportsConnectionSettingsStatus => 'AgentCapabilities_ReportsConnectionSettingsStatus',
     ];
 
     public static function name($value)

@@ -127,6 +127,15 @@ class AgentToServer extends \Google\Protobuf\Internal\Message
      * Generated from protobuf field <code>.opamp.proto.AvailableComponents available_components = 14;</code>
      */
     protected $available_components = null;
+    /**
+     * The status of the OfferedConnectionSettings that was previously received
+     * from the Server. This field SHOULD be unset if the offered connection
+     * settings status is unchanged since the last AgentToServer message.
+     * Status: [Development]
+     *
+     * Generated from protobuf field <code>.opamp.proto.ConnectionSettingsStatus connection_settings_status = 15;</code>
+     */
+    protected $connection_settings_status = null;
 
     /**
      * Constructor.
@@ -191,6 +200,11 @@ class AgentToServer extends \Google\Protobuf\Internal\Message
      *           Status: [Development]
      *     @type \Opamp\Proto\AvailableComponents $available_components
      *           A message indicating the components that are available for configuration on the agent.
+     *           Status: [Development]
+     *     @type \Opamp\Proto\ConnectionSettingsStatus $connection_settings_status
+     *           The status of the OfferedConnectionSettings that was previously received
+     *           from the Server. This field SHOULD be unset if the offered connection
+     *           settings status is unchanged since the last AgentToServer message.
      *           Status: [Development]
      * }
      */
@@ -719,6 +733,48 @@ class AgentToServer extends \Google\Protobuf\Internal\Message
     {
         GPBUtil::checkMessage($var, \Opamp\Proto\AvailableComponents::class);
         $this->available_components = $var;
+
+        return $this;
+    }
+
+    /**
+     * The status of the OfferedConnectionSettings that was previously received
+     * from the Server. This field SHOULD be unset if the offered connection
+     * settings status is unchanged since the last AgentToServer message.
+     * Status: [Development]
+     *
+     * Generated from protobuf field <code>.opamp.proto.ConnectionSettingsStatus connection_settings_status = 15;</code>
+     * @return \Opamp\Proto\ConnectionSettingsStatus|null
+     */
+    public function getConnectionSettingsStatus()
+    {
+        return $this->connection_settings_status;
+    }
+
+    public function hasConnectionSettingsStatus()
+    {
+        return isset($this->connection_settings_status);
+    }
+
+    public function clearConnectionSettingsStatus()
+    {
+        unset($this->connection_settings_status);
+    }
+
+    /**
+     * The status of the OfferedConnectionSettings that was previously received
+     * from the Server. This field SHOULD be unset if the offered connection
+     * settings status is unchanged since the last AgentToServer message.
+     * Status: [Development]
+     *
+     * Generated from protobuf field <code>.opamp.proto.ConnectionSettingsStatus connection_settings_status = 15;</code>
+     * @param \Opamp\Proto\ConnectionSettingsStatus $var
+     * @return $this
+     */
+    public function setConnectionSettingsStatus($var)
+    {
+        GPBUtil::checkMessage($var, \Opamp\Proto\ConnectionSettingsStatus::class);
+        $this->connection_settings_status = $var;
 
         return $this;
     }

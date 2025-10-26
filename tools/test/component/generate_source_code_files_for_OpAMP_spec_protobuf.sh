@@ -2,7 +2,8 @@
 set -e -o pipefail
 #set -x
 
-OpAMP_spec_release_version=0.12.0
+# You can find which version are released at https://github.com/open-telemetry/opamp-spec/releases
+OpAMP_spec_release_version=0.14.0
 
 function fetch_proto_files () {
     local dest_dir="$1"
