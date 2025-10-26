@@ -23,12 +23,14 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
-use ElasticOTelTests\ComponentTests\Util\OtlpData\Span;
+use ElasticOTelTests\Util\EnumUtilForTestsTrait;
 
-interface IsEnoughExportedDataInterface
+enum OTelSignalType
 {
-    /**
-     * @param iterable<Span> $spans
-     */
-    public function isEnough(iterable $spans): bool;
+    use EnumUtilForTestsTrait;
+
+    case trace;
+    case metric;
+    case log;
+    case baggage;
 }

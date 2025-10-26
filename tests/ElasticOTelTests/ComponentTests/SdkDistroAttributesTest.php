@@ -32,7 +32,7 @@ use ElasticOTelTests\ComponentTests\Util\AppCodeTarget;
 use ElasticOTelTests\ComponentTests\Util\ComponentTestCaseBase;
 use ElasticOTelTests\ComponentTests\Util\AttributesExpectations;
 use ElasticOTelTests\ComponentTests\Util\OTelUtil;
-use ElasticOTelTests\ComponentTests\Util\WaitForEventCounts;
+use ElasticOTelTests\ComponentTests\Util\WaitForOTelSignalCounts;
 use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\BoolUtil;
 use ElasticOTelTests\Util\Config\OptionForProdName;
@@ -161,12 +161,12 @@ final class SdkDistroAttributesTest extends ComponentTestCaseBase
             $notExpectedAttributes[] = ResourceAttributes::SERVICE_VERSION;
         }
 
-        $exportedData = $testCaseHandle->waitForEnoughExportedData(WaitForEventCounts::spans(1)); // exactly 1 span (the root span) is expected
-        $dbgCtx->add(compact('exportedData'));
+        $agentBackendComms = $testCaseHandle->waitForEnoughAgentBackendComms(WaitForOTelSignalCounts::spans(1)); // exactly 1 span (the root span) is expected
+        $dbgCtx->add(compact('agentBackendComms'));
 
         // Assert
 
-        $rootSpan = $exportedData->singleRootSpan();
+        $rootSpan = $agentBackendComms->singleRootSpan();
         $dbgCtx->add(compact('rootSpan'));
         (new AttributesExpectations(attributes: [self::DID_APP_CODE_FINISH_SUCCESSFULLY_KEY => true], notAllowedAttributes: $notExpectedAttributes))->assertMatches($rootSpan->attributes);
 
@@ -208,7 +208,7 @@ final class SdkDistroAttributesTest extends ComponentTestCaseBase
         }
 
         $expectedResourceAttributes[ResourceAttributes::TELEMETRY_DISTRO_VERSION] = $distroVersionInAppContext;
-        $resources = IterableUtil::toList($exportedData->resources());
+        $resources = IterableUtil::toList($agentBackendComms->resources());
         $dbgCtx->add(compact('resources'));
         AssertEx::isPositiveInt(count($resources));
         $resourceAttributesExpectations = new AttributesExpectations(attributes: $expectedResourceAttributes, notAllowedAttributes: $notExpectedAttributes);

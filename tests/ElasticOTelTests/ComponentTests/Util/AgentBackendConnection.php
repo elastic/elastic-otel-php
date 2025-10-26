@@ -23,13 +23,14 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
-final class AgentToOTeCollectorEvents
+final class AgentBackendConnection
 {
     /**
-     * @param AgentToOTeCollectorEvent[] $events
+     * @param IntakeDataRequestDeserialized[] $requests
      */
     public function __construct(
-        public array $events
+        public readonly AgentBackendConnectionStarted $started,
+        public readonly array $requests
     ) {
     }
 }

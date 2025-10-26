@@ -37,7 +37,7 @@ class ResourceSpans
      * It does not apply to the data in the "scope_spans" field which have their own schema_url field.
      */
     public function __construct(
-        public readonly ?Resource $resource,
+        public readonly ?OTelResource $resource,
         public readonly array $scopeSpans,
         public readonly string $schemaUrl,
     ) {
@@ -46,7 +46,7 @@ class ResourceSpans
     public static function deserializeFromOTelProto(OTelProtoResourceSpans $source): self
     {
         return new self(
-            resource: DeserializationUtil::deserializeNullableFromOTelProto($source->getResource(), Resource::deserializeFromOTelProto(...)),
+            resource: DeserializationUtil::deserializeNullableFromOTelProto($source->getResource(), OTelResource::deserializeFromOTelProto(...)),
             scopeSpans: DeserializationUtil::deserializeArrayFromOTelProto($source->getScopeSpans(), ScopeSpans::deserializeFromOTelProto(...)),
             schemaUrl: $source->getSchemaUrl(),
         );

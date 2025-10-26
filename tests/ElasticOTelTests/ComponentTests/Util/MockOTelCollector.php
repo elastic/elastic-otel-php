@@ -19,8 +19,6 @@
  * under the License.
  */
 
-/** @noinspection PhpInternalEntityUsedInspection */
-
 declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
@@ -28,7 +26,6 @@ namespace ElasticOTelTests\ComponentTests\Util;
 use Elastic\OTel\Util\ArrayUtil;
 use Elastic\OTel\Util\NumericUtil;
 use Elastic\OTel\Util\TextUtil;
-use ElasticOTelTests\ComponentTests\Util\OtlpData\ExportTraceServiceRequest;
 use ElasticOTelTests\Util\AmbientContextForTests;
 use ElasticOTelTests\Util\ArrayUtilForTests;
 use ElasticOTelTests\Util\AssertEx;
@@ -41,8 +38,6 @@ use ElasticOTelTests\Util\HttpStatusCodes;
 use ElasticOTelTests\Util\JsonUtil;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
 use ElasticOTelTests\Util\Log\Logger;
-use OpenTelemetry\Contrib\Otlp\ProtobufSerializer;
-use Opentelemetry\Proto\Collector\Trace\V1\ExportTraceServiceRequest as OTelProtoExportTraceServiceRequest;
 use Override;
 use PHPUnit\Framework\Assert;
 use Psr\Http\Message\ResponseInterface;
@@ -52,7 +47,7 @@ use React\Promise\Promise;
 use React\Socket\ConnectionInterface;
 
 /**
- * @phpstan-import-type HttpHeaders from IntakeDataRequest
+ * @phpstan-import-type HttpHeaders from IntakeDataRequestRaw
  */
 final class MockOTelCollector extends TestInfraHttpServerProcessBase
 {
@@ -62,7 +57,7 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
     public const FROM_INDEX_HEADER_NAME = RequestHeadersRawSnapshotSource::HEADER_NAMES_PREFIX . 'FROM_INDEX';
     public const SHOULD_WAIT_HEADER_NAME = RequestHeadersRawSnapshotSource::HEADER_NAMES_PREFIX . 'SHOULD_WAIT';
 
-    /** @var AgentToOTeCollectorEvent[] */
+    /** @var AgentBackendCommEvent[] */
     private array $agentToOTeCollectorEvents = [];
     public int $pendingDataRequestNextId;
     /** @var array<int, MockOTelCollectorPendingDataRequest> */
@@ -96,7 +91,7 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
         // $socketIndex 0 is used for test infrastructure communication
         // $socketIndex 1 is used for APM Agent <-> Server communication
         if ($socketIndex == 1) {
-            $newEvent = new AgentToOTelCollectorConnectionStarted(
+            $newEvent = new AgentBackendConnectionStarted(
                 $this->clock->getMonotonicClockCurrentTime(),
                 $this->clock->getSystemClockCurrentTime(),
             );
@@ -104,7 +99,7 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
         }
     }
 
-    private function addAgentToOTeCollectorEvent(AgentToOTeCollectorEvent $event): void
+    private function addAgentToOTeCollectorEvent(AgentBackendCommEvent $event): void
     {
         Assert::assertNotNull($this->reactLoop);
         $this->agentToOTeCollectorEvents[] = $event;
@@ -121,7 +116,7 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
     protected function processRequest(ServerRequestInterface $request): null|ResponseInterface|Promise
     {
         if ($request->getUri()->getPath() === self::INTAKE_EXPORTED_TRACE_DATA_URI_PATH) {
-            return $this->processIntakeTraceDataRequest($request);
+            return $this->processIntakeDataRequest($request, OTelSignalType::trace);
         }
 
         if (TextUtil::isPrefixOf(self::MOCK_API_URI_PREFIX, $request->getUri()->getPath())) {
@@ -154,10 +149,8 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
         Assert::assertSame(HttpContentTypes::PROTOBUF, $contentType);
     }
 
-    /**
-     * @param callable(string): IntakeDataRequest $deserialize
-     */
-    private function processIntakeDataRequest(ServerRequestInterface $request, callable $deserialize): ResponseInterface
+    /** @noinspection PhpSameParameterValueInspection */
+    private function processIntakeDataRequest(ServerRequestInterface $request, OTelSignalType $signalType): ResponseInterface
     {
         Assert::assertNotNull($this->reactLoop);
 
@@ -174,35 +167,24 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
 
         self::verifyIntakeDataRequest($request->getHeaders(), $bodySize); // @phpstan-ignore argument.type
 
-        $deserializedRequest = $deserialize($body);
+        $intakeDataRequestRaw = new IntakeDataRequestRaw(
+            AmbientContextForTests::clock()->getMonotonicClockCurrentTime(),
+            AmbientContextForTests::clock()->getSystemClockCurrentTime(),
+            $signalType,
+            $request->getHeaders(), // @phpstan-ignore argument.type
+            $body
+        );
+
+        $deserializedRequest = AgentBackendCommsAccumulator::deserializeIntakeDataRequestBody($intakeDataRequestRaw);
         $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Deserialized intake data request', compact('deserializedRequest'));
 
         if ($deserializedRequest->isEmptyAfterDeserialization()) {
             $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'All data has been discarded by deserialization');
         }
 
-        $this->addAgentToOTeCollectorEvent($deserializedRequest);
+        $this->addAgentToOTeCollectorEvent($intakeDataRequestRaw);
 
         return new Response(/* status: */ 202);
-    }
-
-    private function processIntakeTraceDataRequest(ServerRequestInterface $request): ResponseInterface
-    {
-        return $this->processIntakeDataRequest(
-            $request,
-            function (string $body) use ($request): IntakeTraceDataRequest {
-                $serializer = ProtobufSerializer::getDefault();
-                $otelProtoRequest = new OTelProtoExportTraceServiceRequest();
-                $serializer->hydrate($otelProtoRequest, $body);
-
-                return new IntakeTraceDataRequest(
-                    AmbientContextForTests::clock()->getMonotonicClockCurrentTime(),
-                    AmbientContextForTests::clock()->getSystemClockCurrentTime(),
-                    $request->getHeaders(), // @phpstan-ignore argument.type
-                    ExportTraceServiceRequest::deserializeFromOTelProto($otelProtoRequest),
-                );
-            },
-        );
     }
 
     /**
@@ -262,7 +244,7 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
 
     private function fulfillDataRequest(int $fromIndex): ResponseInterface
     {
-        $newEvents = $this->hasNewDataFromAgentRequest($fromIndex) ? array_slice($this->agentToOTeCollectorEvents, $fromIndex) : [];
+        $newEvents = AssertEx::arrayIsList($this->hasNewDataFromAgentRequest($fromIndex) ? array_slice($this->agentToOTeCollectorEvents, $fromIndex) : []);
 
         ($loggerProxy = $this->logger->ifDebugLevelEnabled(__LINE__, __FUNCTION__))
         && $loggerProxy->log('Sending response ...', ['fromIndex' => $fromIndex, 'newEvents count' => count($newEvents)]);
@@ -271,22 +253,21 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
     }
 
     /**
-     * @param AgentToOTeCollectorEvent[] $events
+     * @param list<AgentBackendCommEvent> $events
      *
      * @noinspection PhpDocMissingThrowsInspection
      */
     private static function encodeResponse(array $events): ResponseInterface
     {
-        $eventsWrapped = new AgentToOTeCollectorEvents($events);
         return new Response(
-            status:  HttpStatusCodes::OK,
+            status: HttpStatusCodes::OK,
             headers: [HttpHeaderNames::CONTENT_TYPE => HttpContentTypes::JSON],
-            body:    JsonUtil::encode([AgentToOTeCollectorEvents::class => PhpSerializationUtil::serializeToString($eventsWrapped)])
+            body: JsonUtil::encode([AgentBackendCommEventsBlock::class => PhpSerializationUtil::serializeToString(new AgentBackendCommEventsBlock($events))]),
         );
     }
 
     /**
-     * @return AgentToOTeCollectorEvent[]
+     * @return list<AgentBackendCommEvent>
      *
      * @noinspection PhpDocMissingThrowsInspection
      */
@@ -306,9 +287,9 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
 
         $responseBodyDecodedJson = JsonUtil::decode($responseBody, asAssocArray: true);
         Assert::assertIsArray($responseBodyDecodedJson);
-        Assert::assertTrue(ArrayUtil::getValueIfKeyExists(AgentToOTeCollectorEvents::class, $responseBodyDecodedJson, /* out */ $newEventsWrappedSerialized));
+        Assert::assertTrue(ArrayUtil::getValueIfKeyExists(AgentBackendCommEventsBlock::class, $responseBodyDecodedJson, /* out */ $newEventsWrappedSerialized));
         Assert::assertIsString($newEventsWrappedSerialized);
-        return PhpSerializationUtil::unserializeFromStringAssertType($newEventsWrappedSerialized, AgentToOTeCollectorEvents::class)->events;
+        return PhpSerializationUtil::unserializeFromStringAssertType($newEventsWrappedSerialized, AgentBackendCommEventsBlock::class)->events;
     }
 
     private function fulfillTimedOutPendingDataRequest(int $pendingDataRequestId): void

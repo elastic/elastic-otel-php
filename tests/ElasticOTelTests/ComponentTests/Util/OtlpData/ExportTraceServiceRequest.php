@@ -62,7 +62,7 @@ class ExportTraceServiceRequest
     }
 
     /**
-     * @return iterable<Resource>
+     * @return iterable<OTelResource>
      */
     public function resources(): iterable
     {

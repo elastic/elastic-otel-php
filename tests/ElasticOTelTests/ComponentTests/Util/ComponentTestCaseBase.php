@@ -176,8 +176,8 @@ class ComponentTestCaseBase extends TestCaseBase
 
     protected static function waitForOneSpan(TestCaseHandle $testCaseHandle): Span
     {
-        $exportedData = $testCaseHandle->waitForEnoughExportedData(WaitForEventCounts::spans(1));
-        return $exportedData->singleSpan();
+        $agentBackendComms = $testCaseHandle->waitForEnoughAgentBackendComms(WaitForOTelSignalCounts::spans(1));
+        return $agentBackendComms->singleSpan();
     }
 
     /**

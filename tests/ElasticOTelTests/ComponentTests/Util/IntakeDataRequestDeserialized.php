@@ -25,16 +25,15 @@ namespace ElasticOTelTests\ComponentTests\Util;
 
 use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LoggableTrait;
-use ElasticOTelTests\Util\MonotonicTime;
-use ElasticOTelTests\Util\SystemTime;
 
-abstract class AgentToOTeCollectorEvent implements LoggableInterface
+abstract class IntakeDataRequestDeserialized implements LoggableInterface
 {
     use LoggableTrait;
 
-    public function __construct(
-        public readonly MonotonicTime $monotonicTime,
-        public readonly SystemTime $systemTime,
+    protected function __construct(
+        public readonly IntakeDataRequestRaw $raw,
     ) {
     }
+
+    abstract public function isEmptyAfterDeserialization(): bool;
 }

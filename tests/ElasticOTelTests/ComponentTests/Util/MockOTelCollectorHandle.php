@@ -57,9 +57,7 @@ final class MockOTelCollectorHandle extends HttpServerHandle
     }
 
     /**
-     * @return AgentToOTeCollectorEvent[]
-     *
-     * @noinspection PhpDocMissingThrowsInspection
+     * @return AgentBackendCommEvent[]
      */
     public function fetchNewData(bool $shouldWait): array
     {

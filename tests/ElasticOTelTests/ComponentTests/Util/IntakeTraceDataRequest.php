@@ -19,38 +19,59 @@
  * under the License.
  */
 
+/** @noinspection PhpInternalEntityUsedInspection */
+
 declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
 use ElasticOTelTests\ComponentTests\Util\OtlpData\ExportTraceServiceRequest;
+use ElasticOTelTests\ComponentTests\Util\OtlpData\OTelResource;
+use ElasticOTelTests\ComponentTests\Util\OtlpData\Span;
 use ElasticOTelTests\Util\Log\LoggableTrait;
-use ElasticOTelTests\Util\MonotonicTime;
-use ElasticOTelTests\Util\SystemTime;
+use OpenTelemetry\Contrib\Otlp\ProtobufSerializer;
+use Opentelemetry\Proto\Collector\Trace\V1\ExportTraceServiceRequest as OTelProtoExportTraceServiceRequest;
 use Override;
 
-/**
- * @phpstan-import-type HttpHeaders from IntakeDataRequest
- */
-final class IntakeTraceDataRequest extends IntakeDataRequest
+final class IntakeTraceDataRequest extends IntakeDataRequestDeserialized
 {
     use LoggableTrait;
 
-    /**
-     * @param HttpHeaders $httpHeaders
-     */
-    public function __construct(
-        MonotonicTime $monotonicTime,
-        SystemTime $systemTime,
-        array $httpHeaders,
-        public readonly ExportTraceServiceRequest $deserialized,
+    private function __construct(
+        IntakeDataRequestRaw $raw,
+        private readonly ExportTraceServiceRequest $deserialized,
     ) {
-        parent::__construct($monotonicTime, $systemTime, $httpHeaders);
+        parent::__construct($raw);
+    }
+
+    public static function deserializeFromRaw(IntakeDataRequestRaw $raw): self
+    {
+        $serializer = ProtobufSerializer::getDefault();
+        $otelProtoRequest = new OTelProtoExportTraceServiceRequest();
+        $serializer->hydrate($otelProtoRequest, $raw->body);
+
+        return new self($raw, ExportTraceServiceRequest::deserializeFromOTelProto($otelProtoRequest));
     }
 
     #[Override]
     public function isEmptyAfterDeserialization(): bool
     {
         return $this->deserialized->isEmptyAfterDeserialization();
+    }
+
+    /**
+     * @return iterable<Span>
+     */
+    public function spans(): iterable
+    {
+        yield from $this->deserialized->spans();
+    }
+
+    /**
+     * @return iterable<OTelResource>
+     */
+    public function resources(): iterable
+    {
+        yield from $this->deserialized->resources();
     }
 }

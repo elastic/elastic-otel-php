@@ -23,14 +23,7 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
-final class IntakeDataConnection
+interface IsEnoughAgentBackendCommsInterface
 {
-    /**
-     * @param IntakeTraceDataRequest[] $requests
-     */
-    public function __construct(
-        public readonly AgentToOTelCollectorConnectionStarted $started,
-        public readonly array $requests
-    ) {
-    }
+    public function isEnough(AgentBackendComms $comms): bool;
 }

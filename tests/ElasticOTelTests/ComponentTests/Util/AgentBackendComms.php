@@ -24,7 +24,7 @@ declare(strict_types=1);
 namespace ElasticOTelTests\ComponentTests\Util;
 
 use ElasticOTelTests\ComponentTests\Util\OtlpData\Attributes;
-use ElasticOTelTests\ComponentTests\Util\OtlpData\Resource;
+use ElasticOTelTests\ComponentTests\Util\OtlpData\OTelResource;
 use ElasticOTelTests\ComponentTests\Util\OtlpData\Span;
 use ElasticOTelTests\Util\ArrayUtilForTests;
 use ElasticOTelTests\Util\AssertEx;
@@ -34,13 +34,15 @@ use PHPUnit\Framework\Assert;
 /**
  * @phpstan-import-type AttributeValue from Attributes
  */
-final class ExportedData
+final class AgentBackendComms
 {
     /**
-     * @param IntakeDataConnection[] $intakeDataConnections
+     * @param iterable<AgentBackendCommEvent> $commEvents
+     * @param list<AgentBackendConnection> $connections
      */
     public function __construct(
-        public readonly array $intakeDataConnections,
+        public readonly iterable $commEvents,
+        public readonly array $connections,
     ) {
     }
 
@@ -53,14 +55,24 @@ final class ExportedData
     }
 
     /**
+     * @return iterable<IntakeDataRequestDeserialized>
+     */
+    public function intakeDataRequests(): iterable
+    {
+        foreach ($this->connections as $connection) {
+            yield from $connection->requests;
+        }
+    }
+
+    /**
      * @return iterable<IntakeTraceDataRequest>
-     *
-     * @noinspection PhpUnused
      */
     public function intakeTraceDataRequests(): iterable
     {
-        foreach ($this->intakeDataConnections as $intakeDataConnection) {
-            yield from $intakeDataConnection->requests;
+        foreach ($this->intakeDataRequests() as $request) {
+            if ($request instanceof IntakeTraceDataRequest) {
+                yield $request;
+            }
         }
     }
 
@@ -69,18 +81,18 @@ final class ExportedData
      */
     public function spans(): iterable
     {
-        foreach ($this->intakeTraceDataRequests() as $intakeRequest) {
-            yield from $intakeRequest->deserialized->spans();
+        foreach ($this->intakeTraceDataRequests() as $request) {
+            yield from $request->spans();
         }
     }
 
     /**
-     * @return iterable<Resource>
+     * @return iterable<OTelResource>
      */
     public function resources(): iterable
     {
         foreach ($this->intakeTraceDataRequests() as $intakeRequest) {
-            yield from $intakeRequest->deserialized->resources();
+            yield from $intakeRequest->resources();
         }
     }
 
