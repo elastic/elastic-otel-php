@@ -2,6 +2,28 @@
 set -e -o pipefail
 #set -x
 
+function print_info_about_environment () {
+    echo "Current directory: ${PWD}"
+
+    echo "ls -l"
+    ls -l
+
+    echo 'Set environment variables (env):'
+    env | sort
+
+    echo -n 'PHP version (php -v):'
+    php -v
+
+    echo 'Installed PHP extensions (php -m):'
+    php -m
+
+    echo 'PHP info (php -i):'
+    php -i
+
+    echo -n "php -r \"echo ini_get('memory_limit');\" => "
+    php -r "echo ini_get('memory_limit') . PHP_EOL;"
+}
+
 function install_package_file() {
     local package_file_full_path=${1:?}
 
@@ -144,12 +166,13 @@ function gather_logs () {
     extract_log_ending
 
     # Setting ownership/permissions to allow docker host to read files copied to /elastic_otel_php_tests/logs/
-    chown -R "${ELASTIC_OTEL_PHP_TESTS_DOCKER_RUNNING_USER_ID:?}:${ELASTIC_OTEL_PHP_TESTS_DOCKER_RUNNING_USER_GROUP_ID:?}" /elastic_otel_php_tests/logs/*
-    chmod -R +r,u+w /elastic_otel_php_tests/logs/*
+    chown -R "${ELASTIC_OTEL_PHP_TESTS_DOCKER_RUNNING_USER_ID:?}:${ELASTIC_OTEL_PHP_TESTS_DOCKER_RUNNING_USER_GROUP_ID:?}" /elastic_otel_php_tests/logs
+    chmod -R 777 /elastic_otel_php_tests/logs
 
-    current_github_workflow_log_group_name="Content of /elastic_otel_php_tests/logs/"
+    current_github_workflow_log_group_name="Content of /elastic_otel_php_tests/logs after setting ownership/permissions"
     start_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
+    ls -ld /elastic_otel_php_tests/logs
     ls -l -R /elastic_otel_php_tests/logs/
 
     end_github_workflow_log_group "${current_github_workflow_log_group_name}"
@@ -178,10 +201,22 @@ function main() {
     repo_root_dir="$( realpath "${this_script_dir}/../../.." )"
     source "${repo_root_dir}/tools/shared.sh"
 
-    echo "Current directory: ${PWD}"
+    echo 'Before setting PHP_INI_SCAN_DIR'
+    print_info_about_environment
 
-    echo "ls -l"
-    ls -l
+    if [[ -z "${PHP_INI_SCAN_DIR}" ]]; then
+        # If you include an empty path segment (i.e., with a leading colon),
+        # PHP will also scan the directory specified during compilation (via the --with-config-file-scan-dir option).
+        # :/some_dir scans the compile-time directory and then /some_dir
+        export PHP_INI_SCAN_DIR=:/elastic_otel_php_tests/php_ini_scan_dir
+    else
+        export PHP_INI_SCAN_DIR=${PHP_INI_SCAN_DIR}:/elastic_otel_php_tests/php_ini_scan_dir
+    fi
+    echo "ls -l /elastic_otel_php_tests/php_ini_scan_dir"
+    ls -l /elastic_otel_php_tests/php_ini_scan_dir
+
+    echo 'After setting PHP_INI_SCAN_DIR'
+    print_info_about_environment
 
     repo_root_dir="$( realpath "${this_script_dir}/../../.." )"
     source "${repo_root_dir}/tools/shared.sh"
@@ -201,21 +236,17 @@ function main() {
     end_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
     install_elastic_otel_package
+    echo 'After installing Elastic OTel (EDOT)'
+    print_info_about_environment
 
     current_github_workflow_log_group_name="Installing PHP dependencies using composer"
     start_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
-    if [ -f /repo_root/composer.lock ]; then
-        rm -f /repo_root/composer.lock
-    fi
-
-    # Remove "open-telemetry/opentelemetry-auto-.*": lines from composer.json
-    cp /repo_root/composer.json /repo_root/composer.json.original
-    grep -v -E '"open-telemetry/opentelemetry-auto-.*":' /repo_root/composer.json.original > /repo_root/composer.json
-
-    cat /repo_root/composer.json
-
-    composer install
+    cp -f /composer_to_use.json ./composer.json
+    cp -f /composer_to_use.lock ./composer.lock
+    rm -rf ./vendor/ ./prod/php/vendor_*/
+    composer --check-lock --no-check-all validate
+    ELASTIC_OTEL_TOOLS_ALLOW_DIRECT_COMPOSER_COMMAND=true composer --no-interaction install
 
     end_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
@@ -228,6 +259,7 @@ function main() {
     fi
     start_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
+    export ELASTIC_OTEL_PHP_TESTS_LOGS_DIRECTORY="/elastic_otel_php_tests/logs"
     /repo_root/tools/test/component/test_installed_package_one_matrix_row.sh
 }
 

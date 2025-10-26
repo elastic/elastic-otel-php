@@ -35,7 +35,7 @@ use ElasticOTelTests\ComponentTests\Util\MySqli\MySqliResultWrapped;
 use ElasticOTelTests\ComponentTests\Util\MySqli\MySqliWrapped;
 use ElasticOTelTests\ComponentTests\Util\SpanExpectations;
 use ElasticOTelTests\ComponentTests\Util\SpanSequenceExpectations;
-use ElasticOTelTests\ComponentTests\Util\WaitForEventCounts;
+use ElasticOTelTests\ComponentTests\Util\WaitForOTelSignalCounts;
 use ElasticOTelTests\Util\AmbientContextForTests;
 use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\Config\OptionForProdName;
@@ -291,7 +291,7 @@ final class MySqliAutoInstrumentationTest extends ComponentTestCaseBase
         $isAutoInstrumentationEnabled = $appCodeArgs->getBool(self::IS_AUTO_INSTRUMENTATION_ENABLED_KEY);
         if ($isAutoInstrumentationEnabled) {
             self::assertTrue(class_exists(MySqliInstrumentation::class, autoload: false));
-            self::assertSame(MySqliInstrumentation::NAME, self::AUTO_INSTRUMENTATION_NAME); // @phpstan-ignore staticMethod.alreadyNarrowedType
+            AssertEx::sameConstValues(MySqliInstrumentation::NAME, self::AUTO_INSTRUMENTATION_NAME);
         }
 
         $isOOPApi = $appCodeArgs->getBool(self::IS_OOP_API_KEY);
@@ -436,11 +436,11 @@ final class MySqliAutoInstrumentationTest extends ComponentTestCaseBase
         );
 
         // +1 for automatic local root span
-        $exportedData = $testCaseHandle->waitForEnoughExportedData(WaitForEventCounts::spans(1 + count($expectedDbSpans)));
-        $dbgCtx->add(compact('exportedData'));
+        $agentBackendComms = $testCaseHandle->waitForEnoughAgentBackendComms(WaitForOTelSignalCounts::spans(1 + count($expectedDbSpans)));
+        $dbgCtx->add(compact('agentBackendComms'));
 
         $actualDbSpans = [];
-        foreach ($exportedData->spans as $span) {
+        foreach ($agentBackendComms->spans() as $span) {
             if ($span->attributes->keyExists(TraceAttributes::DB_SYSTEM_NAME)) {
                 $actualDbSpans[] = $span;
             }

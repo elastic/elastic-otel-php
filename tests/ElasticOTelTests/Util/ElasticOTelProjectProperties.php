@@ -96,7 +96,7 @@ final class ElasticOTelProjectProperties
                     $testAppCodeHostKindsShortNames = self::parseArray($propValue);
                     break;
                 case 'test_all_php_versions_with_package_type':
-                    $testAllPhpVersionsWithPackageType = AssertEx::notEmpty($propValue);
+                    $testAllPhpVersionsWithPackageType = AssertEx::notEmptyString($propValue);
                     break;
                 case 'test_groups_short_names':
                     $testGroupsShortNames = self::parseArray($propValue);

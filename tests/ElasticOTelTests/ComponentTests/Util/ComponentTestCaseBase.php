@@ -24,7 +24,9 @@ declare(strict_types=1);
 namespace ElasticOTelTests\ComponentTests\Util;
 
 use Elastic\OTel\Log\LogLevel;
+use ElasticOTelTests\ComponentTests\Util\OtlpData\Span;
 use ElasticOTelTests\Util\AmbientContextForTests;
+use ElasticOTelTests\Util\ArrayUtilForTests;
 use ElasticOTelTests\Util\ClassNameUtil;
 use ElasticOTelTests\Util\Config\CompositeRawSnapshotSource;
 use ElasticOTelTests\Util\Config\ConfigSnapshotForProd;
@@ -100,7 +102,7 @@ class ComponentTestCaseBase extends TestCaseBase
      *
      * @noinspection PhpDocMissingThrowsInspection
      */
-    public static function appCodeSetsHowFinishedAttributes(MixedMap $appCodeArgs, callable $appCodeImpl): void
+    public static function appCodeSetsHowFinishedAttributes(MixedMap $appCodeArgs, ?callable $appCodeImpl = null): void
     {
         $shouldSetAttributes = $appCodeArgs->isBoolIsNotSetOrSetToTrue(self::SHOULD_APP_CODE_SET_HOW_FINISHED_ATTRIBUTES_KEY);
 
@@ -110,7 +112,9 @@ class ComponentTestCaseBase extends TestCaseBase
 
         $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Calling $appCodeImpl() ...');
         try {
-            $appCodeImpl();
+            if ($appCodeImpl !== null) {
+                $appCodeImpl();
+            }
             $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Call to $appCodeImpl() finished successfully');
             if ($shouldSetAttributes) {
                 OTelUtil::addActiveSpanAttributes([self::DID_APP_CODE_FINISH_SUCCESSFULLY_KEY => true]);
@@ -172,8 +176,8 @@ class ComponentTestCaseBase extends TestCaseBase
 
     protected static function waitForOneSpan(TestCaseHandle $testCaseHandle): Span
     {
-        $exportedData = $testCaseHandle->waitForEnoughExportedData(WaitForEventCounts::spans(1));
-        return $exportedData->singleSpan();
+        $agentBackendComms = $testCaseHandle->waitForEnoughAgentBackendComms(WaitForOTelSignalCounts::spans(1));
+        return $agentBackendComms->singleSpan();
     }
 
     /**
@@ -189,7 +193,11 @@ class ComponentTestCaseBase extends TestCaseBase
             return $variants;
         }
         foreach ($variants as $key => $value) {
-            return [$key => $value];
+            if (ArrayUtilForTests::isOfArrayKeyType($key)) {
+                return [$key => $value];
+            } else {
+                return [$value];
+            }
         }
         return [];
     }
@@ -285,14 +293,21 @@ class ComponentTestCaseBase extends TestCaseBase
             $initiallyFailedTestException = $ex;
         }
 
-        $logger = self::getLoggerStatic(__NAMESPACE__, __CLASS__, __FILE__)->addAllContext(compact('dbgTestDesc'));
+        $logger = self::getLoggerStatic(__NAMESPACE__, __CLASS__, __FILE__)->addAllContext(compact('dbgTestDesc', 'initiallyFailedTestException'));
         $loggerProxyOutsideIt = $logger->ifCriticalLevelEnabledNoLine(__FUNCTION__);
+
+        $loggerProxyOutsideIt && $loggerProxyOutsideIt->log(__LINE__, 'Test case code exited by exception');
+
         if ($this->testCaseHandle === null) {
             $loggerProxyOutsideIt && $loggerProxyOutsideIt->log(__LINE__, 'Test failed but $this->testCaseHandle is null - NOT re-running the test with escalated log levels');
             throw $initiallyFailedTestException;
         }
         $initiallyFailedTestLogLevels = $this->getCurrentLogLevels($this->testCaseHandle);
-        $logger->addAllContext(compact('initiallyFailedTestLogLevels', 'initiallyFailedTestException'));
+        if (ArrayUtilForTests::isEmpty($initiallyFailedTestLogLevels)) {
+            $loggerProxyOutsideIt && $loggerProxyOutsideIt->log(__LINE__, 'Test failed but not even one app code host has started successfully - NOT re-running the test with escalated log levels');
+            throw $initiallyFailedTestException;
+        }
+        $logger->addAllContext(compact('initiallyFailedTestLogLevels'));
         $loggerProxyOutsideIt && $loggerProxyOutsideIt->log(__LINE__, 'Test failed');
 
         $escalatedLogLevelsSeq = self::generateLevelsForRunAndEscalateLogLevelOnFailure($initiallyFailedTestLogLevels, AmbientContextForTests::testConfig()->escalatedRerunsMaxCount);
@@ -352,17 +367,13 @@ class ComponentTestCaseBase extends TestCaseBase
         /** @var array<string, LogLevel> $result */
         $result = [];
         $prodCodeLogLevels = $testCaseHandle->getProdCodeLogLevels();
-        Assert::assertNotEmpty($prodCodeLogLevels);
-        $result[self::LOG_LEVEL_FOR_PROD_CODE_KEY] = self::findLogLevelByValue(min(array_map(fn(LogLevel $logLevel) => $logLevel->value, $prodCodeLogLevels)));
+        if (ArrayUtilForTests::isEmpty($prodCodeLogLevels)) {
+            return [];
+        }
+        /** @var non-empty-list<LogLevel> $prodCodeLogLevels */
+        $result[self::LOG_LEVEL_FOR_PROD_CODE_KEY] = LogLevel::from(min(array_map(fn(LogLevel $logLevel) => $logLevel->value, $prodCodeLogLevels)));
         $result[self::LOG_LEVEL_FOR_TEST_CODE_KEY] = AmbientContextForTests::testConfig()->logLevel;
         return $result;
-    }
-
-    public static function findLogLevelByValue(int $logLevelValue): LogLevel
-    {
-        $logLevel = LogLevel::tryFrom($logLevelValue);
-        Assert::assertNotNull($logLevel);
-        return $logLevel;
     }
 
     /**
@@ -399,7 +410,7 @@ class ComponentTestCaseBase extends TestCaseBase
             /** @var array<string, LogLevel> $currentLevels */
             $currentLevels = [];
             foreach (self::LOG_LEVEL_FOR_CODE_KEYS as $levelTypeKey) {
-                $currentLevels[$levelTypeKey] = self::findLogLevelByValue($baseLevelAsInt);
+                $currentLevels[$levelTypeKey] = LogLevel::from($baseLevelAsInt);
             }
             yield $currentLevels;
 
@@ -408,11 +419,11 @@ class ComponentTestCaseBase extends TestCaseBase
                     if ($baseLevelAsInt < $initialLevels[$levelTypeKey]->value + $delta) {
                         continue;
                     }
-                    $currentLevels[$levelTypeKey] = self::findLogLevelByValue($baseLevelAsInt - $delta);
+                    $currentLevels[$levelTypeKey] = LogLevel::from($baseLevelAsInt - $delta);
                     if (!$haveCurrentLevelsReachedInitial($currentLevels)) {
                         yield $currentLevels;
                     }
-                    $currentLevels[$levelTypeKey] = self::findLogLevelByValue($baseLevelAsInt);
+                    $currentLevels[$levelTypeKey] = LogLevel::from($baseLevelAsInt);
                 }
             }
         }
@@ -441,7 +452,7 @@ class ComponentTestCaseBase extends TestCaseBase
      *
      * @return TValue
      */
-    public static function &assertAndGetFromArrayByKey(array $array, $key)
+    public static function &assertAndGetFromArrayByKey(array $array, int|string $key)
     {
         Assert::assertArrayHasKey($key, $array);
         return $array[$key];
@@ -491,5 +502,11 @@ class ComponentTestCaseBase extends TestCaseBase
     protected static function disableTimingDependentFeatures(AppCodeHostParams $appCodeParams): void
     {
         $appCodeParams->setProdOption(OptionForProdName::inferred_spans_enabled, false);
+    }
+
+    protected static function ensureTransactionSpanEnabled(AppCodeHostParams $appCodeParams): void
+    {
+        $appCodeParams->setProdOption(OptionForProdName::transaction_span_enabled, true);
+        $appCodeParams->setProdOption(OptionForProdName::transaction_span_enabled_cli, true);
     }
 }

@@ -67,6 +67,7 @@ final class OptionsForTestsMetadata
             [OptionForTestsName::group, new NullableTestGroupNameOptionMetadata()],
 
             [OptionForTestsName::log_level, new LogLevelOptionMetadata(LogLevel::info)],
+            [OptionForTestsName::logs_directory, new NullableStringOptionMetadata()],
 
             [OptionForTestsName::mysql_host, new NullableStringOptionMetadata()],
             [OptionForTestsName::mysql_port, new NullableIntOptionMetadata(1, 65535)],

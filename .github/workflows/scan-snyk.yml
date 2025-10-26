@@ -1,0 +1,27 @@
+---
+
+name: scan-snyk
+
+on:
+  workflow_call: ~
+  workflow_dispatch: ~
+
+permissions:
+  contents: read
+
+jobs:
+  scan-snyk:
+    name: scan-snyk
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SNYK_TOKEN: ${{ secrets.SNYK_API_KEY }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Scan for vulnerabilities with Snyk
+        if: github.event_name != 'pull_request' || ( github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false && github.actor != 'dependabot[bot]' )
+        run: |
+          source ./tools/read_properties.sh
+          read_properties elastic-otel-php.properties PROJECT_PROPERTIES
+          PHP_VERSIONS=${PROJECT_PROPERTIES_SUPPORTED_PHP_VERSIONS//[()]/}
+          ./tools/build/snyk_scan.sh --php_versions "${PHP_VERSIONS}" --snyk_token "${SNYK_TOKEN}"

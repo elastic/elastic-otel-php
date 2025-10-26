@@ -27,7 +27,7 @@ use ElasticOTelTests\Util\EnumUtilForTestsTrait;
 use PHPUnit\Framework\Assert;
 
 /**
- * Code in this file is part of implementation internals and thus it is not covered by the backward compatibility.
+ * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
  *
  * @internal
  */
@@ -49,6 +49,7 @@ enum OptionForProdName
     case log_level_file;
     case log_level_stderr;
     case log_level_syslog;
+    case resource_attributes;
     case transaction_span_enabled;
     case transaction_span_enabled_cli;
 
@@ -60,39 +61,28 @@ enum OptionForProdName
     private const LOG_RELATED = [...self::LOG_LEVEL_RELATED, self::log_file];
 
     /**
-     * @return array<non-empty-string, self[]>
+     * @return array<non-empty-string, non-empty-string>
      */
-    private static function getEnvVarNamePrefixToOptionNames(): array
+    private static function optNameToEnvVarPrefix(): array
     {
-        $otelPrefix = [
-            self::exporter_otlp_endpoint,
-        ];
-
-        $otelPhpPrefix = [
-            self::autoload_enabled,
-            self::disabled_instrumentations,
-        ];
-
-        $elasticOTelPrefix = [
-            self::bootstrap_php_part_file,
-            self::enabled,
-            self::inferred_spans_enabled,
-            self::inferred_spans_min_duration,
-            self::inferred_spans_reduction_enabled,
-            self::inferred_spans_sampling_interval,
-            self::inferred_spans_stacktrace_enabled,
-            self::log_file,
-            self::log_level_file,
-            self::log_level_stderr,
-            self::log_level_syslog,
-            self::transaction_span_enabled,
-            self::transaction_span_enabled_cli,
-        ];
-
         return [
-            self::OTEL_ENV_VAR_NAME_PREFIX => $otelPrefix,
-            self::OTEL_PHP_ENV_VAR_NAME_PREFIX => $otelPhpPrefix,
-            self::ELASTIC_OTEL_ENV_VAR_NAME_PREFIX => $elasticOTelPrefix,
+            self::autoload_enabled->name                  => self::OTEL_PHP_ENV_VAR_NAME_PREFIX,
+            self::bootstrap_php_part_file->name           => self::ELASTIC_OTEL_ENV_VAR_NAME_PREFIX,
+            self::disabled_instrumentations->name         => self::OTEL_PHP_ENV_VAR_NAME_PREFIX,
+            self::enabled->name                           => self::ELASTIC_OTEL_ENV_VAR_NAME_PREFIX,
+            self::exporter_otlp_endpoint->name            => self::OTEL_ENV_VAR_NAME_PREFIX,
+            self::inferred_spans_enabled->name            => self::ELASTIC_OTEL_ENV_VAR_NAME_PREFIX,
+            self::inferred_spans_min_duration->name       => self::ELASTIC_OTEL_ENV_VAR_NAME_PREFIX,
+            self::inferred_spans_reduction_enabled->name  => self::ELASTIC_OTEL_ENV_VAR_NAME_PREFIX,
+            self::inferred_spans_sampling_interval->name  => self::ELASTIC_OTEL_ENV_VAR_NAME_PREFIX,
+            self::inferred_spans_stacktrace_enabled->name => self::ELASTIC_OTEL_ENV_VAR_NAME_PREFIX,
+            self::log_file->name                          => self::ELASTIC_OTEL_ENV_VAR_NAME_PREFIX,
+            self::log_level_file->name                    => self::ELASTIC_OTEL_ENV_VAR_NAME_PREFIX,
+            self::log_level_stderr->name                  => self::ELASTIC_OTEL_ENV_VAR_NAME_PREFIX,
+            self::log_level_syslog->name                  => self::ELASTIC_OTEL_ENV_VAR_NAME_PREFIX,
+            self::resource_attributes->name               => self::OTEL_ENV_VAR_NAME_PREFIX,
+            self::transaction_span_enabled->name          => self::ELASTIC_OTEL_ENV_VAR_NAME_PREFIX,
+            self::transaction_span_enabled_cli->name      => self::ELASTIC_OTEL_ENV_VAR_NAME_PREFIX,
         ];
     }
 
@@ -105,7 +95,8 @@ enum OptionForProdName
         static $envVarNamePrefixes = null;
 
         if ($envVarNamePrefixes === null) {
-            $envVarNamePrefixes = array_keys(self::getEnvVarNamePrefixToOptionNames());
+            // array_unique preserves the keys, so we apply array_values again to make it a list
+            $envVarNamePrefixes = array_values(array_unique(array_values(self::optNameToEnvVarPrefix())));
         }
 
         return $envVarNamePrefixes;
@@ -116,20 +107,8 @@ enum OptionForProdName
      */
     public function getEnvVarNamePrefix(): string
     {
-        /** @var ?array<non-empty-string, non-empty-string> $optNameToEnvVarPrefix */
-        static $optNameToEnvVarPrefix = null;
-
-        if ($optNameToEnvVarPrefix === null) {
-            $optNameToEnvVarPrefix = [];
-            foreach (self::getEnvVarNamePrefixToOptionNames() as $envVarPrefix => $optNames) {
-                foreach ($optNames as $currentOptNameCase) {
-                    Assert::assertArrayNotHasKey($currentOptNameCase->name, $optNameToEnvVarPrefix);
-                    $optNameToEnvVarPrefix[$currentOptNameCase->name] = $envVarPrefix;
-                }
-            }
-        }
-
-        return $optNameToEnvVarPrefix[$this->name];
+        Assert::assertArrayHasKey($this->name, self::optNameToEnvVarPrefix());
+        return self::optNameToEnvVarPrefix()[$this->name];
     }
 
     public function toEnvVarName(): string

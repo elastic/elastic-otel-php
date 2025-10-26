@@ -11,6 +11,11 @@ export elastic_otel_php_test_groups_short_names=("${test_groups_short_names[@]:?
 export elastic_otel_php_otel_proto_version="${otel_proto_version:?}"
 export elastic_otel_php_native_otlp_exporters_based_on_php_impl_version="${native_otlp_exporters_based_on_php_impl_version:?}"
 
+export elastic_otel_php_build_tools_composer_lock_files_dir="${repo_root_dir:?}/generated_composer_lock_files"
+export elastic_otel_php_build_tools_composer_json_for_dev_file_name="dev.json"
+export elastic_otel_php_build_tools_composer_json_for_prod_file_name="prod.json"
+export elastic_otel_php_build_tools_composer_json_for_tests_file_name="tests.json"
+
 function get_supported_php_versions_as_string() {
     local supported_php_versions_as_string
     for current_supported_php_version in "${elastic_otel_php_supported_php_versions[@]:?}" ; do
@@ -196,4 +201,32 @@ function start_github_workflow_log_group() {
 function end_github_workflow_log_group() {
     local group_name="${1:?}"
     echo "::endgroup::${group_name}"
+}
+
+function build_composer_lock_file_name_for_PHP_version() {
+    local env_kind="${1:?}"
+    local PHP_version_no_dot="${2:?}"
+
+    echo "${env_kind}_${PHP_version_no_dot}.lock"
+}
+
+build_light_PHP_docker_image_name_for_version_no_dot() {
+    local PHP_version_no_dot="${1:?}"
+
+    local PHP_version_dot_separated
+    PHP_version_dot_separated=$(convert_no_dot_to_dot_separated_version "${PHP_version_no_dot}")
+
+    echo "php:${PHP_version_dot_separated}-cli-alpine"
+}
+
+verify_composer_json_in_sync_with_dev_copy() {
+    local dev_copy_full_path="${elastic_otel_php_build_tools_composer_lock_files_dir:?}/${elastic_otel_php_build_tools_composer_json_for_dev_file_name:?}"
+
+    diff "${dev_copy_full_path}" "${repo_root_dir}/composer.json" &> /dev/null || has_compared_the_same="false"
+    if [ "${has_compared_the_same}" = "false" ]; then
+        echo "Diff between ${dev_copy_full_path} and ${repo_root_dir}/composer.json"
+        diff "${dev_copy_full_path}" "${repo_root_dir}/composer.json" || true
+        echo "It seems composer.json was changed after generate_composer_lock_files.sh was run - you need to re-run ./tools/build/generate_composer_lock_files.sh"
+        exit 1
+    fi
 }

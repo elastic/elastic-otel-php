@@ -89,7 +89,7 @@ function build_docker_env_vars_command_line_part () {
             continue
         fi
         echo "Passing env var to docker: name: ${env_var_name}, value: ${env_var_value}"
-        result_var=("${result_var[@]}" -e "${env_var_name}=${env_var_value}")
+        result_var+=(-e "${env_var_name}=${env_var_value}")
     done < <(env)
 }
 
@@ -154,6 +154,8 @@ function main() {
     echo "Content of ${packages_dir}:"
     ls -l -R "${packages_dir}"
 
+    verify_composer_json_in_sync_with_dev_copy
+
     ensure_dir_exists_and_empty "${logs_dir}"
     touch "${logs_dir}/z_dummy_file_to_make_directory_non-empty"
 
@@ -201,18 +203,30 @@ function main() {
 
     build_docker_env_vars_command_line_part docker_run_cmd_line_args
 
-    docker_run_cmd_line_args=("${docker_run_cmd_line_args[@]}" -v "${packages_dir}:/elastic_otel_php_tests/packages:ro")
-    docker_run_cmd_line_args=("${docker_run_cmd_line_args[@]}" -v "${logs_dir}:/elastic_otel_php_tests/logs")
+    docker_run_cmd_line_args+=(-v "${packages_dir}:/elastic_otel_php_tests/packages:ro")
+    docker_run_cmd_line_args+=(-v "${logs_dir}:/elastic_otel_php_tests/logs")
+
+    local composer_json_full_path="${elastic_otel_php_build_tools_composer_lock_files_dir:?}/${elastic_otel_php_build_tools_composer_json_for_tests_file_name:?}"
+    docker_run_cmd_line_args+=(-v "${composer_json_full_path}:/composer_to_use.json:ro")
+
+    docker_run_cmd_line_args+=(-v "${this_script_dir}/custom_php_config.ini:/elastic_otel_php_tests/php_ini_scan_dir/custom_php_config.ini")
+
+    local PHP_version_no_dot
+    PHP_version_no_dot="$(convert_dot_separated_to_no_dot_version "${ELASTIC_OTEL_PHP_TESTS_PHP_VERSION}")"
+    local composer_lock_file_name
+    composer_lock_file_name="$(build_composer_lock_file_name_for_PHP_version "tests" "${PHP_version_no_dot}")"
+    local composer_lock_full_path="${elastic_otel_php_build_tools_composer_lock_files_dir:?}/${composer_lock_file_name}"
+    docker_run_cmd_line_args+=(-v "${composer_lock_full_path}:/composer_to_use.lock:ro")
 
     if [ "${should_start_external_services}" == "true" ] ; then
-        docker_run_cmd_line_args=("${docker_run_cmd_line_args[@]}" "--network=${ELASTIC_OTEL_PHP_TESTS_DOCKER_NETWORK:?}")
+        docker_run_cmd_line_args+=("--network=${ELASTIC_OTEL_PHP_TESTS_DOCKER_NETWORK:?}")
     fi
 
     echo "docker_run_cmd_line_args: ${docker_run_cmd_line_args[*]}"
 
     end_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
-    docker run --rm --tty "${docker_run_cmd_line_args[@]}" "${docker_image_tag}"
+    docker run --rm "${docker_run_cmd_line_args[@]}" "${docker_image_tag}"
 }
 
 main "$@"

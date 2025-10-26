@@ -48,8 +48,7 @@ final class CliScriptAppCodeHostHandle extends AppCodeHostHandle
         string $dbgInstanceName
     ) {
         $this->logger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__);
-        $dbgProcessName = ClassNameUtil::fqToShort(CliScriptAppCodeHost::class) . '(' . $dbgInstanceName . ')';
-        $appCodeHostParams = new AppCodeHostParams($dbgProcessName);
+        $appCodeHostParams = new AppCodeHostParams(dbgProcessNamePrefix: ClassNameUtil::fqToShort(CliScriptAppCodeHost::class) . '_' . $dbgInstanceName);
         $appCodeHostParams->spawnedProcessInternalId = InfraUtilForTests::generateSpawnedProcessInternalId();
         $setParamsFunc($appCodeHostParams);
 
@@ -81,13 +80,17 @@ final class CliScriptAppCodeHostHandle extends AppCodeHostHandle
         }
 
         $cmdLine = InfraUtilForTests::buildAppCodePhpCmd() . ' "' . $runScriptNameFullPath . '"';
+        $localLogger->addAllContext(compact('cmdLine'));
+
+        $dbgProcessName = DbgProcessNameGenerator::generate($this->appCodeHostParams->dbgProcessNamePrefix);
+        $localLogger->addAllContext(compact('dbgProcessName'));
 
         $envVars = InfraUtilForTests::addTestInfraDataPerProcessToEnvVars(
             $this->appCodeHostParams->buildEnvVarsForAppCodeProcess(),
             $this->appCodeHostParams->spawnedProcessInternalId,
             [] /* <- targetServerPorts */,
             $this->resourcesCleaner,
-            $this->appCodeHostParams->dbgProcessName
+            $dbgProcessName
         );
         $envVars[OptionForTestsName::data_per_request->toEnvVarName()] = PhpSerializationUtil::serializeToString($requestParams->dataPerRequest);
         ksort(/* ref */ $envVars);
@@ -96,7 +99,7 @@ final class CliScriptAppCodeHostHandle extends AppCodeHostHandle
         $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Executing app code ...');
 
         $appCodeInvocation = $this->beforeAppCodeInvocation($requestParams);
-        ProcessUtil::startProcessAndWaitUntilExit($cmdLine, $envVars);
+        SpawnedProcessBase::startProcessAndWaitForItToExit($dbgProcessName, $cmdLine, $envVars);
         $this->afterAppCodeInvocation($appCodeInvocation);
 
         $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Executed app code');

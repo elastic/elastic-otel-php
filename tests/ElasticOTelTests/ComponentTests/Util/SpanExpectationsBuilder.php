@@ -23,11 +23,12 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
+use ElasticOTelTests\ComponentTests\Util\OtlpData\SpanKind;
 use ElasticOTelTests\Util\AssertEx;
 use OpenTelemetry\SemConv\TraceAttributes;
 
 /**
- * @phpstan-import-type ArrayValue from SpanAttributesExpectations as SpanAttributesExpectationsArrayValue
+ * @phpstan-import-type ArrayValue from AttributesExpectations as SpanAttributesExpectationsArrayValue
  */
 class SpanExpectationsBuilder
 {
@@ -38,7 +39,7 @@ class SpanExpectationsBuilder
     /** @var LeafExpectations<SpanKind> */
     protected LeafExpectations $kind;
 
-    protected SpanAttributesExpectations $attributes;
+    protected AttributesExpectations $attributes;
 
     protected StackTraceExpectations $stackTrace;
 
@@ -46,7 +47,7 @@ class SpanExpectationsBuilder
     {
         $this->name = StringExpectations::matchAny();
         $this->kind = LeafExpectations::matchAny(); // @phpstan-ignore assign.propertyType
-        $this->attributes = SpanAttributesExpectations::matchAny();
+        $this->attributes = AttributesExpectations::matchAny();
         $this->stackTrace = StackTraceExpectations::matchAny();
     }
 
@@ -82,7 +83,7 @@ class SpanExpectationsBuilder
     /**
      * @return $this
      */
-    public function attributes(SpanAttributesExpectations $attributes): self
+    public function attributes(AttributesExpectations $attributes): self
     {
         $this->attributes = $attributes;
         return $this;
