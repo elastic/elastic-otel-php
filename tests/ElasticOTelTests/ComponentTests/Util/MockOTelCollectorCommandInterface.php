@@ -21,14 +21,9 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTests\Util;
+namespace ElasticOTelTests\ComponentTests\Util;
 
-use Fig\Http\Message\StatusCodeInterface;
-
-final class HttpStatusCodes
+interface MockOTelCollectorCommandInterface
 {
-    public const BAD_REQUEST = StatusCodeInterface::STATUS_BAD_REQUEST;
-    public const INTERNAL_SERVER_ERROR = StatusCodeInterface::STATUS_INTERNAL_SERVER_ERROR;
-    public const NOT_FOUND = StatusCodeInterface::STATUS_NOT_FOUND;
-    public const OK = StatusCodeInterface::STATUS_OK;
+    function applyTo(MockOTelCollector $mockOTelCollector): void;
 }

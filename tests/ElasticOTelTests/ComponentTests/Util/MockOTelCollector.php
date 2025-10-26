@@ -53,9 +53,14 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
 {
     public const MOCK_API_URI_PREFIX = '/mock_OTel_Collector_API/';
     private const INTAKE_EXPORTED_TRACE_DATA_URI_PATH = '/v1/traces';
-    public const GET_AGENT_TO_OTEL_COLLECTOR_EVENTS_URI_SUBPATH = 'get_Agent_to_OTel_Collector_events';
+    public const GET_AGENT_BACKEND_COMM_EVENTS_URI_SUBPATH = 'get_Agent_Backend_comm_events';
     public const FROM_INDEX_HEADER_NAME = RequestHeadersRawSnapshotSource::HEADER_NAMES_PREFIX . 'FROM_INDEX';
     public const SHOULD_WAIT_HEADER_NAME = RequestHeadersRawSnapshotSource::HEADER_NAMES_PREFIX . 'SHOULD_WAIT';
+
+    private const START_OPAMP_SERVER_BY_DEFAULT = false;
+    private const OPAMP_API_URI = '/';
+
+    public const APPLY_COMMAND_URI_SUBPATH = 'apply_command';
 
     /** @var AgentBackendCommEvent[] */
     private array $agentToOTeCollectorEvents = [];
@@ -76,9 +81,10 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
         $this->logger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__)->addAllContext(compact('this'));
     }
 
-    protected function expectedPortsCount(): int
+    #[Override]
+    public static function maxPortsCount(): int
     {
-        return 2;
+        return 3;
     }
 
     #[Override]
@@ -125,10 +131,14 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
 
         if ($request->getUri()->getPath() === TestInfraHttpServerProcessBase::CLEAN_TEST_SCOPED_URI_PATH) {
             $this->cleanTestScoped();
-            return new Response(/* status: */ 200);
+            return new Response(/* status: */ HttpStatusCodes::OK);
         }
 
-        return null;
+        return new Response(
+            status: HttpStatusCodes::NOT_FOUND,
+            headers: [HttpHeaderNames::CONTENT_TYPE => HttpContentTypes::TEXT],
+            body: 'Path `' . $request->getUri()->getPath() . '\' is not supported'
+        );
     }
 
     #[Override]
@@ -193,15 +203,36 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
     private function processMockApiRequest(ServerRequestInterface $request): Promise|ResponseInterface
     {
         return match ($command = substr($request->getUri()->getPath(), strlen(self::MOCK_API_URI_PREFIX))) {
-            self::GET_AGENT_TO_OTEL_COLLECTOR_EVENTS_URI_SUBPATH => $this->getIntakeDataRequests($request),
-            default => $this->buildErrorResponse(HttpStatusCodes::BAD_REQUEST, 'Unknown Mock API command `' . $command . '\''),
+            self::APPLY_COMMAND_URI_SUBPATH => $this->processCommand($request),
+            self::GET_AGENT_BACKEND_COMM_EVENTS_URI_SUBPATH => $this->getAgentBackendCommEvents($request),
+            default => $this->buildErrorResponse(HttpStatusCodes::NOT_FOUND, 'Unknown Mock API command `' . $command . '\''),
         };
+    }
+
+    /**
+     * @see MockOTelCollectorHandle::sendCommand
+     */
+    private function processCommand(ServerRequestInterface $request): ResponseInterface
+    {
+        $requestBody = $request->getBody()->getContents();
+        $contentType = HttpClientUtilForTests::getSingleHeaderValue(HttpHeaderNames::CONTENT_TYPE, $request->getHeaders()); // @phpstan-ignore argument.type
+        $dbgCtx = ['expected content type' => HttpContentTypes::JSON];
+        ArrayUtilForTests::append(compact('contentType', 'requestBody'), to: $dbgCtx);
+        Assert::assertSame(HttpContentTypes::JSON, $contentType);
+        $requestBodyDecodedJson = JsonUtil::decode($requestBody, asAssocArray: true);
+        Assert::assertIsArray($requestBodyDecodedJson);
+        Assert::assertTrue(ArrayUtil::getValueIfKeyExists(MockOTelCollectorCommandInterface::class, $requestBodyDecodedJson, /* out */ $cmdSerialized));
+        Assert::assertIsString($cmdSerialized);
+        $cmd = PhpSerializationUtil::unserializeFromStringAssertType($cmdSerialized, MockOTelCollectorCommandInterface::class);
+        $cmd->applyTo($this);
+
+        return new Response(HttpStatusCodes::OK);
     }
 
     /**
      * @return ResponseInterface|Promise<ResponseInterface>
      */
-    private function getIntakeDataRequests(ServerRequestInterface $request): Promise|ResponseInterface
+    private function getAgentBackendCommEvents(ServerRequestInterface $request): Promise|ResponseInterface
     {
         $fromIndex = intval(self::getRequiredRequestHeader($request, self::FROM_INDEX_HEADER_NAME));
         $shouldWait = BoolUtil::fromString(self::getRequiredRequestHeader($request, self::SHOULD_WAIT_HEADER_NAME));
@@ -249,15 +280,17 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
         ($loggerProxy = $this->logger->ifDebugLevelEnabled(__LINE__, __FUNCTION__))
         && $loggerProxy->log('Sending response ...', ['fromIndex' => $fromIndex, 'newEvents count' => count($newEvents)]);
 
-        return self::encodeResponse($newEvents);
+        return self::encodeGetEventsResponse($newEvents);
     }
 
     /**
      * @param list<AgentBackendCommEvent> $events
      *
+     * @see self::decodeGetEventsResponse
+     *
      * @noinspection PhpDocMissingThrowsInspection
      */
-    private static function encodeResponse(array $events): ResponseInterface
+    private static function encodeGetEventsResponse(array $events): ResponseInterface
     {
         return new Response(
             status: HttpStatusCodes::OK,
@@ -269,9 +302,11 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
     /**
      * @return list<AgentBackendCommEvent>
      *
+     * @see self::encodeGetEventsResponse
+     *
      * @noinspection PhpDocMissingThrowsInspection
      */
-    public static function decodeResponse(ResponseInterface $response): array
+    public static function decodeGetEventsResponse(ResponseInterface $response): array
     {
         $responseBody = $response->getBody()->getContents();
         $contentType = HttpClientUtilForTests::getSingleHeaderValue(HttpHeaderNames::CONTENT_TYPE, $response->getHeaders()); // @phpstan-ignore argument.type
@@ -301,7 +336,7 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
         }
 
         ($loggerProxy = $this->logger->ifWarningLevelEnabled(__LINE__, __FUNCTION__))
-        && $loggerProxy->log('Timed out while waiting for ' . self::GET_AGENT_TO_OTEL_COLLECTOR_EVENTS_URI_SUBPATH . ' to be fulfilled - returning empty data set...', compact('pendingDataRequestId'));
+        && $loggerProxy->log('Timed out while waiting for ' . self::GET_AGENT_BACKEND_COMM_EVENTS_URI_SUBPATH . ' to be fulfilled - returning empty data set...', compact('pendingDataRequestId'));
 
         ($pendingDataRequest->callToSendResponse)($this->fulfillDataRequest($pendingDataRequest->fromIndex));
     }
@@ -309,6 +344,14 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
     protected function buildIntakeDataErrorResponse(int $status, string $message): ResponseInterface
     {
         return new Response(status: $status, headers: [HttpHeaderNames::CONTENT_TYPE => HttpContentTypes::TEXT], body: $message);
+    }
+
+    /**
+     * @param RemoteConfig $remoteConfig
+     */
+    public function setRemoteConfig(array $remoteConfig): void
+    {
+        // TODO: Sergey Kleyman: Implement: MockOTelCollector::setRemoteConfig
     }
 
     /**

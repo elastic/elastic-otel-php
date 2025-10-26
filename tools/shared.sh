@@ -230,3 +230,93 @@ verify_composer_json_in_sync_with_dev_copy() {
         exit 1
     fi
 }
+
+function change_dir_permissions_to_current_user () {
+    local target_dir="$1"
+
+    local docker_image="alpine"
+
+    docker pull "${docker_image}"
+
+    local current_user_id
+    current_user_id="$(id -u)"
+    local current_user_group_id
+    current_user_group_id="$(id -g)"
+    docker run --rm -v "${target_dir}:/target_dir" -w /tmp "${docker_image}" \
+        sh -c \
+        "\
+            chown -R ${current_user_id}:${current_user_group_id} /target_dir \
+            && chmod -R +r,u+w /target_dir \
+        "
+}
+
+function github_download_release_source_code_by_tag () {
+    local repo_org="$1"
+    local repo_name="$2"
+    local release_tag="$3"
+    local target_dir="$4"
+
+    local source_zip_file="${release_tag}.zip"
+    local source_zip_url="https://github.com/${repo_org}/${repo_name}/archive/refs/tags/${source_zip_file}"
+    local docker_image="alpine"
+
+    docker pull "${docker_image}"
+
+    local current_user_id
+    current_user_id="$(id -u)"
+    local current_user_group_id
+    current_user_group_id="$(id -g)"
+    docker run --rm -v "${target_dir}:/target_dir" -w /tmp "${docker_image}" \
+        sh -c \
+        "\
+            apk update && apk add unzip wget \
+            && mkdir -p /tmp/target_dir && cd /tmp/target_dir \
+            && wget --output-document=source.zip \"${source_zip_url}\" \
+            && unzip source.zip \
+            && rm -f source.zip \
+            && find . -maxdepth 1 -type d -not -path '.' -exec cp --recursive --no-target-directory {} /target_dir \; \
+        "
+
+    change_dir_permissions_to_current_user "${target_dir}"
+}
+
+function generate_PHP_source_code_files_from_dot_proto () {
+    local dot_proto_files_dir="$1"
+    local generated_source_code_files_dir="$2"
+
+    #
+    # Steps were copied from https://github.com/open-telemetry/opamp-go/blob/v0.20.0/makefile#L71
+    #
+
+    local docker_image="otel/build-protobuf"
+
+    docker pull "${docker_image}"
+
+    pushd "${dot_proto_files_dir}"
+        find . -name '*.proto' -type f -exec \
+            docker run --rm \
+                -v "${dot_proto_files_dir}:/dot_proto_files_dir" \
+                -v "${generated_source_code_files_dir}:/generated_source_code_files_dir" \
+                -w /generated_source_code_files_dir \
+                "${docker_image}" \
+                --proto_path=/dot_proto_files_dir \
+                --php_out=/generated_source_code_files_dir \
+                /dot_proto_files_dir/{} \;
+    popd
+
+    change_dir_permissions_to_current_user "${generated_source_code_files_dir}"
+}
+
+function generate_readme_for_generated_source_code_files_dir () {
+    local gen_script_path_relative_to_repo_root="$1"
+    local generated_source_code_files_dir="$2"
+
+    cat << EOL_marker_f6f9d3ac391044db93f271e9a459a9aa >> "${generated_source_code_files_dir}/README.md"
+**This directory contains generated files. DO NOT EDIT!**
+
+To update the generated files, update the following script and run it from the root of the repo:
+\`\`\`
+"./${gen_script_path_relative_to_repo_root}"
+\`\`\`
+EOL_marker_f6f9d3ac391044db93f271e9a459a9aa
+}

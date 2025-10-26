@@ -52,7 +52,8 @@
         "psr-4": {
             "ElasticOTelTools\\Build\\": "./tools/build/",
             "Elastic\\OTel\\": "./prod/php/ElasticOTel/",
-            "ElasticOTelTests\\": "./tests/ElasticOTelTests/"
+            "ElasticOTelTests\\": "./tests/ElasticOTelTests/",
+            "": "./tests/generated_source_code/"
         }
     },
     "config": {

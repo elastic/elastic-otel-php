@@ -33,4 +33,6 @@
     <exclude-pattern>*/tests/polyfills/Override.php</exclude-pattern>
 
     <exclude-pattern>*/tests/substitutes/*/original/*</exclude-pattern>
+
+    <exclude-pattern>*/tests/generated_source_code/*</exclude-pattern>
 </ruleset>

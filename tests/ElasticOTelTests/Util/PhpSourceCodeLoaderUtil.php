@@ -23,12 +23,21 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\Util;
 
-use Fig\Http\Message\StatusCodeInterface;
+use Elastic\OTel\Util\StaticClassTrait;
 
-final class HttpStatusCodes
+/**
+ * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
+ */
+final class PhpSourceCodeLoaderUtil
 {
-    public const BAD_REQUEST = StatusCodeInterface::STATUS_BAD_REQUEST;
-    public const INTERNAL_SERVER_ERROR = StatusCodeInterface::STATUS_INTERNAL_SERVER_ERROR;
-    public const NOT_FOUND = StatusCodeInterface::STATUS_NOT_FOUND;
-    public const OK = StatusCodeInterface::STATUS_OK;
+    use StaticClassTrait;
+
+    public static function loadAllFilesInDir(string $absPathToDir, string $absPathToFileToExclude): void
+    {
+        require __DIR__ . '/global_namespace.php';
+        require __DIR__ . '/Elastic_OTel_namespace.php';
+        require __DIR__ . '/Elastic_OTel_HttpTransport_namespace.php';
+        require __DIR__ . '/Elastic_OTel_InferredSpans_namespace.php';
+        require __DIR__ . '/Elastic_OTel_OtlpExporters_namespace.php';
+    }
 }

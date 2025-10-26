@@ -26,9 +26,8 @@ declare(strict_types=1);
 namespace Elastic\OTel;
 
 use Elastic\OTel\Util\ArrayUtil;
+use Elastic\OTel\Util\ElasticOTelSdkConfigUtil;
 use Elastic\OTel\Util\StaticClassTrait;
-use OpenTelemetry\SDK\Common\Configuration\Configuration as OTelSdkConfiguration;
-use OpenTelemetry\SDK\Common\Configuration\Variables as OTelSdkConfigurationVariables;
 
 /**
  * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
@@ -80,12 +79,13 @@ final class RemoteConfigHandler
 
     private static function checkRemoteConfigIsCompatibleWithLocal(): bool
     {
-        if (!OTelSdkConfiguration::has(OTelSdkConfigurationVariables::OTEL_EXPERIMENTAL_CONFIG_FILE)) {
+        // TODO: Sergey Kleyman: Remove use of OTelSdkConfiguration in prod code: instead duplicate and test
+        if (!ElasticOTelSdkConfigUtil::has(ElasticOTelSdkConfigUtil::OPT_NAME_EXPERIMENTAL_CONFIG_FILE)) {
             return true;
         }
 
         self::logError(
-            'Remote/Central configuration (AKA OpAMP) is not compatible with ' . OTelSdkConfigurationVariables::OTEL_EXPERIMENTAL_CONFIG_FILE . ' OpenTelemetry SDK option',
+            'Remote/Central configuration (AKA OpAMP) is not compatible with ' . ElasticOTelSdkConfigUtil::OPT_NAME_EXPERIMENTAL_CONFIG_FILE . ' OpenTelemetry SDK option',
             __LINE__,
             __FUNCTION__
         );

@@ -59,13 +59,14 @@ class HttpServerHandle implements LoggableInterface
     /**
      * @param array<string, string> $headers
      */
-    public function sendRequest(string $httpMethod, string $path, array $headers = []): ResponseInterface
+    public function sendRequest(string $httpMethod, string $path, array $headers = [], ?string $body = null): ResponseInterface
     {
         return HttpClientUtilForTests::sendRequest(
             $httpMethod,
             new UrlParts(port: $this->getMainPort(), path: $path),
             new TestInfraDataPerRequest(spawnedProcessInternalId: $this->spawnedProcessInternalId),
-            $headers
+            $headers,
+            $body
         );
     }
 

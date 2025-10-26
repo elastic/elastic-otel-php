@@ -19,16 +19,24 @@
  * under the License.
  */
 
+/** @noinspection PhpIllegalPsrClassPathInspection */
+
 declare(strict_types=1);
 
-namespace ElasticOTelTests\Util;
+namespace Elastic\OTel\Util;
 
-use Fig\Http\Message\StatusCodeInterface;
+use OpenTelemetry\SDK\Common\Configuration\Configuration as OTelSdkConfiguration;
+use OpenTelemetry\SDK\Common\Configuration\Variables as OTelSdkConfigurationVariables;
 
-final class HttpStatusCodes
+final class ElasticOTelSdkConfigUtil
 {
-    public const BAD_REQUEST = StatusCodeInterface::STATUS_BAD_REQUEST;
-    public const INTERNAL_SERVER_ERROR = StatusCodeInterface::STATUS_INTERNAL_SERVER_ERROR;
-    public const NOT_FOUND = StatusCodeInterface::STATUS_NOT_FOUND;
-    public const OK = StatusCodeInterface::STATUS_OK;
+    use StaticClassTrait;
+
+    public const OPT_NAME_EXPERIMENTAL_CONFIG_FILE = 'OTEL_EXPERIMENTAL_CONFIG_FILE';
+
+    public static function has(string $optName): bool
+    {
+        // TODO: Sergey Kleyman: Remove use of OTelSdkConfiguration in prod code: instead duplicate and test
+        return OTelSdkConfiguration::has(OTelSdkConfigurationVariables::OTEL_EXPERIMENTAL_CONFIG_FILE);
+    }
 }

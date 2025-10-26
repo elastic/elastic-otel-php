@@ -191,6 +191,8 @@ function main() {
 
     end_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
+    "${this_script_dir}/generate_source_code_files.sh"
+
     local current_github_workflow_log_group_name="Building docker image with tag ${docker_image_tag} using ${this_script_dir}/${dockerfile} with PHP_VERSION=${ELASTIC_OTEL_PHP_TESTS_PHP_VERSION:?}"
     start_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
