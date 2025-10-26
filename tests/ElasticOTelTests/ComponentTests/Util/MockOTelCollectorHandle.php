@@ -57,9 +57,9 @@ final class MockOTelCollectorHandle extends HttpServerHandle
     }
 
     /**
-     * @return AgentBackendCommEvent[]
+     * @return list<AgentBackendCommEvent>
      */
-    public function fetchNewData(bool $shouldWait): array
+    public function fetchNewAgentBackendCommEvents(bool $shouldWait): array
     {
         $loggerProxyDebug = $this->logger->ifDebugLevelEnabledNoLine(__FUNCTION__);
         $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Starting...');

@@ -57,8 +57,8 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
     public const FROM_INDEX_HEADER_NAME = RequestHeadersRawSnapshotSource::HEADER_NAMES_PREFIX . 'FROM_INDEX';
     public const SHOULD_WAIT_HEADER_NAME = RequestHeadersRawSnapshotSource::HEADER_NAMES_PREFIX . 'SHOULD_WAIT';
 
-    /** @var AgentBackendCommEvent[] */
-    private array $agentToOTeCollectorEvents = [];
+    /** @var list<AgentBackendCommEvent> */
+    private array $agentBackendCommEvents = [];
     public int $pendingDataRequestNextId;
     /** @var array<int, MockOTelCollectorPendingDataRequest> */
     private array $pendingDataRequests = [];
@@ -102,7 +102,7 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
     private function addAgentBackendCommEvent(AgentBackendCommEvent $event): void
     {
         Assert::assertNotNull($this->reactLoop);
-        $this->agentToOTeCollectorEvents[] = $event;
+        $this->agentBackendCommEvents[] = $event;
 
         foreach ($this->pendingDataRequests as $pendingDataRequest) {
             $this->reactLoop->cancelTimer($pendingDataRequest->timer);
@@ -205,15 +205,15 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
     {
         $fromIndex = intval(self::getRequiredRequestHeader($request, self::FROM_INDEX_HEADER_NAME));
         $shouldWait = BoolUtil::fromString(self::getRequiredRequestHeader($request, self::SHOULD_WAIT_HEADER_NAME));
-        if (!NumericUtil::isInClosedInterval(0, $fromIndex, count($this->agentToOTeCollectorEvents))) {
+        if (!NumericUtil::isInClosedInterval(0, $fromIndex, count($this->agentBackendCommEvents))) {
             return $this->buildErrorResponse(
                 HttpStatusCodes::BAD_REQUEST /* status */,
                 'Invalid `' . self::FROM_INDEX_HEADER_NAME . '\' HTTP request header value: ' . $fromIndex
-                . ' (should be in range[0, ' . count($this->agentToOTeCollectorEvents) . '])'
+                . ' (should be in range[0, ' . count($this->agentBackendCommEvents) . '])'
             );
         }
 
-        if ($this->hasNewDataFromAgentRequest($fromIndex) || !$shouldWait) {
+        if ($this->hasAgentBackendCommEvents($fromIndex) || !$shouldWait) {
             return $this->fulfillGetAgentBackendCommEvents($fromIndex);
         }
 
@@ -237,14 +237,14 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
         return $promise;
     }
 
-    private function hasNewDataFromAgentRequest(int $fromIndex): bool
+    private function hasAgentBackendCommEvents(int $fromIndex): bool
     {
-        return count($this->agentToOTeCollectorEvents) > $fromIndex;
+        return count($this->agentBackendCommEvents) > $fromIndex;
     }
 
     private function fulfillGetAgentBackendCommEvents(int $fromIndex): ResponseInterface
     {
-        $newEvents = AssertEx::arrayIsList($this->hasNewDataFromAgentRequest($fromIndex) ? array_slice($this->agentToOTeCollectorEvents, $fromIndex) : []);
+        $newEvents = $this->hasAgentBackendCommEvents($fromIndex) ? array_slice($this->agentBackendCommEvents, $fromIndex) : [];
 
         ($loggerProxy = $this->logger->ifDebugLevelEnabled(__LINE__, __FUNCTION__))
         && $loggerProxy->log('Sending response ...', ['fromIndex' => $fromIndex, 'newEvents count' => count($newEvents)]);
@@ -316,7 +316,7 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
      */
     private function cleanTestScopedData(): void
     {
-        $this->agentToOTeCollectorEvents = [];
+        $this->agentBackendCommEvents = [];
         $this->pendingDataRequestNextId = 1;
         $this->pendingDataRequests = [];
     }

@@ -116,7 +116,7 @@ final class TestCaseHandle implements LoggableInterface
         $accumulator = new AgentBackendCommsAccumulator();
         $hasPassed = (new PollingCheck(__FUNCTION__ . ' passes', intval(TimeUtil::secondsToMicroseconds(self::MAX_WAIT_TIME_DATA_FROM_AGENT_SECONDS))))->run(
             function () use ($expectedIsEnough, $accumulator) {
-                $accumulator->addEvents($this->mockOTelCollector->fetchNewData(shouldWait: true));
+                $accumulator->addEvents($this->mockOTelCollector->fetchNewAgentBackendCommEvents(shouldWait: true));
                 return $accumulator->isEnough($expectedIsEnough);
             }
         );
