@@ -1,4 +1,5 @@
-*This directory contains generated files. DO NOT EDIT!*
+# This directory contains generated files.
+# DO NOT EDIT!
 
 The files were generated from .proto files at
         https://github.com/open-telemetry/opamp-spec

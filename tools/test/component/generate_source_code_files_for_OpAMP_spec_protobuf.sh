@@ -21,7 +21,8 @@ function generate_readme () {
     this_script_path_relative_to_repo_root=$(realpath -s --relative-to="${repo_root_dir}" "${this_script_abs_path}")
 
     cat << EOL_marker_f6f9d3ac391044db93f271e9a459a9aa >> "${generated_source_code_files_dir}/README.md"
-*This directory contains generated files. DO NOT EDIT!*
+# This directory contains generated files.
+# DO NOT EDIT!
 
 The files were generated from .proto files at
         https://github.com/open-telemetry/opamp-spec
