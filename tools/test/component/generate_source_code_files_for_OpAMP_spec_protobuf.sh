@@ -4,12 +4,13 @@ set -e -o pipefail
 
 # You can find which version are released at https://github.com/open-telemetry/opamp-spec/releases
 OpAMP_spec_release_version=0.14.0
+OpAMP_spec_release_tag="v${OpAMP_spec_release_version}"
 
 function fetch_proto_files () {
     local dest_dir="$1"
     local repo_source_temp_dir="${dest_dir}/repo_source"
     mkdir -p "${repo_source_temp_dir}"
-    github_download_release_source_code_by_tag "open-telemetry" "opamp-spec" "v${OpAMP_spec_release_version}" "${repo_source_temp_dir}"
+    github_download_release_source_code_by_tag "open-telemetry" "opamp-spec" "${OpAMP_spec_release_tag}" "${repo_source_temp_dir}"
     cp --recursive --no-target-directory "${repo_source_temp_dir}/proto" "${dest_dir}"
     rm -rf "${repo_source_temp_dir}"
 }
@@ -19,7 +20,19 @@ function generate_readme () {
     local this_script_path_relative_to_repo_root
     this_script_path_relative_to_repo_root=$(realpath -s --relative-to="${repo_root_dir}" "${this_script_abs_path}")
 
-    generate_readme_for_generated_source_code_files_dir "${this_script_path_relative_to_repo_root}" "${generated_source_code_files_dir}"
+    cat << EOL_marker_f6f9d3ac391044db93f271e9a459a9aa >> "${generated_source_code_files_dir}/README.md"
+*This directory contains generated files. DO NOT EDIT!*
+
+The files were generated from .proto files at
+        https://github.com/open-telemetry/opamp-spec
+    tag
+        ${OpAMP_spec_release_tag}
+
+To update the generated files, update the following script and run it from the root of the repo:
+\`\`\`
+"./${this_script_path_relative_to_repo_root}"
+\`\`\`
+EOL_marker_f6f9d3ac391044db93f271e9a459a9aa
 }
 
 function main () {

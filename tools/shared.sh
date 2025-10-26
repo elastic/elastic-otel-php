@@ -306,17 +306,3 @@ function generate_PHP_source_code_files_from_dot_proto () {
 
     change_dir_permissions_to_current_user "${generated_source_code_files_dir}"
 }
-
-function generate_readme_for_generated_source_code_files_dir () {
-    local gen_script_path_relative_to_repo_root="$1"
-    local generated_source_code_files_dir="$2"
-
-    cat << EOL_marker_f6f9d3ac391044db93f271e9a459a9aa >> "${generated_source_code_files_dir}/README.md"
-**This directory contains generated files. DO NOT EDIT!**
-
-To update the generated files, update the following script and run it from the root of the repo:
-\`\`\`
-"./${gen_script_path_relative_to_repo_root}"
-\`\`\`
-EOL_marker_f6f9d3ac391044db93f271e9a459a9aa
-}
