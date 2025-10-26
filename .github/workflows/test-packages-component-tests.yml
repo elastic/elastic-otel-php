@@ -29,7 +29,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Download built packages
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           pattern: packages-*
           path: ${{ env.BUILD_PACKAGES_SUB_DIR }}
@@ -40,7 +40,7 @@ jobs:
           mv "${PWD}/${{ env.BUILD_PACKAGES_SUB_DIR }}/"*/* "${PWD}/${{ env.BUILD_PACKAGES_SUB_DIR }}/"
           rm -rf "${PWD}/${{ env.BUILD_PACKAGES_SUB_DIR }}/packages-"*
           ./tools/test/component/test_packages_one_matrix_row_in_docker.sh --matrix_row "${MATRIX_ROW}" --packages_dir "${PWD}/${{ env.BUILD_PACKAGES_SUB_DIR }}" --logs_dir "${PWD}/${{ env.COMPONENT_TESTS_LOGS_SUB_DIR }}"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: always()
         continue-on-error: false
         with:
