@@ -54,7 +54,7 @@ jobs:
           echo "PWD: ${PWD}"
           echo "Arch: ${BUILD_ARCHITECTURE}"
           ./tools/build/build_native.sh --build_architecture ${BUILD_ARCHITECTURE}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: build-native-${{ matrix.arch }}
           path: |
