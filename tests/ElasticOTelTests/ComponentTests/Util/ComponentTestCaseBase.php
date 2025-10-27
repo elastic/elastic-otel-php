@@ -24,6 +24,7 @@ declare(strict_types=1);
 namespace ElasticOTelTests\ComponentTests\Util;
 
 use Elastic\OTel\Log\LogLevel;
+use ElasticOTelTests\ComponentTests\Util\OtlpData\Span;
 use ElasticOTelTests\Util\AmbientContextForTests;
 use ElasticOTelTests\Util\ArrayUtilForTests;
 use ElasticOTelTests\Util\ClassNameUtil;
@@ -101,7 +102,7 @@ class ComponentTestCaseBase extends TestCaseBase
      *
      * @noinspection PhpDocMissingThrowsInspection
      */
-    public static function appCodeSetsHowFinishedAttributes(MixedMap $appCodeArgs, callable $appCodeImpl): void
+    public static function appCodeSetsHowFinishedAttributes(MixedMap $appCodeArgs, ?callable $appCodeImpl = null): void
     {
         $shouldSetAttributes = $appCodeArgs->isBoolIsNotSetOrSetToTrue(self::SHOULD_APP_CODE_SET_HOW_FINISHED_ATTRIBUTES_KEY);
 
@@ -111,7 +112,9 @@ class ComponentTestCaseBase extends TestCaseBase
 
         $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Calling $appCodeImpl() ...');
         try {
-            $appCodeImpl();
+            if ($appCodeImpl !== null) {
+                $appCodeImpl();
+            }
             $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Call to $appCodeImpl() finished successfully');
             if ($shouldSetAttributes) {
                 OTelUtil::addActiveSpanAttributes([self::DID_APP_CODE_FINISH_SUCCESSFULLY_KEY => true]);
@@ -173,8 +176,8 @@ class ComponentTestCaseBase extends TestCaseBase
 
     protected static function waitForOneSpan(TestCaseHandle $testCaseHandle): Span
     {
-        $exportedData = $testCaseHandle->waitForEnoughExportedData(WaitForEventCounts::spans(1));
-        return $exportedData->singleSpan();
+        $agentBackendComms = $testCaseHandle->waitForEnoughAgentBackendComms(WaitForOTelSignalCounts::spans(1));
+        return $agentBackendComms->singleSpan();
     }
 
     /**
@@ -499,5 +502,11 @@ class ComponentTestCaseBase extends TestCaseBase
     protected static function disableTimingDependentFeatures(AppCodeHostParams $appCodeParams): void
     {
         $appCodeParams->setProdOption(OptionForProdName::inferred_spans_enabled, false);
+    }
+
+    protected static function ensureTransactionSpanEnabled(AppCodeHostParams $appCodeParams): void
+    {
+        $appCodeParams->setProdOption(OptionForProdName::transaction_span_enabled, true);
+        $appCodeParams->setProdOption(OptionForProdName::transaction_span_enabled_cli, true);
     }
 }

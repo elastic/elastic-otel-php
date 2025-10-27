@@ -70,9 +70,7 @@ trait LoggableTrait
         try {
             $currentClass = new ReflectionClass(get_class($this));
         } /** @noinspection PhpRedundantCatchClauseInspection */ catch (ReflectionException $ex) {
-            $stream->toLogAs(
-                LoggingSubsystem::onInternalFailure('Failed to reflect', ['class' => get_class($this)], $ex)
-            );
+            $stream->toLogAs(LoggingSubsystem::onInternalFailure('Failed to reflect', ['class' => get_class($this)], $ex));
             return;
         }
 

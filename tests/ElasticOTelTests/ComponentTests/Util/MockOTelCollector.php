@@ -28,6 +28,7 @@ use Elastic\OTel\Util\NumericUtil;
 use Elastic\OTel\Util\TextUtil;
 use ElasticOTelTests\Util\AmbientContextForTests;
 use ElasticOTelTests\Util\ArrayUtilForTests;
+use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\BoolUtil;
 use ElasticOTelTests\Util\Clock;
 use ElasticOTelTests\Util\ExceptionUtil;
@@ -45,16 +46,19 @@ use React\Http\Message\Response;
 use React\Promise\Promise;
 use React\Socket\ConnectionInterface;
 
+/**
+ * @phpstan-import-type HttpHeaders from IntakeDataRequestRaw
+ */
 final class MockOTelCollector extends TestInfraHttpServerProcessBase
 {
     public const MOCK_API_URI_PREFIX = '/mock_OTel_Collector_API/';
-    private const INTAKE_API_URI = '/v1/traces';
-    public const GET_AGENT_TO_OTEL_COLLECTOR_EVENTS_URI_SUBPATH = 'get_Agent_to_OTel_Collector_events';
+    private const INTAKE_TRACE_DATA_URI_PATH = '/v1/traces';
+    public const GET_AGENT_BACKEND_COMM_EVENTS_URI_SUBPATH = 'get_Agent_Backend_comm_events';
     public const FROM_INDEX_HEADER_NAME = RequestHeadersRawSnapshotSource::HEADER_NAMES_PREFIX . 'FROM_INDEX';
     public const SHOULD_WAIT_HEADER_NAME = RequestHeadersRawSnapshotSource::HEADER_NAMES_PREFIX . 'SHOULD_WAIT';
 
-    /** @var AgentToOTeCollectorEvent[] */
-    private array $agentToOTeCollectorEvents = [];
+    /** @var list<AgentBackendCommEvent> */
+    private array $agentBackendCommEvents = [];
     public int $pendingDataRequestNextId;
     /** @var array<int, MockOTelCollectorPendingDataRequest> */
     private array $pendingDataRequests = [];
@@ -64,7 +68,7 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
     public function __construct()
     {
         $this->clock = new Clock(AmbientContextForTests::loggerFactory());
-        $this->cleanTestScoped();
+        $this->cleanTestScopedData();
 
         /** @noinspection PhpUnhandledExceptionInspection */
         parent::__construct();
@@ -87,22 +91,22 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
         // $socketIndex 0 is used for test infrastructure communication
         // $socketIndex 1 is used for APM Agent <-> Server communication
         if ($socketIndex == 1) {
-            $newEvent = new AgentToOTelCollectorConnectionStarted(
+            $newEvent = new AgentBackendConnectionStarted(
                 $this->clock->getMonotonicClockCurrentTime(),
                 $this->clock->getSystemClockCurrentTime(),
             );
-            $this->addAgentToOTeCollectorEvent($newEvent);
+            $this->addAgentBackendCommEvent($newEvent);
         }
     }
 
-    private function addAgentToOTeCollectorEvent(AgentToOTeCollectorEvent $event): void
+    private function addAgentBackendCommEvent(AgentBackendCommEvent $event): void
     {
         Assert::assertNotNull($this->reactLoop);
-        $this->agentToOTeCollectorEvents[] = $event;
+        $this->agentBackendCommEvents[] = $event;
 
         foreach ($this->pendingDataRequests as $pendingDataRequest) {
             $this->reactLoop->cancelTimer($pendingDataRequest->timer);
-            ($pendingDataRequest->callToSendResponse)($this->fulfillDataRequest($pendingDataRequest->fromIndex));
+            ($pendingDataRequest->callToSendResponse)($this->fulfillGetAgentBackendCommEvents($pendingDataRequest->fromIndex));
         }
         $this->pendingDataRequests = [];
     }
@@ -111,8 +115,8 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
     #[Override]
     protected function processRequest(ServerRequestInterface $request): null|ResponseInterface|Promise
     {
-        if ($request->getUri()->getPath() === self::INTAKE_API_URI) {
-            return $this->processIntakeApiRequest($request);
+        if ($request->getUri()->getPath() === self::INTAKE_TRACE_DATA_URI_PATH) {
+            return $this->processIntakeDataRequest($request, OTelSignalType::trace);
         }
 
         if (TextUtil::isPrefixOf(self::MOCK_API_URI_PREFIX, $request->getUri()->getPath())) {
@@ -130,37 +134,55 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
     #[Override]
     protected function shouldRequestHaveSpawnedProcessInternalId(ServerRequestInterface $request): bool
     {
-        return $request->getUri()->getPath() !== self::INTAKE_API_URI;
+        return $request->getUri()->getPath() !== self::INTAKE_TRACE_DATA_URI_PATH;
     }
 
-    private function processIntakeApiRequest(ServerRequestInterface $request): ResponseInterface
+    /**
+     * @param HttpHeaders $httpHeaders
+     */
+    private static function verifyIntakeDataRequest(array $httpHeaders, int $bodySize): void
+    {
+        $contentLength = HttpClientUtilForTests::getSingleHeaderValue(HttpHeaderNames::CONTENT_LENGTH, $httpHeaders);
+        AssertEx::stringSameAsInt($bodySize, $contentLength);
+
+        $contentType = HttpClientUtilForTests::getSingleHeaderValue(HttpHeaderNames::CONTENT_TYPE, $httpHeaders);
+        Assert::assertSame(HttpContentTypes::PROTOBUF, $contentType);
+    }
+
+    /** @noinspection PhpSameParameterValueInspection */
+    private function processIntakeDataRequest(ServerRequestInterface $request, OTelSignalType $signalType): ResponseInterface
     {
         Assert::assertNotNull($this->reactLoop);
 
-        if ($request->getBody()->getSize() === 0) {
-            return $this->buildIntakeApiErrorResponse(/* status */ HttpStatusCodes::BAD_REQUEST, 'Intake API request should not have empty body');
+        $body = $request->getBody()->getContents();
+        $bodySize = strlen($body);
+        $logger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__)->addAllContext(compact('bodySize'));
+        $loggerProxyDebug = $logger->ifDebugLevelEnabledNoLine(__FUNCTION__);
+        $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Deserializing intake trace data request');
+        Assert::assertSame($bodySize, $request->getBody()->getSize());
+
+        if ($bodySize === 0) {
+            return $this->buildIntakeDataErrorResponse(/* status */ HttpStatusCodes::BAD_REQUEST, 'Intake API request should not have empty body');
         }
 
-        $newRequest = new IntakeApiRequest(
+        self::verifyIntakeDataRequest($request->getHeaders(), $bodySize); // @phpstan-ignore argument.type
+
+        $intakeDataRequestRaw = new IntakeDataRequestRaw(
             AmbientContextForTests::clock()->getMonotonicClockCurrentTime(),
             AmbientContextForTests::clock()->getSystemClockCurrentTime(),
+            $signalType,
             $request->getHeaders(), // @phpstan-ignore argument.type
-            base64_encode($request->getBody()->getContents()),
+            $body
         );
 
-        ($loggerProxyDebug = $this->logger->ifDebugLevelEnabledNoLine(__FUNCTION__))
-        && $loggerProxyDebug->log(__LINE__, 'Received request for Intake API', ['newRequest' => $newRequest]);
+        $deserializedRequest = AgentBackendCommsAccumulator::deserializeIntakeDataRequestBody($intakeDataRequestRaw);
+        $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Deserialized intake data request', compact('deserializedRequest'));
 
-        if ($loggerProxyDebug !== null) {
-            $exportedData = IntakeApiRequestDeserializer::deserialize($newRequest);
-            if ($exportedData->isEmpty()) {
-                $loggerProxyDebug->log(__LINE__, 'All of the contents has been discarded');
-            } else {
-                $loggerProxyDebug->log(__LINE__, 'Contents', compact('exportedData'));
-            }
+        if ($deserializedRequest->isEmptyAfterDeserialization()) {
+            $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'All data has been discarded by deserialization');
         }
 
-        $this->addAgentToOTeCollectorEvent($newRequest);
+        $this->addAgentBackendCommEvent($intakeDataRequestRaw);
 
         return new Response(/* status: */ 202);
     }
@@ -171,7 +193,7 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
     private function processMockApiRequest(ServerRequestInterface $request): Promise|ResponseInterface
     {
         return match ($command = substr($request->getUri()->getPath(), strlen(self::MOCK_API_URI_PREFIX))) {
-            self::GET_AGENT_TO_OTEL_COLLECTOR_EVENTS_URI_SUBPATH => $this->getIntakeApiRequests($request),
+            self::GET_AGENT_BACKEND_COMM_EVENTS_URI_SUBPATH => $this->getAgentBackendCommEvents($request),
             default => $this->buildErrorResponse(HttpStatusCodes::BAD_REQUEST, 'Unknown Mock API command `' . $command . '\''),
         };
     }
@@ -179,20 +201,20 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
     /**
      * @return ResponseInterface|Promise<ResponseInterface>
      */
-    private function getIntakeApiRequests(ServerRequestInterface $request): Promise|ResponseInterface
+    private function getAgentBackendCommEvents(ServerRequestInterface $request): Promise|ResponseInterface
     {
         $fromIndex = intval(self::getRequiredRequestHeader($request, self::FROM_INDEX_HEADER_NAME));
         $shouldWait = BoolUtil::fromString(self::getRequiredRequestHeader($request, self::SHOULD_WAIT_HEADER_NAME));
-        if (!NumericUtil::isInClosedInterval(0, $fromIndex, count($this->agentToOTeCollectorEvents))) {
+        if (!NumericUtil::isInClosedInterval(0, $fromIndex, count($this->agentBackendCommEvents))) {
             return $this->buildErrorResponse(
                 HttpStatusCodes::BAD_REQUEST /* status */,
                 'Invalid `' . self::FROM_INDEX_HEADER_NAME . '\' HTTP request header value: ' . $fromIndex
-                . ' (should be in range[0, ' . count($this->agentToOTeCollectorEvents) . '])'
+                . ' (should be in range[0, ' . count($this->agentBackendCommEvents) . '])'
             );
         }
 
-        if ($this->hasNewDataFromAgentRequest($fromIndex) || !$shouldWait) {
-            return $this->fulfillDataRequest($fromIndex);
+        if ($this->hasAgentBackendCommEvents($fromIndex) || !$shouldWait) {
+            return $this->fulfillGetAgentBackendCommEvents($fromIndex);
         }
 
         /** @var Promise<ResponseInterface> $promise */
@@ -215,42 +237,41 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
         return $promise;
     }
 
-    private function hasNewDataFromAgentRequest(int $fromIndex): bool
+    private function hasAgentBackendCommEvents(int $fromIndex): bool
     {
-        return count($this->agentToOTeCollectorEvents) > $fromIndex;
+        return count($this->agentBackendCommEvents) > $fromIndex;
     }
 
-    private function fulfillDataRequest(int $fromIndex): ResponseInterface
+    private function fulfillGetAgentBackendCommEvents(int $fromIndex): ResponseInterface
     {
-        $newEvents = $this->hasNewDataFromAgentRequest($fromIndex) ? array_slice($this->agentToOTeCollectorEvents, $fromIndex) : [];
+        $newEvents = $this->hasAgentBackendCommEvents($fromIndex) ? array_slice($this->agentBackendCommEvents, $fromIndex) : [];
 
         ($loggerProxy = $this->logger->ifDebugLevelEnabled(__LINE__, __FUNCTION__))
         && $loggerProxy->log('Sending response ...', ['fromIndex' => $fromIndex, 'newEvents count' => count($newEvents)]);
 
-        return self::encodeResponse($newEvents);
+        return self::encodeGetAgentBackendCommEvents($newEvents);
     }
 
     /**
-     * @param AgentToOTeCollectorEvent[] $events
+     * @param list<AgentBackendCommEvent> $events
      *
      * @noinspection PhpDocMissingThrowsInspection
      */
-    private static function encodeResponse(array $events): ResponseInterface
+    private static function encodeGetAgentBackendCommEvents(array $events): ResponseInterface
     {
-        $eventsWrapped = new AgentToOTeCollectorEvents($events);
         return new Response(
-            status:  HttpStatusCodes::OK,
+            status: HttpStatusCodes::OK,
             headers: [HttpHeaderNames::CONTENT_TYPE => HttpContentTypes::JSON],
-            body:    JsonUtil::encode([AgentToOTeCollectorEvents::class => PhpSerializationUtil::serializeToString($eventsWrapped)])
+            body: JsonUtil::encode([AgentBackendCommEventsBlock::class => PhpSerializationUtil::serializeToString(new AgentBackendCommEventsBlock($events))]),
         );
     }
 
     /**
-     * @return AgentToOTeCollectorEvent[]
+     * @return list<AgentBackendCommEvent>
      *
      * @noinspection PhpDocMissingThrowsInspection
      */
-    public static function decodeResponse(ResponseInterface $response): array
+    public static function decodeGetAgentBackendCommEvents(ResponseInterface $response): array
     {
         $responseBody = $response->getBody()->getContents();
         $contentType = HttpClientUtilForTests::getSingleHeaderValue(HttpHeaderNames::CONTENT_TYPE, $response->getHeaders()); // @phpstan-ignore argument.type
@@ -266,9 +287,9 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
 
         $responseBodyDecodedJson = JsonUtil::decode($responseBody, asAssocArray: true);
         Assert::assertIsArray($responseBodyDecodedJson);
-        Assert::assertTrue(ArrayUtil::getValueIfKeyExists(AgentToOTeCollectorEvents::class, $responseBodyDecodedJson, /* out */ $newEventsWrappedSerialized));
+        Assert::assertTrue(ArrayUtil::getValueIfKeyExists(AgentBackendCommEventsBlock::class, $responseBodyDecodedJson, /* out */ $newEventsWrappedSerialized));
         Assert::assertIsString($newEventsWrappedSerialized);
-        return PhpSerializationUtil::unserializeFromStringAssertType($newEventsWrappedSerialized, AgentToOTeCollectorEvents::class)->events;
+        return PhpSerializationUtil::unserializeFromStringAssertType($newEventsWrappedSerialized, AgentBackendCommEventsBlock::class)->events;
     }
 
     private function fulfillTimedOutPendingDataRequest(int $pendingDataRequestId): void
@@ -280,21 +301,36 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
         }
 
         ($loggerProxy = $this->logger->ifWarningLevelEnabled(__LINE__, __FUNCTION__))
-        && $loggerProxy->log('Timed out while waiting for ' . self::GET_AGENT_TO_OTEL_COLLECTOR_EVENTS_URI_SUBPATH . ' to be fulfilled - returning empty data set...', compact('pendingDataRequestId'));
+        && $loggerProxy->log('Timed out while waiting for ' . self::GET_AGENT_BACKEND_COMM_EVENTS_URI_SUBPATH . ' to be fulfilled - returning empty data set...', compact('pendingDataRequestId'));
 
-        ($pendingDataRequest->callToSendResponse)($this->fulfillDataRequest($pendingDataRequest->fromIndex));
+        ($pendingDataRequest->callToSendResponse)($this->fulfillGetAgentBackendCommEvents($pendingDataRequest->fromIndex));
     }
 
-    protected function buildIntakeApiErrorResponse(int $status, string $message): ResponseInterface
+    protected function buildIntakeDataErrorResponse(int $status, string $message): ResponseInterface
     {
         return new Response(status: $status, headers: [HttpHeaderNames::CONTENT_TYPE => HttpContentTypes::TEXT], body: $message);
     }
 
-    private function cleanTestScoped(): void
+    /**
+     * Extracted to a separate method because it is called from __construct() before $logger is initialized
+     */
+    private function cleanTestScopedData(): void
     {
-        $this->agentToOTeCollectorEvents = [];
+        $this->agentBackendCommEvents = [];
         $this->pendingDataRequestNextId = 1;
         $this->pendingDataRequests = [];
+    }
+
+    private function cleanTestScoped(): void
+    {
+        $beforeClean = MemoryUtil::logMemoryUsage('Before cleaning test scoped');
+
+        $this->cleanTestScopedData();
+        MemoryUtil::logMemoryUsage('After cleaning test scoped', $beforeClean);
+
+        $collectedCyclesCount = gc_collect_cycles();
+        ($loggerProxy = $this->logger->ifDebugLevelEnabled(__LINE__, __FUNCTION__)) && $loggerProxy->log("gc_collect_cycles() returned $collectedCyclesCount");
+        MemoryUtil::logMemoryUsage('After calling gc_collect_cycles()', $beforeClean);
     }
 
     #[Override]

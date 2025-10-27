@@ -23,17 +23,18 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
+use ElasticOTelTests\ComponentTests\Util\OtlpData\Attributes;
 use OpenTelemetry\SemConv\TraceAttributes;
 use Override;
 use PHPUnit\Framework\Assert;
 
 /**
- * @phpstan-import-type AttributeValue from SpanAttributes
+ * @phpstan-import-type AttributeValue from Attributes
  * @phpstan-type ArrayValue AttributeValue|ExpectationsInterface
  *
  * @extends ArrayExpectations<string, ArrayValue>
  */
-final class SpanAttributesArrayExpectations extends ArrayExpectations
+final class AttributesArrayExpectations extends ArrayExpectations
 {
     /**
      * @phpstan-param string $key

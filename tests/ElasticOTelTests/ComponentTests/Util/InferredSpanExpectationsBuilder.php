@@ -23,6 +23,7 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
+use ElasticOTelTests\ComponentTests\Util\OtlpData\SpanKind;
 use OpenTelemetry\SemConv\TraceAttributes;
 
 class InferredSpanExpectationsBuilder extends SpanExpectationsBuilder

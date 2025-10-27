@@ -51,6 +51,7 @@ final class ConfigSnapshotForProd implements LoggableInterface
     private readonly LogLevel $logLevelFile; // @phpstan-ignore property.uninitializedReadonly
     private readonly LogLevel $logLevelStderr; // @phpstan-ignore property.uninitializedReadonly
     private readonly LogLevel $logLevelSyslog; // @phpstan-ignore property.uninitializedReadonly
+    private readonly ?string $resourceAttributes; // @phpstan-ignore property.uninitializedReadonly
     private readonly bool $transactionSpanEnabled; // @phpstan-ignore property.uninitializedReadonly
     private readonly bool $transactionSpanEnabledCli; // @phpstan-ignore property.uninitializedReadonly
 

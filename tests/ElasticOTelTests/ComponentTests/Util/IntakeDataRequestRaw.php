@@ -23,23 +23,27 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
-use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LoggableTrait;
+use ElasticOTelTests\Util\Log\LogStreamInterface;
 use ElasticOTelTests\Util\MonotonicTime;
 use ElasticOTelTests\Util\SystemTime;
 
-final class IntakeApiRequest extends AgentToOTeCollectorEvent implements LoggableInterface
+/**
+ * @phpstan-type HttpHeaders array<string, string[]>
+ */
+final class IntakeDataRequestRaw extends AgentBackendCommEvent
 {
     use LoggableTrait;
 
     /**
-     * @param array<string, string[]> $headers
+     * @param HttpHeaders $httpHeaders
      */
     public function __construct(
         MonotonicTime $monotonicTime,
         SystemTime $systemTime,
-        public readonly array $headers,
-        public readonly string $bodyBase64Encoded,
+        public readonly OTelSignalType $signalType,
+        public readonly array $httpHeaders,
+        public readonly string $body,
     ) {
         parent::__construct($monotonicTime, $systemTime);
     }
@@ -49,6 +53,12 @@ final class IntakeApiRequest extends AgentToOTeCollectorEvent implements Loggabl
      */
     protected static function propertiesExcludedFromLog(): array
     {
-        return ['bodyBase64Encoded'];
+        return ['body'];
+    }
+
+    public function toLog(LogStreamInterface $stream): void
+    {
+        $customToLog = ['strlen(body)' => strlen($this->body)];
+        $this->toLogLoggableTraitImpl($stream, $customToLog);
     }
 }

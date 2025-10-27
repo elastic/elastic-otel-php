@@ -24,13 +24,15 @@ declare(strict_types=1);
 namespace ElasticOTelTests\ComponentTests\Util;
 
 use ElasticOTelTests\Util\AmbientContextForTests;
+use ElasticOTelTests\Util\IterableUtil;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
 use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LoggableTrait;
 use ElasticOTelTests\Util\Log\Logger;
+use Override;
 use PHPUnit\Framework\Assert;
 
-final class WaitForEventCounts implements IsEnoughExportedDataInterface, LoggableInterface
+final class WaitForOTelSignalCounts implements IsEnoughAgentBackendCommsInterface, LoggableInterface
 {
     use LoggableTrait;
 
@@ -38,6 +40,11 @@ final class WaitForEventCounts implements IsEnoughExportedDataInterface, Loggabl
     private int $maxSpanCount = 0;
 
     private readonly Logger $logger;
+
+    private function __construct()
+    {
+        $this->logger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__)->addAllContext(compact('this'));
+    }
 
     /**
      * @param positive-int $min
@@ -50,7 +57,7 @@ final class WaitForEventCounts implements IsEnoughExportedDataInterface, Loggabl
             Assert::assertGreaterThanOrEqual($min, $max);
         }
 
-        $result = new WaitForEventCounts();
+        $result = new WaitForOTelSignalCounts();
         $result->minSpanCount = $min;
         $result->maxSpanCount = $max ?? $min;
 
@@ -65,14 +72,10 @@ final class WaitForEventCounts implements IsEnoughExportedDataInterface, Loggabl
         return self::spans(min: $min, max: PHP_INT_MAX);
     }
 
-    private function __construct()
+    #[Override]
+    public function isEnough(AgentBackendComms $comms): bool
     {
-        $this->logger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__)->addAllContext(compact('this'));
-    }
-
-    public function isEnough(array $spans): bool
-    {
-        $spansCount = count($spans);
+        $spansCount = IterableUtil::count($comms->spans());
         Assert::assertLessThanOrEqual($this->maxSpanCount, $spansCount);
 
         $result = $spansCount >= $this->minSpanCount;
