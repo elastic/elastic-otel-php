@@ -64,6 +64,14 @@ public:
         return lastUpdated_;
     }
 
+    size_t getTotalSize() const {
+        return totalSize_;
+    }
+
+    size_t getCurrentSize() const {
+        return data_.size();
+    }
+
 private:
     std::size_t totalSize_;
     std::vector<std::byte> data_;
@@ -85,18 +93,17 @@ public:
 
     using msgId_t = uint64_t;
 
-    ChunkedMessageProcessor(std::shared_ptr<LoggerInterface> logger, std::size_t maxChunkSize, sendBuffer_t sendBuffer, processMessage_t processMessage) : logger_(logger), maxChunkSize_(maxChunkSize), sendBuffer_(std::move(sendBuffer)), processMessage_(std::move(processMessage)) {
+    ChunkedMessageProcessor(std::shared_ptr<LoggerInterface> logger, sendBuffer_t sendBuffer, processMessage_t processMessage) : logger_(logger), sendBuffer_(std::move(sendBuffer)), processMessage_(std::move(processMessage)) {
     }
 
     bool sendPayload(const std::string &payload);
     void processReceivedChunk(const CoordinatorPayload *chunk, size_t chunkSize);
-    void cleanupAbandonedMessages(std::chrono::steady_clock::time_point now, std::chrono::seconds maxAge);
+    void cleanupAbandonedMessages(std::chrono::steady_clock::time_point now, std::chrono::milliseconds maxAge);
 
-private:
+protected:
     std::mutex mutex_;
     std::shared_ptr<LoggerInterface> logger_;
     pid_t senderProcessId_ = getpid();
-    std::size_t maxChunkSize_;
     sendBuffer_t sendBuffer_;
     processMessage_t processMessage_;
     std::unordered_map<pid_t, std::unordered_map<msgId_t, ChunkedMessage>> recievedMessages_;

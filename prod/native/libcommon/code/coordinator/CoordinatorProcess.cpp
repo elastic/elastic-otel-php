@@ -34,13 +34,12 @@ void CoordinatorProcess::coordinatorLoop() {
             if (commandQueue_->timed_receive(buffer, maxMqPayloadSize, receivedSize, priority, std::chrono::steady_clock::now() + std::chrono::milliseconds(10))) {
                 processor_.processReceivedChunk(reinterpret_cast<const CoordinatorPayload *>(buffer), receivedSize);
             }
-        } catch (boost::interprocess::interprocess_exception &ex) {
-            if (logger_) {
-                ELOG_DEBUG(logger_, COORDINATOR, "CoordinatorProcess: message_queue receive failed: {}", ex.what());
-            }
+        } catch (std::exception &ex) {
+            ELOG_DEBUG(logger_, COORDINATOR, "CoordinatorProcess: message_queue receive failed: '{}'", ex.what());
             continue;
         }
     }
+    ELOG_DEBUG(logger_, COORDINATOR, "CoordinatorProcess coordinator loop exiting");
 }
 
 void CoordinatorProcess::setupPeriodicTasks() {

@@ -49,7 +49,7 @@ bool ChunkedMessageProcessor::sendPayload(const std::string &payload) {
 }
 
 void ChunkedMessageProcessor::processReceivedChunk(const CoordinatorPayload *chunk, size_t chunkSize) {
-    ELOG_TRACE(logger_, COORDINATOR, "ChunkedMessageProcessor: received chunked message. msgId: {}, offset: {}, chunkSize: {}, totalSize: {}", chunk->msgId, chunk->payloadOffset, chunkSize, chunk->payloadTotalSize);
+    ELOG_TRACE(logger_, COORDINATOR, "ChunkedMessageProcessor: received chunked message. pid: {}, msgId: {}, offset: {}, chunkSize: {}, totalSize: {}", chunk->senderProcessId, chunk->msgId, chunk->payloadOffset, chunkSize, chunk->payloadTotalSize);
     std::unique_lock<std::mutex> lock(mutex_);
 
     auto &messagesForSender = recievedMessages_[chunk->senderProcessId];
@@ -63,8 +63,18 @@ void ChunkedMessageProcessor::processReceivedChunk(const CoordinatorPayload *chu
     std::size_t payloadSize = chunkSize - offsetof(CoordinatorPayload, payload); // actual payload size in this chunk
     std::span<const std::byte> chunkData(chunk->payload.data(), payloadSize);
 
+    // Validate offset
+    if (message.getCurrentSize() != chunk->payloadOffset) {
+        throw std::runtime_error(std::format("ChunkedMessageProcessor: received chunk with unexpected offset: {}, expected: {}", chunk->payloadOffset, message.getCurrentSize()));
+    }
+
+    // Validate offset + size does not exceed total size
+    if (chunk->payloadOffset + payloadSize > chunk->payloadTotalSize) {
+        throw std::runtime_error(std::format("ChunkedMessageProcessor: received chunk exceeds total payload size. Size: {}, offset: {},  expected: {}", payloadSize, chunk->payloadOffset, chunk->payloadTotalSize));
+    }
+
     if (message.addNextChunk(chunkData)) {
-        ELOG_TRACE(logger_, COORDINATOR, "ChunkedMessageProcessor: received chunked message. msgId: {}, offset: {}, receivedSize: {}, totalSize: {}. Message complete, processing.", chunk->msgId, chunk->payloadOffset, message.getData().size(), chunk->payloadTotalSize);
+        ELOG_TRACE(logger_, COORDINATOR, "ChunkedMessageProcessor: received chunked message. pid: {}, msgId: {}, offset: {}, receivedSize: {}, totalSize: {}. Message complete, processing.", chunk->senderProcessId, chunk->msgId, chunk->payloadOffset, message.getData().size(), chunk->payloadTotalSize);
 
         std::vector<std::byte> data;
         message.swapData(data);
@@ -82,7 +92,7 @@ void ChunkedMessageProcessor::processReceivedChunk(const CoordinatorPayload *chu
     }
 }
 
-void ChunkedMessageProcessor::cleanupAbandonedMessages(std::chrono::steady_clock::time_point now, std::chrono::seconds maxAge) {
+void ChunkedMessageProcessor::cleanupAbandonedMessages(std::chrono::steady_clock::time_point now, std::chrono::milliseconds maxAge) {
     std::lock_guard<std::mutex> lock(mutex_);
     for (auto senderIt = recievedMessages_.begin(); senderIt != recievedMessages_.end();) {
         auto &messagesForSender = senderIt->second;

@@ -96,7 +96,7 @@ private:
     std::unique_ptr<PeriodicTaskExecutor> periodicTaskExecutor_;
 
     std::shared_ptr<boost::interprocess::message_queue> commandQueue_{std::make_shared<boost::interprocess::message_queue>(maxQueueSize, maxMqPayloadSize)};
-    ChunkedMessageProcessor processor_{logger_, maxMqPayloadSize, [this](const void *data, size_t size) { return enqueueMessage(data, size); }, [this](const std::span<const std::byte> data) { messagesDispatcher_->processRecievedMessage(data); }};
+    ChunkedMessageProcessor processor_{logger_, [this](const void *data, size_t size) { return enqueueMessage(data, size); }, [this](const std::span<const std::byte> data) { messagesDispatcher_->processRecievedMessage(data); }};
 
     CoordinatorTelemetrySignalsSender coordinatorSender_{logger_, [this](const std::string &payload) { return processor_.sendPayload(payload); }};
     std::shared_ptr<CoordinatorMessagesDispatcher> messagesDispatcher_;
