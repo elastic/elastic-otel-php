@@ -107,7 +107,12 @@ final class PhpPartFacade
 
             InstrumentationBridge::singletonInstance()->bootstrap();
             self::prepareForOTelSdk();
+
             self::registerAutoloaderForVendorDir();
+
+            // RemoteConfigHandler::fetchAndApply depends on OTel SDK so it has to be called after autoloader for OTel SDK is registered
+            RemoteConfigHandler::fetchAndApply();
+            // OverrideOTelSdkResourceAttributes::register depends on OTel SDK so it has to be called after autoloader for OTel SDK is registered
             OverrideOTelSdkResourceAttributes::register($elasticOTelNativePartVersion);
             self::registerNativeOtlpSerializer();
             self::registerAsyncTransportFactory();
@@ -127,8 +132,6 @@ final class PhpPartFacade
             });
 
             self::$singletonInstance = new self();
-
-            RemoteConfigHandler::fetchAndApply();
 
             if (elastic_otel_get_config_option_by_name('inferred_spans_enabled')) {
                 self::$singletonInstance->inferredSpans = new InferredSpans(
