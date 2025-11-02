@@ -46,11 +46,11 @@ jobs:
       #   uses: docker/setup-qemu-action@v3
       #   with:
       #     platforms: arm64
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           name: build-native-${{ matrix.arch }}
           path: prod/native/_build/${{ matrix.arch }}-release/
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
             name: php-dependencies
       - name: Build packages
@@ -59,7 +59,7 @@ jobs:
           read_properties elastic-otel-php.properties ELASTIC_OTEL_PHP
 
           ./tools/build/build_packages.sh --package_version ${ELASTIC_OTEL_PHP_VERSION} --build_architecture ${{ matrix.arch }} --package_goarchitecture ${{ matrix.goarch }} --package_types '${{ matrix.packages }}' --package_sha '${{ github.sha }}'
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: packages-${{ matrix.arch }}
           path: |
