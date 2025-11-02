@@ -146,6 +146,7 @@ final class RemoteConfigHandler
                 __LINE__,
                 __FUNCTION__
             );
+            return;
         }
 
         /**
