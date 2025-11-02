@@ -23,6 +23,18 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
-final class AgentToOTelCollectorConnectionStarted extends AgentToOTeCollectorEvent
+use ElasticOTelTests\Util\Log\LoggableInterface;
+use ElasticOTelTests\Util\Log\LoggableTrait;
+use ElasticOTelTests\Util\MonotonicTime;
+use ElasticOTelTests\Util\SystemTime;
+
+abstract class AgentBackendCommEvent implements LoggableInterface
 {
+    use LoggableTrait;
+
+    public function __construct(
+        public readonly MonotonicTime $monotonicTime,
+        public readonly SystemTime $systemTime,
+    ) {
+    }
 }

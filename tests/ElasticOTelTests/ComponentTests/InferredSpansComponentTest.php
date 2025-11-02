@@ -34,7 +34,7 @@ use ElasticOTelTests\ComponentTests\Util\PhpSerializationUtil;
 use ElasticOTelTests\ComponentTests\Util\SpanSequenceExpectations;
 use ElasticOTelTests\ComponentTests\Util\StackTraceExpectations;
 use ElasticOTelTests\ComponentTests\Util\TestCaseHandle;
-use ElasticOTelTests\ComponentTests\Util\WaitForEventCounts;
+use ElasticOTelTests\ComponentTests\Util\WaitForOTelSignalCounts;
 use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\Config\OptionForProdName;
 use ElasticOTelTests\Util\DataProviderForTestBuilder;
@@ -140,9 +140,9 @@ final class InferredSpansComponentTest extends ComponentTestCaseBase
         self::mySleep(self::TIME_NANOSLEEP_FUNC_NAME, $isCurrentRunToGetExpectedHelperData, /* ref */ $expectedHelperData);
 
         if ($isCurrentRunToGetExpectedHelperData) {
-            // Slice 1 frame for this function call since this function call is converted to inferred span
-            // and properties from the stack frame converted to inferred span go to CODE_FILE_PATH and CODE_LINE_NUMBER attributes
-            // this method is special case since it's called by call_user_func so there should not be CODE_FILE_PATH and CODE_LINE_NUMBER attributes
+            // Slice 1 frame for this function call since this function call is converted to an inferred span
+            // and properties from the stack frame converted to an inferred span go to CODE_FILE_PATH and CODE_LINE_NUMBER attributes.
+            // This method is a special case since it's called by call_user_func, so there should not be CODE_FILE_PATH and CODE_LINE_NUMBER attributes.
             $expectedHelperData[__FUNCTION__] = [self::STACK_TRACE_KEY => array_slice(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS), offset: 1)];
             OTelUtil::addActiveSpanAttributes([self::EXPECTED_HELPER_DATA_KEY => PhpSerializationUtil::serializeToString($expectedHelperData)]);
         }
@@ -183,12 +183,12 @@ final class InferredSpansComponentTest extends ComponentTestCaseBase
          */
         $doDummyRunToGetExpectedHelperData = function () use ($setupAndCallAppCode, $dbgCtx): array {
             $testCaseHandle = $setupAndCallAppCode(isCurrentRunToGetExpectedHelperData: true);
-            // For dummy run to get expected helper data inferred spans feature is disabled so only local root span should be created
-            $exportedData = $testCaseHandle->waitForEnoughExportedData(WaitForEventCounts::spans(1));
-            $dbgCtx->add(compact('exportedData'));
+            // For the dummy run to get expected helper data inferred spans feature is disabled so only a local root span should be created
+            $agentBackendComms = $testCaseHandle->waitForEnoughAgentBackendComms(WaitForOTelSignalCounts::spans(1));
+            $dbgCtx->add(compact('agentBackendComms'));
             $this->tearDownTestCaseHandle();
             $testCaseHandle = null;
-            $rootSpan = IterableUtil::singleValue($exportedData->findRootSpans());
+            $rootSpan = IterableUtil::singleValue($agentBackendComms->findRootSpans());
             $expectedHelperData = PhpSerializationUtil::unserializeFromString($rootSpan->attributes->getString(self::EXPECTED_HELPER_DATA_KEY));
             $dbgCtx->add(compact('expectedHelperData'));
             self::assertIsArray($expectedHelperData);
@@ -199,17 +199,17 @@ final class InferredSpansComponentTest extends ComponentTestCaseBase
         $expectedHelperData = $doDummyRunToGetExpectedHelperData();
         $testCaseHandle = $setupAndCallAppCode(isCurrentRunToGetExpectedHelperData: false);
 
-        // Number of inferred spans is at least 4: 3 sleep spans + 1 span for appCode method
+        // Inferred spans count is at least 4: 3 sleep spans + 1 span for appCode method
         $expectedInferredSpansMinCount = $isInferredSpansEnabled ? (($shouldCaptureSleeps ? 3 : 0) + 1) : 0;
-        // Number of regular (i.e., not inferred) spans is 1 - the automatic root span
+        // Regular (i.e., not inferred) spans count is 1 - the automatic root span
         $expectedSpanMinCount = $expectedInferredSpansMinCount + 1;
-        $exportedData = $testCaseHandle->waitForEnoughExportedData(
-            $isInferredSpansEnabled ? WaitForEventCounts::spansAtLeast($expectedSpanMinCount) : WaitForEventCounts::spans($expectedSpanMinCount)
+        $agentBackendComms = $testCaseHandle->waitForEnoughAgentBackendComms(
+            $isInferredSpansEnabled ? WaitForOTelSignalCounts::spansAtLeast($expectedSpanMinCount) : WaitForOTelSignalCounts::spans($expectedSpanMinCount)
         );
-        $dbgCtx->add(compact('exportedData'));
+        $dbgCtx->add(compact('agentBackendComms'));
 
-        $rootSpan = IterableUtil::singleValue($exportedData->findRootSpans());
-        foreach ($exportedData->spans as $span) {
+        $rootSpan = IterableUtil::singleValue($agentBackendComms->findRootSpans());
+        foreach ($agentBackendComms->spans() as $span) {
             self::assertSame($rootSpan->traceId, $span->traceId);
         }
 
@@ -222,8 +222,8 @@ final class InferredSpansComponentTest extends ComponentTestCaseBase
             ->addNotAllowedAttribute(TraceAttributes::CODE_FILE_PATH) // appCodeForTestInferredSpans method is called by call_user_func so there is no CODE_FILE_PATH
             ->addNotAllowedAttribute(TraceAttributes::CODE_LINE_NUMBER) // appCodeForTestInferredSpans method is called by call_user_func so there is no CODE_LINE_NUMBER
             ->buildForStaticMethod(__CLASS__, $appCodeMethodName, $stackTraceExpectations);
-        $appCodeSpan = $exportedData->singleSpanByName($appCodeSpanExpectations->name->expectedValue->getValue());
-        self::assertTrue($exportedData->isSpanDescendantOf($appCodeSpan, $rootSpan));
+        $appCodeSpan = $agentBackendComms->singleSpanByName($appCodeSpanExpectations->name->expectedValue->getValue());
+        self::assertTrue($agentBackendComms->isSpanDescendantOf($appCodeSpan, $rootSpan));
         $appCodeSpanExpectations->assertMatches($appCodeSpan);
 
         if (!$shouldCaptureSleeps) {
@@ -240,9 +240,9 @@ final class InferredSpansComponentTest extends ComponentTestCaseBase
                 ? $sleepSpansExpectationsBuilder->buildForStaticMethod(__CLASS__, $sleepFunc, $stackTraceExpectations, $expectedCodeLineNumber)
                 : $sleepSpansExpectationsBuilder->buildForFunction($sleepFunc, $stackTraceExpectations, $expectedCodeLineNumber);
             $expectedSleepSpans[] = $expectedSleepSpan;
-            $actualSleepSpan = $exportedData->singleSpanByName($expectedSleepSpan->name->expectedValue->getValue());
+            $actualSleepSpan = $agentBackendComms->singleSpanByName($expectedSleepSpan->name->expectedValue->getValue());
             $actualSleepSpans[] = $actualSleepSpan;
-            self::assertTrue($exportedData->isSpanDescendantOf($actualSleepSpan, $appCodeSpan));
+            self::assertTrue($agentBackendComms->isSpanDescendantOf($actualSleepSpan, $appCodeSpan));
         }
 
         (new SpanSequenceExpectations($expectedSleepSpans))->assertMatches($actualSleepSpans);

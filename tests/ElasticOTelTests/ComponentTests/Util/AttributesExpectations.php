@@ -23,6 +23,7 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
+use ElasticOTelTests\ComponentTests\Util\OtlpData\Attributes;
 use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LoggableTrait;
@@ -30,14 +31,14 @@ use Override;
 use PHPUnit\Framework\Assert;
 
 /**
- * @phpstan-import-type ArrayValue from SpanAttributesArrayExpectations
+ * @phpstan-import-type ArrayValue from AttributesArrayExpectations
  */
-final class SpanAttributesExpectations implements ExpectationsInterface, LoggableInterface
+final class AttributesExpectations implements ExpectationsInterface, LoggableInterface
 {
     use ExpectationsTrait;
     use LoggableTrait;
 
-    public readonly SpanAttributesArrayExpectations $arrayExpectations;
+    public readonly AttributesArrayExpectations $arrayExpectations;
 
     /**
      * @param array<string, ArrayValue> $attributes
@@ -48,7 +49,7 @@ final class SpanAttributesExpectations implements ExpectationsInterface, Loggabl
         bool $allowOtherKeysInActual = true,
         private readonly array $notAllowedAttributes = []
     ) {
-        $this->arrayExpectations = new SpanAttributesArrayExpectations($attributes, $allowOtherKeysInActual);
+        $this->arrayExpectations = new AttributesArrayExpectations($attributes, $allowOtherKeysInActual);
     }
 
     public static function matchAny(): self
@@ -76,11 +77,11 @@ final class SpanAttributesExpectations implements ExpectationsInterface, Loggabl
     #[Override]
     public function assertMatchesMixed(mixed $actual): void
     {
-        Assert::assertInstanceOf(SpanAttributes::class, $actual);
+        Assert::assertInstanceOf(Attributes::class, $actual);
         $this->assertMatches($actual);
     }
 
-    public function assertMatches(SpanAttributes $actual): void
+    public function assertMatches(Attributes $actual): void
     {
         DebugContext::getCurrentScope(/* out */ $dbgCtx);
 

@@ -23,13 +23,17 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
-final class AgentToOTeCollectorEvents
+use ElasticOTelTests\Util\Log\LoggableInterface;
+use ElasticOTelTests\Util\Log\LoggableTrait;
+
+abstract class IntakeDataRequestDeserialized implements LoggableInterface
 {
-    /**
-     * @param AgentToOTeCollectorEvent[] $events
-     */
-    public function __construct(
-        public array $events
+    use LoggableTrait;
+
+    protected function __construct(
+        public readonly IntakeDataRequestRaw $raw,
     ) {
     }
+
+    abstract public function isEmptyAfterDeserialization(): bool;
 }

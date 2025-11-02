@@ -23,23 +23,14 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
-final class ExportedData extends ParsedExportedData
-{
-    /**
-     * @param Span[] $spans
-     */
-    public function __construct(
-        public readonly RawExportedData $raw,
-        array $spans,
-    ) {
-        parent::__construct(spans: $spans);
-    }
+use ElasticOTelTests\Util\EnumUtilForTestsTrait;
 
-    /**
-     * @return array{'counts': array{'spans': int}}
-     */
-    public function dbgGetSummary(): array
-    {
-        return ['counts' => ['spans' => count($this->spans)]];
-    }
+enum OTelSignalType
+{
+    use EnumUtilForTestsTrait;
+
+    case trace;
+    case metric;
+    case log;
+    case baggage;
 }

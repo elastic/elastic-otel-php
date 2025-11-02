@@ -23,25 +23,13 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
-use ElasticOTelTests\ComponentTests\Util\OtlpData\Span;
-use ElasticOTelTests\ComponentTests\Util\OtlpData\SpanKind;
-
-final class SpanExpectations implements ExpectationsInterface
+final class AgentBackendCommEventsBlock
 {
-    use ExpectationsTrait;
-
     /**
-     * @phpstan-param LeafExpectations<SpanKind> $kind
+     * @param list<AgentBackendCommEvent> $events
      */
     public function __construct(
-        public readonly StringExpectations $name,
-        public readonly LeafExpectations $kind,
-        public readonly AttributesExpectations $attributes,
+        public array $events
     ) {
-    }
-
-    public function assertMatches(Span $actual): void
-    {
-        $this->assertMatchesMixed($actual);
     }
 }

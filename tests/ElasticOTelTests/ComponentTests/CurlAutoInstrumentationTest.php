@@ -27,19 +27,19 @@ use CurlHandle;
 use ElasticOTelTests\ComponentTests\Util\AppCodeHostParams;
 use ElasticOTelTests\ComponentTests\Util\AppCodeRequestParams;
 use ElasticOTelTests\ComponentTests\Util\AppCodeTarget;
+use ElasticOTelTests\ComponentTests\Util\AttributesExpectations;
 use ElasticOTelTests\ComponentTests\Util\ComponentTestCaseBase;
 use ElasticOTelTests\ComponentTests\Util\CurlHandleForTests;
 use ElasticOTelTests\ComponentTests\Util\HttpAppCodeRequestParams;
 use ElasticOTelTests\ComponentTests\Util\HttpClientUtilForTests;
+use ElasticOTelTests\ComponentTests\Util\OtlpData\Span;
+use ElasticOTelTests\ComponentTests\Util\OtlpData\SpanKind;
 use ElasticOTelTests\ComponentTests\Util\PhpSerializationUtil;
 use ElasticOTelTests\ComponentTests\Util\RequestHeadersRawSnapshotSource;
 use ElasticOTelTests\ComponentTests\Util\ResourcesClient;
-use ElasticOTelTests\ComponentTests\Util\Span;
-use ElasticOTelTests\ComponentTests\Util\SpanAttributesExpectations;
 use ElasticOTelTests\ComponentTests\Util\SpanExpectationsBuilder;
-use ElasticOTelTests\ComponentTests\Util\SpanKind;
 use ElasticOTelTests\ComponentTests\Util\UrlUtil;
-use ElasticOTelTests\ComponentTests\Util\WaitForEventCounts;
+use ElasticOTelTests\ComponentTests\Util\WaitForOTelSignalCounts;
 use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\Config\OptionForProdName;
 use ElasticOTelTests\Util\Config\OptionForTestsName;
@@ -225,7 +225,7 @@ final class CurlAutoInstrumentationTest extends ComponentTestCaseBase
         //        |------------------------------------------------------|    |--------------------------------|
         //        client app host                                             server app host
 
-        $curlClientSpanAttributesExpectations = new SpanAttributesExpectations(
+        $curlClientSpanAttributesExpectations = new AttributesExpectations(
             [
                 TraceAttributes::CODE_FUNCTION_NAME        => 'curl_exec',
                 TraceAttributes::HTTP_REQUEST_METHOD       => HttpMethods::GET,
@@ -238,7 +238,7 @@ final class CurlAutoInstrumentationTest extends ComponentTestCaseBase
         );
         $expectationsForCurlClientSpan = (new SpanExpectationsBuilder())->name(HttpMethods::GET)->kind(SpanKind::client)->attributes($curlClientSpanAttributesExpectations)->build();
 
-        $serverTxSpanAttributesExpectations = new SpanAttributesExpectations(
+        $serverTxSpanAttributesExpectations = new AttributesExpectations(
             [
                 TraceAttributes::HTTP_REQUEST_METHOD       => HttpMethods::GET,
                 TraceAttributes::HTTP_RESPONSE_STATUS_CODE => self::SERVER_RESPONSE_HTTP_STATUS,
@@ -252,25 +252,25 @@ final class CurlAutoInstrumentationTest extends ComponentTestCaseBase
         $expectedServerTxSpanName = HttpMethods::GET . ' ' . $appCodeRequestParamsForServer->urlParts->path;
         $expectationsForServerTxSpan = (new SpanExpectationsBuilder())->name($expectedServerTxSpanName)->kind(SpanKind::server)->attributes($serverTxSpanAttributesExpectations)->build();
 
-        $exportedData = $testCaseHandle->waitForEnoughExportedData(WaitForEventCounts::spans($enableCurlInstrumentationForClient ? 3 : 2));
-        $dbgCtx->add(compact('exportedData'));
+        $agentBackendComms = $testCaseHandle->waitForEnoughAgentBackendComms(WaitForOTelSignalCounts::spans($enableCurlInstrumentationForClient ? 3 : 2));
+        $dbgCtx->add(compact('agentBackendComms'));
 
         //
         // Assert
         //
 
         if ($enableCurlInstrumentationForClient) {
-            $rootSpan = $exportedData->singleRootSpan();
-            foreach ($exportedData->spans as $span) {
+            $rootSpan = $agentBackendComms->singleRootSpan();
+            foreach ($agentBackendComms->spans() as $span) {
                 self::assertSame($rootSpan->traceId, $span->traceId);
             }
-            $curlClientSpan = $exportedData->singleChildSpan($rootSpan->id);
+            $curlClientSpan = $agentBackendComms->singleChildSpan($rootSpan->id);
             $expectationsForCurlClientSpan->assertMatches($curlClientSpan);
-            $serverTxSpan = $exportedData->singleChildSpan($curlClientSpan->id);
+            $serverTxSpan = $agentBackendComms->singleChildSpan($curlClientSpan->id);
         } else {
-            $serverTxSpan = IterableUtil::singleValue($exportedData->findSpansWithAttributeValue(TraceAttributes::SERVER_PORT, $appCodeRequestParamsForServer->urlParts->port));
+            $serverTxSpan = IterableUtil::singleValue($agentBackendComms->findSpansWithAttributeValue(TraceAttributes::SERVER_PORT, $appCodeRequestParamsForServer->urlParts->port));
             self::assertNull($serverTxSpan->parentId);
-            $clientTxSpan = IterableUtil::singleValue(IterableUtil::findByPredicateOnValue($exportedData->spans, fn(Span $span) => $span->parentId === null && $span !== $serverTxSpan));
+            $clientTxSpan = IterableUtil::singleValue(IterableUtil::findByPredicateOnValue($agentBackendComms->spans(), fn(Span $span) => $span->parentId === null && $span !== $serverTxSpan));
             self::assertNotEquals($serverTxSpan->traceId, $clientTxSpan->traceId);
         }
 

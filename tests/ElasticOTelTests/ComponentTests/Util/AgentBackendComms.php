@@ -23,51 +23,83 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
+use ElasticOTelTests\ComponentTests\Util\OtlpData\Attributes;
+use ElasticOTelTests\ComponentTests\Util\OtlpData\OTelResource;
+use ElasticOTelTests\ComponentTests\Util\OtlpData\Span;
 use ElasticOTelTests\Util\ArrayUtilForTests;
 use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\IterableUtil;
 use PHPUnit\Framework\Assert;
 
 /**
- * @phpstan-import-type AttributeValue from SpanAttributes as SpanAttributeValue
+ * @phpstan-import-type AttributeValue from Attributes
  */
-class ParsedExportedData
+final class AgentBackendComms
 {
     /**
-     * @param Span[] $spans
+     * @param iterable<AgentBackendCommEvent> $commEvents
+     * @param list<AgentBackendConnection> $connections
      */
     public function __construct(
-        public array $spans,
+        public readonly iterable $commEvents,
+        public readonly array $connections,
     ) {
     }
 
-    public function isEmpty(): bool
+    /**
+     * @return array{'counts': array{'spans': int}}
+     */
+    public function dbgGetSummary(): array
     {
-        foreach ($this as $propValue) { // @phpstan-ignore foreach.nonIterable
-            Assert::assertIsArray($propValue);
-            if (!ArrayUtilForTests::isEmpty($propValue)) {
-                return false;
-            }
-        }
-        return true;
+        return ['counts' => ['spans' => IterableUtil::count($this->spans())]];
     }
 
     /**
-     * @template EventType
-     *
-     * @param EventType[] $events
-     *
-     * @return EventType
+     * @return iterable<IntakeDataRequestDeserialized>
      */
-    private static function singleEvent(array $events)
+    public function intakeDataRequests(): iterable
     {
-        return ArrayUtilForTests::getSingleValue($events);
+        foreach ($this->connections as $connection) {
+            yield from $connection->requests;
+        }
+    }
+
+    /**
+     * @return iterable<IntakeTraceDataRequest>
+     */
+    public function intakeTraceDataRequests(): iterable
+    {
+        foreach ($this->intakeDataRequests() as $request) {
+            if ($request instanceof IntakeTraceDataRequest) {
+                yield $request;
+            }
+        }
+    }
+
+    /**
+     * @return iterable<Span>
+     */
+    public function spans(): iterable
+    {
+        foreach ($this->intakeTraceDataRequests() as $request) {
+            yield from $request->spans();
+        }
+    }
+
+    /**
+     * @return iterable<OTelResource>
+     */
+    public function resources(): iterable
+    {
+        foreach ($this->intakeTraceDataRequests() as $intakeRequest) {
+            yield from $intakeRequest->resources();
+        }
     }
 
     /** @noinspection PhpUnused */
     public function singleSpan(): Span
     {
-        return self::singleEvent($this->spans);
+        return IterableUtil::singleValue($this->spans());
     }
 
     /**
@@ -76,7 +108,7 @@ class ParsedExportedData
     public function findSpansByName(string $name): array
     {
         $result = [];
-        foreach ($this->spans as $span) {
+        foreach ($this->spans() as $span) {
             if ($span->name === $name) {
                 $result[] = $span;
             }
@@ -90,7 +122,7 @@ class ParsedExportedData
     public function findSpansById(string $id): array
     {
         $result = [];
-        foreach ($this->spans as $span) {
+        foreach ($this->spans() as $span) {
             if ($span->id === $id) {
                 $result[] = $span;
             }
@@ -124,7 +156,7 @@ class ParsedExportedData
      */
     public function findChildSpans(string $parentId): iterable
     {
-        foreach ($this->spans as $span) {
+        foreach ($this->spans() as $span) {
             if ($span->parentId === $parentId) {
                 yield $span;
             }
@@ -136,7 +168,7 @@ class ParsedExportedData
      */
     public function findRootSpans(): iterable
     {
-        foreach ($this->spans as $span) {
+        foreach ($this->spans() as $span) {
             if ($span->parentId === null) {
                 yield $span;
             }
@@ -155,13 +187,13 @@ class ParsedExportedData
 
     /**
      * @param non-empty-string   $attributeName
-     * @param SpanAttributeValue $attributeValueToFind
+     * @phpstan-param AttributeValue $attributeValueToFind
      *
      * @return iterable<Span>
      */
     public function findSpansWithAttributeValue(string $attributeName, array|bool|float|int|null|string $attributeValueToFind): iterable
     {
-        foreach ($this->spans as $span) {
+        foreach ($this->spans() as $span) {
             if ($span->attributes->tryToGetValue($attributeName, /* out */ $actualAttributeValue) && $actualAttributeValue === $attributeValueToFind) {
                 yield $span;
             }

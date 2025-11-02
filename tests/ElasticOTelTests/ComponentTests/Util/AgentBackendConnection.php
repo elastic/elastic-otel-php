@@ -23,13 +23,13 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
-final class IntakeApiConnection
+final class AgentBackendConnection
 {
     /**
-     * @param IntakeApiRequest[] $requests
+     * @param IntakeDataRequestDeserialized[] $requests
      */
     public function __construct(
-        public readonly AgentToOTelCollectorConnectionStarted $started,
+        public readonly AgentBackendConnectionStarted $started,
         public readonly array $requests
     ) {
     }

@@ -23,25 +23,6 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
-final class RawExportedData
+final class AgentBackendConnectionStarted extends AgentBackendCommEvent
 {
-    /**
-     * @param IntakeApiConnection[] $intakeApiConnections
-     */
-    public function __construct(
-        public readonly array $intakeApiConnections,
-    ) {
-    }
-
-    /**
-     * @return iterable<IntakeApiRequest>
-     *
-     * @noinspection PhpUnused
-     */
-    public function getAllIntakeApiRequests(): iterable
-    {
-        foreach ($this->intakeApiConnections as $intakeApiConnection) {
-            yield from $intakeApiConnection->requests;
-        }
-    }
 }

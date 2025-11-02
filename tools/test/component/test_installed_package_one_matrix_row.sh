@@ -2,19 +2,6 @@
 set -e -o pipefail
 #set -x
 
-function print_info_about_environment () {
-    echo "Current directory: ${PWD}"
-
-    echo 'PHP version:'
-    php -v
-
-    echo 'Installed PHP extensions:'
-    php -m
-
-    echo 'Set environment variables:'
-    env | sort
-}
-
 function main() {
     this_script_dir="$( dirname "${BASH_SOURCE[0]}" )"
     this_script_dir="$( realpath "${this_script_dir}" )"
@@ -25,8 +12,6 @@ function main() {
     if [ -z "${composer_run_component_tests_log_file}" ]; then
         composer_run_component_tests_log_file=/elastic_otel_php_tests/logs/composer_-_run_component_tests.log
     fi
-
-    print_info_about_environment
 
     source "${this_script_dir}/unpack_matrix_row.sh" "${ELASTIC_OTEL_PHP_TESTS_MATRIX_ROW:?}"
     env | grep ELASTIC_OTEL_PHP_TESTS_ | sort
