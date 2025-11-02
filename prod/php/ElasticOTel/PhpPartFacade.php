@@ -191,7 +191,7 @@ final class PhpPartFacade
     /**
      * @param non-empty-string $envVarName
      */
-    private static function setEnvVar(string $envVarName, string $envVarValue): void
+    public static function setEnvVar(string $envVarName, string $envVarValue): void
     {
         if (!putenv($envVarName . '=' . $envVarValue)) {
             throw new RuntimeException('putenv returned false; $envVarName: ' . $envVarName . '; envVarValue: ' . $envVarValue);
