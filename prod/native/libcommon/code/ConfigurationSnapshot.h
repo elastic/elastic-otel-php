@@ -32,7 +32,6 @@
 #define ELASTIC_OTEL_LOG_LEVEL_STDERR log_level_stderr
 #define ELASTIC_OTEL_LOG_LEVEL_SYSLOG log_level_syslog
 #define ELASTIC_OTEL_LOG_FEATURES log_features
-#define ELASTIC_OTEL_VERIFY_SERVER_CERT verify_server_cert
 #define ELASTIC_OTEL_DEBUG_DIAGNOSTICS_FILE debug_diagnostic_file
 #define ELASTIC_OTEL_MAX_SEND_QUEUE_SIZE max_send_queue_size
 #define ELASTIC_OTEL_ASYNC_TRANSPORT async_transport
@@ -59,6 +58,18 @@
 #define ELASTIC_OTEL_OPAMP_SEND_MAX_RETRIES opamp_send_max_retries
 #define ELASTIC_OTEL_OPAMP_SEND_RETRY_DELAY opamp_send_retry_delay
 
+#define ELASTIC_OTEL_OPAMP_INSECURE opamp_insecure
+#define ELASTIC_OTEL_OPAMP_CERTIFICATE opamp_certificate
+#define ELASTIC_OTEL_OPAMP_CLIENT_CERTIFICATE opamp_client_certificate
+#define ELASTIC_OTEL_OPAMP_CLIENT_KEY opamp_client_key
+#define ELASTIC_OTEL_OPAMP_CLIENT_KEYPASS opamp_client_keypass
+
+#define OTEL_EXPORTER_OTLP_INSECURE OTEL_EXPORTER_OTLP_INSECURE
+#define OTEL_EXPORTER_OTLP_CERTIFICATE OTEL_EXPORTER_OTLP_CERTIFICATE
+#define OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE
+#define OTEL_EXPORTER_OTLP_CLIENT_KEY OTEL_EXPORTER_OTLP_CLIENT_KEY
+#define OTEL_EXPORTER_OTLP_CLIENT_KEYPASS OTEL_EXPORTER_OTLP_CLIENT_KEYPASS
+
 namespace elasticapm::php {
 
 using namespace std::string_literals;
@@ -74,7 +85,6 @@ struct ConfigurationSnapshot {
     LogLevel ELASTIC_OTEL_LOG_LEVEL_SYSLOG = LogLevel::logLevel_info;
     std::string ELASTIC_OTEL_LOG_FEATURES;
     std::string ELASTIC_OTEL_DEBUG_DIAGNOSTICS_FILE;
-    bool ELASTIC_OTEL_VERIFY_SERVER_CERT = true;
     std::size_t ELASTIC_OTEL_MAX_SEND_QUEUE_SIZE = 2 * 1024 * 1204;
     bool ELASTIC_OTEL_ASYNC_TRANSPORT = true;
     std::chrono::milliseconds ELASTIC_OTEL_ASYNC_TRANSPORT_SHUTDOWN_TIMEOUT = std::chrono::seconds(30);
@@ -96,6 +106,18 @@ struct ConfigurationSnapshot {
     std::chrono::milliseconds ELASTIC_OTEL_OPAMP_SEND_TIMEOUT = 10s;
     std::size_t ELASTIC_OTEL_OPAMP_SEND_MAX_RETRIES = 3;
     std::chrono::milliseconds ELASTIC_OTEL_OPAMP_SEND_RETRY_DELAY = 10s;
+
+    bool ELASTIC_OTEL_OPAMP_INSECURE = false;
+    std::string ELASTIC_OTEL_OPAMP_CERTIFICATE;
+    std::string ELASTIC_OTEL_OPAMP_CLIENT_CERTIFICATE;
+    std::string ELASTIC_OTEL_OPAMP_CLIENT_KEYPASS;
+    std::string ELASTIC_OTEL_OPAMP_CLIENT_KEY;
+
+    bool OTEL_EXPORTER_OTLP_INSECURE = false;
+    std::string OTEL_EXPORTER_OTLP_CERTIFICATE;
+    std::string OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE;
+    std::string OTEL_EXPORTER_OTLP_CLIENT_KEY;
+    std::string OTEL_EXPORTER_OTLP_CLIENT_KEYPASS;
 
     uint64_t revision = 0;
 };

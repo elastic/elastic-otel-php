@@ -54,16 +54,34 @@ static size_t CurlHeaderFunc(char *data, size_t size, size_t nItems, void *heade
     return size * nItems;
 }
 
-CurlSender::CurlSender(std::shared_ptr<LoggerInterface> logger, std::chrono::milliseconds timeout, bool verifyCert) : log_(std::move(logger)) {
+CurlSender::CurlSender(std::shared_ptr<LoggerInterface> logger, std::chrono::milliseconds timeout, HttpEndpointSSLOptions const &sslOptions) : log_(std::move(logger)) {
 
     handle_ = curl_easy_init();
     if (!handle_) {
         throw std::runtime_error("curl_easy_init() failed");
     }
 
-    if (!verifyCert) {
+    if (sslOptions.insecureSkipVerify) {
         curl_easy_setopt(handle_, CURLOPT_SSL_VERIFYHOST, 0L);
         curl_easy_setopt(handle_, CURLOPT_SSL_VERIFYPEER, 0L);
+    } else {
+        curl_easy_setopt(handle_, CURLOPT_SSL_VERIFYHOST, 2L);
+        curl_easy_setopt(handle_, CURLOPT_SSL_VERIFYPEER, 1L);
+    }
+
+    if (!sslOptions.caInfo.empty()) {
+        curl_easy_setopt(handle_, CURLOPT_CAINFO, sslOptions.caInfo.c_str());
+    }
+
+    if (!sslOptions.cert.empty()) {
+        curl_easy_setopt(handle_, CURLOPT_SSLCERT, sslOptions.cert.c_str());
+    }
+
+    if (!sslOptions.certKey.empty()) {
+        curl_easy_setopt(handle_, CURLOPT_SSLKEY, sslOptions.certKey.c_str());
+    }
+    if (!sslOptions.certKeyPassword.empty()) {
+        curl_easy_setopt(handle_, CURLOPT_KEYPASSWD, sslOptions.certKeyPassword.c_str());
     }
 
     curl_easy_setopt(handle_, CURLOPT_TIMEOUT_MS, static_cast<long>(timeout.count()));

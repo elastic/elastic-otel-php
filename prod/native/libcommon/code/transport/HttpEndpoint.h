@@ -20,6 +20,7 @@
 #pragma once
 
 #include "CommonUtils.h"
+#include "HttpEndpointSSLOptions.h"
 
 #include <chrono>
 #include <memory>
@@ -106,6 +107,7 @@ private:
     std::chrono::milliseconds retryDelay_ = 0ms;
     connectionId_t connectionId_;
     struct curl_slist *curlHeaders_ = nullptr;
+    HttpEndpointSSLOptions sslOptions_;
 };
 
 } // namespace elasticapm::php::transport

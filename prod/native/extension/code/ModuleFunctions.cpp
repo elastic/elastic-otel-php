@@ -212,7 +212,14 @@ PHP_FUNCTION(initialize) {
     }
     ZEND_HASH_FOREACH_END();
 
-    EAPM_GL(httpTransportAsync_)->initializeConnection(std::string(ZSTR_VAL(endpoint), ZSTR_LEN(endpoint)), ZSTR_HASH(endpoint), std::string(ZSTR_VAL(contentType), ZSTR_LEN(contentType)), endpointHeaders, std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::duration<double>(timeout)), static_cast<std::size_t>(maxRetries), std::chrono::milliseconds(retryDelay));
+    elasticapm::php::transport::HttpEndpointSSLOptions sslOptions;
+    sslOptions.insecureSkipVerify = EAPM_CFG(OTEL_EXPORTER_OTLP_INSECURE);
+    sslOptions.caInfo = EAPM_CFG(OTEL_EXPORTER_OTLP_CERTIFICATE);
+    sslOptions.cert = EAPM_CFG(OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE);
+    sslOptions.certKey = EAPM_CFG(OTEL_EXPORTER_OTLP_CLIENT_KEY);
+    sslOptions.certKeyPassword = EAPM_CFG(OTEL_EXPORTER_OTLP_CLIENT_KEYPASS);
+
+    EAPM_GL(httpTransportAsync_)->initializeConnection(std::string(ZSTR_VAL(endpoint), ZSTR_LEN(endpoint)), ZSTR_HASH(endpoint), std::string(ZSTR_VAL(contentType), ZSTR_LEN(contentType)), endpointHeaders, std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::duration<double>(timeout)), static_cast<std::size_t>(maxRetries), std::chrono::milliseconds(retryDelay), sslOptions);
 }
 
 ZEND_BEGIN_ARG_INFO_EX(ArgInfoSend, 0, 0, 2)
