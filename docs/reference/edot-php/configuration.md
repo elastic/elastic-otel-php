@@ -145,8 +145,19 @@ You can modify the following settings for EDOT PHP through APM Agent Central Con
 | Setting       | Central configuration name | Type    | Versions |
 | ------------- | -------------------------- | ------- | -------- |
 | Logging level | logging_level              | Dynamic | {applies_to}`stack: preview 9.1` {applies_to}`edot_php: preview 1.1.0` |
+| Sampling rate | sampling_rate              | Dynamic | {applies_to}`stack: preview 9.3` {applies_to}`edot_php: preview 1.2.0` |
 
 Dynamic settings can be changed without having to restart the application or webserver process.
+
+:::{note}
+Stack's version 9.2 and later includes Advanced section of Central Configuration 
+which allows you to define custom configuration options as key-value pairs.
+For example, using Advanced section of Central Configuration
+`sampling_rate` option can be configured even when using stack version 9.2
+(as long as EDOT PHP version is 1.2.0 or later)
+despite the fact that `sampling_rate` appears as a dedicated option in Central Configuration
+for EDOT PHP only from stack version 9.3.
+:::
 
 ## Prevent logs export
 
