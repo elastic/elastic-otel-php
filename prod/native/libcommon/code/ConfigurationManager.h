@@ -154,7 +154,30 @@ private:
         BUILD_OPTION_METADATA(OTEL_EXPORTER_OTLP_CERTIFICATE, OptionMetadata::type::string, false),
         BUILD_OPTION_METADATA(OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE, OptionMetadata::type::string, false),
         BUILD_OPTION_METADATA(OTEL_EXPORTER_OTLP_CLIENT_KEY, OptionMetadata::type::string, false),
-        BUILD_OPTION_METADATA(OTEL_EXPORTER_OTLP_CLIENT_KEYPASS, OptionMetadata::type::string, true)
+        BUILD_OPTION_METADATA(OTEL_EXPORTER_OTLP_CLIENT_KEYPASS, OptionMetadata::type::string, true),
+
+        BUILD_OPTION_METADATA(OTEL_EXPORTER_OTLP_TRACES_INSECURE, OptionMetadata::type::boolean, false),
+        BUILD_OPTION_METADATA(OTEL_EXPORTER_OTLP_TRACES_CERTIFICATE, OptionMetadata::type::string, false),
+        BUILD_OPTION_METADATA(OTEL_EXPORTER_OTLP_TRACES_CLIENT_CERTIFICATE, OptionMetadata::type::string, false),
+        BUILD_OPTION_METADATA(OTEL_EXPORTER_OTLP_TRACES_CLIENT_KEY, OptionMetadata::type::string, false),
+        BUILD_OPTION_METADATA(OTEL_EXPORTER_OTLP_TRACES_CLIENT_KEYPASS, OptionMetadata::type::string, true),
+
+        BUILD_OPTION_METADATA(OTEL_EXPORTER_OTLP_METRICS_INSECURE, OptionMetadata::type::boolean, false),
+        BUILD_OPTION_METADATA(OTEL_EXPORTER_OTLP_METRICS_CERTIFICATE, OptionMetadata::type::string, false),
+        BUILD_OPTION_METADATA(OTEL_EXPORTER_OTLP_METRICS_CLIENT_CERTIFICATE, OptionMetadata::type::string, false),
+        BUILD_OPTION_METADATA(OTEL_EXPORTER_OTLP_METRICS_CLIENT_KEY, OptionMetadata::type::string, false),
+        BUILD_OPTION_METADATA(OTEL_EXPORTER_OTLP_METRICS_CLIENT_KEYPASS, OptionMetadata::type::string, true),
+
+        BUILD_OPTION_METADATA(OTEL_EXPORTER_OTLP_LOGS_INSECURE, OptionMetadata::type::boolean, false),
+        BUILD_OPTION_METADATA(OTEL_EXPORTER_OTLP_LOGS_CERTIFICATE, OptionMetadata::type::string, false),
+        BUILD_OPTION_METADATA(OTEL_EXPORTER_OTLP_LOGS_CLIENT_CERTIFICATE, OptionMetadata::type::string, false),
+        BUILD_OPTION_METADATA(OTEL_EXPORTER_OTLP_LOGS_CLIENT_KEY, OptionMetadata::type::string, false),
+        BUILD_OPTION_METADATA(OTEL_EXPORTER_OTLP_LOGS_CLIENT_KEYPASS, OptionMetadata::type::string, true),
+
+        BUILD_OPTION_METADATA(OTEL_EXPORTER_OTLP_ENDPOINT, OptionMetadata::type::string, false),
+        BUILD_OPTION_METADATA(OTEL_EXPORTER_OTLP_TRACES_ENDPOINT, OptionMetadata::type::string, false),
+        BUILD_OPTION_METADATA(OTEL_EXPORTER_OTLP_METRICS_ENDPOINT, OptionMetadata::type::string, false),
+        BUILD_OPTION_METADATA(OTEL_EXPORTER_OTLP_LOGS_ENDPOINT, OptionMetadata::type::string, false)
 
         };
 
