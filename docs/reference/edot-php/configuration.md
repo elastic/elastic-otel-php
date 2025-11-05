@@ -38,6 +38,11 @@ The most important OpenTelemetry options you should be aware of include:
 | ----------------------------------------------------------------------------------------------------------------------------- | ----------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [OTEL_EXPORTER_OTLP_ENDPOINT](https://opentelemetry.io/docs/languages/sdk-configuration/otlp-exporter/#otel_exporter_otlp_endpoint) | `http://localhost:4318`       | URL                                             | Specifies the OTLP endpoint to which telemetry data should be sent.                                                                                                                    |
 | [OTEL_EXPORTER_OTLP_HEADERS](https://opentelemetry.io/docs/languages/sdk-configuration/otlp-exporter/#otel_exporter_otlp_headers)   |                         | String of key-value pairs                       | Key-value pairs to be used as headers (for example, for authentication) when sending telemetry data through OTLP. Format: `key1=value1,key2=value2`.                                                                  |
+| [OTEL_EXPORTER_OTLP_INSECURE](https://opentelemetry.io/docs/specs/otel/protocol/exporter/#configuration) | `false` | `true` or `false` | If `true`, disables TLS for the OTLP connection (plain HTTP). Use only for local testing; insecure in production. |
+| [OTEL_EXPORTER_OTLP_CERTIFICATE](https://opentelemetry.io/docs/specs/otel/protocol/exporter/#configuration) |  | Filesystem path (PEM) | Filesystem path to a PEM-encoded CA certificate file or bundle. Must be a readable file; used to verify the OTLP server when TLS verification is enabled. |
+| [OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE](https://opentelemetry.io/docs/specs/otel/protocol/exporter/#configuration) |  | Filesystem path (PEM) | Client certificate for mutual TLS (mTLS) with the OTLP endpoint. Must match the private key below. |
+| [OTEL_EXPORTER_OTLP_CLIENT_KEY](https://opentelemetry.io/docs/specs/otel/protocol/exporter/#configuration) |  | Filesystem path (PEM) | Private key associated with `OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE`. Supports encrypted or unencrypted keys. |
+| OTEL_EXPORTER_OTLP_CLIENT_KEYPASS |  | String (passphrase) | Passphrase for the encrypted private key. Don't set or leave empty if the key is not encrypted. |
 | [OTEL_SERVICE_NAME](https://opentelemetry.io/docs/languages/sdk-configuration/general/#otel_service_name)                     | `unknown_service`       | String value                                    | Sets the value of the [service.name](https://opentelemetry.io/docs/specs/semconv/resource/#service) resource attribute.                                                                                    |
 | [OTEL_RESOURCE_ATTRIBUTES](https://opentelemetry.io/docs/languages/sdk-configuration/general/#otel_resource_attributes)       |                         | String of key-value pairs                       | Key-value pairs to be used as resource attributes. See [Resource SDK](https://opentelemetry.io/docs/specs/otel/resource/sdk#specifying-resource-information-via-an-environment-variable) for more details. |
 | [OTEL_TRACES_SAMPLER](https://opentelemetry.io/docs/languages/sdk-configuration/general/#otel_traces_sampler)                 | `parentbased_always_on` | `always_on`, `always_off`, `traceidratio`, etc. | Determines the sampler used for traces, which controls the amount of data collected and exported.                                                                                                          |
@@ -94,7 +99,6 @@ elastic_otel.enabled=true
 | ELASTIC_OTEL_ASYNC_TRANSPORT                  | `true`    | `true` or `false`                                                                                           | Use asynchronous (background) transfer of traces, metrics and logs. If `false` - brings back original OpenTelemetry SDK transfer modes |
 | ELASTIC_OTEL_ASYNC_TRANSPORT_SHUTDOWN_TIMEOUT | `30s`     | Integer number with time duration. Set to 0 to disable the timeout. Optional units: ms (default), s, m | Timeout after which the asynchronous (background) transfer will interrupt data transmission during process termination               |
 | ELASTIC_OTEL_MAX_SEND_QUEUE_SIZE              | `2MB`     | integer number with optional units: `B`, `MB` or `GB`                                                         | Set the maximum buffer size for asynchronous (background) transfer. It is set per worker process.                                    |
-| ELASTIC_OTEL_VERIFY_SERVER_CERT               | `true`    | `true` or `false`                                                                                           | Enables server certificate verification for asynchronous sending                                                                     |
 
 ### Logging configuration
 
@@ -137,14 +141,21 @@ The following settings control Central configuration management through OpAMP.
 | ELASTIC_OTEL_OPAMP_SEND_TIMEOUT       | 10s                            | Integer number with time duration. Optional units: ms (default), s, m. It can't be set to 0. | Timeout duration for sending messages to the OpAMP server.                                                                                                                   |
 | ELASTIC_OTEL_OPAMP_SEND_MAX_RETRIES   | 3                              | Integer ≥ 0                                                                                   | Maximum number of retry attempts for failed message sends.                                                                                                                  |
 | ELASTIC_OTEL_OPAMP_SEND_RETRY_DELAY   | 10s                            | Integer number with time duration. Optional units: ms (default), s, m. It can't be set to 0. | Time to wait between retries of failed sends.                                                                                                                                |
+| ELASTIC_OTEL_OPAMP_INSECURE           | false                          | `true` or `false` | If `true`, disables TLS server certificate and hostname verification for the OpAMP HTTPS endpoint (analogous to insecure mode in OTLP exporters). Use ONLY for local testing; leaves the connection vulnerable to MITM. |
+| ELASTIC_OTEL_OPAMP_CERTIFICATE        |                                | Filesystem path (PEM bundle) | Filesystem path to a PEM-encoded CA certificate file or bundle. Must be a readable file; used to verify the OpAMP server when TLS verification is enabled. (same intent as custom root certificates for OTLP). |
+| ELASTIC_OTEL_OPAMP_CLIENT_CERTIFICATE |                                | Filesystem path (PEM) | Path to the client certificate for mutual TLS authentication to the OpAMP server (similar to OTLP mTLS client cert). Must match the private key below. |
+| ELASTIC_OTEL_OPAMP_CLIENT_KEY         |                                | Filesystem path (PEM) | Path to the unencrypted or encrypted private key associated with `ELASTIC_OTEL_OPAMP_CLIENT_CERTIFICATE`. Required for mTLS. |
+| ELASTIC_OTEL_OPAMP_CLIENT_KEYPASS     |                                | String (passphrase) | Passphrase for the encrypted private key (if the key is protected). Don't set or leave empty if the key is not encrypted. |
+
 
 #### Central configuration settings
 
 You can modify the following settings for EDOT PHP through APM Agent Central Configuration
 
-| Setting       | Central configuration name | Type    | Versions |
-| ------------- | -------------------------- | ------- | -------- |
-| Logging level | logging_level              | Dynamic | {applies_to}`stack: preview 9.1` {applies_to}`edot_php: preview 1.1.0` |
+| Setting                    | Central configuration name | Type    | Versions                                                               |
+| -------------------------- | -------------------------- | ------- | ---------------------------------------------------------------------- |
+| Logging level              | logging_level              | Dynamic | {applies_to}`stack: preview 9.1` {applies_to}`edot_php: preview 1.1.0` |
+| Enables the inferred spans | infer_spans                | Dynamic | {applies_to}`stack: preview 9.2` {applies_to}`edot_php: preview 1.2.0` |
 
 Dynamic settings can be changed without having to restart the application or webserver process.
 

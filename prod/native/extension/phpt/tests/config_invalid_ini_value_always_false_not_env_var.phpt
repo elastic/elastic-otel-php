@@ -2,7 +2,6 @@
 When value in ini is invalid, extension parses it the same way as PHP - returns false and not returning environment variable
 --ENV--
 ELASTIC_OTEL_LOG_LEVEL_STDERR=CRITICAL
-ELASTIC_OTEL_VERIFY_SERVER_CERT=true
 --INI--
 extension=/elastic/elastic_otel_php.so
 elastic_otel.bootstrap_php_part_file={PWD}/includes/bootstrap_mock.inc
