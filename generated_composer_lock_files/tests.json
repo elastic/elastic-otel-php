@@ -10,8 +10,6 @@
     ],
     "require": {
         "php": "8.1.*||8.2.*||8.3.*||8.4.*",
-        "brick/math": "0.13.1",
-        "open-telemetry/exporter-otlp": "1.2.1",
         "open-telemetry/sem-conv": "1.32.0"
     },
     "provide": {
@@ -19,6 +17,7 @@
         "slim/slim": "*"
     },
     "require-dev": {
+        "composer/composer": "^2.0",
         "dealerdirect/phpcodesniffer-composer-installer": "1.0.0",
         "ext-ctype": "*",
         "ext-curl": "*",
@@ -40,9 +39,9 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "ElasticOTelTools\\Build\\": "./tools/build/",
             "Elastic\\OTel\\": "./prod/php/ElasticOTel/",
-            "ElasticOTelTests\\": "./tests/ElasticOTelTests/"
+            "ElasticOTelTests\\": "./tests/ElasticOTelTests/",
+            "ElasticOTelTools\\Build\\": "./tools/build/"
         }
     },
     "config": {
@@ -56,21 +55,32 @@
     },
     "scripts": {
         "pre-install-cmd": [
-            "ElasticOTelTools\\Build\\ComposeScripts::install"
+            "ElasticOTelTools\\Build\\ComposerScripts::regularInstallOrUpdateNotSupported"
         ],
         "pre-update-cmd": [
-            "ElasticOTelTools\\Build\\ComposeScripts::update"
+            "ElasticOTelTools\\Build\\ComposerScripts::regularInstallOrUpdateNotSupported"
         ],
-        "install-using-generated-lock-dev": [
-            "ElasticOTelTools\\Build\\ComposeScripts::prepareForInstallUsingGeneratedLockDev",
-            "composer run-script -- install-direct-command"
+        "adapt_composer_json_download_and_adapt_packages_to_PHP_81": [
+            "ElasticOTelTools\\Build\\ComposerScripts::adaptComposerJsonDownloadAndAdaptPackages"
         ],
-        "install-direct-command": [
-            "@putenv ELASTIC_OTEL_TOOLS_ALLOW_DIRECT_COMPOSER_COMMAND=true",
-            "composer --ignore-platform-req=php --ignore-platform-req=ext-mysqli --ignore-platform-req=ext-pgsql --ignore-platform-req=ext-opentelemetry --no-interaction install"
+        "generate_lock_use_current_json": [
+            "@putenv ELASTIC_OTEL_PHP_TOOLS_ALLOW_DIRECT_COMPOSER_COMMAND=true",
+            "composer --ignore-platform-req=ext-mysqli --ignore-platform-req=ext-pgsql --ignore-platform-req=ext-opentelemetry --no-interaction --no-install --no-scripts --no-plugins update"
+        ],
+        "verify_generated_composer_lock_files": [
+            "ElasticOTelTools\\Build\\ComposerScripts::verifyGeneratedComposerLockFiles"
+        ],
+        "install_dev_select_generated_lock": [
+            "ElasticOTelTools\\Build\\ComposerScripts::installDevSelectLock"
+        ],
+        "install_prod_select_generated_json_lock": [
+            "ElasticOTelTools\\Build\\ComposerScripts::installProdSelectJsonLock"
+        ],
+        "install_tests_select_generated_json_lock": [
+            "ElasticOTelTools\\Build\\ComposerScripts::installTestsSelectJsonLock"
         ],
         "pre-autoload-dump": [
-            "./tools/build/configure_php_templates.sh"
+            "ElasticOTelTools\\Build\\ComposerScripts::runConfigurePhpTemplatesScript"
         ],
         "parallel-lint": [
             "@putenv ELASTIC_OTEL_ENABLED=false",

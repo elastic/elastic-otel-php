@@ -243,12 +243,11 @@ There are multiple `composer.lock` files - one for each supported major.minor PH
 
 Run 
 ```
-composer run-script -- install-using-generated-lock-dev
+composer run-script -- install_dev_select_generated_lock
 ```
 Instead of the usual `composer install`.
-This will copy composer's lock file for the current PHP version to `composer.lock`
-and run `composer install`
-(with `ELASTIC_OTEL_TOOLS_ALLOW_DIRECT_COMPOSER_COMMAND` environment variable set to `true` to avoid infinite loop).
+This will select one of the generated composer's lock files (the one that corresponds to the current PHP version) and copy it to `<repo root>/composer.lock`
+and install the packages using that `composer.lock` file.
 
 ## To check which dependencies can be updated
 Run
@@ -260,7 +259,7 @@ composer outdated
 1) Update `composer.json` to the desired version of the dependency
 2) Run
 ```
-./tools/build/generate_composer_lock_files.sh && composer run-script -- install-using-generated-lock-dev
+./tools/build/generate_composer_lock_files.sh && composer run-script -- install_dev_select_generated_lock
 ```
 instead of the usual `composer update`
 3) Commit the changes to the composer's lock files

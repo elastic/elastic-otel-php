@@ -206,17 +206,7 @@ function main() {
     docker_run_cmd_line_args+=(-v "${packages_dir}:/elastic_otel_php_tests/packages:ro")
     docker_run_cmd_line_args+=(-v "${logs_dir}:/elastic_otel_php_tests/logs")
 
-    local composer_json_full_path="${elastic_otel_php_build_tools_composer_lock_files_dir:?}/${elastic_otel_php_build_tools_composer_json_for_tests_file_name:?}"
-    docker_run_cmd_line_args+=(-v "${composer_json_full_path}:/composer_to_use.json:ro")
-
     docker_run_cmd_line_args+=(-v "${this_script_dir}/custom_php_config.ini:/elastic_otel_php_tests/php_ini_scan_dir/custom_php_config.ini")
-
-    local PHP_version_no_dot
-    PHP_version_no_dot="$(convert_dot_separated_to_no_dot_version "${ELASTIC_OTEL_PHP_TESTS_PHP_VERSION}")"
-    local composer_lock_file_name
-    composer_lock_file_name="$(build_composer_lock_file_name_for_PHP_version "tests" "${PHP_version_no_dot}")"
-    local composer_lock_full_path="${elastic_otel_php_build_tools_composer_lock_files_dir:?}/${composer_lock_file_name}"
-    docker_run_cmd_line_args+=(-v "${composer_lock_full_path}:/composer_to_use.lock:ro")
 
     if [ "${should_start_external_services}" == "true" ] ; then
         docker_run_cmd_line_args+=("--network=${ELASTIC_OTEL_PHP_TESTS_DOCKER_NETWORK:?}")

@@ -31,7 +31,7 @@ use ElasticOTelTests\ComponentTests\Util\HelperSleepsAndExitsWithArgCode;
 use ElasticOTelTests\ComponentTests\Util\InfraUtilForTests;
 use ElasticOTelTests\ComponentTests\Util\ProcessUtil;
 use ElasticOTelTests\Util\ArrayUtilForTests;
-use ElasticOTelTests\Util\BoolUtil;
+use ElasticOTelTests\Util\BoolUtilForTests;
 use ElasticOTelTests\Util\ClassNameUtil;
 use ElasticOTelTests\Util\Config\OptionForProdName;
 use ElasticOTelTests\Util\DataProviderForTestBuilder;

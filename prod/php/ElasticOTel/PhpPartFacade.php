@@ -28,6 +28,7 @@ namespace Elastic\OTel;
 use Elastic\OTel\HttpTransport\ElasticHttpTransportFactory;
 use Elastic\OTel\InferredSpans\InferredSpans;
 use Elastic\OTel\Log\ElasticLogWriter;
+use Elastic\OTel\Util\BoolUtil;
 use Elastic\OTel\Util\HiddenConstructorTrait;
 use OpenTelemetry\API\Globals;
 use OpenTelemetry\SDK\Registry;
@@ -103,7 +104,7 @@ final class PhpPartFacade
 
         try {
             require __DIR__ . DIRECTORY_SEPARATOR . 'AutoloaderElasticOTelClasses.php';
-            AutoloaderElasticOTelClasses::register(__DIR__);
+            AutoloaderElasticOTelClasses::register('Elastic\\OTel', __DIR__);
 
             InstrumentationBridge::singletonInstance()->bootstrap();
             self::prepareForOTelSdk();
@@ -169,18 +170,9 @@ final class PhpPartFacade
 
     private static function isInDevMode(): bool
     {
-        $modeIsDevEnvVarVal = getenv(self::CONFIG_ENV_VAR_NAME_DEV_INTERNAL_MODE_IS_DEV);
-        if (is_string($modeIsDevEnvVarVal)) {
-            /**
-             * @var string[] $trueStringValues
-             * @noinspection PhpRedundantVariableDocTypeInspection
-             */
-            static $trueStringValues = ['true', 'yes', 'on', '1'];
-            foreach ($trueStringValues as $trueStringValue) {
-                if (strcasecmp($modeIsDevEnvVarVal, $trueStringValue) === 0) {
-                    return true;
-                }
-            }
+        $envVarVal = getenv(self::CONFIG_ENV_VAR_NAME_DEV_INTERNAL_MODE_IS_DEV);
+        if (is_string($envVarVal) && (($parsedVal = BoolUtil::parseValue($envVarVal)) !== null)) {
+            return $parsedVal;
         }
         return false;
     }

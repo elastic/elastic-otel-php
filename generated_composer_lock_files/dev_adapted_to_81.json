@@ -1,12 +1,23 @@
 {
     "name": "elastic/otel-distro",
     "description": "Elastic Distribution for OpenTelemetry PHP",
-    "keywords": [ "elastic", "open telemetry", "OTel", "apm", "tracing", "apm-agent" ],
+    "keywords": [
+        "elastic",
+        "open telemetry",
+        "OTel",
+        "apm",
+        "tracing",
+        "apm-agent"
+    ],
     "type": "project",
     "license": "Apache-2.0",
     "authors": [
-        { "name": "Pawel Filipczak" },
-        { "name": "Sergey Kleyman" }
+        {
+            "name": "Pawel Filipczak"
+        },
+        {
+            "name": "Sergey Kleyman"
+        }
     ],
     "require": {
         "php": "8.1.*||8.2.*||8.3.*||8.4.*",
@@ -32,6 +43,7 @@
         "dealerdirect/phpcodesniffer-composer-installer": "1.0.0",
         "ext-ctype": "*",
         "ext-curl": "*",
+        "ext-mysqli": "*",
         "ext-pgsql": "*",
         "ext-pdo": "*",
         "ext-zlib": "*",
@@ -149,5 +161,47 @@
             "@putenv OTEL_PHP_AUTOLOAD_ENABLED=false",
             "phpunit -c phpunit_component_tests.xml"
         ]
-    }
+    },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "build/packages_adapted_to_PHP_81/open-telemetry/opentelemetry-auto-curl",
+            "options": {
+                "versions": {
+                    "open-telemetry/opentelemetry-auto-curl": "0.0.3"
+                },
+                "symlink": false
+            }
+        },
+        {
+            "type": "path",
+            "url": "build/packages_adapted_to_PHP_81/open-telemetry/opentelemetry-auto-mysqli",
+            "options": {
+                "versions": {
+                    "open-telemetry/opentelemetry-auto-mysqli": "0.0.2"
+                },
+                "symlink": false
+            }
+        },
+        {
+            "type": "path",
+            "url": "build/packages_adapted_to_PHP_81/open-telemetry/opentelemetry-auto-pdo",
+            "options": {
+                "versions": {
+                    "open-telemetry/opentelemetry-auto-pdo": "0.1.1"
+                },
+                "symlink": false
+            }
+        },
+        {
+            "type": "path",
+            "url": "build/packages_adapted_to_PHP_81/open-telemetry/opentelemetry-auto-postgresql",
+            "options": {
+                "versions": {
+                    "open-telemetry/opentelemetry-auto-postgresql": "dev-main"
+                },
+                "symlink": false
+            }
+        }
+    ]
 }

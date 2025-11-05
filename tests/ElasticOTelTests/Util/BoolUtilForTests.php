@@ -30,7 +30,7 @@ use Elastic\OTel\Util\StaticClassTrait;
  *
  * @internal
  */
-final class BoolUtil
+final class BoolUtilForTests
 {
     use StaticClassTrait;
 

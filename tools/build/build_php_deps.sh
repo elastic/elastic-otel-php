@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e -o pipefail
+set -e -u -o pipefail
 #set -x
 
 SKIP_NOTICE=false
@@ -164,7 +164,7 @@ main() {
         fi
 
         local composer_lock_file_name
-        composer_lock_file_name="$(build_composer_lock_file_name_for_PHP_version "prod" "${PHP_version_no_dot}")"
+        composer_lock_file_name="$(build_generated_composer_lock_file_name "prod" "${PHP_version_no_dot}")"
         local composer_lock_full_path="${elastic_otel_php_build_tools_composer_lock_files_dir:?}/${composer_lock_file_name}"
         INSTALLED_SEMCONV_VERSION=$(jq -r '.packages[] | select(.name == "open-telemetry/sem-conv") | .version' "${composer_lock_full_path}")
 
@@ -176,34 +176,23 @@ main() {
             exit 1
         fi
 
-        local composer_additional_cmd_opts=(--ignore-platform-req=ext-mysqli --ignore-platform-req=ext-pgsql --ignore-platform-req=ext-opentelemetry)
-        if [[ "${PHP_version_no_dot}" = "81" ]]; then
-            echo 'Forcing composer to ignore actual PHP version'
-            composer_additional_cmd_opts+=(--ignore-platform-req=php)
-        fi
-
         local vendor_dir="${PWD}/prod/php/vendor_${PHP_version_no_dot}"
         mkdir -p "${vendor_dir}"
 
         local PHP_docker_image
         PHP_docker_image=$(build_light_PHP_docker_image_name_for_version_no_dot "${PHP_version_no_dot}")
 
-        local composer_json_full_path="${elastic_otel_php_build_tools_composer_lock_files_dir:?}/${elastic_otel_php_build_tools_composer_json_for_prod_file_name:?}"
-
         docker run --rm \
             -v "${repo_root_dir}:/repo_root" \
-            -v "${composer_json_full_path}:/repo_root/composer.json:ro" \
-            -v "${composer_lock_full_path}:/repo_root/composer.lock:ro" \
             -v "${vendor_dir}:/repo_root/vendor" \
             -e "GITHUB_SHA=${GITHUB_SHA}" \
             -w "/repo_root" \
             "${PHP_docker_image}" \
             sh -c "\
-                apk update && apk add bash git \
+                apk update && apk add bash git libzip-dev && docker-php-ext-install zip \
                 && git config --global --add safe.directory /repo_root \
                 && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
-                && composer --check-lock --no-check-all validate \
-                && ELASTIC_OTEL_TOOLS_ALLOW_DIRECT_COMPOSER_COMMAND=true composer --no-dev --no-interaction ${composer_additional_cmd_opts[*]} install \
+                && composer run-script -- install_prod_select_generated_json_lock \
                 && chown -R ${current_user_id}:${current_user_group_id} /repo_root/vendor \
                 && chmod -R +r,u+w /repo_root/vendor \
                 ${GEN_NOTICE} \

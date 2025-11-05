@@ -1,8 +1,41 @@
 #!/usr/bin/env bash
-set -e -o pipefail
+set -e -u -o pipefail
 #set -x
 
-build_command_to_derive_composer_json_for_prod() {
+function show_help() {
+    echo "Usage: $0 [optional arguments]"
+    echo
+    echo "Options:"
+    echo "  --keep_temp_files       Optional. Keep temporary files. Default: false (i.e., delete temporary files on both success and failure)."
+    echo
+    echo "Example:"
+    echo "  $0 --keep_temp_files"
+}
+
+# Function to parse arguments
+function parse_args() {
+    export ELASTIC_OTEL_PHP_DEV_KEEP_TEMP_FILES="false"
+
+    while [[ "$#" -gt 0 ]]; do
+        case $1 in
+        --keep_temp_files)
+            export ELASTIC_OTEL_PHP_DEV_KEEP_TEMP_FILES="true"
+            ;;
+        --help)
+            show_help
+            exit 0
+            ;;
+        *)
+            echo "Unknown parameter passed: $1"
+            show_help
+            exit 1
+            ;;
+        esac
+        shift
+    done
+}
+
+function build_command_to_derive_composer_json_for_prod() {
     # Make some inconsequential change to composer.json just to make the one for dev different from the one for production.
     # So that the hash codes are different and ComposerAutoloaderInit<composer.json hash code> classes defined in vendor/composer/autoload_real.php
     # in the installed package and component tests vendor directories have different names.
@@ -10,15 +43,16 @@ build_command_to_derive_composer_json_for_prod() {
     # it does not prevent `Cannot redeclare class` error because those two autoload_real.php files are located in different directories
     # require_once does not help.
 
-    echo "composer --no-scripts --no-update --dev --quiet remove ext-mysqli"
+    echo "composer --no-interaction --no-scripts --no-update --dev --quiet remove ext-mysqli"
 }
 
-should_remove_not_dev_dep_from_composer_json_for_tests() {
+function should_remove_not_dev_dep_from_composer_json_for_tests() {
     dep_name="${1:?}"
 
     local package_prefixes_to_remove_if_present=("open-telemetry/opentelemetry-auto-")
     local packages_to_remove_if_present=("php-http/guzzle7-adapter")
     packages_to_remove_if_present+=("nyholm/psr7-server")
+    packages_to_remove_if_present+=("open-telemetry/exporter-otlp")
     packages_to_remove_if_present+=("open-telemetry/sdk")
 
     for package_prefix_to_remove_if_present in "${package_prefixes_to_remove_if_present[@]}" ; do
@@ -38,7 +72,7 @@ should_remove_not_dev_dep_from_composer_json_for_tests() {
     echo "false"
 }
 
-build_list_of_not_dev_deps_to_remove_from_composer_json_for_tests() {
+function build_list_of_not_dev_deps_to_remove_from_composer_json_for_tests() {
     mapfile -t present_deps_in_quotes< <(jq '."require" | keys | .[]' "${repo_root_dir}/composer.json")
 
     local deps_to_remove=()
@@ -60,7 +94,7 @@ build_list_of_not_dev_deps_to_remove_from_composer_json_for_tests() {
     echo "${deps_to_remove[*]}"
 }
 
-build_command_to_derive_composer_json_for_tests() {
+function build_command_to_derive_composer_json_for_tests() {
     # composer json for tests is used in PHPUnit and application code for component tests context
     # so we would like to not have any dependencies that we don't use in tests code and that should be loaded by EDOT package
     # such as open-telemetry/opentelemetry-auto-*, etc.
@@ -72,33 +106,26 @@ build_command_to_derive_composer_json_for_tests() {
     echo "composer --no-scripts --no-update --quiet remove ${not_dev_deps_to_remove}"
 }
 
-function build_derived_composer_json_full_path() {
+function build_generated_composer_json_full_path() {
     local env_kind="${1:?}"
+    local PHP_version_no_dot="${2:?}"
 
-    local derived_composer_json_file_name
-    case ${env_kind} in
-        prod)
-            derived_composer_json_file_name="${elastic_otel_php_build_tools_composer_json_for_prod_file_name:?}"
-            ;;
-        tests)
-            derived_composer_json_file_name="${elastic_otel_php_build_tools_composer_json_for_tests_file_name:?}"
-            ;;
-        *)
-            echo "There is no way to generate derived composer json for environment kind ${env_kind}"
-            exit 1
-            ;;
-    esac
-
-    echo "${composer_lock_files_temp_dir}/${derived_composer_json_file_name}"
+    local generated_composer_json_file_name
+    generated_composer_json_file_name="$(build_generated_composer_json_file_name "${env_kind}" "${PHP_version_no_dot}")"
+    echo "${generated_composer_lock_files_stage_dir}/${generated_composer_json_file_name}"
 }
 
 function derive_composer_json_for_env_kind() {
     local env_kind="${1:?}"
+    local PHP_version_no_dot="${2:?}"
 
-    echo "Deriving composer json for ${env_kind}..."
+    local base_composer_json_full_path
+    base_composer_json_full_path="$(build_generated_composer_json_full_path "dev" "${PHP_version_no_dot}")"
+
+    echo "Deriving composer json for ${env_kind} from ${base_composer_json_full_path} ..."
 
     local derived_composer_json_full_path
-    derived_composer_json_full_path="$(build_derived_composer_json_full_path "${env_kind}")"
+    derived_composer_json_full_path="$(build_generated_composer_json_full_path "${env_kind}" "${PHP_version_no_dot}")"
 
     local command_to_derive
     case ${env_kind} in
@@ -114,7 +141,7 @@ function derive_composer_json_for_env_kind() {
             ;;
     esac
 
-    cp -f "${original_composer_json_copy_full_path}" "${derived_composer_json_full_path}"
+    cp -f "${base_composer_json_full_path}" "${derived_composer_json_full_path}"
 
     local current_user_id
     current_user_id="$(id -u)"
@@ -137,50 +164,26 @@ function derive_composer_json_for_env_kind() {
             && chmod +r,u+w composer.json \
         "
 
-    echo "Diff between ${original_composer_json_copy_full_path} and ${derived_composer_json_full_path}"
+    echo "Diff between ${base_composer_json_full_path} and ${derived_composer_json_full_path}"
     local has_compared_the_same="true"
-    diff "${original_composer_json_copy_full_path}" "${derived_composer_json_full_path}" || has_compared_the_same="false"
+    diff "${base_composer_json_full_path}" "${derived_composer_json_full_path}" || has_compared_the_same="false"
     if [ "${has_compared_the_same}" = "true" ]; then
-        echo "${original_composer_json_copy_full_path} and ${derived_composer_json_full_path} should be different"
+        echo "${base_composer_json_full_path} and ${derived_composer_json_full_path} should be different"
         exit 1
     fi
 }
 
-generate_composer_lock_for_PHP_version() {
+function generate_composer_lock_for_PHP_version() {
     local env_kind="${1:?}"
     local PHP_version_no_dot="${2:?}"
 
-    local composer_lock_file_name
-    composer_lock_file_name="$(build_composer_lock_file_name_for_PHP_version "${env_kind}" "${PHP_version_no_dot}")"
-
-    echo "Generating ${composer_lock_file_name} ..."
-
-    local composer_additional_cmd_opts=(--ignore-platform-req=ext-mysqli --ignore-platform-req=ext-pgsql --ignore-platform-req=ext-opentelemetry)
-    if [[ "${PHP_version_no_dot}" = "81" ]]; then
-        # We use `--ignore-platform-req=php' and not `config --global platform.php 8.2'
-        # because with the latter approach composer still checks the actual PHP version
-        # when `composer installed' is executed
-        local current_PHP_version
-        current_PHP_version=$(php -r "echo PHP_VERSION;")
-        echo "Forcing composer to ignore actual PHP version (which is ${current_PHP_version})"
-        composer_additional_cmd_opts+=(--ignore-platform-req=php)
-    fi
-
     local composer_json_full_path
-    case ${env_kind} in
-        dev)
-            composer_json_full_path="${original_composer_json_copy_full_path}"
-            ;;
-        prod)
-            ;&
-        tests)
-            composer_json_full_path="$(build_derived_composer_json_full_path "${env_kind}")"
-            ;;
-        *)
-            echo "Unknown environment kind: ${env_kind}"
-            exit 1
-            ;;
-    esac
+    composer_json_full_path="$(build_generated_composer_json_full_path "${env_kind}" "${PHP_version_no_dot}")"
+
+    local composer_lock_file_name
+    composer_lock_file_name="$(build_generated_composer_lock_file_name "${env_kind}" "${PHP_version_no_dot}")"
+
+    echo "Generating ${composer_lock_file_name} from ${composer_json_full_path} ..."
 
     local PHP_docker_image
     PHP_docker_image=$(build_light_PHP_docker_image_name_for_version_no_dot "${PHP_version_no_dot}")
@@ -190,44 +193,99 @@ generate_composer_lock_for_PHP_version() {
 
     docker run --rm \
         -v "${composer_json_full_path}:/repo_root/composer.json:ro" \
-        -v "${composer_lock_files_temp_dir}:/composer_lock_files_temp_dir" \
+        -v "${generated_composer_lock_files_stage_dir}:/generated_composer_lock_files_stage_dir" \
+        -v "${repo_root_stage_dir}/${elastic_otel_php_packages_adapted_to_PHP_81_rel_path:?}:/repo_root/${elastic_otel_php_packages_adapted_to_PHP_81_rel_path:?}" \
         -w "/repo_root" \
         "${PHP_docker_image}" \
         sh -c "\
             curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
-            && composer --no-scripts --no-install --no-interaction ${composer_additional_cmd_opts[*]} update \
-            && cp -f /repo_root/composer.lock /composer_lock_files_temp_dir/${composer_lock_file_name} \
-            && chown ${current_user_id}:${current_user_group_id} /composer_lock_files_temp_dir/${composer_lock_file_name} \
-            && chmod +r,u+w /composer_lock_files_temp_dir/${composer_lock_file_name} \
+            && COMPOSER= composer run-script -- generate_lock_use_current_json \
+            && cp -f /repo_root/composer.lock /generated_composer_lock_files_stage_dir/${composer_lock_file_name} \
+            && chown ${current_user_id}:${current_user_group_id} /generated_composer_lock_files_stage_dir/${composer_lock_file_name} \
+            && chmod +r,u+w /generated_composer_lock_files_stage_dir/${composer_lock_file_name} \
         "
 }
 
-function on_script_exit() {
-    if [[ -d "${composer_lock_files_temp_dir}" ]]; then
-        echo "Deleting directory for temporary files: ${composer_lock_files_temp_dir}"
-        rm -rf "${composer_lock_files_temp_dir}"
+function copy_file() {
+    local src_file="${1:?}"
+    local dst_file="${2:?}"
+
+    echo "Copying ${src_file} to ${dst_file} ..."
+    cp "${src_file}" "${dst_file}"
+}
+
+function delete_dir_contents() {
+    local dir_contents_to_delete="${1:?}"
+
+    if [[ -d "${dir_contents_to_delete}" ]]; then
+        echo "Deleting contents of ${dir_contents_to_delete}/ ..."
+        rm -rf "${dir_contents_to_delete:?}/"*
     fi
 }
 
-main() {
+function delete_temp_dir() {
+    local dir_to_delete="${1:?}"
+
+    if [[ "${ELASTIC_OTEL_PHP_DEV_KEEP_TEMP_FILES:?}" == "true" ]]; then
+        echo "Keeping temporary directory ${dir_to_delete}/"
+        return
+    fi
+
+    echo "Deleting temporary directory ${dir_to_delete}/ ..."
+    rm -rf "${dir_to_delete:?}/"
+}
+
+function on_script_exit() {
+    if [[ -d "${repo_root_stage_dir}" ]]; then
+        delete_temp_dir "${repo_root_stage_dir}"
+    fi
+}
+
+function main() {
     this_script_dir="$(dirname "${BASH_SOURCE[0]}")"
     this_script_dir="$(realpath "${this_script_dir}")"
 
     repo_root_dir="$(realpath "${this_script_dir}/../..")"
     source "${repo_root_dir}/tools/shared.sh"
 
+    # Parse arguments
+    parse_args "$@"
+
     current_user_id="$(id -u)"
     current_user_group_id="$(id -g)"
 
-    composer_lock_files_temp_dir="$(mktemp -d)"
-
     trap on_script_exit EXIT
 
-    original_composer_json_copy_full_path="${composer_lock_files_temp_dir}/${elastic_otel_php_build_tools_composer_json_for_dev_file_name:?}"
-    echo "Copying ${repo_root_dir}/composer.json to ${original_composer_json_copy_full_path}..."
-    cp "${repo_root_dir}/composer.json" "${original_composer_json_copy_full_path}"
+    repo_root_stage_dir="$(mktemp -d)"
+    copy_file "${repo_root_dir}/composer.json" "${repo_root_stage_dir}/composer.json"
+
+    generated_composer_lock_files_stage_dir="${repo_root_stage_dir}/${elastic_otel_php_build_tools_composer_lock_files_dir_name:?}"
+    mkdir -p "${generated_composer_lock_files_stage_dir}"
+
+    local dev_81_composer_json_full_path
+    dev_81_composer_json_full_path="$(build_generated_composer_json_full_path "dev" "81")"
+
+    # composer run-script -- adapt_composer_json_download_and_adapt_packages_to_PHP_81 "${repo_root_stage_dir}" "${dev_81_composer_json_full_path}"
+    #   expects
+    #       - "${repo_root_stage_dir}/composer.json"
+    #   creates
+    #       - "${dev_81_composer_json_full_path}"
+    #       - "${repo_root_stage_dir}/${elastic_otel_php_packages_adapted_to_PHP_81_rel_path:?}/"
+    composer run-script -- adapt_composer_json_download_and_adapt_packages_to_PHP_81 "${repo_root_stage_dir}" "${dev_81_composer_json_full_path}"
+
+    local dev_composer_json_full_path
+    dev_composer_json_full_path="$(build_generated_composer_json_full_path "dev" "not 8.1")"
+    copy_file "${repo_root_dir}/composer.json" "${dev_composer_json_full_path}"
+
+    echo "ls -al ${repo_root_stage_dir}"
+    ls -al "${repo_root_stage_dir}"
+    echo "ls -al ${generated_composer_lock_files_stage_dir}"
+    ls -al "${generated_composer_lock_files_stage_dir}"
+
     for env_kind in "prod" "tests"; do
-        derive_composer_json_for_env_kind "${env_kind}"
+        for PHP_version_no_dot in "81" "not 81"; do
+            derive_composer_json_for_env_kind "${env_kind}" "${PHP_version_no_dot}"
+        done
     done
 
     for PHP_version_no_dot in "${elastic_otel_php_supported_php_versions[@]:?}" ; do
@@ -236,10 +294,17 @@ main() {
         done
     done
 
-    echo "Deleting content of ${elastic_otel_php_build_tools_composer_lock_files_dir:?}/ ..."
-    rm -rf "${elastic_otel_php_build_tools_composer_lock_files_dir:?}"/*
+    mkdir -p "${elastic_otel_php_build_tools_composer_lock_files_dir:?}"
+    delete_dir_contents "${elastic_otel_php_build_tools_composer_lock_files_dir:?}"
+    cp "${generated_composer_lock_files_stage_dir}/"* "${elastic_otel_php_build_tools_composer_lock_files_dir:?}/"
+    # No need for delete_temp_dir "${repo_root_stage_dir}" - ${repo_root_stage_dir} is deleted in on_script_exit()
 
-    mv --force "${composer_lock_files_temp_dir}"/* "${elastic_otel_php_build_tools_composer_lock_files_dir:?}/"
+    composer run-script -- verify_generated_composer_lock_files || true # 'true' always succeeds, preventing script exit
+    exit_code=$?
+    if [ "${exit_code}" -ne 0 ]; then
+        delete_dir_contents "${elastic_otel_php_build_tools_composer_lock_files_dir:?}"
+        exit ${exit_code}
+    fi
 }
 
 main "$@"

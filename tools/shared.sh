@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e -o pipefail
+set -e -u -o pipefail
 #set -x
 
 source "${repo_root_dir:?}/elastic-otel-php.properties"
@@ -11,10 +11,13 @@ export elastic_otel_php_test_groups_short_names=("${test_groups_short_names[@]:?
 export elastic_otel_php_otel_proto_version="${otel_proto_version:?}"
 export elastic_otel_php_native_otlp_exporters_based_on_php_impl_version="${native_otlp_exporters_based_on_php_impl_version:?}"
 
-export elastic_otel_php_build_tools_composer_lock_files_dir="${repo_root_dir:?}/generated_composer_lock_files"
-export elastic_otel_php_build_tools_composer_json_for_dev_file_name="dev.json"
-export elastic_otel_php_build_tools_composer_json_for_prod_file_name="prod.json"
-export elastic_otel_php_build_tools_composer_json_for_tests_file_name="tests.json"
+export elastic_otel_php_build_tools_composer_lock_files_dir_name="generated_composer_lock_files"
+export elastic_otel_php_build_tools_composer_lock_files_dir="${repo_root_dir:?}/${elastic_otel_php_build_tools_composer_lock_files_dir_name:?}"
+
+# Make sure the following value is in sync with the rest of locations where it's used:
+#   - tools/build/AdaptPackagesToPhp81.php
+# The path is relative to repo root
+export elastic_otel_php_packages_adapted_to_PHP_81_rel_path="build/packages_adapted_to_PHP_81"
 
 function get_supported_php_versions_as_string() {
     local supported_php_versions_as_string
@@ -203,7 +206,18 @@ function end_github_workflow_log_group() {
     echo "::endgroup::${group_name}"
 }
 
-function build_composer_lock_file_name_for_PHP_version() {
+function build_generated_composer_json_file_name() {
+    local env_kind="${1:?}"
+    local PHP_version_no_dot="${2:?}"
+
+    if [ "${PHP_version_no_dot}" == "81" ] ; then
+        echo "${env_kind}_adapted_to_${PHP_version_no_dot}.json"
+    else
+        echo "${env_kind}.json"
+    fi
+}
+
+function build_generated_composer_lock_file_name() {
     local env_kind="${1:?}"
     local PHP_version_no_dot="${2:?}"
 
@@ -220,12 +234,14 @@ build_light_PHP_docker_image_name_for_version_no_dot() {
 }
 
 verify_composer_json_in_sync_with_dev_copy() {
-    local dev_copy_full_path="${elastic_otel_php_build_tools_composer_lock_files_dir:?}/${elastic_otel_php_build_tools_composer_json_for_dev_file_name:?}"
+    local dev_composer_json_file_name
+    dev_composer_json_file_name="$(build_generated_composer_json_file_name "dev" "not 8.1")"
+    local dev_composer_json_full_path="${elastic_otel_php_build_tools_composer_lock_files_dir:?}/${dev_composer_json_file_name}"
 
-    diff "${dev_copy_full_path}" "${repo_root_dir}/composer.json" &> /dev/null || has_compared_the_same="false"
+    diff "${dev_composer_json_full_path}" "${repo_root_dir}/composer.json" &> /dev/null || has_compared_the_same="false"
     if [ "${has_compared_the_same}" = "false" ]; then
-        echo "Diff between ${dev_copy_full_path} and ${repo_root_dir}/composer.json"
-        diff "${dev_copy_full_path}" "${repo_root_dir}/composer.json" || true
+        echo "Diff between ${dev_composer_json_full_path} and ${repo_root_dir}/composer.json"
+        diff "${dev_composer_json_full_path}" "${repo_root_dir}/composer.json" || true
         echo "It seems composer.json was changed after generate_composer_lock_files.sh was run - you need to re-run ./tools/build/generate_composer_lock_files.sh"
         exit 1
     fi

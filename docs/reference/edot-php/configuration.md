@@ -142,9 +142,9 @@ The following settings control Central configuration management through OpAMP.
 
 You can modify the following settings for EDOT PHP through APM Agent Central Configuration
 
-| Setting       | Central configuration name | Type    | Versions |
-| ------------- | -------------------------- | ------- | -------- |
-| Logging level | logging_level              | Dynamic | {applies_to}`stack: preview 9.1` {applies_to}`edot_php: preview 1.1.0` |
+| Setting       | Central configuration name | Type    | Versions                                                                 |
+| ------------- | -------------------------- | ------- |--------------------------------------------------------------------------|
+| Logging level | logging_level              | Dynamic | {applies_to}`stack: preview 9.1` {applies_to}`edot_php: preview 1.1.0`   |
 
 Dynamic settings can be changed without having to restart the application or webserver process.
 

@@ -242,11 +242,9 @@ function main() {
     current_github_workflow_log_group_name="Installing PHP dependencies using composer"
     start_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
-    cp -f /composer_to_use.json ./composer.json
-    cp -f /composer_to_use.lock ./composer.lock
     rm -rf ./vendor/ ./prod/php/vendor_*/
     composer --check-lock --no-check-all validate
-    ELASTIC_OTEL_TOOLS_ALLOW_DIRECT_COMPOSER_COMMAND=true composer --no-interaction install
+    composer run-script -- install_tests_select_generated_json_lock
 
     end_github_workflow_log_group "${current_github_workflow_log_group_name}"
 

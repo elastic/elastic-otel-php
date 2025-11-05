@@ -25,11 +25,6 @@ namespace ElasticOTelTests\Util;
 
 use Elastic\OTel\Util\StaticClassTrait;
 
-/**
- * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
- *
- * @internal
- */
 final class ClassNameUtil
 {
     use StaticClassTrait;

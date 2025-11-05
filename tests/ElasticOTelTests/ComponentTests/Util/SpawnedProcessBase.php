@@ -26,7 +26,7 @@ namespace ElasticOTelTests\ComponentTests\Util;
 use Closure;
 use Elastic\OTel\Log\LogLevel;
 use ElasticOTelTests\Util\AmbientContextForTests;
-use ElasticOTelTests\Util\BoolUtil;
+use ElasticOTelTests\Util\BoolUtilForTests;
 use ElasticOTelTests\Util\ClassNameUtil;
 use ElasticOTelTests\Util\EnvVarUtil;
 use ElasticOTelTests\Util\ExceptionUtil;

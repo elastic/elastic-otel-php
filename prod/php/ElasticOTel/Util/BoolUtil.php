@@ -21,18 +21,30 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTests\Util\Log;
+namespace Elastic\OTel\Util;
 
-use Elastic\OTel\Util\StaticClassTrait;
-
-final class LoggableToString
+final class BoolUtil
 {
     use StaticClassTrait;
 
-    public const DEFAULT_LENGTH_LIMIT = 1000;
-
-    public static function convert(mixed $value, bool $prettyPrint = false, int $lengthLimit = self::DEFAULT_LENGTH_LIMIT): string
+    public static function toString(bool $val): string
     {
-        return LoggableToEncodedJson::convert($value, $prettyPrint, $lengthLimit);
+        return $val ? 'true' : 'false';
+    }
+
+    public static function parseValue(string $envVarVal): ?bool
+    {
+        foreach (['true', 'yes', 'on', '1'] as $trueStringValue) {
+            if (strcasecmp($envVarVal, $trueStringValue) === 0) {
+                return true;
+            }
+        }
+        foreach (['false', 'no', 'off', '0'] as $falseStringValue) {
+            if (strcasecmp($envVarVal, $falseStringValue) === 0) {
+                return false;
+            }
+        }
+
+        return null;
     }
 }

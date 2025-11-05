@@ -59,36 +59,16 @@ main() {
         local PHP_docker_image
         PHP_docker_image=$(build_light_PHP_docker_image_name_for_version_no_dot "${PHP_version_no_dot}")
 
-        local composer_json_full_path="${elastic_otel_php_build_tools_composer_lock_files_dir:?}/${elastic_otel_php_build_tools_composer_json_for_tests_file_name:?}"
-
-        local composer_lock_file_name
-        composer_lock_file_name="$(build_composer_lock_file_name_for_PHP_version "tests" "${PHP_version_no_dot}")"
-        local composer_lock_full_path="${elastic_otel_php_build_tools_composer_lock_files_dir:?}/${composer_lock_file_name}"
-
-        local composer_additional_cmd_opts=(--ignore-platform-req=ext-mysqli --ignore-platform-req=ext-pgsql --ignore-platform-req=ext-opentelemetry)
-        if [[ "${PHP_version_no_dot}" = "81" ]]; then
-            # We use `--ignore-platform-req=php' and not `config --global platform.php 8.2'
-            # because with the latter approach composer still checks the actual PHP version
-            # when `composer installed' is executed
-            echo 'Forcing composer to ignore actual PHP version'
-            composer_additional_cmd_opts+=(--ignore-platform-req=php)
-        fi
-
         docker run --rm \
             -v "${PWD}:/repo_root:ro" \
-            -v "${composer_json_full_path}:/composer_to_use.json:ro" \
-            -v "${composer_lock_full_path}:/composer_to_use.lock:ro" \
             -w "/" \
             "${PHP_docker_image}" \
             sh -c "\
                 mkdir -p /tmp/work_dir && cp -r /repo_root /tmp/work_dir/ && cd /tmp/work_dir/repo_root/ \
                 && rm -rf ./vendor/ ./prod/php/vendor_* \
-                && cp -f /composer_to_use.json ./composer.json \
-                && cp -f /composer_to_use.lock ./composer.lock \
                 && apk update && apk add bash git \
                 && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
-                && composer --check-lock --no-check-all validate \
-                && ELASTIC_OTEL_TOOLS_ALLOW_DIRECT_COMPOSER_COMMAND=true composer --no-interaction ${composer_additional_cmd_opts[*]} install \
+                && composer run-script -- install_tests_select_generated_json_lock \
                 && composer run-script -- static_check_and_run_unit_tests \
             "
     done

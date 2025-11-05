@@ -25,7 +25,7 @@ namespace ElasticOTelTests\UnitTests\UtilTests;
 
 use ElasticOTelTests\Util\ArrayUtilForTests;
 use ElasticOTelTests\Util\AssertEx;
-use ElasticOTelTests\Util\BoolUtil;
+use ElasticOTelTests\Util\BoolUtilForTests;
 use ElasticOTelTests\Util\CombinatorialUtil;
 use ElasticOTelTests\Util\DataProviderForTestBuilder;
 use ElasticOTelTests\Util\DebugContext;
@@ -137,7 +137,7 @@ class DataProviderForTestBuilderTest extends TestCaseBase
         self::addHelperKeyedDimension($builder, $onlyFirstValueCombinable);
         $actual = $builder->buildAsMultiUse();
 
-        self::assertCombinationWithHelperDimension(BoolUtil::ALL_NULLABLE_VALUES, $onlyFirstValueCombinable, $actual);
+        self::assertCombinationWithHelperDimension(BoolUtilForTests::ALL_NULLABLE_VALUES, $onlyFirstValueCombinable, $actual);
     }
 
     public function testOneList(): void
@@ -145,7 +145,7 @@ class DataProviderForTestBuilderTest extends TestCaseBase
         $inputList = ['a', 'b', 'c'];
         $expected = IterableUtil::toList(CombinatorialUtil::cartesianProduct([$inputList]));
         AssertEx::equalAsSets([['a'], ['b'], ['c']], $expected);
-        foreach (BoolUtil::ALL_VALUES as $onlyFirstValueCombinable) {
+        foreach (BoolUtilForTests::ALL_VALUES as $onlyFirstValueCombinable) {
             $actual = IterableUtil::toList(
                 $onlyFirstValueCombinable
                     ? (new DataProviderForTestBuilder())
@@ -164,8 +164,8 @@ class DataProviderForTestBuilderTest extends TestCaseBase
      */
     public static function dataProviderForTwoBoolArgs(): iterable
     {
-        foreach (BoolUtil::ALL_VALUES as $onlyFirstValueCombinable1) {
-            foreach (BoolUtil::ALL_VALUES as $onlyFirstValueCombinable2) {
+        foreach (BoolUtilForTests::ALL_VALUES as $onlyFirstValueCombinable1) {
+            foreach (BoolUtilForTests::ALL_VALUES as $onlyFirstValueCombinable2) {
                 yield [$onlyFirstValueCombinable1, $onlyFirstValueCombinable2];
             }
         }

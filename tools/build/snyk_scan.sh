@@ -73,9 +73,11 @@ main() {
         echo "::group::Scanning PHP dependencies for PHP version ${PHP_version_dot_separated} ..."
 
         local composer_lock_file_name
-        composer_lock_file_name="$(build_composer_lock_file_name_for_PHP_version "prod" "${PHP_version_no_dot}")"
+        composer_lock_file_name="$(build_generated_composer_lock_file_name "prod" "${PHP_version_no_dot}")"
         local composer_lock_full_path="${elastic_otel_php_build_tools_composer_lock_files_dir:?}/${composer_lock_file_name}"
-        local composer_json_full_path="${elastic_otel_php_build_tools_composer_lock_files_dir:?}/${elastic_otel_php_build_tools_composer_json_for_prod_file_name:?}"
+        local composer_json_file_name
+        composer_json_file_name="$(build_generated_composer_json_file_name "${env_kind}" "not 8.1")"
+        local composer_json_full_path="${elastic_otel_php_build_tools_composer_lock_files_dir:?}/${composer_json_file_name}"
 
         if [ ! -f "${composer_lock_full_path}" ]; then
             echo "::error Composer lock file not found at ${composer_lock_full_path}"
