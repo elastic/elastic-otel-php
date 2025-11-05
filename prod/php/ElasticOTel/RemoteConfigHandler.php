@@ -51,6 +51,15 @@ final class RemoteConfigHandler
     public const OTEL_LOG_LEVEL_NONE = 'none';
 
     /**
+     * Should be the same as the string used by Kibana
+     * @see https://github.com/elastic/kibana/blob/v9.2.0/x-pack/solutions/observability/plugins/apm/common/agent_configuration/setting_definitions/edot_sdk_settings.ts#L106
+     */
+    public const SAMPLING_RATE_REMOTE_CONFIG_OPTION_NAME = 'sampling_rate';
+    public const OTEL_TRACES_SAMPLER = 'OTEL_TRACES_SAMPLER';
+    public const OTEL_TRACES_SAMPLER_ARG = 'OTEL_TRACES_SAMPLER_ARG';
+    public const OTEL_TRACES_SAMPLER_VALUE_PARENT_BASED_TRACE_ID_RATIO = 'parentbased_traceidratio';
+
+    /**
      * Called by the extension
      *
      * @noinspection PhpUnused
@@ -107,6 +116,11 @@ final class RemoteConfigHandler
         return self::verifyValueType($remoteOptName, $remoteOptVal, 'string', is_string(...));
     }
 
+    private static function verifyValueIsJsonFloat(string $remoteOptName, mixed $remoteOptVal): bool
+    {
+        return self::verifyValueType($remoteOptName, $remoteOptVal, 'float', is_numeric(...));
+    }
+
     private static function convertRemoteLoggingLevelToOTel(string $remoteLoggingLevel): ?string
     {
         /**
@@ -130,7 +144,7 @@ final class RemoteConfigHandler
     }
 
     /**
-     * @see https://github.com/open-telemetry/opentelemetry-php/blob/73ff5adcb8f1db348bedb422de760e475df16841/src/API/Behavior/Internal/Logging.php#L72
+     * @see https://github.com/elastic/kibana/blob/v9.1.0/x-pack/solutions/observability/plugins/apm/common/agent_configuration/setting_definitions/edot_sdk_settings.ts#L59
      */
     private static function parseAndApplyLoggingLevel(mixed $remoteOptVal): void
     {
@@ -157,6 +171,60 @@ final class RemoteConfigHandler
         self::logDebug('Set OTel SDK log level to ' . $otelLogLevel, __LINE__, __FUNCTION__);
     }
 
+    /**
+     * @template T of int|float
+     *
+     * @phpstan-param T $rangeBegin
+     * @phpstan-param T $actual
+     * @phpstan-param T $rangeInclusiveEnd
+     */
+    private static function isInClosedRange(int|float $rangeBegin, int|float $actual, int|float $rangeInclusiveEnd): bool
+    {
+        return ($rangeBegin <= $actual) && ($actual <= $rangeInclusiveEnd);
+    }
+
+    private static function getOTelConfigWithoutRemote(string $otelOptEnvVarName): ?string
+    {
+        $envVarVal = getenv($otelOptEnvVarName);
+        return is_string($envVarVal) ? $envVarVal : null;
+    }
+
+    /**
+     * @see https://github.com/elastic/kibana/blob/v9.2.0/x-pack/solutions/observability/plugins/apm/common/agent_configuration/setting_definitions/edot_sdk_settings.ts#L107
+     */
+    private static function parseAndApplySamplingRate(mixed $remoteOptVal): void
+    {
+        if (!self::verifyValueIsJsonFloat(self::LOGGING_LEVEL_REMOTE_CONFIG_OPTION_NAME, $remoteOptVal)) {
+            return;
+        }
+        /** @var float|int|numeric-string $remoteOptVal */
+        $remoteOptValAsFloat = floatval($remoteOptVal);
+
+        if (!self::isInClosedRange(0, $remoteOptValAsFloat, 1)) {
+            self::logError(
+                'Option ' . self::SAMPLING_RATE_REMOTE_CONFIG_OPTION_NAME . " value is not between 0 and 1: $remoteOptValAsFloat",
+                __LINE__,
+                __FUNCTION__
+            );
+            return;
+        }
+
+        $otelConfigSampler = self::getOTelConfigWithoutRemote(self::OTEL_TRACES_SAMPLER);
+        if ($otelConfigSampler !== null && $otelConfigSampler !== self::OTEL_TRACES_SAMPLER_VALUE_PARENT_BASED_TRACE_ID_RATIO) {
+            self::logDebug(
+                'OpenTelemetry SDK configuration option ' . self::OTEL_TRACES_SAMPLER . " is set to value not compatible with EDOT's remote configuration feature (value: $otelConfigSampler)"
+                . " - not applying sampling rate received via remote configuration (value: $remoteOptValAsFloat).",
+                __LINE__,
+                __FUNCTION__
+            );
+            return;
+        }
+
+        PhpPartFacade::setEnvVar(self::OTEL_TRACES_SAMPLER, self::OTEL_TRACES_SAMPLER_VALUE_PARENT_BASED_TRACE_ID_RATIO);
+        PhpPartFacade::setEnvVar(self::OTEL_TRACES_SAMPLER_ARG, strval($remoteOptValAsFloat));
+        self::logDebug('Set OTel SDK sampling rate to ' . $remoteOptValAsFloat, __LINE__, __FUNCTION__);
+    }
+
     private static function parseAndApplyOption(string $remoteOptName, mixed $remoteOptVal): void
     {
         self::logDebug(
@@ -170,6 +238,7 @@ final class RemoteConfigHandler
 
         match ($remoteOptName) {
             self::LOGGING_LEVEL_REMOTE_CONFIG_OPTION_NAME => self::parseAndApplyLoggingLevel($remoteOptVal),
+            self::SAMPLING_RATE_REMOTE_CONFIG_OPTION_NAME => self::parseAndApplySamplingRate($remoteOptVal),
             default => self::logDebug(
                 'Encountered an option that is not supported as remote configuration option'
                 . '; option name: ' . $remoteOptName

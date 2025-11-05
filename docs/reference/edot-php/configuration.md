@@ -152,12 +152,22 @@ The following settings control Central configuration management through OpAMP.
 
 You can modify the following settings for EDOT PHP through APM Agent Central Configuration
 
-| Setting                    | Central configuration name | Type    | Versions                                                               |
-| -------------------------- | -------------------------- | ------- | ---------------------------------------------------------------------- |
-| Logging level              | logging_level              | Dynamic | {applies_to}`stack: preview 9.1` {applies_to}`edot_php: preview 1.1.0` |
-| Enables the inferred spans | infer_spans                | Dynamic | {applies_to}`stack: preview 9.2` {applies_to}`edot_php: preview 1.2.0` |
+| Setting       | Central configuration name | Type    | Versions |
+| ------------- | -------------------------- | ------- | -------- |
+| Logging level | logging_level              | Dynamic | {applies_to}`stack: preview 9.1` {applies_to}`edot_php: preview 1.1.0` |
+| Sampling rate | sampling_rate              | Dynamic | {applies_to}`stack: preview 9.3` {applies_to}`edot_php: preview 1.2.0` |
 
 Dynamic settings can be changed without having to restart the application or webserver process.
+
+:::{note}
+:applies_to: {"stack": "ga 9.2"}
+Version 9.2 and later of the {{product.elastic-stack}} includes an
+[Advanced configuration section](opentelemetry://reference/central-configuration.md#advanced-configuration) 
+that allows you to define custom configuration options as key-value pairs.
+
+For example, you can configure the `sampling_rate` option for {{product.elastic-stack}} 9.2,
+as long as EDOT PHP is on version 1.2.0 or later, even if `sampling_rate` applies to 9.3 and later.
+:::
 
 ## Prevent logs export
 

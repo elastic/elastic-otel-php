@@ -29,6 +29,7 @@ use Elastic\OTel\RemoteConfigHandler;
 use ElasticOTelTests\Util\TestCaseBase;
 use OpenTelemetry\API\Behavior\Internal\Logging as OTelInternalLogging;
 use OpenTelemetry\SDK\Common\Configuration\Variables as OTelSdkConfigVariables;
+use OpenTelemetry\SDK\Common\Configuration\KnownValues as OTelSdkConfigKnownValues;
 use ReflectionClass;
 
 final class EdotDependenciesOnOTelSdkTest extends TestCaseBase
@@ -53,5 +54,10 @@ final class EdotDependenciesOnOTelSdkTest extends TestCaseBase
 
         self::assertSame(self::getPrivateConstValue(OTelInternalLogging::class, 'OTEL_LOG_LEVEL'), RemoteConfigHandler::LOG_LEVEL_OTEL_OPTION_NAME);
         self::assertSame(self::getPrivateConstValue(OTelInternalLogging::class, 'NONE'), RemoteConfigHandler::OTEL_LOG_LEVEL_NONE);
+
+        self::assertSame(OTelSdkConfigVariables::OTEL_TRACES_SAMPLER, RemoteConfigHandler::OTEL_TRACES_SAMPLER); // @phpstan-ignore staticMethod.alreadyNarrowedType
+        self::assertSame(OTelSdkConfigVariables::OTEL_TRACES_SAMPLER_ARG, RemoteConfigHandler::OTEL_TRACES_SAMPLER_ARG); // @phpstan-ignore staticMethod.alreadyNarrowedType
+        $expected = OTelSdkConfigKnownValues::VALUE_PARENT_BASED_TRACE_ID_RATIO;
+        self::assertSame($expected, RemoteConfigHandler::OTEL_TRACES_SAMPLER_VALUE_PARENT_BASED_TRACE_ID_RATIO); // @phpstan-ignore staticMethod.alreadyNarrowedType
     }
 }
