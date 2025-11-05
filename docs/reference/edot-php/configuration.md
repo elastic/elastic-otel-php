@@ -160,13 +160,13 @@ You can modify the following settings for EDOT PHP through APM Agent Central Con
 Dynamic settings can be changed without having to restart the application or webserver process.
 
 :::{note}
-Stack's version 9.2 and later includes Advanced section of Central Configuration 
-which allows you to define custom configuration options as key-value pairs.
-For example, using Advanced section of Central Configuration
-`sampling_rate` option can be configured even when using stack version 9.2
-(as long as EDOT PHP version is 1.2.0 or later)
-despite the fact that `sampling_rate` appears as a dedicated option in Central Configuration
-for EDOT PHP only from stack version 9.3.
+:applies_to: {"stack": "ga 9.2"}
+Version 9.2 and later of the {{product.elastic-stack}} includes an
+[Advanced configuration section](opentelemetry://reference/central-configuration.md#advanced-configuration) 
+that allows you to define custom configuration options as key-value pairs.
+
+For example, you can configure the `sampling_rate` option for {{product.elastic-stack}} 9.2,
+as long as EDOT PHP is on version 1.2.0 or later, even if `sampling_rate` applies to 9.3 and later.
 :::
 
 ## Prevent logs export
