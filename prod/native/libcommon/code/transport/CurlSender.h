@@ -20,6 +20,7 @@
 #pragma once
 
 #include "LoggerInterface.h"
+#include "transport/HttpEndpointSSLOptions.h"
 
 #include <chrono>
 #include <functional>
@@ -35,7 +36,7 @@ namespace elasticapm::php::transport {
 
 class CurlSender {
 public:
-    CurlSender(std::shared_ptr<LoggerInterface> logger, std::chrono::milliseconds timeout, bool verifyCert);
+    CurlSender(std::shared_ptr<LoggerInterface> logger, std::chrono::milliseconds timeout, HttpEndpointSSLOptions const &sslOptions);
 
     CurlSender(CurlSender &&) = delete;
     CurlSender &operator=(CurlSender &&) = delete;

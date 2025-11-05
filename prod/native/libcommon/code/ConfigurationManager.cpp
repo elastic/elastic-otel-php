@@ -97,7 +97,7 @@ void ConfigurationManager::update() {
     ELOG_DEBUG(logger_, CONFIG, "ConfigurationManager::update new revision: {}", newConfig.revision);
 
     for (auto const &entry : options_) {
-        auto optionVal = fetchStringValue(entry.first);
+        auto optionVal = fetchStringValue(entry.first, entry.second.otelNativeOption);
         if (!optionVal.has_value()) {
             continue; // keep default from snapshot
         }
@@ -141,7 +141,7 @@ void ConfigurationManager::update() {
     current_ = std::move(newConfig);
 }
 
-std::optional<std::string> ConfigurationManager::fetchStringValue(std::string_view name) {
+std::optional<std::string> ConfigurationManager::fetchStringValue(std::string_view name, bool isOtelNativeOption) {
     if (readDynamicOptionValue_) {
         auto dynamicValue = readDynamicOptionValue_(name);
         if (dynamicValue.has_value()) {
@@ -149,14 +149,13 @@ std::optional<std::string> ConfigurationManager::fetchStringValue(std::string_vi
         }
     }
 
-    auto iniName = utils::getIniName(name);
+    auto iniName = isOtelNativeOption ? std::string(name) : utils::getIniName(name);
     auto value = readIniValue_(iniName);
     if (value.has_value()) {
         return value;
     }
 
-    auto envValue = getenv(utils::getEnvName(name).c_str());
-
+    auto envValue = std::getenv(isOtelNativeOption ? std::string(name).c_str() : utils::getEnvName(name).c_str());
     if (!envValue) {
         return std::nullopt;
     }

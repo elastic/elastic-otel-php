@@ -97,7 +97,11 @@ void elasticApmModuleInit(int moduleType, int moduleNumber) {
     zend_observer_fcall_register(elasticapm::php::elasticRegisterObserver);
 
     if (php_check_open_basedir_ex(EAPM_GL(config_)->get(&elasticapm::php::ConfigurationSnapshot::bootstrap_php_part_file).c_str(), false) != 0) {
-        ELOGF_WARNING(globals->logger_, MODULE, "EDOT PHP bootstrap file (%s) is located outside of paths allowed by open_basedir ini setting. Read more details here https://www.elastic.co/docs/reference/opentelemetry/edot-sdks/php/setup/limitations.html", EAPM_GL(config_)->get(&elasticapm::php::ConfigurationSnapshot::bootstrap_php_part_file).c_str());
+        ELOGF_WARNING(globals->logger_, MODULE, "EDOT PHP bootstrap file (%s) is located outside of paths allowed by open_basedir ini setting. Read more details here https://www.elastic.co/docs/reference/opentelemetry/edot-sdks/php/setup/limitations", EAPM_GL(config_)->get(&elasticapm::php::ConfigurationSnapshot::bootstrap_php_part_file).c_str());
+    }
+
+    if (std::getenv("ELASTIC_OTEL_VERIFY_SERVER_CERT") != nullptr) {
+        ELOGF_WARNING(globals->logger_, MODULE, "The ELASTIC_OTEL_VERIFY_SERVER_CERT environment variable is deprecated. Please use OTEL_EXPORTER_OTLP_INSECURE instead. Read more details here https://www.elastic.co/docs/release-notes/edot/sdks/php/breaking-changes");
     }
 
     globals->opAmp_->init();

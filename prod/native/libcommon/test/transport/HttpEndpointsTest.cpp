@@ -65,7 +65,7 @@ TEST_F(HttpEndpointsTests, add_parseError) {
     HttpEndpoint::enpointHeaders_t headers;
     TestableHttpEndpoints endpoints(log_);
 
-    EXPECT_THROW(endpoints.add("local", 1234, false, "some-type", headers, 100ms, 3, 100ms), std::runtime_error);
+    EXPECT_THROW(endpoints.add("local", 1234, "some-type", headers, 100ms, 3, 100ms, HttpEndpointSSLOptions()), std::runtime_error);
     ASSERT_TRUE(endpoints.endpoints_.empty());
     ASSERT_TRUE(endpoints.connections_.empty());
 }
@@ -74,9 +74,11 @@ TEST_F(HttpEndpointsTests, add_SameServer) {
     HttpEndpoint::enpointHeaders_t headers;
     TestableHttpEndpoints endpoints(log_);
 
-    endpoints.add("http://local/traces", 1234, false, "some-type", headers, 100ms, 3, 100ms);
-    endpoints.add("http://local/metrics", 5678, false, "some-type", headers, 100ms, 3, 100ms);
-    endpoints.add("https://local/logs", 9898, false, "some-type", headers, 100ms, 3, 100ms);
+    HttpEndpointSSLOptions options;
+
+    endpoints.add("http://local/traces", 1234, "some-type", headers, 100ms, 3, 100ms, options);
+    endpoints.add("http://local/metrics", 5678, "some-type", headers, 100ms, 3, 100ms, options);
+    endpoints.add("https://local/logs", 9898, "some-type", headers, 100ms, 3, 100ms, options);
     ASSERT_EQ(endpoints.endpoints_.size(), 3u);
     ASSERT_EQ(endpoints.connections_.size(), 2u);
 }
@@ -85,9 +87,10 @@ TEST_F(HttpEndpointsTests, getConnection) {
     HttpEndpoint::enpointHeaders_t cheaders;
     TestableHttpEndpoints endpoints(log_);
 
-    endpoints.add("http://local/traces", 1234, false, "some-type", cheaders, 100ms, 3, 100ms);
-    endpoints.add("http://local/metrics", 5678, false, "some-type", cheaders, 100ms, 3, 100ms);
-    endpoints.add("https://local/logs", 9898, false, "some-type", cheaders, 100ms, 3, 100ms);
+    HttpEndpointSSLOptions options;
+    endpoints.add("http://local/traces", 1234, "some-type", cheaders, 100ms, 3, 100ms, options);
+    endpoints.add("http://local/metrics", 5678, "some-type", cheaders, 100ms, 3, 100ms, options);
+    endpoints.add("https://local/logs", 9898, "some-type", cheaders, 100ms, 3, 100ms, options);
 
     auto [endpointUrl, headers, connId, conn, maxRetries, retryDelay] = endpoints.getConnection(1234);
     ASSERT_EQ(endpointUrl, "http://local/traces");
