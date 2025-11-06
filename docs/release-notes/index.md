@@ -27,6 +27,33 @@ To check for security updates, go to [Security announcements for the Elastic sta
 % ### Fixes [edot-php-X.X.X-fixes]
 % *
 
+
+## 1.2.0 [edot-php-1.2.0-release-notes]
+
+### Features and enhancements [edot-php-1.2.0-features-enhancements]
+
+- Updated OTel SDK to 1.9.0 (PR [#281](https://github.com/elastic/elastic-otel-php/pull/281))
+- Enable PostgreSQL instrumentation (PR [#248](https://github.com/elastic/elastic-otel-php/pull/248))
+- Handle secure connection configuration variables in async http exporter and OpAMP client ([#299](https://github.com/elastic/elastic-otel-php/issues/299)) (PR [#300](https://github.com/elastic/elastic-otel-php/pull/300))
+- Implemented handling of sampling_rate remote config option (PR [#296](https://github.com/elastic/elastic-otel-php/pull/296))
+- Allow to enable inferred spans remotely ([#257](https://github.com/elastic/elastic-otel-php/issues/257)) (PR [#259](https://github.com/elastic/elastic-otel-php/pull/259))
+
+### Fixes [edot-php-1.2.0-fixes]
+
+- Fixed handling of logging_level remote config (PR [#295](https://github.com/elastic/elastic-otel-php/pull/295))
+- Fixed attributes used central configuration in Kibana (PR [#282](https://github.com/elastic/elastic-otel-php/pull/282))
+
+### Other [edot-php-1.2.0-other]
+
+- Capture output from processes spawned by component tests (PR [#290](https://github.com/elastic/elastic-otel-php/pull/290))
+- Allow adding tasks to PeriodicTaskExecutor ([#283](https://github.com/elastic/elastic-otel-php/issues/283)) (PR [#284](https://github.com/elastic/elastic-otel-php/pull/284))
+- Improved link to docs from root README.md (PR [#292](https://github.com/elastic/elastic-otel-php/pull/292))
+- Updated PHPStan to 2.1.31 (PR [#280](https://github.com/elastic/elastic-otel-php/pull/280))
+- Documented logging level remote option (PR [#273](https://github.com/elastic/elastic-otel-php/pull/273))
+- Fixed missing extension in otel unit tests Dockerfile (PR [#262](https://github.com/elastic/elastic-otel-php/pull/262))
+- Scanning for vulnerabilities with Snyk ([#247](https://github.com/elastic/elastic-otel-php/issues/247)) (PR [#258](https://github.com/elastic/elastic-otel-php/pull/258))
+- Pinned dependencies (composer's vendor) versions to make build reproducible (PR [#252](https://github.com/elastic/elastic-otel-php/pull/252))
+
 ## 1.1.1 [edot-php-1.1.1-release-notes]
 
 ### Fixes [edot-php-1.1.1-fixes]
