@@ -146,7 +146,7 @@ export PACKAGE_GOARCHITECTURE="${PACKAGE_GOARCHITECTURE}"
 export PACKAGE_SHA="${PACKAGE_SHA}"
 
 DOCKER_PLATFORM="linux/x86_64"
-if [[ "${BUILD_ARCHITECTURE}" =~ arm64$ ]]; then
+if [[ -n "${BUILD_ARCHITECTURE+x}" ]] && [[ "${BUILD_ARCHITECTURE}" =~ arm64$ ]]; then
      DOCKER_PLATFORM="linux/arm64"
 fi
 echo "Running on platform ${DOCKER_PLATFORM}";
@@ -154,9 +154,9 @@ echo "Running on platform ${DOCKER_PLATFORM}";
 mkdir -p "${PWD}/build/packages"
 envsubst <packaging/nfpm.yaml >${PWD}/build/packages/nfpm.yaml
 
-for pkg in "${PACKAGE_TYPES[@]}"
+for pkg_type in "${PACKAGE_TYPES[@]}"
 do
-    echo "Building package type: ${PKG}"
+    echo "Building package type: ${pkg_type}"
 
     docker run --rm \
         --platform ${DOCKER_PLATFORM} \
@@ -165,7 +165,7 @@ do
         -e PACKAGE_GOARCHITECTURE="${PACKAGE_GOARCHITECTURE}" \
         -e PACKAGE_SHA="${PACKAGE_SHA}" \
         -v ${PWD}:/source \
-        -w /source/packaging goreleaser/nfpm package -f /source/build/packages/nfpm.yaml -t "/source/build/packages" -p ${pkg} | tee /tmp/nfpm_output.txt
+        -w /source/packaging goreleaser/nfpm package -f /source/build/packages/nfpm.yaml -t "/source/build/packages" -p ${pkg_type} | tee /tmp/nfpm_output.txt
 
     PKG_FILENAME=$(grep "created package: " /tmp/nfpm_output.txt | sed 's/^.*: \/source\/build\/packages\///')
 
@@ -179,7 +179,7 @@ do
     md5sum "${PKG_FILENAME}" >"${PKG_FILENAME}".sha512
     popd
 
-    test_package ${pkg} "${PKG_FILENAME}" "${DOCKER_PLATFORM}"
+    test_package ${pkg_type} "${PKG_FILENAME}" "${DOCKER_PLATFORM}"
 
 done
 
