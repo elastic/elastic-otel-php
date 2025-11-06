@@ -251,10 +251,10 @@ function main() {
     end_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
     current_github_workflow_log_group_name="Running component tests for app_host_kind: ${ELASTIC_OTEL_PHP_TESTS_APP_CODE_HOST_KIND}"
-    if [[ -n "${ELASTIC_OTEL_PHP_TESTS_GROUP}" ]]; then # -n is true if string is not empty
+    if [[ -n "${ELASTIC_OTEL_PHP_TESTS_GROUP+x}" ]]; then # -n is true if string is not empty
         current_github_workflow_log_group_name="${current_github_workflow_log_group_name}, test_group: ${ELASTIC_OTEL_PHP_TESTS_GROUP}"
     fi
-    if [[ -n "${ELASTIC_OTEL_PHP_TESTS_FILTER}" ]]; then # -n is true if string is not empty
+    if [[ -n "${ELASTIC_OTEL_PHP_TESTS_FILTER+x}" ]]; then # -n is true if string is not empty
         current_github_workflow_log_group_name="${current_github_workflow_log_group_name}, filter: ${ELASTIC_OTEL_PHP_TESTS_FILTER}"
     fi
     start_github_workflow_log_group "${current_github_workflow_log_group_name}"
