@@ -204,7 +204,7 @@ function main() {
     echo 'Before setting PHP_INI_SCAN_DIR'
     print_info_about_environment
 
-    if [[ -z "${PHP_INI_SCAN_DIR}" ]]; then
+    if [[ -z "${PHP_INI_SCAN_DIR+x}" ]]; then
         # If you include an empty path segment (i.e., with a leading colon),
         # PHP will also scan the directory specified during compilation (via the --with-config-file-scan-dir option).
         # :/some_dir scans the compile-time directory and then /some_dir

@@ -32,6 +32,7 @@ RUN dnf -y update \
         php-json \
         php-mbstring \
         php-mysqli \
+        php-opcache \
         php-pgsql \
         php-zip \
         procps \

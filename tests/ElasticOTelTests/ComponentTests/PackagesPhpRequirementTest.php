@@ -36,11 +36,10 @@ use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\FileUtil;
 use ElasticOTelTests\Util\JsonUtil;
+use PhpParser\Error as PhpParserError;
 use PhpParser\ErrorHandler\Throwing as ThrowingPhpParserErrorHandler;
 use PhpParser\ParserFactory;
 use Throwable;
-
-use function opcache_compile_file;
 
 /**
  * @group does_not_require_external_services
@@ -136,6 +135,7 @@ final class PackagesPhpRequirementTest extends ComponentTestCaseBase
     {
         DebugContext::getCurrentScope(/* out */ $dbgCtx);
 
+        $dbgCtx->pushSubScope();
         foreach (FileUtil::iterateDirectory($prodVendorDir) as $vendorDirChildEntry) {
             if (!$vendorDirChildEntry->isDir()) {
                 continue;
@@ -176,8 +176,10 @@ final class PackagesPhpRequirementTest extends ComponentTestCaseBase
                     return;
                 }
 
+                $packageFqName = "$packageVendor/$packageName";
+                $dbgCtx->add(compact('packageFqName'));
                 self::assertTrue(self::isCurrentPhpVersion81());
-                self::assertTrue(in_array("$packageVendor/$packageName", self::PACKAGES_EXPECTED_NOT_SUPPORT_PHP_81));
+                self::assertTrue(in_array($packageFqName, self::PACKAGES_EXPECTED_NOT_SUPPORT_PHP_81));
                 ++$numberOfPackagesNotSupportCurrentPhpVersion;
             }
         );
@@ -186,15 +188,32 @@ final class PackagesPhpRequirementTest extends ComponentTestCaseBase
 
     private static function verifyPhpFilesValidForCurrentPhpVersion(string $prodVendorDir): void
     {
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
+
         $parser = (new ParserFactory())->createForHostVersion();
         $throwingErrorHandler = new ThrowingPhpParserErrorHandler();
+        $dbgCtx->pushSubScope();
         foreach (FileUtil::iterateOverFilesInDirectoryRecursively($prodVendorDir) as $fileInfo) {
             if ($fileInfo->getExtension() === 'php') {
-                self::assertNotNull($parser->parse(FileUtil::getFileContents($fileInfo->getRealPath()), $throwingErrorHandler));
-                /** @noinspection PhpComposerExtensionStubsInspection */
-                self::assertTrue(opcache_compile_file($fileInfo->getRealPath()));
+                $filePath = $fileInfo->getRealPath();
+                $dbgCtx->resetTopSubScope(compact('filePath'));
+
+                try {
+                    self::assertNotNull($parser->parse(FileUtil::getFileContents($filePath), $throwingErrorHandler));
+                } catch (PhpParserError $parserError) {
+                    $dbgCtx->add(compact('parserError'));
+                    self::fail("PHP parser failed on $filePath: {$parserError->getMessage()}");
+                }
+
+                foreach (self::PACKAGES_EXPECTED_NOT_SUPPORT_PHP_81 as $packageFqName) {
+                    if (str_contains($filePath, "/$$packageFqName/")) {
+                        /** @noinspection PhpComposerExtensionStubsInspection */
+                        self::assertTrue(opcache_compile_file($filePath));
+                    }
+                }
             }
         }
+        $dbgCtx->popSubScope();
     }
 
     public static function appCodeForTestPackagesHaveCorrectPhpVersion(): void

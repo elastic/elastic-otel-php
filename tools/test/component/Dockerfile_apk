@@ -16,6 +16,7 @@ RUN apk update \
 
 RUN docker-php-ext-install \
         mysqli \
+        opcache \
         pgsql \
         zip
 
