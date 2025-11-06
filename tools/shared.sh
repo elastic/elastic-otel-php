@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e -o pipefail
+set -e -u -o pipefail
 #set -x
 
 source "${repo_root_dir:?}/elastic-otel-php.properties"
@@ -17,7 +17,7 @@ export elastic_otel_php_build_tools_composer_json_for_prod_file_name="prod.json"
 export elastic_otel_php_build_tools_composer_json_for_tests_file_name="tests.json"
 
 function get_supported_php_versions_as_string() {
-    local supported_php_versions_as_string
+    local supported_php_versions_as_string=""
     for current_supported_php_version in "${elastic_otel_php_supported_php_versions[@]:?}" ; do
         if [[ -n "${supported_php_versions_as_string}" ]]; then # -n is true if string is not empty
             supported_php_versions_as_string="${supported_php_versions_as_string} ${current_supported_php_version}"
@@ -222,6 +222,7 @@ build_light_PHP_docker_image_name_for_version_no_dot() {
 verify_composer_json_in_sync_with_dev_copy() {
     local dev_copy_full_path="${elastic_otel_php_build_tools_composer_lock_files_dir:?}/${elastic_otel_php_build_tools_composer_json_for_dev_file_name:?}"
 
+    local has_compared_the_same=""
     diff "${dev_copy_full_path}" "${repo_root_dir}/composer.json" &> /dev/null || has_compared_the_same="false"
     if [ "${has_compared_the_same}" = "false" ]; then
         echo "Diff between ${dev_copy_full_path} and ${repo_root_dir}/composer.json"

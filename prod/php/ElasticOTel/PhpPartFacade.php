@@ -170,7 +170,7 @@ final class PhpPartFacade
         return true;
     }
 
-    private static function isInDevMode(): bool
+    public static function isInDevMode(): bool
     {
         $modeIsDevEnvVarVal = getenv(self::CONFIG_ENV_VAR_NAME_DEV_INTERNAL_MODE_IS_DEV);
         if (is_string($modeIsDevEnvVarVal)) {
@@ -203,14 +203,18 @@ final class PhpPartFacade
         self::setEnvVar('OTEL_PHP_AUTOLOAD_ENABLED', 'true');
     }
 
-    private static function registerAutoloaderForVendorDir(): void
+    public static function getVendorDirPath(): string
     {
-        $vendorDir = ProdPhpDir::$fullPath . DIRECTORY_SEPARATOR . (
+        return ProdPhpDir::$fullPath . DIRECTORY_SEPARATOR . (
             self::isInDevMode()
                 ? ('..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'vendor')
                 : ('vendor_' . PHP_MAJOR_VERSION . PHP_MINOR_VERSION)
             );
-        $vendorAutoloadPhp = $vendorDir . '/autoload.php';
+    }
+
+    private static function registerAutoloaderForVendorDir(): void
+    {
+        $vendorAutoloadPhp = self::getVendorDirPath() . '/autoload.php';
         if (!file_exists($vendorAutoloadPhp)) {
             throw new RuntimeException("File $vendorAutoloadPhp does not exist");
         }

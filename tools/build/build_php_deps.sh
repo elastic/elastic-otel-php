@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e -o pipefail
+set -e -u -o pipefail
 #set -x
 
 SKIP_NOTICE=false
@@ -81,6 +81,7 @@ verify_otlp_exporters() {
     local PHP_docker_image
     PHP_docker_image=$(build_light_PHP_docker_image_name_for_version_no_dot "${PHP_version_no_dot}")
 
+    local has_compared_the_same=""
     docker run --rm \
         -v "${vendor_dir}:/new_vendor:ro" \
         -w / \
@@ -190,12 +191,19 @@ main() {
 
         local composer_json_full_path="${elastic_otel_php_build_tools_composer_lock_files_dir:?}/${elastic_otel_php_build_tools_composer_json_for_prod_file_name:?}"
 
+        local GITHUB_SHA_val=""
+        # The ${VAR+x} expansion expands to x if VAR is set (even if empty), and to nothing if VAR is unset.
+        # This allows you to test for its existence without actually using its value.
+        if [ -n "${GITHUB_SHA+x}" ]; then
+            GITHUB_SHA_val="${GITHUB_SHA}"
+        fi
+
         docker run --rm \
             -v "${repo_root_dir}:/repo_root" \
             -v "${composer_json_full_path}:/repo_root/composer.json:ro" \
             -v "${composer_lock_full_path}:/repo_root/composer.lock:ro" \
             -v "${vendor_dir}:/repo_root/vendor" \
-            -e "GITHUB_SHA=${GITHUB_SHA}" \
+            -e "GITHUB_SHA=${GITHUB_SHA_val}" \
             -w "/repo_root" \
             "${PHP_docker_image}" \
             sh -c "\
