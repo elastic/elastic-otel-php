@@ -32,6 +32,7 @@ RUN dnf -y update \
         php-json \
         php-mbstring \
         php-mysqli \
+        php-opcache \
         php-pgsql \
         php-zip \
         procps \
@@ -39,7 +40,6 @@ RUN dnf -y update \
         zip
 
 
-ADD . /repo_root
 WORKDIR /repo_root
 
 ENTRYPOINT exec /repo_root/tools/test/component/docker_entrypoint.sh

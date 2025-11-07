@@ -63,7 +63,8 @@ final class PhpPartFacade
     private static bool $rootSpanEnded = false;
     private ?InferredSpans $inferredSpans = null;
 
-    public const CONFIG_ENV_VAR_NAME_DEV_INTERNAL_MODE_IS_DEV = 'ELASTIC_OTEL_PHP_DEV_INTERNAL_MODE_IS_DEV';
+    public const IS_ENABLED_ENV_VAR_NAME = 'ELASTIC_OTEL_ENABLED';
+    public const MODE_IS_DEV_ENV_VAR_NAME = 'ELASTIC_OTEL_PHP_DEV_INTERNAL_MODE_IS_DEV';
 
     /**
      * Called by the extension
@@ -89,6 +90,17 @@ final class PhpPartFacade
             __CLASS__,
             __FUNCTION__
         );
+
+        if (!self::isEnabled()) {
+            BootstrapStageLogger::logCritical(
+                'bootstrap() is called while EDOT is disabled - aborting bootstrap sequence',
+                __FILE__,
+                __LINE__,
+                __CLASS__,
+                __FUNCTION__
+            );
+            return false;
+        }
 
         if (self::$singletonInstance !== null) {
             BootstrapStageLogger::logCritical(
@@ -170,22 +182,50 @@ final class PhpPartFacade
         return true;
     }
 
-    private static function isInDevMode(): bool
+    private static function stringToBool(string $strVal): ?bool
     {
-        $modeIsDevEnvVarVal = getenv(self::CONFIG_ENV_VAR_NAME_DEV_INTERNAL_MODE_IS_DEV);
-        if (is_string($modeIsDevEnvVarVal)) {
-            /**
-             * @var string[] $trueStringValues
-             * @noinspection PhpRedundantVariableDocTypeInspection
-             */
-            static $trueStringValues = ['true', 'yes', 'on', '1'];
-            foreach ($trueStringValues as $trueStringValue) {
-                if (strcasecmp($modeIsDevEnvVarVal, $trueStringValue) === 0) {
-                    return true;
-                }
+        /**
+         * @var string[] $trueStringValues
+         * @noinspection PhpRedundantVariableDocTypeInspection
+         */
+        static $trueStringValues = ['true', 'yes', 'on', '1'];
+        foreach ($trueStringValues as $trueStringValue) {
+            if (strcasecmp($strVal, $trueStringValue) === 0) {
+                return true;
             }
         }
-        return false;
+
+        /**
+         * @var string[] $falseStringValues
+         * @noinspection PhpRedundantVariableDocTypeInspection
+         */
+        static $falseStringValues = ['false', 'no', 'off', '0'];
+        foreach ($falseStringValues as $falseStringValue) {
+            if (strcasecmp($strVal, $falseStringValue) === 0) {
+                return false;
+            }
+        }
+
+        return null;
+    }
+
+    private static function getBoolEnvVar(string $envVarName, bool $default): bool
+    {
+        $envVarVal = getenv($envVarName);
+        if (is_string($envVarVal) && (($parsedVal = self::stringToBool($envVarVal)) !== null)) {
+            return $parsedVal;
+        }
+        return $default;
+    }
+
+    private static function isEnabled(): bool
+    {
+        return self::getBoolEnvVar(self::IS_ENABLED_ENV_VAR_NAME, default: true);
+    }
+
+    public static function isInDevMode(): bool
+    {
+        return self::getBoolEnvVar(self::MODE_IS_DEV_ENV_VAR_NAME, default: false);
     }
 
     /**
@@ -203,14 +243,18 @@ final class PhpPartFacade
         self::setEnvVar('OTEL_PHP_AUTOLOAD_ENABLED', 'true');
     }
 
-    private static function registerAutoloaderForVendorDir(): void
+    public static function getVendorDirPath(): string
     {
-        $vendorDir = ProdPhpDir::$fullPath . DIRECTORY_SEPARATOR . (
+        return ProdPhpDir::$fullPath . DIRECTORY_SEPARATOR . (
             self::isInDevMode()
                 ? ('..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'vendor')
                 : ('vendor_' . PHP_MAJOR_VERSION . PHP_MINOR_VERSION)
             );
-        $vendorAutoloadPhp = $vendorDir . '/autoload.php';
+    }
+
+    private static function registerAutoloaderForVendorDir(): void
+    {
+        $vendorAutoloadPhp = self::getVendorDirPath() . '/autoload.php';
         if (!file_exists($vendorAutoloadPhp)) {
             throw new RuntimeException("File $vendorAutoloadPhp does not exist");
         }

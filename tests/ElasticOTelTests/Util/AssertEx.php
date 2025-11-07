@@ -108,6 +108,21 @@ final class AssertEx
     }
 
     /**
+     * @template TKey of array-key
+     * @template TValue
+     *
+     * @phpstan-param TKey $expectedKey
+     * @phpstan-param array<TKey, TValue> $actualArray
+     *
+     * @phpstan-return TValue
+     */
+    public static function arrayHasKey(string|int $expectedKey, array $actualArray): mixed
+    {
+        Assert::assertArrayHasKey($expectedKey, $actualArray);
+        return $actualArray[$expectedKey];
+    }
+
+    /**
      * @template T
      *
      * @param ?T $actual
