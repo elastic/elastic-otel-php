@@ -248,6 +248,10 @@ function main() {
     composer --check-lock --no-check-all validate
     ELASTIC_OTEL_TOOLS_ALLOW_DIRECT_COMPOSER_COMMAND=true composer --no-interaction install
 
+    # Allow access from docker's host under non-root user to files created by composer install command above
+    chown -R "${ELASTIC_OTEL_PHP_TESTS_DOCKER_RUNNING_USER_ID:?}:${ELASTIC_OTEL_PHP_TESTS_DOCKER_RUNNING_USER_GROUP_ID:?}" .
+    chmod -R 777 .
+
     end_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
     current_github_workflow_log_group_name="Running component tests for app_host_kind: ${ELASTIC_OTEL_PHP_TESTS_APP_CODE_HOST_KIND}"
