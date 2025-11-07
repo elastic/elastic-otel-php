@@ -24,13 +24,39 @@ declare(strict_types=1);
 namespace ElasticOTelTests\ComponentTests;
 
 use Composer\Semver\Semver;
+use Elastic\OTel\PhpPartFacade;
+use ElasticOTelTests\ComponentTests\Util\AppCodeHostParams;
+use ElasticOTelTests\ComponentTests\Util\AppCodeTarget;
+use ElasticOTelTests\ComponentTests\Util\ComponentTestCaseBase;
+use ElasticOTelTests\ComponentTests\Util\EnvVarUtilForTests;
+use ElasticOTelTests\ComponentTests\Util\OTelUtil;
+use ElasticOTelTests\ComponentTests\Util\ProcessUtil;
+use ElasticOTelTests\ComponentTests\Util\WaitForOTelSignalCounts;
+use ElasticOTelTests\Util\AssertEx;
+use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\FileUtil;
-use ElasticOTelTests\Util\TestCaseBase;
-use ElasticOTelTests\Util\VendorDir;
+use ElasticOTelTests\Util\JsonUtil;
+use ElasticOTelTests\Util\TimeUtil;
+use PhpParser\Error as PhpParserError;
+use PhpParser\ErrorHandler\Throwing as ThrowingPhpParserErrorHandler;
+use PhpParser\ParserFactory;
+use SplFileInfo;
 use Throwable;
 
-final class PackagesPhpRequirementTest extends TestCaseBase
+/**
+ * @group does_not_require_external_services
+ */
+final class PackagesPhpRequirementTest extends ComponentTestCaseBase
 {
+    private const PROD_VENDOR_DIR_KEY = 'prod_vendor_dir';
+
+    private const PACKAGES_EXPECTED_NOT_SUPPORT_PHP_81 = [
+        'open-telemetry/opentelemetry-auto-curl',
+        'open-telemetry/opentelemetry-auto-mysqli',
+        'open-telemetry/opentelemetry-auto-pdo',
+        'open-telemetry/opentelemetry-auto-postgresql',
+    ];
+
     public function testSemverConstraint(): void
     {
         $assertSatisfies = function (string $version, string $constraint): void {
@@ -72,19 +98,196 @@ final class PackagesPhpRequirementTest extends TestCaseBase
         $assertThrows('8.1.2.3-extra', '^8.1');
     }
 
-    public function testAllPackagesHaveCorrectPhpVersionReq(): void
+    private static function isCurrentPhpVersion81(): bool
     {
-        foreach (FileUtil::iterateDirectory(VendorDir::getFullPath()) as $vendorDirChildEntry) {
+        // If the current PHP version is 8.1.*
+        // @phpstan-ignore-next-line
+        return (80100 <= PHP_VERSION_ID) && (PHP_VERSION_ID < 80200);
+    }
+
+    private static function getCurrentPhpVersion(): string
+    {
+        // PHP_VERSION: 5.3.6-13ubuntu3.2
+        // PHP_EXTRA_VERSION: -13ubuntu3.2
+
+        if (PHP_EXTRA_VERSION === '') {
+            return PHP_VERSION;
+        }
+
+        self::assertStringEndsWith(PHP_EXTRA_VERSION, PHP_VERSION);
+        return substr(PHP_VERSION, offset: 0, length: strlen(PHP_VERSION) - strlen(PHP_EXTRA_VERSION));
+    }
+
+    private static function getPackagePhpVersionConstraints(string $packageDir): ?string
+    {
+        $packageComposerJsonFilePath = FileUtil::listToPath([$packageDir, 'composer.json']);
+        if (!file_exists($packageComposerJsonFilePath)) {
+            return null;
+        }
+        $jsonEncoded = FileUtil::getFileContents($packageComposerJsonFilePath);
+        $jsonDecoded = AssertEx::isArray(JsonUtil::decode($jsonEncoded, asAssocArray: true));
+        $requireMap = AssertEx::isArray(AssertEx::arrayHasKey('require', $jsonDecoded));
+        return AssertEx::isString(AssertEx::arrayHasKey('php', $requireMap));
+    }
+
+    /**
+     * @param callable(string $packageVendor, string $packageName): void $code
+     */
+    private static function callForEachPackage(string $prodVendorDir, callable $code): void
+    {
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
+
+        $dbgCtx->pushSubScope();
+        foreach (FileUtil::iterateDirectory($prodVendorDir) as $vendorDirChildEntry) {
             if (!$vendorDirChildEntry->isDir()) {
                 continue;
             }
+            $dbgCtx->resetTopSubScope(compact('vendorDirChildEntry'));
+
+            $dbgCtx->pushSubScope();
             foreach (FileUtil::iterateDirectory($vendorDirChildEntry->getRealPath()) as $vendorDirGrandChildEntry) {
                 if (!$vendorDirGrandChildEntry->isDir()) {
                     continue;
                 }
+                $dbgCtx->resetTopSubScope(compact('vendorDirGrandChildEntry'));
 
-                $packageDir = $vendorDirGrandChildEntry;
+                $code($vendorDirChildEntry->getBasename(), $vendorDirGrandChildEntry->getBasename());
+            }
+            $dbgCtx->popSubScope();
+        }
+        $dbgCtx->popSubScope();
+    }
+
+    private static function assertOpcacheEnabled(): void
+    {
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
+        $opcacheStatus = AssertEx::isArray(opcache_get_status());
+        $dbgCtx->add(compact('opcacheStatus'));
+        $opcacheEnabled = AssertEx::isBool(AssertEx::arrayHasKey('opcache_enabled', $opcacheStatus));
+        self::assertTrue($opcacheEnabled);
+    }
+
+    private static function verifyPackagesPhpVersion(string $prodVendorDir): void
+    {
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
+        $currentPhpVersion = self::getCurrentPhpVersion();
+        $dbgCtx->add(compact('currentPhpVersion'));
+
+        $numberOfPackagesNotSupportCurrentPhpVersion = 0;
+        self::callForEachPackage(
+            $prodVendorDir,
+            function (string $packageVendor, string $packageName) use ($prodVendorDir, $dbgCtx, $currentPhpVersion, &$numberOfPackagesNotSupportCurrentPhpVersion) {
+                $packageDir = FileUtil::listToPath([$prodVendorDir, $packageVendor, $packageName]);
+                if (($phpVersionConstraints = self::getPackagePhpVersionConstraints($packageDir)) === null) {
+                    return;
+                }
+
+                $dbgCtx->add(compact('phpVersionConstraints'));
+                if (Semver::satisfies($currentPhpVersion, $phpVersionConstraints)) {
+                    return;
+                }
+
+                $packageFqName = "$packageVendor/$packageName";
+                $dbgCtx->add(compact('packageFqName'));
+                self::assertTrue(self::isCurrentPhpVersion81());
+                if (!in_array($packageFqName, self::PACKAGES_EXPECTED_NOT_SUPPORT_PHP_81)) {
+                    self::fail(
+                        'Encountered a package with PHP constraints that are not satisfied by the current PHP version; '
+                        . "package: $packageFqName, PHP constraints: $phpVersionConstraints, current PHP version: $currentPhpVersion"
+                    );
+                }
+                ++$numberOfPackagesNotSupportCurrentPhpVersion;
+            }
+        );
+        self::assertSame(self::isCurrentPhpVersion81() ? count(self::PACKAGES_EXPECTED_NOT_SUPPORT_PHP_81) : 0, $numberOfPackagesNotSupportCurrentPhpVersion);
+    }
+
+    private static function containsHiddenDirInPath(string $filePath): bool
+    {
+        $pathParts = explode(DIRECTORY_SEPARATOR, $filePath);
+        foreach ($pathParts as $pathPart) {
+            if (str_starts_with($pathPart, '.')) {
+                return true;
             }
         }
+        return false;
+    }
+
+    private static function validatePhpFilesUseParser(string $prodVendorDir): void
+    {
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
+
+        $loggerProxy = self::getLoggerStatic(__NAMESPACE__, __CLASS__, __FILE__)->ifDebugLevelEnabledNoLine(__FUNCTION__);
+        $loggerProxy?->log(__LINE__, 'Entered', compact('prodVendorDir'));
+
+        $parser = (new ParserFactory())->createForHostVersion();
+        $throwingErrorHandler = new ThrowingPhpParserErrorHandler();
+        $dbgCtx->pushSubScope();
+        foreach (FileUtil::iterateOverFilesInDirectoryRecursively($prodVendorDir) as $fileInfo) {
+            $filePath = $fileInfo->getRealPath();
+            if ($fileInfo->getExtension() !== 'php' || self::containsHiddenDirInPath($filePath)) {
+                continue;
+            }
+
+            $dbgCtx->resetTopSubScope(compact('filePath'));
+            $loggerProxy?->log(__LINE__, '', compact('filePath'));
+
+            try {
+                $tokens = $parser->parse(FileUtil::getFileContents($filePath), $throwingErrorHandler);
+                self::assertNotNull($tokens);
+            } catch (PhpParserError $parserError) {
+                $dbgCtx->add(compact('parserError'));
+                self::fail("PHP parser failed on $filePath: {$parserError->getMessage()}");
+            }
+        }
+        $dbgCtx->popSubScope();
+    }
+
+    private static function validatePhpFilesUseOpCache(string $prodVendorDir): void
+    {
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
+
+        $loggerProxy = self::getLoggerStatic(__NAMESPACE__, __CLASS__, __FILE__)->ifDebugLevelEnabledNoLine(__FUNCTION__);
+        $loggerProxy?->log(__LINE__, 'Entered', compact('prodVendorDir'));
+
+        $helperScript = __DIR__ . DIRECTORY_SEPARATOR . 'helperToTestPackagesPhpRequirement.php';
+        $helperScriptFileInfo = new SplFileInfo($helperScript);
+        $procInfo = ProcessUtil::startProcessAndWaitForItToExit(
+            dbgProcessName: $helperScriptFileInfo->getBasename($helperScriptFileInfo->getExtension()),
+            command: "php \"$helperScript\" \"$prodVendorDir\"",
+            envVars: EnvVarUtilForTests::getAll(),
+            maxWaitTimeInMicroseconds: intval(TimeUtil::secondsToMicroseconds(60)) // 1 minute
+        );
+        $dbgCtx->add(compact('procInfo'));
+        self::assertSame(0, $procInfo['exitCode']);
+    }
+
+    public static function appCodeForTestPackagesHaveCorrectPhpVersion(): void
+    {
+        OTelUtil::addActiveSpanAttributes([self::PROD_VENDOR_DIR_KEY => PhpPartFacade::getVendorDirPath()]);
+    }
+
+    public function testPackagesHaveCorrectPhpVersion(): void
+    {
+        self::assertOpcacheEnabled();
+
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
+
+        $testCaseHandle = $this->getTestCaseHandle();
+
+        $appCodeHost = $testCaseHandle->ensureMainAppCodeHost(
+            function (AppCodeHostParams $appCodeParams): void {
+                self::ensureTransactionSpanEnabled($appCodeParams);
+            }
+        );
+        $appCodeHost->execAppCode(AppCodeTarget::asRouted([__CLASS__, 'appCodeForTestPackagesHaveCorrectPhpVersion']));
+
+        $agentBackendComms = $testCaseHandle->waitForEnoughAgentBackendComms(WaitForOTelSignalCounts::spans(1)); // exactly 1 span (the root span) is expected
+        $dbgCtx->add(compact('agentBackendComms'));
+        $prodVendorDir = FileUtil::normalizePath($agentBackendComms->singleSpan()->attributes->getString(self::PROD_VENDOR_DIR_KEY));
+
+        self::verifyPackagesPhpVersion($prodVendorDir);
+        self::validatePhpFilesUseParser($prodVendorDir);
+        self::validatePhpFilesUseOpCache($prodVendorDir);
     }
 }

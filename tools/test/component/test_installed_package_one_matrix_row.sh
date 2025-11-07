@@ -18,11 +18,11 @@ function main() {
 
     composer_command=(composer run-script -- run_component_tests)
 
-    if [ -n "${ELASTIC_OTEL_PHP_TESTS_GROUP}" ]; then
+    if [ -n "${ELASTIC_OTEL_PHP_TESTS_GROUP+x}" ]; then
         composer_command=("${composer_command[@]}" --group "${ELASTIC_OTEL_PHP_TESTS_GROUP}")
     fi
 
-    if [ -n "${ELASTIC_OTEL_PHP_TESTS_FILTER}" ]; then
+    if [ -n "${ELASTIC_OTEL_PHP_TESTS_FILTER+x}" ]; then
         composer_command=("${composer_command[@]}" --filter "${ELASTIC_OTEL_PHP_TESTS_FILTER}")
     fi
 

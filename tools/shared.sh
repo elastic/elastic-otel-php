@@ -130,7 +130,7 @@ function select_elastic_otel_package_file() {
     local architecture_adapted_to_package_type
     architecture_adapted_to_package_type=$(adapt_architecture_to_package_type "${architecture}" "${package_type}")
 
-    local found_files
+    local found_files=""
     local found_files_count=0
     for current_file in "${packages_dir}"/*"${architecture_adapted_to_package_type}.${package_type}"; do
         if [[ -n "${found_files}" ]]; then # -n is true if string is not empty

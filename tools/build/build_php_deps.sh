@@ -190,6 +190,13 @@ main() {
             GITHUB_SHA_val="${GITHUB_SHA}"
         fi
 
+        local GITHUB_SHA_val=""
+        # The ${VAR+x} expansion expands to x if VAR is set (even if empty), and to nothing if VAR is unset.
+        # This allows you to test for its existence without actually using its value.
+        if [ -n "${GITHUB_SHA+x}" ]; then
+            GITHUB_SHA_val="${GITHUB_SHA}"
+        fi
+
         docker run --rm \
             -v "${repo_root_dir}:/repo_root" \
             -v "${vendor_dir}:/repo_root/vendor" \

@@ -25,12 +25,14 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests;
 
+use Elastic\OTel\PhpPartFacade;
 use Elastic\OTel\Util\StaticClassTrait;
 use ElasticOTelTests\Util\AmbientContextForTests;
 use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\ExceptionUtil;
 use ElasticOTelTests\Util\Log\LoggableToJsonEncodable;
 use ElasticOTelTests\Util\Log\LoggingSubsystem;
+use PHPUnit\Framework\Assert;
 
 final class BootstrapTests
 {
@@ -49,6 +51,9 @@ final class BootstrapTests
         LoggableToJsonEncodable::$maxDepth = self::LOG_COMPOSITE_DATA_MAX_DEPTH_IN_TEST_MODE;
 
         DebugContext::ensureInited();
+
+        // PHP part of EDOT should not be loaded in the tests context
+        Assert::assertFalse(PhpPartFacade::$wasBootstrapCalled);
     }
 
     public static function bootstrapTool(string $dbgProcessName): void

@@ -26,9 +26,13 @@ namespace ElasticOTelTests\Util;
 use Closure;
 use DirectoryIterator;
 use Elastic\OTel\Util\StaticClassTrait;
+use Elastic\OTel\Util\TextUtil;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
 use ElasticOTelTests\Util\Log\LoggableToString;
 use PHPUnit\Framework\Assert;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
+use RuntimeException;
 use SplFileInfo;
 
 final class FileUtil
@@ -116,6 +120,7 @@ final class FileUtil
         return $tempFileFullPath;
     }
 
+
     /**
      * @return iterable<SplFileInfo>
      */
@@ -126,7 +131,42 @@ final class FileUtil
                 continue;
             }
 
-            yield $fileInfo->getRealPath();
+            yield $fileInfo;
         }
+    }
+
+    /**
+     * @param string $dirFullPath
+     *
+     * @return iterable<SplFileInfo>
+     */
+    public static function iterateOverFilesInDirectoryRecursively(string $dirFullPath): iterable
+    {
+        $dirIter = new RecursiveDirectoryIterator($dirFullPath);
+        foreach (new RecursiveIteratorIterator($dirIter) as $fileInfo) {
+            Assert::assertInstanceOf(SplFileInfo::class, $fileInfo);
+            if ($fileInfo->isFile()) {
+                yield $fileInfo;
+            }
+        }
+    }
+
+    public static function getFileContents(string $filePath): string
+    {
+        $result = file_get_contents($filePath);
+        if (!is_string($result)) {
+            throw new RuntimeException("Failed to get file contents; file path: `$filePath'");
+        }
+        return $result;
+    }
+
+    /** @noinspection PhpUnused */
+    public static function putFileContents(string $filePath, string $contents): int
+    {
+        $result = file_put_contents($filePath, $contents);
+        if (!is_int($result)) {
+            throw new RuntimeException("Failed to put file contents; file path: `$filePath'; contents length: " . strlen($contents));
+        }
+        return $result;
     }
 }

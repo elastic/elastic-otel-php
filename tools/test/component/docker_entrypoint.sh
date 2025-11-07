@@ -204,7 +204,7 @@ function main() {
     echo 'Before setting PHP_INI_SCAN_DIR'
     print_info_about_environment
 
-    if [[ -z "${PHP_INI_SCAN_DIR}" ]]; then
+    if [[ -z "${PHP_INI_SCAN_DIR+x}" ]]; then
         # If you include an empty path segment (i.e., with a leading colon),
         # PHP will also scan the directory specified during compilation (via the --with-config-file-scan-dir option).
         # :/some_dir scans the compile-time directory and then /some_dir
@@ -246,13 +246,17 @@ function main() {
     composer --check-lock --no-check-all validate
     composer run-script -- install_tests_select_generated_json_lock
 
+    # Allow access from docker's host under non-root user to files created by composer install command above
+    chown -R "${ELASTIC_OTEL_PHP_TESTS_DOCKER_RUNNING_USER_ID:?}:${ELASTIC_OTEL_PHP_TESTS_DOCKER_RUNNING_USER_GROUP_ID:?}" .
+    chmod -R 777 .
+
     end_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
     current_github_workflow_log_group_name="Running component tests for app_host_kind: ${ELASTIC_OTEL_PHP_TESTS_APP_CODE_HOST_KIND}"
-    if [[ -n "${ELASTIC_OTEL_PHP_TESTS_GROUP}" ]]; then # -n is true if string is not empty
+    if [[ -n "${ELASTIC_OTEL_PHP_TESTS_GROUP+x}" ]]; then # -n is true if string is not empty
         current_github_workflow_log_group_name="${current_github_workflow_log_group_name}, test_group: ${ELASTIC_OTEL_PHP_TESTS_GROUP}"
     fi
-    if [[ -n "${ELASTIC_OTEL_PHP_TESTS_FILTER}" ]]; then # -n is true if string is not empty
+    if [[ -n "${ELASTIC_OTEL_PHP_TESTS_FILTER+x}" ]]; then # -n is true if string is not empty
         current_github_workflow_log_group_name="${current_github_workflow_log_group_name}, filter: ${ELASTIC_OTEL_PHP_TESTS_FILTER}"
     fi
     start_github_workflow_log_group "${current_github_workflow_log_group_name}"
