@@ -30,15 +30,19 @@ use Elastic\OTel\PhpPartFacade;
 use ElasticOTelTests\ComponentTests\Util\AppCodeHostParams;
 use ElasticOTelTests\ComponentTests\Util\AppCodeTarget;
 use ElasticOTelTests\ComponentTests\Util\ComponentTestCaseBase;
+use ElasticOTelTests\ComponentTests\Util\EnvVarUtilForTests;
 use ElasticOTelTests\ComponentTests\Util\OTelUtil;
+use ElasticOTelTests\ComponentTests\Util\ProcessUtil;
 use ElasticOTelTests\ComponentTests\Util\WaitForOTelSignalCounts;
 use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\FileUtil;
 use ElasticOTelTests\Util\JsonUtil;
+use ElasticOTelTests\Util\TimeUtil;
 use PhpParser\Error as PhpParserError;
 use PhpParser\ErrorHandler\Throwing as ThrowingPhpParserErrorHandler;
 use PhpParser\ParserFactory;
+use SplFileInfo;
 use Throwable;
 
 /**
@@ -156,6 +160,15 @@ final class PackagesPhpRequirementTest extends ComponentTestCaseBase
         $dbgCtx->popSubScope();
     }
 
+    private static function assertOpcacheEnabled(): void
+    {
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
+        $opcacheStatus = AssertEx::isArray(opcache_get_status());
+        $dbgCtx->add(compact('opcacheStatus'));
+        $opcacheEnabled = AssertEx::isBool(AssertEx::arrayHasKey('opcache_enabled', $opcacheStatus));
+        self::assertTrue($opcacheEnabled);
+    }
+
     private static function verifyPackagesPhpVersion(string $prodVendorDir): void
     {
         DebugContext::getCurrentScope(/* out */ $dbgCtx);
@@ -179,41 +192,76 @@ final class PackagesPhpRequirementTest extends ComponentTestCaseBase
                 $packageFqName = "$packageVendor/$packageName";
                 $dbgCtx->add(compact('packageFqName'));
                 self::assertTrue(self::isCurrentPhpVersion81());
-                self::assertTrue(in_array($packageFqName, self::PACKAGES_EXPECTED_NOT_SUPPORT_PHP_81));
+                if (!in_array($packageFqName, self::PACKAGES_EXPECTED_NOT_SUPPORT_PHP_81)) {
+                    self::fail(
+                        'Encountered a package with PHP constraints that are not satisfied by the current PHP version; '
+                        . "package: $packageFqName, PHP constraints: $phpVersionConstraints, current PHP version: $currentPhpVersion"
+                    );
+                }
                 ++$numberOfPackagesNotSupportCurrentPhpVersion;
             }
         );
         self::assertSame(self::isCurrentPhpVersion81() ? count(self::PACKAGES_EXPECTED_NOT_SUPPORT_PHP_81) : 0, $numberOfPackagesNotSupportCurrentPhpVersion);
     }
 
-    private static function verifyPhpFilesValidForCurrentPhpVersion(string $prodVendorDir): void
+    private static function containsHiddenDirInPath(string $filePath): bool
+    {
+        $pathParts = explode(DIRECTORY_SEPARATOR, $filePath);
+        foreach ($pathParts as $pathPart) {
+            if (str_starts_with($pathPart, '.')) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static function validatePhpFilesUseParser(string $prodVendorDir): void
     {
         DebugContext::getCurrentScope(/* out */ $dbgCtx);
+
+        $loggerProxy = self::getLoggerStatic(__NAMESPACE__, __CLASS__, __FILE__)->ifDebugLevelEnabledNoLine(__FUNCTION__);
+        $loggerProxy?->log(__LINE__, 'Entered', compact('prodVendorDir'));
 
         $parser = (new ParserFactory())->createForHostVersion();
         $throwingErrorHandler = new ThrowingPhpParserErrorHandler();
         $dbgCtx->pushSubScope();
         foreach (FileUtil::iterateOverFilesInDirectoryRecursively($prodVendorDir) as $fileInfo) {
-            if ($fileInfo->getExtension() === 'php') {
-                $filePath = $fileInfo->getRealPath();
-                $dbgCtx->resetTopSubScope(compact('filePath'));
+            $filePath = $fileInfo->getRealPath();
+            if ($fileInfo->getExtension() !== 'php' || self::containsHiddenDirInPath($filePath)) {
+                continue;
+            }
 
-                try {
-                    self::assertNotNull($parser->parse(FileUtil::getFileContents($filePath), $throwingErrorHandler));
-                } catch (PhpParserError $parserError) {
-                    $dbgCtx->add(compact('parserError'));
-                    self::fail("PHP parser failed on $filePath: {$parserError->getMessage()}");
-                }
+            $dbgCtx->resetTopSubScope(compact('filePath'));
+            $loggerProxy?->log(__LINE__, '', compact('filePath'));
 
-                foreach (self::PACKAGES_EXPECTED_NOT_SUPPORT_PHP_81 as $packageFqName) {
-                    if (str_contains($filePath, "/$$packageFqName/")) {
-                        /** @noinspection PhpComposerExtensionStubsInspection */
-                        self::assertTrue(opcache_compile_file($filePath));
-                    }
-                }
+            try {
+                $tokens = $parser->parse(FileUtil::getFileContents($filePath), $throwingErrorHandler);
+                self::assertNotNull($tokens);
+            } catch (PhpParserError $parserError) {
+                $dbgCtx->add(compact('parserError'));
+                self::fail("PHP parser failed on $filePath: {$parserError->getMessage()}");
             }
         }
         $dbgCtx->popSubScope();
+    }
+
+    private static function validatePhpFilesUseOpCache(string $prodVendorDir): void
+    {
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
+
+        $loggerProxy = self::getLoggerStatic(__NAMESPACE__, __CLASS__, __FILE__)->ifDebugLevelEnabledNoLine(__FUNCTION__);
+        $loggerProxy?->log(__LINE__, 'Entered', compact('prodVendorDir'));
+
+        $helperScript = __DIR__ . DIRECTORY_SEPARATOR . 'helperToTestPackagesPhpRequirement.php';
+        $helperScriptFileInfo = new SplFileInfo($helperScript);
+        $procInfo = ProcessUtil::startProcessAndWaitForItToExit(
+            dbgProcessName: $helperScriptFileInfo->getBasename($helperScriptFileInfo->getExtension()),
+            command: "php \"$helperScript\" \"$prodVendorDir\"",
+            envVars: EnvVarUtilForTests::getAll(),
+            maxWaitTimeInMicroseconds: intval(TimeUtil::secondsToMicroseconds(60)) // 1 minute
+        );
+        $dbgCtx->add(compact('procInfo'));
+        self::assertSame(0, $procInfo['exitCode']);
     }
 
     public static function appCodeForTestPackagesHaveCorrectPhpVersion(): void
@@ -223,10 +271,7 @@ final class PackagesPhpRequirementTest extends ComponentTestCaseBase
 
     public function testPackagesHaveCorrectPhpVersion(): void
     {
-        if (PhpPartFacade::isInDevMode()) {
-            self::dummyAssert();
-            return;
-        }
+        self::assertOpcacheEnabled();
 
         DebugContext::getCurrentScope(/* out */ $dbgCtx);
 
@@ -241,9 +286,10 @@ final class PackagesPhpRequirementTest extends ComponentTestCaseBase
 
         $agentBackendComms = $testCaseHandle->waitForEnoughAgentBackendComms(WaitForOTelSignalCounts::spans(1)); // exactly 1 span (the root span) is expected
         $dbgCtx->add(compact('agentBackendComms'));
-        $prodVendorDir = $agentBackendComms->singleSpan()->attributes->getString(self::PROD_VENDOR_DIR_KEY);
+        $prodVendorDir = FileUtil::normalizePath($agentBackendComms->singleSpan()->attributes->getString(self::PROD_VENDOR_DIR_KEY));
 
         self::verifyPackagesPhpVersion($prodVendorDir);
-        self::verifyPhpFilesValidForCurrentPhpVersion($prodVendorDir);
+        self::validatePhpFilesUseParser($prodVendorDir);
+        self::validatePhpFilesUseOpCache($prodVendorDir);
     }
 }

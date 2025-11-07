@@ -22,7 +22,6 @@ RUN docker-php-ext-install \
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-ADD . /repo_root
 WORKDIR /repo_root
 
 ENTRYPOINT exec /repo_root/tools/test/component/docker_entrypoint.sh
