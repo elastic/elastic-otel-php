@@ -1,4 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -e -u -o pipefail
+#set -x
 
 this_script_dir="$( dirname "${BASH_SOURCE[0]}" )"
 this_script_dir="$( realpath "${this_script_dir}" )"
@@ -62,7 +64,7 @@ parse_args() {
 
 parse_args "$@"
 
-if [[ -z "$PACKAGE_VERSION" ]] || [[ -z "$BUILD_ARCHITECUTRE" ]] || [[ -z "$PACKAGE_GOARCHITECTURE" ]] || [[ -z "$PACKAGE_TYPES" ]]; then
+if [[ -z "${PACKAGE_VERSION+x}" ]] || [[ -z "${BUILD_ARCHITECUTRE+x}" ]] || [[ -z "${PACKAGE_GOARCHITECTURE+x}" ]] || [[ -z "${PACKAGE_TYPES+x}" ]]; then
     echo "Error: Missing required arguments."
     show_help
     exit 1
