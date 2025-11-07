@@ -225,7 +225,7 @@ final class PhpPartFacade
 
     public static function isInDevMode(): bool
     {
-        return self::getBoolEnvVar(self::MODE_IS_DEV_ENV_VAR_NAME, default: true);
+        return self::getBoolEnvVar(self::MODE_IS_DEV_ENV_VAR_NAME, default: false);
     }
 
     /**
