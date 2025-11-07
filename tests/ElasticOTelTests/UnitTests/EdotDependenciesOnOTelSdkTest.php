@@ -37,8 +37,7 @@ final class EdotDependenciesOnOTelSdkTest extends TestCaseBase
     /**
      * @param class-string<object> $classFqName
      *
-     * @noinspection PhpSameParameterValueInspection
-     * @noinspection PhpDocMissingThrowsInspection
+     * @noinspection PhpDocMissingThrowsInspection, PhpSameParameterValueInspection
      */
     private static function getPrivateConstValue(string $classFqName, string $constName): mixed
     {

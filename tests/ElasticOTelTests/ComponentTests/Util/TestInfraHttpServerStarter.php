@@ -58,12 +58,12 @@ final class TestInfraHttpServerStarter extends HttpServerStarter
     #[Override]
     protected function buildCommandLine(array $ports): string
     {
-        $runScriptNameFullPath = FileUtil::listToPath([__DIR__, $this->runScriptName]);
+        $runScriptNameFullPath = FileUtil::partsToPath(__DIR__, $this->runScriptName);
         if (!file_exists($runScriptNameFullPath)) {
             throw new ConfigException(ExceptionUtil::buildMessage('Run script does not exist', array_merge(['runScriptName' => $this->runScriptName], compact('runScriptNameFullPath'))));
         }
 
-        return 'php ' . '"' . FileUtil::listToPath([__DIR__, $this->runScriptName]) . '"';
+        return 'php ' . '"' . FileUtil::partsToPath(__DIR__, $this->runScriptName) . '"';
     }
 
     /** @inheritDoc */

@@ -23,6 +23,7 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests;
 
+use Elastic\OTel\Util\BoolUtil;
 use ElasticOTelTests\ComponentTests\Util\ComponentTestCaseBase;
 use ElasticOTelTests\ComponentTests\Util\ConfigUtilForTests;
 use ElasticOTelTests\ComponentTests\Util\DbgProcessNameGenerator;
@@ -31,7 +32,6 @@ use ElasticOTelTests\ComponentTests\Util\HelperSleepsAndExitsWithArgCode;
 use ElasticOTelTests\ComponentTests\Util\InfraUtilForTests;
 use ElasticOTelTests\ComponentTests\Util\ProcessUtil;
 use ElasticOTelTests\Util\ArrayUtilForTests;
-use ElasticOTelTests\Util\BoolUtilForTests;
 use ElasticOTelTests\Util\ClassNameUtil;
 use ElasticOTelTests\Util\Config\OptionForProdName;
 use ElasticOTelTests\Util\DataProviderForTestBuilder;
@@ -39,10 +39,6 @@ use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\FileUtil;
 use ElasticOTelTests\Util\MixedMap;
 
-/**
- * @group smoke
- * @group does_not_require_external_services
- */
 final class ProcessUtilTest extends ComponentTestCaseBase
 {
     private const EXIT_CODE = 'exit_code';
@@ -81,7 +77,7 @@ final class ProcessUtilTest extends ComponentTestCaseBase
         }
 
         $dbgProcessName = DbgProcessNameGenerator::generate(ClassNameUtil::fqToShort(HelperSleepsAndExitsWithArgCode::class));
-        $runHelperScriptFullPath = FileUtil::listToPath([__DIR__, 'Util', 'runHelperSleepsAndExitsWithArgCode.php']);
+        $runHelperScriptFullPath = FileUtil::partsToPath(__DIR__, 'Util', 'runHelperSleepsAndExitsWithArgCode.php');
         $command = "php \"$runHelperScriptFullPath\" $helperToSleepSeconds $exitCode";
         $baseEnvVars = EnvVarUtilForTests::getAll();
         $additionalEnvVars = [

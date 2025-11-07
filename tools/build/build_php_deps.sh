@@ -81,6 +81,7 @@ verify_otlp_exporters() {
     local PHP_docker_image
     PHP_docker_image=$(build_light_PHP_docker_image_name_for_version_no_dot "${PHP_version_no_dot}")
 
+    local has_compared_the_same=""
     docker run --rm \
         -v "${vendor_dir}:/new_vendor:ro" \
         -w / \
@@ -182,14 +183,21 @@ main() {
         local PHP_docker_image
         PHP_docker_image=$(build_light_PHP_docker_image_name_for_version_no_dot "${PHP_version_no_dot}")
 
+        local GITHUB_SHA_val=""
+        # The ${VAR+x} expansion expands to x if VAR is set (even if empty), and to nothing if VAR is unset.
+        # This allows you to test for its existence without actually using its value.
+        if [ -n "${GITHUB_SHA+x}" ]; then
+            GITHUB_SHA_val="${GITHUB_SHA}"
+        fi
+
         docker run --rm \
             -v "${repo_root_dir}:/repo_root" \
             -v "${vendor_dir}:/repo_root/vendor" \
-            -e "GITHUB_SHA=${GITHUB_SHA}" \
+            -e "GITHUB_SHA=${GITHUB_SHA_val}" \
             -w "/repo_root" \
             "${PHP_docker_image}" \
             sh -c "\
-                apk update && apk add bash git libzip-dev && docker-php-ext-install zip \
+                apk update && apk add bash git \
                 && git config --global --add safe.directory /repo_root \
                 && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
                 && composer run-script -- install_prod_select_generated_json_lock \

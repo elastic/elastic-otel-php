@@ -20,7 +20,7 @@ export elastic_otel_php_build_tools_composer_lock_files_dir="${repo_root_dir:?}/
 export elastic_otel_php_packages_adapted_to_PHP_81_rel_path="build/packages_adapted_to_PHP_81"
 
 function get_supported_php_versions_as_string() {
-    local supported_php_versions_as_string
+    local supported_php_versions_as_string=""
     for current_supported_php_version in "${elastic_otel_php_supported_php_versions[@]:?}" ; do
         if [[ -n "${supported_php_versions_as_string}" ]]; then # -n is true if string is not empty
             supported_php_versions_as_string="${supported_php_versions_as_string} ${current_supported_php_version}"
@@ -224,7 +224,7 @@ function build_generated_composer_lock_file_name() {
     echo "${env_kind}_${PHP_version_no_dot}.lock"
 }
 
-build_light_PHP_docker_image_name_for_version_no_dot() {
+function build_light_PHP_docker_image_name_for_version_no_dot() {
     local PHP_version_no_dot="${1:?}"
 
     local PHP_version_dot_separated
@@ -233,11 +233,12 @@ build_light_PHP_docker_image_name_for_version_no_dot() {
     echo "php:${PHP_version_dot_separated}-cli-alpine"
 }
 
-verify_composer_json_in_sync_with_dev_copy() {
+function verify_composer_json_in_sync_with_dev_copy() {
     local dev_composer_json_file_name
     dev_composer_json_file_name="$(build_generated_composer_json_file_name "dev" "not 8.1")"
     local dev_composer_json_full_path="${elastic_otel_php_build_tools_composer_lock_files_dir:?}/${dev_composer_json_file_name}"
 
+    local has_compared_the_same="true"
     diff "${dev_composer_json_full_path}" "${repo_root_dir}/composer.json" &> /dev/null || has_compared_the_same="false"
     if [ "${has_compared_the_same}" = "false" ]; then
         echo "Diff between ${dev_composer_json_full_path} and ${repo_root_dir}/composer.json"

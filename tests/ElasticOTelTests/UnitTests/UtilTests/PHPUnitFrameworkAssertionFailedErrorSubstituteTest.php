@@ -88,8 +88,8 @@ final class PHPUnitFrameworkAssertionFailedErrorSubstituteTest extends TestCaseB
         $pathToVendorSubDir = VendorDir::adaptRelativeUnixStylePath('phpunit/phpunit/src');
 
         yield [
-            FileUtil::listToPath([$pathToOriginalSubDir, FileUtil::adaptUnixDirectorySeparators('AssertionFailedError.php')]),
-            FileUtil::listToPath([$pathToVendorSubDir, FileUtil::adaptUnixDirectorySeparators('Framework/Exception/AssertionFailedError.php')]),
+            FileUtil::partsToPath($pathToOriginalSubDir, FileUtil::adaptUnixDirectorySeparators('AssertionFailedError.php')),
+            FileUtil::partsToPath($pathToVendorSubDir, FileUtil::adaptUnixDirectorySeparators('Framework/Exception/AssertionFailedError.php')),
         ];
     }
 

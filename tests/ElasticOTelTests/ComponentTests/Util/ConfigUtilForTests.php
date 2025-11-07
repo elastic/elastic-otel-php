@@ -24,8 +24,8 @@ declare(strict_types=1);
 namespace ElasticOTelTests\ComponentTests\Util;
 
 use Elastic\OTel\PhpPartFacade;
+use Elastic\OTel\Util\BoolUtil;
 use Elastic\OTel\Util\StaticClassTrait;
-use ElasticOTelTests\Util\BoolUtilForTests;
 use ElasticOTelTests\Util\Config\ConfigSnapshotForTests;
 use ElasticOTelTests\Util\Config\OptionForProdName;
 use ElasticOTelTests\Util\Config\OptionsForTestsMetadata;

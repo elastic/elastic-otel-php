@@ -23,6 +23,7 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\UnitTests\UtilTests;
 
+use Elastic\OTel\Util\BoolUtil;
 use ElasticOTelTests\Util\BoolUtilForTests;
 use PHPUnit\Framework\TestCase;
 

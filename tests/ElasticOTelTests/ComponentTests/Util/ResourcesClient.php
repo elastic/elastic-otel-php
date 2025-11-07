@@ -23,8 +23,8 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
+use Elastic\OTel\Util\BoolUtil;
 use ElasticOTelTests\Util\AmbientContextForTests;
-use ElasticOTelTests\Util\BoolUtilForTests;
 use ElasticOTelTests\Util\ClassNameUtil;
 use ElasticOTelTests\Util\FileUtil;
 use ElasticOTelTests\Util\HttpMethods;

@@ -27,10 +27,6 @@ namespace ElasticOTelTools\Build;
 
 use Elastic\OTel\Util\ArrayUtil;
 use Elastic\OTel\Util\BoolUtil;
-use ElasticOTelTests\Util\AssertEx;
-use ElasticOTelTests\Util\FileUtil;
-use ElasticOTelTests\Util\JsonUtil;
-use PHPUnit\Framework\Assert;
 use RuntimeException;
 
 /**
@@ -68,23 +64,19 @@ final class AdaptPackagesToPhp81
      */
     public static function adaptComposerJsonDownloadAndAdaptPackages(array $cmdLineArgs): void
     {
-        TempDevEnv::runCodeDependingOnDevEnv(
-            function () use ($cmdLineArgs): void {
-                Assert::assertCount(2, $cmdLineArgs);
-                $repoRootStageDir = $cmdLineArgs[0];
-                $adaptedRepoRootComposerJsonDstFile = $cmdLineArgs[1];
-                Assert::assertDirectoryExists($repoRootStageDir);
-                Assert::assertFileDoesNotExist($adaptedRepoRootComposerJsonDstFile);
+        ComposerScripts::assertCount(2, $cmdLineArgs);
+        $repoRootStageDir = $cmdLineArgs[0];
+        $adaptedRepoRootComposerJsonDstFile = $cmdLineArgs[1];
+        ComposerScripts::assertDirectoryExists($repoRootStageDir);
+        ComposerScripts::assertFileDoesNotExist($adaptedRepoRootComposerJsonDstFile);
 
-                $repoRootComposerJsonSrcFile = FileUtil::listToPath([$repoRootStageDir, NoDevEnvUtil::COMPOSER_JSON_FILE_NAME]);
-                $adaptedPackagesDir = FileUtil::listToPath([$repoRootStageDir, FileUtil::adaptUnixDirectorySeparators(self::PACKAGES_ADAPTED_TO_PHP_81_REL_PATH)]);
-                NoDevEnvUtil::createDirectory($adaptedPackagesDir);
-                $packagesNameToVersion = self::downloadAndAdaptPackages($repoRootComposerJsonSrcFile, $adaptedPackagesDir);
+        $repoRootComposerJsonSrcFile = ComposerScripts::partsToPath($repoRootStageDir, ComposerScripts::COMPOSER_JSON_FILE_NAME);
+        $adaptedPackagesDir = ComposerScripts::partsToPath($repoRootStageDir, ComposerScripts::adaptUnixDirectorySeparators(self::PACKAGES_ADAPTED_TO_PHP_81_REL_PATH));
+        ComposerScripts::createDirectory($adaptedPackagesDir);
+        $packagesNameToVersion = self::downloadAndAdaptPackages($repoRootComposerJsonSrcFile, $adaptedPackagesDir);
 
-                NoDevEnvUtil::copyFile($repoRootComposerJsonSrcFile, $adaptedRepoRootComposerJsonDstFile);
-                self::adaptRepoRootComposerJson($packagesNameToVersion, $adaptedRepoRootComposerJsonDstFile);
-            },
-        );
+        ComposerScripts::copyFile($repoRootComposerJsonSrcFile, $adaptedRepoRootComposerJsonDstFile);
+        self::adaptRepoRootComposerJson($packagesNameToVersion, $adaptedRepoRootComposerJsonDstFile);
     }
 
     public static function isCurrentPhpVersion81(): bool
@@ -96,57 +88,44 @@ final class AdaptPackagesToPhp81
 
     public static function installSelectJsonLock(string $envKind): void
     {
-        TempDevEnv::runCodeDependingOnDevEnv(
-            function () use ($envKind): void {
-                $repoRootPath = NoDevEnvUtil::getRepoRootPath();
-                $tempDirAboveAdaptedPackagesName = NoDevEnvUtil::getFirstDirFromUnixPath(self::PACKAGES_ADAPTED_TO_PHP_81_REL_PATH);
-                $tempDirAboveAdaptedPackagesPath = FileUtil::listToPath([$repoRootPath, $tempDirAboveAdaptedPackagesName]);
-                $tempDirAboveAdaptedPackageExisted = file_exists($tempDirAboveAdaptedPackagesPath);
-                $adaptedPackagesDir = FileUtil::listToPath([$repoRootPath, FileUtil::adaptUnixDirectorySeparators(self::PACKAGES_ADAPTED_TO_PHP_81_REL_PATH)]);
-                if (file_exists($adaptedPackagesDir)) {
-                    NoDevEnvUtil::deleteDirectoryContents($adaptedPackagesDir);
-                } else {
-                    NoDevEnvUtil::createTempDirectory($adaptedPackagesDir);
-                }
-                NoDevEnvUtil::runCodeAndCleanUp(
-                    function () use ($repoRootPath, $envKind, $adaptedPackagesDir): void {
-                        $repoRootComposerJson = FileUtil::listToPath([$repoRootPath, NoDevEnvUtil::COMPOSER_JSON_FILE_NAME]);
-                        self::downloadAndAdaptPackages($repoRootComposerJson, $adaptedPackagesDir);
-                        $generatedComposerJsonPath = NoDevEnvUtil::buildToGeneratedFileFullPath($repoRootPath, NoDevEnvUtil::buildGeneratedComposerJsonFileNameForCurrentPhpVersion($envKind));
-                        $composerJsonToUseRelPath = self::COMPOSER_JSON_LOCK_ADAPTED_TO_PHP_81_REL_PATH_NO_EXT . '.json';
-                        $composerJsonToUsePath = FileUtil::listToPath([$repoRootPath, $composerJsonToUseRelPath]);
-                        NoDevEnvUtil::copyFile($generatedComposerJsonPath, $composerJsonToUsePath);
-                        $generatedComposerLockPath = NoDevEnvUtil::buildToGeneratedFileFullPath($repoRootPath, NoDevEnvUtil::buildGeneratedComposerLockFileNameForCurrentPhpVersion($envKind));
-                        $composerLockToUsePath = FileUtil::listToPath([$repoRootPath, self::COMPOSER_JSON_LOCK_ADAPTED_TO_PHP_81_REL_PATH_NO_EXT . '.lock']);
-                        NoDevEnvUtil::copyFile($generatedComposerLockPath, $composerLockToUsePath);
-                        NoDevEnvUtil::verifyThatComposerJsonAndLockAreInSync(composerJsonFilePath: $composerJsonToUseRelPath);
-                        NoDevEnvUtil::execComposerInstallShellCommand(
-                            withDev: self::convertEnvKindToWithDev($envKind),
-                            envVars: [
-                                NoDevEnvUtil::ALLOW_DIRECT_COMPOSER_COMMAND_ENV_VAR_NAME => BoolUtil::toString(true),
-                                NoDevEnvUtil::COMPOSER_ENV_VAR_NAME => $composerJsonToUseRelPath,
-                            ],
-                        );
-                    },
-                    cleanUp: function () use ($adaptedPackagesDir, $tempDirAboveAdaptedPackageExisted, $tempDirAboveAdaptedPackagesPath): void {
-                        if ($tempDirAboveAdaptedPackageExisted) {
-                            NoDevEnvUtil::deleteTempDirectory($adaptedPackagesDir);
-                        } else {
-                            NoDevEnvUtil::deleteTempDirectory($tempDirAboveAdaptedPackagesPath);
-                        }
-                    },
+        $repoRootPath = ComposerScripts::getRepoRootPath();
+        $tempDirAboveAdaptedPackagesName = ComposerScripts::getFirstDirFromUnixPath(self::PACKAGES_ADAPTED_TO_PHP_81_REL_PATH);
+        $tempDirAboveAdaptedPackagesPath = ComposerScripts::partsToPath($repoRootPath, $tempDirAboveAdaptedPackagesName);
+        $tempDirAboveAdaptedPackageExisted = file_exists($tempDirAboveAdaptedPackagesPath);
+        $adaptedPackagesDir = ComposerScripts::partsToPath($repoRootPath, ComposerScripts::adaptUnixDirectorySeparators(self::PACKAGES_ADAPTED_TO_PHP_81_REL_PATH));
+        if (file_exists($adaptedPackagesDir)) {
+            ComposerScripts::deleteDirectoryContents($adaptedPackagesDir);
+        } else {
+            ComposerScripts::createTempDirectory($adaptedPackagesDir);
+        }
+        ComposerScripts::runCodeAndCleanUp(
+            function () use ($repoRootPath, $envKind, $adaptedPackagesDir): void {
+                $repoRootComposerJson = ComposerScripts::partsToPath($repoRootPath, ComposerScripts::COMPOSER_JSON_FILE_NAME);
+                self::downloadAndAdaptPackages($repoRootComposerJson, $adaptedPackagesDir);
+                $generatedComposerJsonPath = ComposerScripts::buildToGeneratedFileFullPath($repoRootPath, ComposerScripts::buildGeneratedComposerJsonFileNameForCurrentPhpVersion($envKind));
+                $composerJsonToUseRelPath = self::COMPOSER_JSON_LOCK_ADAPTED_TO_PHP_81_REL_PATH_NO_EXT . '.json';
+                $composerJsonToUsePath = ComposerScripts::partsToPath($repoRootPath, $composerJsonToUseRelPath);
+                ComposerScripts::copyFile($generatedComposerJsonPath, $composerJsonToUsePath);
+                $generatedComposerLockPath = ComposerScripts::buildToGeneratedFileFullPath($repoRootPath, ComposerScripts::buildGeneratedComposerLockFileNameForCurrentPhpVersion($envKind));
+                $composerLockToUsePath = ComposerScripts::partsToPath($repoRootPath, self::COMPOSER_JSON_LOCK_ADAPTED_TO_PHP_81_REL_PATH_NO_EXT . '.lock');
+                ComposerScripts::copyFile($generatedComposerLockPath, $composerLockToUsePath);
+                ComposerScripts::verifyThatComposerJsonAndLockAreInSync(composerJsonFilePath: $composerJsonToUseRelPath);
+                ComposerScripts::execComposerInstallShellCommand(
+                    withDev: ComposerScripts::convertEnvKindToWithDev($envKind),
+                    envVars: [
+                        ComposerScripts::ALLOW_DIRECT_COMPOSER_COMMAND_ENV_VAR_NAME => BoolUtil::toString(true),
+                        ComposerScripts::COMPOSER_ENV_VAR_NAME => $composerJsonToUseRelPath,
+                    ],
                 );
             },
+            cleanUp: function () use ($adaptedPackagesDir, $tempDirAboveAdaptedPackageExisted, $tempDirAboveAdaptedPackagesPath): void {
+                if ($tempDirAboveAdaptedPackageExisted) {
+                    ComposerScripts::deleteTempDirectory($adaptedPackagesDir);
+                } else {
+                    ComposerScripts::deleteTempDirectory($tempDirAboveAdaptedPackagesPath);
+                }
+            },
         );
-    }
-
-    private static function convertEnvKindToWithDev(string $envKind): bool
-    {
-        return match ($envKind) {
-            NoDevEnvUtil::DEV_ENV_KIND, NoDevEnvUtil::TESTS_ENV_KIND => true,
-            NoDevEnvUtil::PROD_ENV_KIND => false,
-            default => throw new RuntimeException("Unexpected envKind: $envKind"),
-        };
     }
 
     /**
@@ -154,26 +133,24 @@ final class AdaptPackagesToPhp81
      */
     private static function downloadAndAdaptPackages(string $repoRootComposerJsonSrcFile, string $adaptedPackagesDir): array
     {
-        $workDir = FileUtil::listToPath([$adaptedPackagesDir, 'work']);
-        NoDevEnvUtil::createTempDirectory($workDir);
-        $packagesNameToVersion = NoDevEnvUtil::runCodeAndCleanUp(
+        $packagesNameToVersion = ComposerScripts::runCodeOnTempDir(
+            ComposerScripts::fqClassNameToShort(__CLASS__) . '_work_',
             /**
              * @phpstan-return array<string, string>
              */
-            function () use ($repoRootComposerJsonSrcFile, $workDir, $adaptedPackagesDir): array {
-                $minimalComposerJsonFilePath = FileUtil::listToPath([$workDir, NoDevEnvUtil::COMPOSER_JSON_FILE_NAME]);
-                NoDevEnvUtil::copyFile($repoRootComposerJsonSrcFile, $minimalComposerJsonFilePath);
+            function (string $adaptPackagesWorkDir) use ($repoRootComposerJsonSrcFile, $adaptedPackagesDir): array {
+                $minimalComposerJsonFilePath = ComposerScripts::partsToPath($adaptPackagesWorkDir, ComposerScripts::COMPOSER_JSON_FILE_NAME);
+                ComposerScripts::copyFile($repoRootComposerJsonSrcFile, $minimalComposerJsonFilePath);
                 $packagesNameToVersion = self::reduceComposerJsonToPackagesToAdaptOnly($minimalComposerJsonFilePath);
-                NoDevEnvUtil::changeCurrentDirectoryRunCodeAndRestore(
-                    $workDir,
-                    fn() => NoDevEnvUtil::execComposerInstallShellCommand(withDev: false, additionalArgs: '--ignore-platform-req=php --no-plugins --no-scripts'),
+                ComposerScripts::changeCurrentDirectoryRunCodeAndRestore(
+                    $adaptPackagesWorkDir,
+                    fn() => ComposerScripts::execComposerInstallShellCommand(withDev: false, additionalArgs: '--ignore-platform-req=php --no-plugins --no-scripts'),
                 );
-                self::adaptPackages($packagesNameToVersion, $workDir, $adaptedPackagesDir);
+                self::adaptPackages($packagesNameToVersion, $adaptPackagesWorkDir, $adaptedPackagesDir);
                 return $packagesNameToVersion;
-            },
-            cleanUp: fn() => NoDevEnvUtil::deleteTempDirectory($workDir),
+            }
         );
-        NoDevEnvUtil::listDirectoryContents($adaptedPackagesDir, recursiveDepth: 1);
+        ComposerScripts::listDirectoryContents($adaptedPackagesDir, recursiveDepth: 1);
         return $packagesNameToVersion;
     }
 
@@ -182,61 +159,61 @@ final class AdaptPackagesToPhp81
      */
     private static function reduceComposerJsonToPackagesToAdaptOnly(string $minimalComposerJsonFilePath): array
     {
-        $fileContents = NoDevEnvUtil::getFileContents($minimalComposerJsonFilePath);
-        $fileContentsJsonDecoded = AssertEx::isArray(JsonUtil::decode($fileContents, asAssocArray: true));
+        $fileContents = ComposerScripts::getFileContents($minimalComposerJsonFilePath);
+        $fileContentsJsonDecoded = ComposerScripts::assertIsArray(ComposerScripts::decodeJson($fileContents, asAssocArray: true));
         // Keep only "require" top key
-        $resultArray = array_filter($fileContentsJsonDecoded, fn ($key) => $key === NoDevEnvUtil::COMPOSER_JSON_REQUIRE_KEY, ARRAY_FILTER_USE_KEY);
-        Assert::assertCount(1, $resultArray);
-        Assert::assertArrayHasKey(NoDevEnvUtil::COMPOSER_JSON_REQUIRE_KEY, $resultArray);
+        $resultArray = array_filter($fileContentsJsonDecoded, fn ($key) => $key === ComposerScripts::COMPOSER_JSON_REQUIRE_KEY, ARRAY_FILTER_USE_KEY);
+        ComposerScripts::assertCount(1, $resultArray);
+        ComposerScripts::assertArrayHasKey(ComposerScripts::COMPOSER_JSON_REQUIRE_KEY, $resultArray); // @phpstan-ignore staticMethod.impossibleType
         // Keep only packages instrumenting native functions
-        $requireSection = AssertEx::isArray($resultArray[NoDevEnvUtil::COMPOSER_JSON_REQUIRE_KEY]);
+        $requireSection = ComposerScripts::assertIsArray($resultArray[ComposerScripts::COMPOSER_JSON_REQUIRE_KEY]);
         $packageNameToVersion = array_filter($requireSection, fn($package) => in_array($package, self::AUTO_INSTRUM_NATIVE_FUNCS_PACKAGES), ARRAY_FILTER_USE_KEY);
         /** @var array<string, string> $packageNameToVersion */
-        $resultArray[NoDevEnvUtil::COMPOSER_JSON_REQUIRE_KEY] = $packageNameToVersion;
-        $resultArrayEncoded = JsonUtil::encode($resultArray, prettyPrint: true);
-        NoDevEnvUtil::putFileContents($minimalComposerJsonFilePath, $resultArrayEncoded . PHP_EOL);
+        $resultArray[ComposerScripts::COMPOSER_JSON_REQUIRE_KEY] = $packageNameToVersion;
+        $resultArrayEncoded = ComposerScripts::encodeJson($resultArray, prettyPrint: true);
+        ComposerScripts::putFileContents($minimalComposerJsonFilePath, $resultArrayEncoded . PHP_EOL);
         return $packageNameToVersion;
     }
 
     /**
      * @param array<string, string> $packagesNameToVersion
      */
-    private static function adaptPackages(array $packagesNameToVersion, string $workDir, string $adaptedPackagesDir): void
+    private static function adaptPackages(array $packagesNameToVersion, string $adaptPackagesWorkDir, string $adaptedPackagesDir): void
     {
         foreach ($packagesNameToVersion as $packageFullName => $packageVersion) {
-            [$packageVendor, $packageName] = NoDevEnvUtil::splitDependencyFullName($packageFullName);
-            $packageSrcDir = FileUtil::listToPath([$workDir, 'vendor', $packageVendor, $packageName]);
-            Assert::assertDirectoryExists($packageSrcDir);
-            $packageDstDir = FileUtil::listToPath([$adaptedPackagesDir, $packageVendor, $packageName]);
-            NoDevEnvUtil::createDirectory($packageDstDir);
-            NoDevEnvUtil::copyDirectoryContents($packageSrcDir, $packageDstDir);
-            $composerJsonFilePath = FileUtil::listToPath([$packageDstDir, NoDevEnvUtil::COMPOSER_JSON_FILE_NAME]);
-            Assert::assertFileExists($composerJsonFilePath);
+            [$packageVendor, $packageName] = ComposerScripts::splitDependencyFullName($packageFullName);
+            $packageSrcDir = ComposerScripts::partsToPath($adaptPackagesWorkDir, 'vendor', $packageVendor, $packageName);
+            ComposerScripts::assertDirectoryExists($packageSrcDir);
+            $packageDstDir = ComposerScripts::partsToPath($adaptedPackagesDir, $packageVendor, $packageName);
+            ComposerScripts::createDirectory($packageDstDir);
+            ComposerScripts::copyDirectoryContents($packageSrcDir, $packageDstDir);
+            $composerJsonFilePath = ComposerScripts::partsToPath($packageDstDir, ComposerScripts::COMPOSER_JSON_FILE_NAME);
+            ComposerScripts::assertFileExists($composerJsonFilePath);
             self::adaptPackageComposerJson($composerJsonFilePath, $packageVersion);
         }
     }
 
     private static function adaptPackageComposerJson(string $composerJsonFilePath, string $packageVersion): void
     {
-        $fileContents = NoDevEnvUtil::getFileContents($composerJsonFilePath);
-        $jsonDecoded = AssertEx::isArray(JsonUtil::decode($fileContents, asAssocArray: true));
+        $fileContents = ComposerScripts::getFileContents($composerJsonFilePath);
+        $jsonDecoded = ComposerScripts::assertIsArray(ComposerScripts::decodeJson($fileContents, asAssocArray: true));
         $resultArray = $jsonDecoded;
         if (ArrayUtil::getValueIfKeyExists(self::COMPOSER_JSON_VERSION_KEY, $jsonDecoded, /* out */ $alreadyPresentVersion) && ($alreadyPresentVersion !== $packageVersion)) {
-            Assert::assertIsString($alreadyPresentVersion);
+            ComposerScripts::assertIsString($alreadyPresentVersion);
             throw new RuntimeException(
                 "Package's composer.json already has version but it's different from the one in root composer.json"
                 . "; version in package's composer.json: $alreadyPresentVersion ; version in the root composer.json: $packageVersion; repoRootComposerJsonSrcFile: $composerJsonFilePath",
             );
         }
-        Assert::assertArrayHasKey(NoDevEnvUtil::COMPOSER_JSON_REQUIRE_KEY, $resultArray);
-        $requireSectionRef =& $resultArray[NoDevEnvUtil::COMPOSER_JSON_REQUIRE_KEY];
-        Assert::assertIsArray($requireSectionRef);
-        Assert::assertArrayHasKey(self::COMPOSER_JSON_PHP_KEY, $requireSectionRef);
+        ComposerScripts::assertArrayHasKey(ComposerScripts::COMPOSER_JSON_REQUIRE_KEY, $resultArray);
+        $requireSectionRef =& $resultArray[ComposerScripts::COMPOSER_JSON_REQUIRE_KEY];
+        ComposerScripts::assertIsArray($requireSectionRef);
+        ComposerScripts::assertArrayHasKey(self::COMPOSER_JSON_PHP_KEY, $requireSectionRef);
         $requireSectionRef[self::COMPOSER_JSON_PHP_KEY] = '8.1.*';
 
-        $resultArrayEncoded = JsonUtil::encode($resultArray, prettyPrint: true);
-        NoDevEnvUtil::putFileContents($composerJsonFilePath, $resultArrayEncoded . PHP_EOL);
-        NoDevEnvUtil::listFileContents($composerJsonFilePath);
+        $resultArrayEncoded = ComposerScripts::encodeJson($resultArray, prettyPrint: true);
+        ComposerScripts::putFileContents($composerJsonFilePath, $resultArrayEncoded . PHP_EOL);
+        ComposerScripts::listFileContents($composerJsonFilePath);
     }
 
     /**
@@ -246,12 +223,12 @@ final class AdaptPackagesToPhp81
      */
     private static function adaptRepoRootComposerJson(array $packagesNameToVersion, string $adaptedRepoRootComposerJsonDstFile): void
     {
-        $fileContents = NoDevEnvUtil::getFileContents($adaptedRepoRootComposerJsonDstFile);
-        $jsonDecoded = AssertEx::isArray(JsonUtil::decode($fileContents, asAssocArray: true));
-        Assert::assertArrayNotHasKey(self::COMPOSER_JSON_REPOSITORIES_KEY, $jsonDecoded);
+        $fileContents = ComposerScripts::getFileContents($adaptedRepoRootComposerJsonDstFile);
+        $jsonDecoded = ComposerScripts::assertIsArray(ComposerScripts::decodeJson($fileContents, asAssocArray: true));
+        ComposerScripts::assertArrayNotHasKey(self::COMPOSER_JSON_REPOSITORIES_KEY, $jsonDecoded);
         $repositoriesVal = [];
         foreach ($packagesNameToVersion as $packageFullName => $packageVersion) {
-            [$packageVendor, $packageName] = NoDevEnvUtil::splitDependencyFullName($packageFullName);
+            [$packageVendor, $packageName] = ComposerScripts::splitDependencyFullName($packageFullName);
             $repositoriesVal[] = [
                 'type' => 'path',
                 'url' => self::PACKAGES_ADAPTED_TO_PHP_81_REL_PATH . '/' . $packageVendor . '/' . $packageName,
@@ -266,8 +243,8 @@ final class AdaptPackagesToPhp81
 
         $resultArray = $jsonDecoded;
         $resultArray[self::COMPOSER_JSON_REPOSITORIES_KEY] = $repositoriesVal;
-        $resultArrayEncoded = JsonUtil::encode($resultArray, prettyPrint: true);
-        NoDevEnvUtil::putFileContents($adaptedRepoRootComposerJsonDstFile, $resultArrayEncoded . PHP_EOL);
-        NoDevEnvUtil::listFileContents($adaptedRepoRootComposerJsonDstFile);
+        $resultArrayEncoded = ComposerScripts::encodeJson($resultArray, prettyPrint: true);
+        ComposerScripts::putFileContents($adaptedRepoRootComposerJsonDstFile, $resultArrayEncoded . PHP_EOL);
+        ComposerScripts::listFileContents($adaptedRepoRootComposerJsonDstFile);
     }
 }

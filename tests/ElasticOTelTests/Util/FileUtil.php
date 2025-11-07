@@ -24,11 +24,12 @@ declare(strict_types=1);
 namespace ElasticOTelTests\Util;
 
 use Closure;
+use DirectoryIterator;
 use Elastic\OTel\Util\StaticClassTrait;
-use Elastic\OTel\Util\TextUtil;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
 use ElasticOTelTests\Util\Log\LoggableToString;
 use PHPUnit\Framework\Assert;
+use SplFileInfo;
 
 final class FileUtil
 {
@@ -85,19 +86,14 @@ final class FileUtil
         fclose($fileHandle);
     }
 
-    /**
-     * @param string[] $list
-     *
-     * @return string
-     */
-    public static function listToPath(array $list): string
+    public static function partsToPath(string ...$parts): string
     {
         $result = '';
-        foreach ($list as $pathElement) {
-            if (!TextUtil::isEmptyString($result)) {
+        foreach ($parts as $part) {
+            if ($result !== '' && $part !== '') {
                 $result .= DIRECTORY_SEPARATOR;
             }
-            $result .= $pathElement;
+            $result .= $part;
         }
         return $result;
     }
@@ -118,5 +114,19 @@ final class FileUtil
         && $loggerProxy->includeStackTrace()->log('Created a temporary file', compact('tempFileFullPath', 'dbgTempFilePurpose'));
 
         return $tempFileFullPath;
+    }
+
+    /**
+     * @return iterable<SplFileInfo>
+     */
+    public static function iterateDirectory(string $dirPath): iterable
+    {
+        foreach (new DirectoryIterator($dirPath) as $fileInfo) {
+            if ($fileInfo->getFilename() === '.' || $fileInfo->getFilename() === '..') {
+                continue;
+            }
+
+            yield $fileInfo->getRealPath();
+        }
     }
 }
