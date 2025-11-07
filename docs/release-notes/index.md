@@ -41,7 +41,7 @@ To check for security updates, go to [Security announcements for the Elastic sta
 ### Fixes [edot-php-1.2.0-fixes]
 
 - Fixed handling of logging_level remote config (PR [#295](https://github.com/elastic/elastic-otel-php/pull/295))
-- Fixed attributes used central configuration in Kibana (PR [#282](https://github.com/elastic/elastic-otel-php/pull/282))
+- Fixed attributes for used central configuration in Kibana (PR [#282](https://github.com/elastic/elastic-otel-php/pull/282))
 
 ### Other [edot-php-1.2.0-other]
 
