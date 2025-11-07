@@ -33,7 +33,7 @@ parse_args() {
                 shift
                 ;;
             --build_architecture)
-                BUILD_ARCHITECUTRE="$2"
+                BUILD_ARCHITECTURE="$2"
                 shift
                 ;;
             --package_goarchitecture)
@@ -64,7 +64,7 @@ parse_args() {
 
 parse_args "$@"
 
-if [[ -z "${PACKAGE_VERSION+x}" ]] || [[ -z "${BUILD_ARCHITECUTRE+x}" ]] || [[ -z "${PACKAGE_GOARCHITECTURE+x}" ]] || [[ -z "${PACKAGE_TYPES+x}" ]]; then
+if [[ -z "${PACKAGE_VERSION+x}" ]] || [[ -z "${BUILD_ARCHITECTURE+x}" ]] || [[ -z "${PACKAGE_GOARCHITECTURE+x}" ]] || [[ -z "${PACKAGE_TYPES+x}" ]]; then
     echo "Error: Missing required arguments."
     show_help
     exit 1
@@ -137,18 +137,18 @@ if [ "${PACKAGE_SHA}" == "unknown" ]; then
 fi
 
 echo "PACKAGE_VERSION: $PACKAGE_VERSION"
-echo "BUILD_ARCHITECUTRE: $BUILD_ARCHITECUTRE"
+echo "BUILD_ARCHITECTURE: $BUILD_ARCHITECTURE"
 echo "PACKAGE_GOARCHITECTURE: $PACKAGE_GOARCHITECTURE"
 echo "PACKAGE_SHA: $PACKAGE_SHA"
 echo "PACKAGE_TYPES: $PACKAGE_TYPES"
 
 export PACKAGE_VERSION="${PACKAGE_VERSION}"
-export BUILD_ARCHITECUTRE="${BUILD_ARCHITECUTRE}"
+export BUILD_ARCHITECTURE="${BUILD_ARCHITECTURE}"
 export PACKAGE_GOARCHITECTURE="${PACKAGE_GOARCHITECTURE}"
 export PACKAGE_SHA="${PACKAGE_SHA}"
 
 DOCKER_PLATFORM="linux/x86_64"
-if [[ -n "${BUILD_ARCHITECTURE+x}" ]] && [[ "${BUILD_ARCHITECTURE}" =~ arm64$ ]]; then
+if [[ -n "${BUILD_ARCHITECTURE}" ]] && [[ "${BUILD_ARCHITECTURE}" =~ arm64$ ]]; then
      DOCKER_PLATFORM="linux/arm64"
 fi
 echo "Running on platform ${DOCKER_PLATFORM}";
@@ -163,7 +163,7 @@ do
     docker run --rm \
         --platform ${DOCKER_PLATFORM} \
         -e PACKAGE_VERSION="${PACKAGE_VERSION}" \
-        -e BUILD_ARCHITECUTRE="${BUILD_ARCHITECUTRE}" \
+        -e BUILD_ARCHITECTURE="${BUILD_ARCHITECTURE}" \
         -e PACKAGE_GOARCHITECTURE="${PACKAGE_GOARCHITECTURE}" \
         -e PACKAGE_SHA="${PACKAGE_SHA}" \
         -v ${PWD}:/source \
@@ -188,8 +188,8 @@ done
 rm ${PWD}/build/packages/nfpm.yaml
 
 echo "Creating debug symbols artifacts"
-DBGSYM="${PWD}/build/packages/elastic-otel-php-debugsymbols-${BUILD_ARCHITECUTRE}.tar.gz"
-pushd prod/native/_build/${BUILD_ARCHITECUTRE}-release
+DBGSYM="${PWD}/build/packages/elastic-otel-php-debugsymbols-${BUILD_ARCHITECTURE}.tar.gz"
+pushd prod/native/_build/${BUILD_ARCHITECTURE}-release
 tar --transform 's/.*\///g' -zcvf ${DBGSYM} extension/code/*.debug loader/code/*.debug
 popd
 
