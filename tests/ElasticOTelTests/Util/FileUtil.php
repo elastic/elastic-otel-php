@@ -26,7 +26,6 @@ namespace ElasticOTelTests\Util;
 use Closure;
 use DirectoryIterator;
 use Elastic\OTel\Util\StaticClassTrait;
-use Elastic\OTel\Util\TextUtil;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
 use ElasticOTelTests\Util\Log\LoggableToString;
 use PHPUnit\Framework\Assert;

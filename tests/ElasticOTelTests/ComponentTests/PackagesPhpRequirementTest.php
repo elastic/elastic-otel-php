@@ -120,7 +120,7 @@ final class PackagesPhpRequirementTest extends ComponentTestCaseBase
 
     private static function getPackagePhpVersionConstraints(string $packageDir): ?string
     {
-        $packageComposerJsonFilePath = FileUtil::listToPath([$packageDir, 'composer.json']);
+        $packageComposerJsonFilePath = FileUtil::partsToPath($packageDir, 'composer.json');
         if (!file_exists($packageComposerJsonFilePath)) {
             return null;
         }
@@ -161,6 +161,7 @@ final class PackagesPhpRequirementTest extends ComponentTestCaseBase
     private static function assertOpcacheEnabled(): void
     {
         DebugContext::getCurrentScope(/* out */ $dbgCtx);
+        /** @noinspection PhpComposerExtensionStubsInspection */
         $opcacheStatus = AssertEx::isArray(opcache_get_status());
         $dbgCtx->add(compact('opcacheStatus'));
         $opcacheEnabled = AssertEx::isBool(AssertEx::arrayHasKey('opcache_enabled', $opcacheStatus));
@@ -177,7 +178,7 @@ final class PackagesPhpRequirementTest extends ComponentTestCaseBase
         self::callForEachPackage(
             $prodVendorDir,
             function (string $packageVendor, string $packageName) use ($prodVendorDir, $dbgCtx, $currentPhpVersion, &$numberOfPackagesNotSupportCurrentPhpVersion) {
-                $packageDir = FileUtil::listToPath([$prodVendorDir, $packageVendor, $packageName]);
+                $packageDir = FileUtil::partsToPath($prodVendorDir, $packageVendor, $packageName);
                 if (($phpVersionConstraints = self::getPackagePhpVersionConstraints($packageDir)) === null) {
                     return;
                 }
