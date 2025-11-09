@@ -50,7 +50,7 @@ if (count($argv) !== 2) {
 }
 
 $usedComposerCommand = $argv[1];
-const COMMAND_TO_USE_INSTEAD_OF_COMPOSER_INSTALL = 'php ./tools/build/install_php_deps_in_dev_env.php';
+const COMMAND_TO_USE_INSTEAD_OF_COMPOSER_INSTALL = './tools/build/install_php_deps_in_dev_env.sh';
 $cmdToUseInstead = match ($usedComposerCommand) {
     'install' => COMMAND_TO_USE_INSTEAD_OF_COMPOSER_INSTALL,
     'update' => './tools/build/generate_composer_lock_files.sh && ' . COMMAND_TO_USE_INSTEAD_OF_COMPOSER_INSTALL,
