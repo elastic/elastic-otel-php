@@ -32,7 +32,7 @@ using namespace std::string_view_literals;
 void DependencyAutoLoaderGuard::setBootstrapPath(std::string_view bootstrapFilePath) {
     auto [major, minor] = bridge_->getPhpVersionMajorMinor();
     auto path = std::filesystem::path(bootstrapFilePath).parent_path();
-    path /= "vendor_per_PHP_version" / std::format("{}{}", major, minor);
+	path /= std::filesystem::path("vendor_per_PHP_version") / std::format("{}{}", major, minor);
     vendorPath_ = path.c_str();
     ELOGF_DEBUG(logger_, DEPGUARD, "vendor path set to: " PRsv, PRsvArg(vendorPath_));
 }
