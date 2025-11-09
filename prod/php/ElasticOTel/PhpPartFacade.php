@@ -116,7 +116,7 @@ final class PhpPartFacade
 
         try {
             require __DIR__ . DIRECTORY_SEPARATOR . 'AutoloaderElasticOTelClasses.php';
-            AutoloaderElasticOTelClasses::register('Elastic\\OTel', __DIR__);
+            AutoloaderElasticOTelClasses::register(__NAMESPACE__, __DIR__);
 
             InstrumentationBridge::singletonInstance()->bootstrap();
             self::prepareForOTelSdk();
