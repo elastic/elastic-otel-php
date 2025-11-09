@@ -53,6 +53,8 @@ main() {
         exit 1
     fi
 
+    ./tools/build/configure_php_templates.sh
+
     php ./tools/build/verify_generated_composer_lock_files.php
 
     local env_kind="prod"
