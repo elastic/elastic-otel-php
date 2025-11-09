@@ -23,25 +23,15 @@
 
 declare(strict_types=1);
 
-namespace Elastic\OTel\Util;
+namespace ElasticOTelTools\Build;
 
-trait EnumUtilTrait
+use Elastic\OTel\Util\EnumUtilTrait;
+
+enum PhpDepsEnvKind
 {
-    public static function tryToFindByName(string $enumName): ?self
-    {
-        /** @var ?array<string, self> $mapByName */
-        static $mapByName = null;
+    use EnumUtilTrait;
 
-        if ($mapByName === null) {
-            $mapByName = [];
-            foreach (self::cases() as $enumCase) {
-                $mapByName[$enumCase->name] = $enumCase;
-            }
-        }
-
-        if (!array_key_exists($enumName, $mapByName)) {
-            return null;
-        }
-        return $mapByName[$enumName];
-    }
+    case dev;
+    case prod;
+    case test;
 }

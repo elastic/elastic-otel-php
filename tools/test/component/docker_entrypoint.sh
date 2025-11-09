@@ -85,7 +85,7 @@ function start_syslog () {
 function start_syslog_and_set_related_config () {
     local start_syslog_started
     start_syslog_started=$(start_syslog)
-    if [ "${start_syslog_started}" != "true" ]; then
+    if [[ "${start_syslog_started}" != "true" ]]; then
         # By default tests log level escalation mechanism uses log_level_syslog production option
         # If there is not syslog running then let's use log_level_stderr
         export ELASTIC_OTEL_PHP_TESTS_ESCALATED_RERUNS_PROD_CODE_LOG_LEVEL_OPTION_NAME=log_level_stderr
@@ -201,6 +201,9 @@ function main() {
     repo_root_dir="$( realpath "${this_script_dir}/../../.." )"
     source "${repo_root_dir}/tools/shared.sh"
 
+    # Make sure all the directories and files are indeed mounted
+    ls -l "${elastic_otel_php_files_to_mount_in_container[@]:?}" "${elastic_otel_php_dirs_to_mount_in_container[@]:?}"
+
     echo 'Before setting PHP_INI_SCAN_DIR'
     print_info_about_environment
 
@@ -242,13 +245,7 @@ function main() {
     current_github_workflow_log_group_name="Installing PHP dependencies using composer"
     start_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
-    rm -rf ./vendor/ ./prod/php/vendor_*/
-    composer --check-lock --no-check-all validate
-    composer run-script -- install_tests_select_generated_json_lock
-
-    # Allow access from docker's host under non-root user to files created by composer install command above
-    chown -R "${ELASTIC_OTEL_PHP_TESTS_DOCKER_RUNNING_USER_ID:?}:${ELASTIC_OTEL_PHP_TESTS_DOCKER_RUNNING_USER_GROUP_ID:?}" .
-    chmod -R 777 .
+    php ./tools/build/install_php_deps_in_test_env.php
 
     end_github_workflow_log_group "${current_github_workflow_log_group_name}"
 

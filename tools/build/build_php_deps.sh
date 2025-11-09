@@ -11,9 +11,9 @@ show_help() {
     echo "Usage: $0 --php_versions <versions>"
     echo
     echo "Arguments:"
-    echo "  --php_versions           Required. List of PHP versions separated by spaces (e.g., '81 82 83 84')."
-    echo "  --skip_notice            Optional. Skip notice file generator. Default: false (i.e., NOTICE file is generated)."
-    echo "  --skip_verify            Optional. Skip verify step. Default: false (i.e., verify step is executed)."
+    echo "  --php_versions                      Required. List of PHP versions separated by spaces (e.g., '81 82 83 84')."
+    echo "  --skip_notice                       Optional. Skip notice file generator. Default: false (i.e., NOTICE file is generated)."
+    echo "  --skip_verify                       Optional. Skip verify step. Default: false (i.e., verify step is executed)."
     echo
     echo "Example:"
     echo "  $0 --php_versions '81 82 83 84' --skip_notice"
@@ -63,7 +63,7 @@ verify_otel_proto_version() {
     local otel_proto_version_in_gen_otlp_protobuf
     otel_proto_version_in_gen_otlp_protobuf="$(cat "${gen_otlp_protobuf_version_file_path}")"
 
-    if [ "${otel_proto_version_in_properties_file}" != "${otel_proto_version_in_gen_otlp_protobuf}" ]; then
+    if [[ "${otel_proto_version_in_properties_file}" != "${otel_proto_version_in_gen_otlp_protobuf}" ]]; then
         echo "Versions in elastic-otel-php.properties and ${gen_otlp_protobuf_version_file_path} are different"
         echo "Version in elastic-otel-php.properties: ${otel_proto_version_in_properties_file}"
         echo "Version in ${gen_otlp_protobuf_version_file_path}: ${otel_proto_version_in_gen_otlp_protobuf}"
@@ -118,7 +118,7 @@ main() {
     this_script_dir="$(dirname "${BASH_SOURCE[0]}")"
     this_script_dir="$(realpath "${this_script_dir}")"
 
-    repo_root_dir="$(realpath "${this_script_dir}/../..")"
+    repo_root_dir="$(realpath "${PWD}")"
     source "${repo_root_dir}/tools/shared.sh"
 
     source "${repo_root_dir}/tools/read_properties.sh"
@@ -148,11 +148,11 @@ main() {
         "
     fi
 
-    if [ "${SKIP_VERIFY}" != "false" ]; then
+    if [ "${SKIP_VERIFY}" = "true" ]; then
         echo "Skipping verify step"
     fi
 
-    verify_composer_json_in_sync_with_dev_copy
+    php ./tools/build/verify_generated_composer_lock_files.php
 
     for PHP_version_no_dot in "${PHP_versions_no_dot[@]}"; do
         local PHP_version_dot_separated
@@ -160,7 +160,7 @@ main() {
 
         echo "Getting PHP dependencies for PHP version ${PHP_version_dot_separated} ..."
 
-        if [ "$SKIP_NOTICE" = false ]; then
+        if [ "$SKIP_NOTICE" == false ]; then
             echo "This project depends on following packages for PHP ${PHP_version_dot_separated}" >>NOTICE
         fi
 
@@ -177,37 +177,38 @@ main() {
             exit 1
         fi
 
-        local vendor_dir="${PWD}/prod/php/vendor_${PHP_version_no_dot}"
+        local env_kind="prod"
+
+        local composer_json_file_name
+        composer_json_file_name="$(build_generated_composer_json_file_name "${env_kind}")"
+        local composer_json_full_path="${repo_root_dir:?}/${elastic_otel_php_build_tools_composer_lock_files_dir_name:?}/${composer_json_file_name}"
+
+        local composer_lock_file_name
+        composer_lock_file_name="$(build_generated_composer_lock_file_name "${env_kind}" "${PHP_version_no_dot}")"
+        local composer_lock_full_path="${repo_root_dir:?}/${elastic_otel_php_build_tools_composer_lock_files_dir_name:?}/${composer_lock_file_name}"
+
+        local vendor_dir="${repo_root_dir}/prod/php/vendor_per_PHP_version/${PHP_version_no_dot}"
         mkdir -p "${vendor_dir}"
 
         local PHP_docker_image
         PHP_docker_image=$(build_light_PHP_docker_image_name_for_version_no_dot "${PHP_version_no_dot}")
 
-        local GITHUB_SHA_val=""
-        # The ${VAR+x} expansion expands to x if VAR is set (even if empty), and to nothing if VAR is unset.
-        # This allows you to test for its existence without actually using its value.
-        if [ -n "${GITHUB_SHA+x}" ]; then
-            GITHUB_SHA_val="${GITHUB_SHA}"
-        fi
-
-        local GITHUB_SHA_val=""
-        # The ${VAR+x} expansion expands to x if VAR is set (even if empty), and to nothing if VAR is unset.
-        # This allows you to test for its existence without actually using its value.
-        if [ -n "${GITHUB_SHA+x}" ]; then
-            GITHUB_SHA_val="${GITHUB_SHA}"
-        fi
-
         docker run --rm \
-            -v "${repo_root_dir}:/repo_root" \
+            -v "${composer_json_full_path}:/repo_root/composer.json:ro" \
+            -v "${composer_lock_full_path}:/repo_root/composer.lock:ro" \
+            -v "${repo_root_dir}/${elastic_otel_php_build_tools_composer_lock_files_dir_name:?}:/repo_root/${elastic_otel_php_build_tools_composer_lock_files_dir_name:?}:ro" \
+            -v "${repo_root_dir}/packaging:/repo_root/packaging:ro" \
+            -v "${repo_root_dir}/prod:/repo_root/prod:ro" \
+            -v "${repo_root_dir}/tools:/repo_root/tools:ro" \
+            -v "${repo_root_dir}/tests:/repo_root/tests:ro" \
             -v "${vendor_dir}:/repo_root/vendor" \
-            -e "GITHUB_SHA=${GITHUB_SHA_val}" \
             -w "/repo_root" \
             "${PHP_docker_image}" \
             sh -c "\
                 apk update && apk add bash git \
                 && git config --global --add safe.directory /repo_root \
                 && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
-                && composer run-script -- install_prod_select_generated_json_lock \
+                && php /repo_root/tools/build/install_php_deps_in_prod_env.php \
                 && chown -R ${current_user_id}:${current_user_group_id} /repo_root/vendor \
                 && chmod -R +r,u+w /repo_root/vendor \
                 ${GEN_NOTICE} \
@@ -217,6 +218,8 @@ main() {
             verify_vendor_dir "${PHP_version_no_dot}" "${vendor_dir}"
         fi
     done
+
+    ./tools/build/configure_php_templates.sh
 }
 
 main "$@"

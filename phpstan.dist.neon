@@ -10,4 +10,5 @@ parameters:
     reportUnmatchedIgnoredErrors: true
 
     excludePaths:
+        - ./prod/php/vendor_per_PHP_version/*
         - ./tests/substitutes/*/original/*

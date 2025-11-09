@@ -23,25 +23,30 @@
 
 declare(strict_types=1);
 
-namespace Elastic\OTel\Util;
+namespace Elastic\OTel;
 
-trait EnumUtilTrait
+final class BootstrapStageStdErrWriter
 {
-    public static function tryToFindByName(string $enumName): ?self
-    {
-        /** @var ?array<string, self> $mapByName */
-        static $mapByName = null;
+    private static ?bool $isStderrDefined = null;
 
-        if ($mapByName === null) {
-            $mapByName = [];
-            foreach (self::cases() as $enumCase) {
-                $mapByName[$enumCase->name] = $enumCase;
+    private static function ensureStdErrIsDefined(): bool
+    {
+        if (self::$isStderrDefined === null) {
+            if (defined('STDERR')) {
+                self::$isStderrDefined = true;
+            } else {
+                define('STDERR', fopen('php://stderr', 'w'));
+                self::$isStderrDefined = defined('STDERR');
             }
         }
 
-        if (!array_key_exists($enumName, $mapByName)) {
-            return null;
+        return self::$isStderrDefined;
+    }
+
+    public static function writeLine(string $text): void
+    {
+        if (self::ensureStdErrIsDefined()) {
+            fwrite(STDERR, $text . PHP_EOL);
         }
-        return $mapByName[$enumName];
     }
 }

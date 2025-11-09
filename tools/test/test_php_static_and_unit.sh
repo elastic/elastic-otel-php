@@ -40,7 +40,7 @@ main() {
     this_script_dir="$(dirname "${BASH_SOURCE[0]}")"
     this_script_dir="$(realpath "${this_script_dir}")"
 
-    repo_root_dir="$(realpath "${this_script_dir}/../..")"
+    repo_root_dir="$(realpath "${PWD}")"
     source "${repo_root_dir}/tools/shared.sh"
 
     parse_args "$@"
@@ -53,22 +53,40 @@ main() {
         exit 1
     fi
 
-    verify_composer_json_in_sync_with_dev_copy
+    php ./tools/build/verify_generated_composer_lock_files.php
+
+    local env_kind="prod"
 
     for PHP_version_no_dot in "${PHP_versions_no_dot[@]}"; do
+
+        local composer_json_file_name
+        composer_json_file_name="$(build_generated_composer_json_file_name "${env_kind}")"
+        local composer_json_full_path="${repo_root_dir:?}/${elastic_otel_php_build_tools_composer_lock_files_dir_name:?}/${composer_json_file_name}"
+
+        local composer_lock_file_name
+        composer_lock_file_name="$(build_generated_composer_lock_file_name "${env_kind}" "${PHP_version_no_dot}")"
+        local composer_lock_full_path="${repo_root_dir:?}/${elastic_otel_php_build_tools_composer_lock_files_dir_name:?}/${composer_lock_file_name}"
+
         local PHP_docker_image
         PHP_docker_image=$(build_light_PHP_docker_image_name_for_version_no_dot "${PHP_version_no_dot}")
 
+        local volume_mount_opts
+        build_container_volume_mount_options volume_mount_opts
+        echo "volume_mount_opts: " "${volume_mount_opts[@]}"
+
+        # shellcheck disable=SC2068
         docker run --rm \
-            -v "${PWD}:/repo_root:ro" \
-            -w "/" \
+            "${volume_mount_opts[@]}" \
+            -v "${composer_json_full_path}:/repo_root/composer.json:ro" \
+            -v "${composer_lock_full_path}:/repo_root/composer.lock:ro" \
+            -w "/repo_root" \
             "${PHP_docker_image}" \
             sh -c "\
-                mkdir -p /tmp/work_dir && cp -r /repo_root /tmp/work_dir/ && cd /tmp/work_dir/repo_root/ \
-                && rm -rf ./vendor/ ./prod/php/vendor_* \
-                && apk update && apk add bash git \
+                apk update && apk add bash git \
                 && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
-                && composer run-script -- install_tests_select_generated_json_lock \
+                && echo \"ls -l .\" && ls -l . \
+                && ls -l ${elastic_otel_php_files_to_mount_in_container[*]:?} ${elastic_otel_php_dirs_to_mount_in_container[*]:?} \
+                && php ./tools/build/install_php_deps_in_test_env.php \
                 && composer run-script -- static_check_and_run_unit_tests \
             "
     done

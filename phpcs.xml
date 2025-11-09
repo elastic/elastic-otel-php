@@ -26,6 +26,8 @@
 
 	<!-- other sniffs to include -->
 
+    <exclude-pattern>*/prod/php/vendor_per_PHP_version/*</exclude-pattern>
+
     <exclude-pattern>*/prod/php/ElasticOTel/Log/LogFeature.php</exclude-pattern>
     <exclude-pattern>*/prod/php/ElasticOTel/PhpPartVersion.php</exclude-pattern>
 

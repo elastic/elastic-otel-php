@@ -20,7 +20,7 @@ function is_value_in_array () {
 function assert_value_is_in_array () {
     local is_value_in_array_ret_val
     is_value_in_array_ret_val=$(is_value_in_array "$@")
-    if [ "${is_value_in_array_ret_val}" != "true" ] ; then
+    if [[ "${is_value_in_array_ret_val}" != "true" ]]; then
         exit 1
     fi
 }

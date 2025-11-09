@@ -49,7 +49,7 @@ function parse_args() {
         show_help
         exit 1
     else
-        if [ "${architecture}" != "x86_64" ]; then
+        if [[ "${architecture}" != "x86_64" ]]; then
             echo "Currently only x86_64 architecture is allowed; architecture: ${architecture}"
             exit 1
         fi

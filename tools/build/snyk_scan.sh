@@ -76,7 +76,7 @@ main() {
         composer_lock_file_name="$(build_generated_composer_lock_file_name "prod" "${PHP_version_no_dot}")"
         local composer_lock_full_path="${elastic_otel_php_build_tools_composer_lock_files_dir:?}/${composer_lock_file_name}"
         local composer_json_file_name
-        composer_json_file_name="$(build_generated_composer_json_file_name "${env_kind}" "not 8.1")"
+        composer_json_file_name="$(build_generated_composer_json_file_name "${env_kind}")"
         local composer_json_full_path="${elastic_otel_php_build_tools_composer_lock_files_dir:?}/${composer_json_file_name}"
 
         if [ ! -f "${composer_lock_full_path}" ]; then

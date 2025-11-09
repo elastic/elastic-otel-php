@@ -193,7 +193,7 @@ final class PhpPartFacade
         return self::getBoolEnvVar(self::IS_ENABLED_ENV_VAR_NAME, default: true);
     }
 
-    private static function getBoolEnvVar(string $envVarName, bool $default): bool
+    public static function getBoolEnvVar(string $envVarName, bool $default): bool
     {
         $envVarVal = getenv($envVarName);
         if (is_string($envVarVal) && (($parsedVal = BoolUtil::parseValue($envVarVal)) !== null)) {
@@ -222,7 +222,7 @@ final class PhpPartFacade
         return ProdPhpDir::$fullPath . DIRECTORY_SEPARATOR . (
             self::isInDevMode()
                 ? ('..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'vendor')
-                : ('vendor_' . PHP_MAJOR_VERSION . PHP_MINOR_VERSION)
+                : ('vendor_per_PHP_version' . DIRECTORY_SEPARATOR . PHP_MAJOR_VERSION . PHP_MINOR_VERSION)
             );
     }
 

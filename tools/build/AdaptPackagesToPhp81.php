@@ -36,6 +36,9 @@ use RuntimeException;
  */
 final class AdaptPackagesToPhp81
 {
+    use BuildToolsAssertTrait;
+    use BuildToolsLoggingClassTrait;
+
     private const AUTO_INSTRUM_NATIVE_FUNCS_PACKAGES = [
         'open-telemetry/opentelemetry-auto-curl',
         'open-telemetry/opentelemetry-auto-mysqli',
@@ -43,41 +46,30 @@ final class AdaptPackagesToPhp81
         'open-telemetry/opentelemetry-auto-postgresql',
     ];
 
+    private const COMPOSER_IGNORE_PHP_REQ_CMD_OPT = '--ignore-platform-req=php';
+
+    private const COMPOSER_JSON_REQUIRE_KEY = 'require';
     private const COMPOSER_JSON_VERSION_KEY = 'version';
     private const COMPOSER_JSON_REPOSITORIES_KEY = 'repositories';
     private const COMPOSER_JSON_PHP_KEY = 'php';
+
+    private const COMPOSER_HOME_ENV_VAR_NAME = 'COMPOSER_HOME';
+    private const COMPOSER_HOME_CONFIG_JSON_FILE_NAME = 'config.json';
 
     /**
      * Make sure the following value is in sync with the rest of locations where it's used (see elastic_otel_php_packages_adapted_to_PHP_81_rel_path in <repo root>/tools/shared.sh)
      *
      * The path is relative to repo root
      */
-    private const PACKAGES_ADAPTED_TO_PHP_81_REL_PATH = 'build/packages_adapted_to_PHP_81';
+    private const PACKAGES_ADAPTED_TO_PHP_81_REL_PATH = 'build/adapted_to_PHP_81/packages';
 
     /**
+     * Make sure the following value is in sync with the rest of locations where it's used
+     * (see elastic_otel_php_composer_home_for_packages_adapted_to_PHP_81_rel_path in <repo root>/tools/shared.sh)
+     * *
      * The path is relative to repo root
      */
-    private const COMPOSER_JSON_LOCK_ADAPTED_TO_PHP_81_REL_PATH_NO_EXT = 'build/composer_adapted_to_PHP_81';
-
-    /**
-     * @param list<string> $cmdLineArgs
-     */
-    public static function adaptComposerJsonDownloadAndAdaptPackages(array $cmdLineArgs): void
-    {
-        ComposerScripts::assertCount(2, $cmdLineArgs);
-        $repoRootStageDir = $cmdLineArgs[0];
-        $adaptedRepoRootComposerJsonDstFile = $cmdLineArgs[1];
-        ComposerScripts::assertDirectoryExists($repoRootStageDir);
-        ComposerScripts::assertFileDoesNotExist($adaptedRepoRootComposerJsonDstFile);
-
-        $repoRootComposerJsonSrcFile = ComposerScripts::partsToPath($repoRootStageDir, ComposerScripts::COMPOSER_JSON_FILE_NAME);
-        $adaptedPackagesDir = ComposerScripts::partsToPath($repoRootStageDir, ComposerScripts::adaptUnixDirectorySeparators(self::PACKAGES_ADAPTED_TO_PHP_81_REL_PATH));
-        ComposerScripts::createDirectory($adaptedPackagesDir);
-        $packagesNameToVersion = self::downloadAndAdaptPackages($repoRootComposerJsonSrcFile, $adaptedPackagesDir);
-
-        ComposerScripts::copyFile($repoRootComposerJsonSrcFile, $adaptedRepoRootComposerJsonDstFile);
-        self::adaptRepoRootComposerJson($packagesNameToVersion, $adaptedRepoRootComposerJsonDstFile);
-    }
+    private const COMPOSER_HOME_FOR_PACKAGES_ADAPTED_TO_PHP_81_REL_PATH = 'build/adapted_to_PHP_81/composer_home';
 
     public static function isCurrentPhpVersion81(): bool
     {
@@ -86,72 +78,61 @@ final class AdaptPackagesToPhp81
         return (80100 <= PHP_VERSION_ID) && (PHP_VERSION_ID < 80200);
     }
 
-    public static function installSelectJsonLock(string $envKind): void
+    public static function downloadAdaptPackagesAndGenConfig(): void
     {
-        $repoRootPath = ComposerScripts::getRepoRootPath();
-        $tempDirAboveAdaptedPackagesName = ComposerScripts::getFirstDirFromUnixPath(self::PACKAGES_ADAPTED_TO_PHP_81_REL_PATH);
-        $tempDirAboveAdaptedPackagesPath = ComposerScripts::partsToPath($repoRootPath, $tempDirAboveAdaptedPackagesName);
-        $tempDirAboveAdaptedPackageExisted = file_exists($tempDirAboveAdaptedPackagesPath);
-        $adaptedPackagesDir = ComposerScripts::partsToPath($repoRootPath, ComposerScripts::adaptUnixDirectorySeparators(self::PACKAGES_ADAPTED_TO_PHP_81_REL_PATH));
-        if (file_exists($adaptedPackagesDir)) {
-            ComposerScripts::deleteDirectoryContents($adaptedPackagesDir);
-        } else {
-            ComposerScripts::createTempDirectory($adaptedPackagesDir);
-        }
-        ComposerScripts::runCodeAndCleanUp(
-            function () use ($repoRootPath, $envKind, $adaptedPackagesDir): void {
-                $repoRootComposerJson = ComposerScripts::partsToPath($repoRootPath, ComposerScripts::COMPOSER_JSON_FILE_NAME);
-                self::downloadAndAdaptPackages($repoRootComposerJson, $adaptedPackagesDir);
-                $generatedComposerJsonPath = ComposerScripts::buildToGeneratedFileFullPath($repoRootPath, ComposerScripts::buildGeneratedComposerJsonFileNameForCurrentPhpVersion($envKind));
-                $composerJsonToUseRelPath = self::COMPOSER_JSON_LOCK_ADAPTED_TO_PHP_81_REL_PATH_NO_EXT . '.json';
-                $composerJsonToUsePath = ComposerScripts::partsToPath($repoRootPath, $composerJsonToUseRelPath);
-                ComposerScripts::copyFile($generatedComposerJsonPath, $composerJsonToUsePath);
-                $generatedComposerLockPath = ComposerScripts::buildToGeneratedFileFullPath($repoRootPath, ComposerScripts::buildGeneratedComposerLockFileNameForCurrentPhpVersion($envKind));
-                $composerLockToUsePath = ComposerScripts::partsToPath($repoRootPath, self::COMPOSER_JSON_LOCK_ADAPTED_TO_PHP_81_REL_PATH_NO_EXT . '.lock');
-                ComposerScripts::copyFile($generatedComposerLockPath, $composerLockToUsePath);
-                ComposerScripts::verifyThatComposerJsonAndLockAreInSync(composerJsonFilePath: $composerJsonToUseRelPath);
-                ComposerScripts::execComposerInstallShellCommand(
-                    withDev: ComposerScripts::convertEnvKindToWithDev($envKind),
-                    envVars: [
-                        ComposerScripts::ALLOW_DIRECT_COMPOSER_COMMAND_ENV_VAR_NAME => BoolUtil::toString(true),
-                        ComposerScripts::COMPOSER_ENV_VAR_NAME => $composerJsonToUseRelPath,
-                    ],
-                );
-            },
-            cleanUp: function () use ($adaptedPackagesDir, $tempDirAboveAdaptedPackageExisted, $tempDirAboveAdaptedPackagesPath): void {
-                if ($tempDirAboveAdaptedPackageExisted) {
-                    ComposerScripts::deleteTempDirectory($adaptedPackagesDir);
-                } else {
-                    ComposerScripts::deleteTempDirectory($tempDirAboveAdaptedPackagesPath);
-                }
-            },
+        BuildToolsUtil::runCmdLineImpl(
+            function (): void {
+                self::downloadAdaptPackagesAndGenConfigImpl(BuildToolsFileUtil::getCurrentDirectory());
+            }
         );
+    }
+
+    public static function downloadAdaptPackagesGenConfigAndInstall(bool $withDev): void
+    {
+        $repoRootDir = BuildToolsFileUtil::getCurrentDirectory();
+        self::downloadAdaptPackagesAndGenConfigImpl($repoRootDir);
+        $composerHomeDir = BuildToolsFileUtil::partsToPath($repoRootDir, BuildToolsFileUtil::adaptUnixDirectorySeparators(self::COMPOSER_HOME_FOR_PACKAGES_ADAPTED_TO_PHP_81_REL_PATH));
+        ComposerUtil::execComposerInstallShellCommand(
+            withDev: $withDev,
+            envVars: [
+                ComposerUtil::ALLOW_DIRECT_COMPOSER_COMMAND_ENV_VAR_NAME => BoolUtil::toString(true),
+                self::COMPOSER_HOME_ENV_VAR_NAME => $composerHomeDir,
+            ],
+        );
+    }
+
+    private static function downloadAdaptPackagesAndGenConfigImpl(string $repoRootDir): void
+    {
+        $packagesNameToVersion = self::downloadAndAdaptPackages($repoRootDir);
+        self::generateComposerGlobalConfig($packagesNameToVersion, $repoRootDir);
     }
 
     /**
      * @phpstan-return array<string, string>
      */
-    private static function downloadAndAdaptPackages(string $repoRootComposerJsonSrcFile, string $adaptedPackagesDir): array
+    private static function downloadAndAdaptPackages(string $repoRootDir): array
     {
-        $packagesNameToVersion = ComposerScripts::runCodeOnTempDir(
-            ComposerScripts::fqClassNameToShort(__CLASS__) . '_work_',
+        return BuildToolsUtil::runCodeOnUniqueNameTempDir(
+            tempDirNamePrefix: BuildToolsUtil::fqClassNameToShort(__CLASS__) . '_work_',
             /**
              * @phpstan-return array<string, string>
              */
-            function (string $adaptPackagesWorkDir) use ($repoRootComposerJsonSrcFile, $adaptedPackagesDir): array {
-                $minimalComposerJsonFilePath = ComposerScripts::partsToPath($adaptPackagesWorkDir, ComposerScripts::COMPOSER_JSON_FILE_NAME);
-                ComposerScripts::copyFile($repoRootComposerJsonSrcFile, $minimalComposerJsonFilePath);
+            code: function (string $workDir) use ($repoRootDir): array {
+                $adaptedPackagesDir = BuildToolsFileUtil::partsToPath($repoRootDir, BuildToolsFileUtil::adaptUnixDirectorySeparators(self::PACKAGES_ADAPTED_TO_PHP_81_REL_PATH));
+                BuildToolsFileUtil::createTempDirectory($adaptedPackagesDir);
+                $minimalComposerJsonFilePath = BuildToolsFileUtil::partsToPath($workDir, ComposerUtil::COMPOSER_JSON_FILE_NAME);
+                $repoRootComposerJsonSrcFile = BuildToolsFileUtil::partsToPath($repoRootDir, ComposerUtil::COMPOSER_JSON_FILE_NAME);
+                BuildToolsFileUtil::copyFile($repoRootComposerJsonSrcFile, $minimalComposerJsonFilePath);
                 $packagesNameToVersion = self::reduceComposerJsonToPackagesToAdaptOnly($minimalComposerJsonFilePath);
-                ComposerScripts::changeCurrentDirectoryRunCodeAndRestore(
-                    $adaptPackagesWorkDir,
-                    fn() => ComposerScripts::execComposerInstallShellCommand(withDev: false, additionalArgs: '--ignore-platform-req=php --no-plugins --no-scripts'),
+                BuildToolsUtil::changeCurrentDirectoryRunCodeAndRestore(
+                    $workDir,
+                    fn() => ComposerUtil::execComposerInstallShellCommand(withDev: false, additionalArgs: self::COMPOSER_IGNORE_PHP_REQ_CMD_OPT . ' --no-plugins --no-scripts'),
                 );
-                self::adaptPackages($packagesNameToVersion, $adaptPackagesWorkDir, $adaptedPackagesDir);
+                self::adaptPackages($packagesNameToVersion, $workDir, $adaptedPackagesDir);
+                BuildToolsFileUtil::listDirectoryContents($adaptedPackagesDir, recursiveDepth: 1);
                 return $packagesNameToVersion;
-            }
+            },
         );
-        ComposerScripts::listDirectoryContents($adaptedPackagesDir, recursiveDepth: 1);
-        return $packagesNameToVersion;
     }
 
     /**
@@ -159,19 +140,19 @@ final class AdaptPackagesToPhp81
      */
     private static function reduceComposerJsonToPackagesToAdaptOnly(string $minimalComposerJsonFilePath): array
     {
-        $fileContents = ComposerScripts::getFileContents($minimalComposerJsonFilePath);
-        $fileContentsJsonDecoded = ComposerScripts::assertIsArray(ComposerScripts::decodeJson($fileContents, asAssocArray: true));
+        $fileContents = BuildToolsFileUtil::getFileContents($minimalComposerJsonFilePath);
+        $fileContentsJsonDecoded = self::assertIsArray(BuildToolsUtil::decodeJson($fileContents, asAssocArray: true));
         // Keep only "require" top key
-        $resultArray = array_filter($fileContentsJsonDecoded, fn ($key) => $key === ComposerScripts::COMPOSER_JSON_REQUIRE_KEY, ARRAY_FILTER_USE_KEY);
-        ComposerScripts::assertCount(1, $resultArray);
-        ComposerScripts::assertArrayHasKey(ComposerScripts::COMPOSER_JSON_REQUIRE_KEY, $resultArray); // @phpstan-ignore staticMethod.impossibleType
+        $resultArray = array_filter($fileContentsJsonDecoded, fn ($key) => $key === self::COMPOSER_JSON_REQUIRE_KEY, ARRAY_FILTER_USE_KEY);
+        self::assertCount(1, $resultArray);
+        self::assertArrayHasKey(self::COMPOSER_JSON_REQUIRE_KEY, $resultArray);
         // Keep only packages instrumenting native functions
-        $requireSection = ComposerScripts::assertIsArray($resultArray[ComposerScripts::COMPOSER_JSON_REQUIRE_KEY]);
+        $requireSection = self::assertIsArray($resultArray[self::COMPOSER_JSON_REQUIRE_KEY]);
         $packageNameToVersion = array_filter($requireSection, fn($package) => in_array($package, self::AUTO_INSTRUM_NATIVE_FUNCS_PACKAGES), ARRAY_FILTER_USE_KEY);
         /** @var array<string, string> $packageNameToVersion */
-        $resultArray[ComposerScripts::COMPOSER_JSON_REQUIRE_KEY] = $packageNameToVersion;
-        $resultArrayEncoded = ComposerScripts::encodeJson($resultArray, prettyPrint: true);
-        ComposerScripts::putFileContents($minimalComposerJsonFilePath, $resultArrayEncoded . PHP_EOL);
+        $resultArray[self::COMPOSER_JSON_REQUIRE_KEY] = $packageNameToVersion;
+        $resultArrayEncoded = BuildToolsUtil::encodeJson($resultArray, prettyPrint: true);
+        BuildToolsFileUtil::putFileContents($minimalComposerJsonFilePath, $resultArrayEncoded . PHP_EOL);
         return $packageNameToVersion;
     }
 
@@ -181,39 +162,39 @@ final class AdaptPackagesToPhp81
     private static function adaptPackages(array $packagesNameToVersion, string $adaptPackagesWorkDir, string $adaptedPackagesDir): void
     {
         foreach ($packagesNameToVersion as $packageFullName => $packageVersion) {
-            [$packageVendor, $packageName] = ComposerScripts::splitDependencyFullName($packageFullName);
-            $packageSrcDir = ComposerScripts::partsToPath($adaptPackagesWorkDir, 'vendor', $packageVendor, $packageName);
-            ComposerScripts::assertDirectoryExists($packageSrcDir);
-            $packageDstDir = ComposerScripts::partsToPath($adaptedPackagesDir, $packageVendor, $packageName);
-            ComposerScripts::createDirectory($packageDstDir);
-            ComposerScripts::copyDirectoryContents($packageSrcDir, $packageDstDir);
-            $composerJsonFilePath = ComposerScripts::partsToPath($packageDstDir, ComposerScripts::COMPOSER_JSON_FILE_NAME);
-            ComposerScripts::assertFileExists($composerJsonFilePath);
+            [$packageVendor, $packageName] = self::splitDependencyFullName($packageFullName);
+            $packageSrcDir = BuildToolsFileUtil::partsToPath($adaptPackagesWorkDir, 'vendor', $packageVendor, $packageName);
+            self::assertDirectoryExists($packageSrcDir);
+            $packageDstDir = BuildToolsFileUtil::partsToPath($adaptedPackagesDir, $packageVendor, $packageName);
+            BuildToolsFileUtil::createDirectory($packageDstDir);
+            BuildToolsFileUtil::copyDirectoryContents($packageSrcDir, $packageDstDir);
+            $composerJsonFilePath = BuildToolsFileUtil::partsToPath($packageDstDir, ComposerUtil::COMPOSER_JSON_FILE_NAME);
+            self::assertFileExists($composerJsonFilePath);
             self::adaptPackageComposerJson($composerJsonFilePath, $packageVersion);
         }
     }
 
     private static function adaptPackageComposerJson(string $composerJsonFilePath, string $packageVersion): void
     {
-        $fileContents = ComposerScripts::getFileContents($composerJsonFilePath);
-        $jsonDecoded = ComposerScripts::assertIsArray(ComposerScripts::decodeJson($fileContents, asAssocArray: true));
+        $fileContents = BuildToolsFileUtil::getFileContents($composerJsonFilePath);
+        $jsonDecoded = self::assertIsArray(BuildToolsUtil::decodeJson($fileContents, asAssocArray: true));
         $resultArray = $jsonDecoded;
         if (ArrayUtil::getValueIfKeyExists(self::COMPOSER_JSON_VERSION_KEY, $jsonDecoded, /* out */ $alreadyPresentVersion) && ($alreadyPresentVersion !== $packageVersion)) {
-            ComposerScripts::assertIsString($alreadyPresentVersion);
+            self::assertIsString($alreadyPresentVersion);
             throw new RuntimeException(
                 "Package's composer.json already has version but it's different from the one in root composer.json"
                 . "; version in package's composer.json: $alreadyPresentVersion ; version in the root composer.json: $packageVersion; repoRootComposerJsonSrcFile: $composerJsonFilePath",
             );
         }
-        ComposerScripts::assertArrayHasKey(ComposerScripts::COMPOSER_JSON_REQUIRE_KEY, $resultArray);
-        $requireSectionRef =& $resultArray[ComposerScripts::COMPOSER_JSON_REQUIRE_KEY];
-        ComposerScripts::assertIsArray($requireSectionRef);
-        ComposerScripts::assertArrayHasKey(self::COMPOSER_JSON_PHP_KEY, $requireSectionRef);
+        self::assertArrayHasKey(self::COMPOSER_JSON_REQUIRE_KEY, $resultArray);
+        $requireSectionRef =& $resultArray[self::COMPOSER_JSON_REQUIRE_KEY];
+        self::assertIsArray($requireSectionRef);
+        self::assertArrayHasKey(self::COMPOSER_JSON_PHP_KEY, $requireSectionRef);
         $requireSectionRef[self::COMPOSER_JSON_PHP_KEY] = '8.1.*';
 
-        $resultArrayEncoded = ComposerScripts::encodeJson($resultArray, prettyPrint: true);
-        ComposerScripts::putFileContents($composerJsonFilePath, $resultArrayEncoded . PHP_EOL);
-        ComposerScripts::listFileContents($composerJsonFilePath);
+        $resultArrayEncoded = BuildToolsUtil::encodeJson($resultArray, prettyPrint: true);
+        BuildToolsFileUtil::putFileContents($composerJsonFilePath, $resultArrayEncoded . PHP_EOL);
+        BuildToolsFileUtil::listFileContents($composerJsonFilePath);
     }
 
     /**
@@ -221,14 +202,11 @@ final class AdaptPackagesToPhp81
      *
      * @noinspection PhpDocMissingThrowsInspection
      */
-    private static function adaptRepoRootComposerJson(array $packagesNameToVersion, string $adaptedRepoRootComposerJsonDstFile): void
+    private static function generateComposerGlobalConfig(array $packagesNameToVersion, string $repoRootDir): void
     {
-        $fileContents = ComposerScripts::getFileContents($adaptedRepoRootComposerJsonDstFile);
-        $jsonDecoded = ComposerScripts::assertIsArray(ComposerScripts::decodeJson($fileContents, asAssocArray: true));
-        ComposerScripts::assertArrayNotHasKey(self::COMPOSER_JSON_REPOSITORIES_KEY, $jsonDecoded);
         $repositoriesVal = [];
         foreach ($packagesNameToVersion as $packageFullName => $packageVersion) {
-            [$packageVendor, $packageName] = ComposerScripts::splitDependencyFullName($packageFullName);
+            [$packageVendor, $packageName] = self::splitDependencyFullName($packageFullName);
             $repositoriesVal[] = [
                 'type' => 'path',
                 'url' => self::PACKAGES_ADAPTED_TO_PHP_81_REL_PATH . '/' . $packageVendor . '/' . $packageName,
@@ -241,10 +219,36 @@ final class AdaptPackagesToPhp81
             ];
         }
 
-        $resultArray = $jsonDecoded;
-        $resultArray[self::COMPOSER_JSON_REPOSITORIES_KEY] = $repositoriesVal;
-        $resultArrayEncoded = ComposerScripts::encodeJson($resultArray, prettyPrint: true);
-        ComposerScripts::putFileContents($adaptedRepoRootComposerJsonDstFile, $resultArrayEncoded . PHP_EOL);
-        ComposerScripts::listFileContents($adaptedRepoRootComposerJsonDstFile);
+        $resultArrayEncoded = BuildToolsUtil::encodeJson([self::COMPOSER_JSON_REPOSITORIES_KEY => $repositoriesVal], prettyPrint: true);
+        $composerHomeDir = BuildToolsFileUtil::partsToPath($repoRootDir, BuildToolsFileUtil::adaptUnixDirectorySeparators(self::COMPOSER_HOME_FOR_PACKAGES_ADAPTED_TO_PHP_81_REL_PATH));
+        BuildToolsFileUtil::createTempDirectory($composerHomeDir);
+        $composerHomeConfigJsonFilePath = BuildToolsFileUtil::partsToPath($composerHomeDir, self::COMPOSER_HOME_CONFIG_JSON_FILE_NAME);
+        BuildToolsFileUtil::putFileContents($composerHomeConfigJsonFilePath, $resultArrayEncoded . PHP_EOL);
+        BuildToolsFileUtil::listFileContents($composerHomeConfigJsonFilePath);
+    }
+
+    /**
+     * @phpstan-return list{string, string}
+     */
+    public static function splitDependencyFullName(string $dependencyFullName): array
+    {
+        self::assertStringNotEmpty($dependencyFullName, compact('dependencyFullName'));
+        $packageFullNameLen = strlen($dependencyFullName);
+        $result = [];
+        $separatorPos = strpos($dependencyFullName, '/');
+        if ($separatorPos === false) {
+            return [$dependencyFullName, ''];
+        }
+        $result[] = substr($dependencyFullName, 0, $separatorPos);
+        $result[] = ($separatorPos === ($packageFullNameLen - 1)) ? '' : substr($dependencyFullName, $separatorPos + 1);
+        return $result;
+    }
+
+    /**
+     * Must be defined in class using BuildToolsLoggingClassTrait
+     */
+    private static function getCurrentSourceCodeFile(): string
+    {
+        return __FILE__;
     }
 }

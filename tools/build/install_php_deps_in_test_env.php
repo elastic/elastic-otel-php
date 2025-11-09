@@ -19,29 +19,10 @@
  * under the License.
  */
 
-/** @noinspection PhpIllegalPsrClassPathInspection */
-
 declare(strict_types=1);
 
-namespace Elastic\OTel\Util;
+namespace ElasticOTelTools\Build;
 
-trait EnumUtilTrait
-{
-    public static function tryToFindByName(string $enumName): ?self
-    {
-        /** @var ?array<string, self> $mapByName */
-        static $mapByName = null;
+require __DIR__ . DIRECTORY_SEPARATOR . 'bootstrap_build_tools.php';
 
-        if ($mapByName === null) {
-            $mapByName = [];
-            foreach (self::cases() as $enumCase) {
-                $mapByName[$enumCase->name] = $enumCase;
-            }
-        }
-
-        if (!array_key_exists($enumName, $mapByName)) {
-            return null;
-        }
-        return $mapByName[$enumName];
-    }
-}
+InstallPhpDeps::installUsingCurrentJsonLock(PhpDepsEnvKind::test);
