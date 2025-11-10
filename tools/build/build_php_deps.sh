@@ -136,13 +136,14 @@ main() {
         exit 1
     fi
 
+    cat /dev/null > "${repo_root_dir}/NOTICE"
     GEN_NOTICE=""
     if [ "$SKIP_NOTICE" = true ]; then
         echo "Skipping notice file generation..."
     else
         GEN_NOTICE="\
             && echo 'Generating NOTICE file. This may take some time...' \
-            && php /repo_root/packaging/notice_generator.php >> ./NOTICE \
+            && php ./packaging/notice_generator.php >> ./NOTICE \
         "
     fi
 
@@ -183,8 +184,6 @@ main() {
         local vendor_dir="${repo_root_dir}/prod/php/vendor_${PHP_version_no_dot}"
         mkdir -p "${vendor_dir}"
 
-        cat /dev/null > "${repo_root_dir}/NOTICE"
-
         local PHP_docker_image
         PHP_docker_image=$(build_light_PHP_docker_image_name_for_version_no_dot "${PHP_version_no_dot}")
 
@@ -210,7 +209,7 @@ main() {
                 && chown -R ${current_user_id}:${current_user_group_id} /from_docker_host/dst/vendor/ \
                 && chmod -R +r,u+w /from_docker_host/dst/vendor/ \
                 ${GEN_NOTICE} \
-                && cat ./NOTICE > /from_docker_host/dst/NOTICE \
+                && cat ./NOTICE >> /from_docker_host/dst/NOTICE \
             "
 
         if [ "${SKIP_VERIFY}" = "false" ]; then
