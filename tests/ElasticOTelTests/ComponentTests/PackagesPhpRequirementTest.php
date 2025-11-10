@@ -171,7 +171,7 @@ final class PackagesPhpRequirementTest extends ComponentTestCaseBase
                 $packageFqName = "$packageVendor/$packageName";
                 $dbgCtx->add(compact('packageFqName'));
                 $dbgCtx->add(compact('phpVersionConstraints'));
-                if (Semver::satisfies($currentPhpVersion, $phpVersionConstraints)) {
+                if (!Semver::satisfies($currentPhpVersion, $phpVersionConstraints)) {
                     self::fail(
                         'Encountered a package with PHP constraints that are not satisfied by the current PHP version; '
                         . "package: $packageFqName, PHP constraints: $phpVersionConstraints, current PHP version: $currentPhpVersion"
