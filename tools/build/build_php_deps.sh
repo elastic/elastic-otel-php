@@ -63,7 +63,7 @@ verify_otel_proto_version() {
     local otel_proto_version_in_gen_otlp_protobuf
     otel_proto_version_in_gen_otlp_protobuf="$(cat "${gen_otlp_protobuf_version_file_path}")"
 
-    if [[ "${otel_proto_version_in_properties_file}" != "${otel_proto_version_in_gen_otlp_protobuf}" ]]; then
+    if [ "${otel_proto_version_in_properties_file}" != "${otel_proto_version_in_gen_otlp_protobuf}" ]; then
         echo "Versions in elastic-otel-php.properties and ${gen_otlp_protobuf_version_file_path} are different"
         echo "Version in elastic-otel-php.properties: ${otel_proto_version_in_properties_file}"
         echo "Version in ${gen_otlp_protobuf_version_file_path}: ${otel_proto_version_in_gen_otlp_protobuf}"
@@ -164,7 +164,7 @@ main() {
 
         echo "Getting PHP dependencies for PHP version ${PHP_version_dot_separated} ..."
 
-        if [ "$SKIP_NOTICE" == false ]; then
+        if [ "$SKIP_NOTICE" = "false" ]; then
             echo "This project depends on following packages for PHP ${PHP_version_dot_separated}" >>NOTICE
         fi
 

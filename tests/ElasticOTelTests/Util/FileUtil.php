@@ -119,7 +119,6 @@ final class FileUtil
         return $tempFileFullPath;
     }
 
-
     /**
      * @return iterable<SplFileInfo>
      */

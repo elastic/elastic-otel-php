@@ -39,6 +39,10 @@ use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\FileUtil;
 use ElasticOTelTests\Util\MixedMap;
 
+/**
+ * @group smoke
+ * @group does_not_require_external_services
+ */
 final class ProcessUtilTest extends ComponentTestCaseBase
 {
     private const EXIT_CODE = 'exit_code';

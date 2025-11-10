@@ -246,8 +246,8 @@ Run
 ./tools/build/install_PHP_deps_in_dev_env.sh
 ```
 Instead of the usual `composer install`.
-This will select one of the generated composer's lock files (the one that corresponds to the current PHP version) and copy it to `<repo root>/composer.lock`
-and install the packages using that `composer.lock` file.
+This will select one of the generated composer's lock files (the one that corresponds to the current PHP version),
+copy it to `<repo root>/composer.lock`and install the packages using that `composer.lock` file.
 
 ## To check which dependencies can be updated
 Run
