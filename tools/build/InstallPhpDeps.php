@@ -38,8 +38,9 @@ final class InstallPhpDeps
     public static function verifyGeneratedComposerLockFiles(): void
     {
         BuildToolsUtil::runCmdLineImpl(
+            __METHOD__,
             function (): void {
-                $repoRootDir = BuildToolsFileUtil::getCurrentDirectory();
+                $repoRootDir = BuildToolsUtil::getCurrentDirectory();
                 $repoRootJsonPath = $repoRootDir . DIRECTORY_SEPARATOR . ComposerUtil::COMPOSER_JSON_FILE_NAME;
                 $generatedDevJsonPath = ComposerUtil::buildToGeneratedFileFullPath($repoRootDir, ComposerUtil::buildGeneratedComposerJsonFileName(PhpDepsEnvKind::dev));
                 self::assertFilesHaveSameContent($repoRootJsonPath, $generatedDevJsonPath);
@@ -50,40 +51,42 @@ final class InstallPhpDeps
     public static function selectDevLockAndInstall(): void
     {
         BuildToolsUtil::runCmdLineImpl(
+            __METHOD__,
             function (): void {
-                $repoRootDir = BuildToolsFileUtil::getCurrentDirectory();
-                BuildToolsFileUtil::copyFile(
-                    ComposerUtil::buildToGeneratedFileFullPath($repoRootDir, ComposerUtil::buildGeneratedComposerLockFileNameForCurrentPhpVersion(PhpDepsEnvKind::dev)),
-                    BuildToolsFileUtil::partsToPath($repoRootDir, ComposerUtil::COMPOSER_LOCK_FILE_NAME),
-                    allowOverwrite: true
-                );
-                self::installUsingCurrentJsonLockImpl(ComposerUtil::convertEnvKindToWithDev(PhpDepsEnvKind::dev));
+                self::selectLockAndInstall(BuildToolsUtil::getCurrentDirectory(), PhpDepsEnvKind::dev, allowOverwrite: true);
             }
         );
     }
 
-    public static function installUsingCurrentJsonLock(PhpDepsEnvKind $envKind): void
+    /**
+     * @param list<string> $cmdLineArgs
+     */
+    public static function selectJsonLockAndInstall(array $cmdLineArgs): void
     {
         BuildToolsUtil::runCmdLineImpl(
-            function () use ($envKind): void {
-                self::installUsingCurrentJsonLockImpl(ComposerUtil::convertEnvKindToWithDev($envKind));
+            __METHOD__,
+            function () use ($cmdLineArgs): void {
+                self::assertCount(1, $cmdLineArgs);
+                $envKind = self::assertNotNull(PhpDepsEnvKind::tryToFindByName($cmdLineArgs[0]));
+                $repoRootDir = BuildToolsUtil::getCurrentDirectory();
+                $generatedJsonFile = ComposerUtil::buildToGeneratedFileFullPath($repoRootDir, ComposerUtil::buildGeneratedComposerJsonFileName($envKind));
+                BuildToolsUtil::copyFile($generatedJsonFile, BuildToolsUtil::partsToPath($repoRootDir, ComposerUtil::COMPOSER_JSON_FILE_NAME));
+                self::selectLockAndInstall($repoRootDir, $envKind, allowOverwrite: false);
             }
         );
     }
 
-    private static function installUsingCurrentJsonLockImpl(bool $withDev): void
+    private static function selectLockAndInstall(string $repoRootDir, PhpDepsEnvKind $envKind, bool $allowOverwrite): void
     {
+        $generatedLockFile = ComposerUtil::buildToGeneratedFileFullPath($repoRootDir, ComposerUtil::buildGeneratedComposerLockFileNameForCurrentPhpVersion($envKind));
+        BuildToolsUtil::copyFile($generatedLockFile, BuildToolsUtil::partsToPath($repoRootDir, ComposerUtil::COMPOSER_LOCK_FILE_NAME), allowOverwrite: $allowOverwrite);
         ComposerUtil::verifyThatComposerJsonAndLockAreInSync();
 
-        if (AdaptPackagesToPhp81::isCurrentPhpVersion81()) {
+        $withDev = ComposerUtil::convertEnvKindToWithDev($envKind);
+        if (AdaptPackagesToPhp81::isCurrentPhpVersion81() && ($envKind !== PhpDepsEnvKind::test)) {
             AdaptPackagesToPhp81::downloadAdaptPackagesGenConfigAndInstall($withDev);
         } else {
-            ComposerUtil::execComposerInstallShellCommand(
-                withDev: $withDev,
-                envVars: [
-                    ComposerUtil::ALLOW_DIRECT_COMPOSER_COMMAND_ENV_VAR_NAME => BoolUtil::toString(true),
-                ],
-            );
+            ComposerUtil::execComposerInstallShellCommand($withDev, envVars: [ComposerUtil::ALLOW_DIRECT_COMPOSER_COMMAND_ENV_VAR_NAME => BoolUtil::toString(true)]);
         }
     }
 

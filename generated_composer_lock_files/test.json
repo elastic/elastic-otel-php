@@ -10,6 +10,8 @@
     ],
     "require": {
         "php": "8.1.*||8.2.*||8.3.*||8.4.*",
+        "open-telemetry/exporter-otlp": "1.2.1",
+        "open-telemetry/sdk": "1.9.0",
         "open-telemetry/sem-conv": "1.32.0"
     },
     "provide": {
@@ -68,7 +70,7 @@
             "@putenv ELASTIC_OTEL_ENABLED=false",
             "@putenv OTEL_PHP_DISABLED_INSTRUMENTATIONS=all",
             "@putenv OTEL_PHP_AUTOLOAD_ENABLED=false",
-            "parallel-lint ./prod/php/ ./tests/ ./tools/ --exclude ./tests/polyfills/ --exclude ./prod/php/vendor_per_PHP_version/"
+            "parallel-lint ./prod/php/ ./tests/ ./tools/ --exclude ./tests/polyfills/"
         ],
         "php_codesniffer_check": [
             "@putenv ELASTIC_OTEL_ENABLED=false",

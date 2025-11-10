@@ -51,7 +51,7 @@ $getMaxEnabledLogLevelConfig = function (): ?LogLevel {
         return null;
     }
 
-    return LogLevel::tryToFindByName($envVarVal);
+    return LogLevel::tryToFindByName(strtolower($envVarVal));
 };
 $maxEnabledLogLevel = $getMaxEnabledLogLevelConfig() ?? BuildToolsLog::DEFAULT_LEVEL;
 BuildToolsLog::configure($maxEnabledLogLevel);

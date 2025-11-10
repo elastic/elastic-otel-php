@@ -243,7 +243,7 @@ There are multiple `composer.lock` files - one for each supported major.minor PH
 
 Run
 ```
-./tools/build/install_php_deps_in_dev_env.sh
+./tools/build/install_PHP_deps_in_dev_env.sh
 ```
 Instead of the usual `composer install`.
 This will select one of the generated composer's lock files (the one that corresponds to the current PHP version) and copy it to `<repo root>/composer.lock`
@@ -259,7 +259,7 @@ composer outdated
 1) Update `composer.json` to the desired version of the dependency
 2) Run
 ```
-./tools/build/generate_composer_lock_files.sh && ./tools/build/install_php_deps_in_dev_env.sh
+./tools/build/generate_composer_lock_files.sh && ./tools/build/install_PHP_deps_in_dev_env.sh
 ```
 instead of the usual `composer update`
 3) Commit the changes to the composer's lock files

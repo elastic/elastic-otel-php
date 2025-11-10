@@ -150,7 +150,6 @@ trait BuildToolsAssertTrait
      * @param array<array-key, mixed> $array
      * @param ?array<string, mixed> $dbgCtx
      *
-     * TODO: Sergey Kleyman: REMOVE: PhpUnused
      * @noinspection PhpUnused
      */
     public static function assertArrayNotHasKey(mixed $key, array $array, ?array $dbgCtx = null): void
@@ -194,9 +193,6 @@ trait BuildToolsAssertTrait
      * @phpstan-assert non-empty-string $actual
      *
      * @phpstan-return non-empty-string
-     *
-     * TODO: Sergey Kleyman: REMOVE: PhpUnused
-     * @noinspection PhpUnused
      */
     public static function assertStringNotEmpty(string $actual, ?array $dbgCtx = null): string
     {
@@ -215,9 +211,6 @@ trait BuildToolsAssertTrait
      * @phpstan-assert TValue $actual
      *
      * @phpstan-return TValue
-     *
-     * TODO: Sergey Kleyman: REMOVE: PhpUnused
-     * @noinspection PhpUnused
      */
     public static function assertNotFalse(mixed $actual, ?array $dbgCtx = null): mixed
     {
@@ -229,9 +222,6 @@ trait BuildToolsAssertTrait
     /**
      * @param string $filePath
      * @param ?array<string, mixed> $dbgCtx
-     *
-     * TODO: Sergey Kleyman: REMOVE: PhpUnused
-     * @noinspection PhpUnused
      */
     public static function assertFileExists(string $filePath, ?array $dbgCtx = null): void
     {
@@ -243,7 +233,6 @@ trait BuildToolsAssertTrait
      * @param string $filePath
      * @param ?array<string, mixed> $dbgCtx
      *
-     * TODO: Sergey Kleyman: REMOVE: PhpUnused
      * @noinspection PhpUnused
      */
     public static function assertFileDoesNotExist(string $filePath, ?array $dbgCtx = null): void
@@ -255,9 +244,6 @@ trait BuildToolsAssertTrait
     /**
      * @param string $dirPath
      * @param ?array<string, mixed> $dbgCtx
-     *
-     * TODO: Sergey Kleyman: REMOVE: PhpUnused
-     * @noinspection PhpUnused
      */
     public static function assertDirectoryExists(string $dirPath, ?array $dbgCtx = null): void
     {
@@ -265,14 +251,10 @@ trait BuildToolsAssertTrait
         self::assert(is_dir($dirPath), "file_exists($dbgName) && is_dir($dbgName)" . self::convertAssertDbgCtxToStringToAppend($dbgCtx));
     }
 
-    /**
-     * TODO: Sergey Kleyman: REMOVE: PhpUnused
-     * @noinspection PhpUnused
-     */
     public static function assertFilesHaveSameContent(string $file1, string $file2): void
     {
-        $file1Contents = BuildToolsFileUtil::getFileContents($file1);
-        $file2Contents = BuildToolsFileUtil::getFileContents($file2);
+        $file1Contents = BuildToolsUtil::getFileContents($file1);
+        $file2Contents = BuildToolsUtil::getFileContents($file2);
         self::assert($file1Contents === $file2Contents, '$file1Contents == $file1Content2 ; ' . json_encode(compact('file1', 'file2', 'file1Contents', 'file2Contents')));
     }
 }

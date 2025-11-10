@@ -45,7 +45,7 @@ parse_args() {
                 shift
                 ;;
             --package_types)
-                PACKAGE_TYPES=("$2")
+                PACKAGE_TYPES=($2)
                 shift
                 ;;
             --help)

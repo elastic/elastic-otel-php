@@ -11,9 +11,9 @@ show_help() {
     echo "Usage: $0 --php_versions <versions>"
     echo
     echo "Arguments:"
-    echo "  --php_versions                      Required. List of PHP versions separated by spaces (e.g., '81 82 83 84')."
-    echo "  --skip_notice                       Optional. Skip notice file generator. Default: false (i.e., NOTICE file is generated)."
-    echo "  --skip_verify                       Optional. Skip verify step. Default: false (i.e., verify step is executed)."
+    echo "  --php_versions           Required. List of PHP versions separated by spaces (e.g., '81 82 83 84')."
+    echo "  --skip_notice            Optional. Skip notice file generator. Default: false (i.e., NOTICE file is generated)."
+    echo "  --skip_verify            Optional. Skip verify step. Default: false (i.e., verify step is executed)."
     echo
     echo "Example:"
     echo "  $0 --php_versions '81 82 83 84' --skip_notice"
@@ -142,9 +142,7 @@ main() {
     else
         GEN_NOTICE="\
             && echo 'Generating NOTICE file. This may take some time...' \
-            && php /repo_root/packaging/notice_generator.php >>/repo_root/NOTICE \
-            && chown ${current_user_id}:${current_user_group_id} /repo_root/NOTICE \
-            && chmod +r,u+w /repo_root/NOTICE \
+            && php /repo_root/packaging/notice_generator.php >> ./NOTICE \
         "
     fi
 
@@ -182,41 +180,37 @@ main() {
             exit 1
         fi
 
-        local env_kind="prod"
-
-        local composer_json_file_name
-        composer_json_file_name="$(build_generated_composer_json_file_name "${env_kind}")"
-        local composer_json_full_path="${repo_root_dir:?}/${elastic_otel_php_build_tools_composer_lock_files_dir_name:?}/${composer_json_file_name}"
-
-        local composer_lock_file_name
-        composer_lock_file_name="$(build_generated_composer_lock_file_name "${env_kind}" "${PHP_version_no_dot}")"
-        local composer_lock_full_path="${repo_root_dir:?}/${elastic_otel_php_build_tools_composer_lock_files_dir_name:?}/${composer_lock_file_name}"
-
-        local vendor_dir="${repo_root_dir}/prod/php/vendor_per_PHP_version/${PHP_version_no_dot}"
+        local vendor_dir="${repo_root_dir}/prod/php/vendor_${PHP_version_no_dot}"
         mkdir -p "${vendor_dir}"
+
+        cat /dev/null > "${repo_root_dir}/NOTICE"
 
         local PHP_docker_image
         PHP_docker_image=$(build_light_PHP_docker_image_name_for_version_no_dot "${PHP_version_no_dot}")
 
+        local docker_run_env_vars_cmd_line_args=()
+        build_docker_env_vars_command_line_part docker_run_env_vars_cmd_line_args
+
         docker run --rm \
-            -v "${composer_json_full_path}:/repo_root/composer.json:ro" \
-            -v "${composer_lock_full_path}:/repo_root/composer.lock:ro" \
-            -v "${repo_root_dir}/${elastic_otel_php_build_tools_composer_lock_files_dir_name:?}:/repo_root/${elastic_otel_php_build_tools_composer_lock_files_dir_name:?}:ro" \
-            -v "${repo_root_dir}/packaging:/repo_root/packaging:ro" \
-            -v "${repo_root_dir}/prod:/repo_root/prod:ro" \
-            -v "${repo_root_dir}/tools:/repo_root/tools:ro" \
-            -v "${repo_root_dir}/tests:/repo_root/tests:ro" \
-            -v "${vendor_dir}:/repo_root/vendor" \
-            -w "/repo_root" \
+            "${docker_run_env_vars_cmd_line_args[@]}" \
+            -v "${repo_root_dir}/:/read_only_repo_root/:ro" \
+            -v "${vendor_dir}/:/from_docker_host/dst/vendor/" \
+            -v "${repo_root_dir}/NOTICE:/from_docker_host/dst/NOTICE" \
+            -w "/" \
             "${PHP_docker_image}" \
             sh -c "\
-                apk update && apk add bash git \
-                && git config --global --add safe.directory /repo_root \
+                apk update && apk add bash \
                 && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
-                && php /repo_root/tools/build/install_php_deps_in_prod_env.php \
-                && chown -R ${current_user_id}:${current_user_group_id} /repo_root/vendor \
-                && chmod -R +r,u+w /repo_root/vendor \
+                && mkdir -p /tmp/repo \
+                && cp -r /read_only_repo_root/* /tmp/repo/ \
+                && cd /tmp/repo/ \
+                && rm -rf composer.json composer.lock ./vendor/ ./prod/php/vendor_* \
+                && php ./tools/build/select_json_lock_and_install_PHP_deps.php prod \
+                && cp -r ./vendor/* /from_docker_host/dst/vendor/ \
+                && chown -R ${current_user_id}:${current_user_group_id} /from_docker_host/dst/vendor/ \
+                && chmod -R +r,u+w /from_docker_host/dst/vendor/ \
                 ${GEN_NOTICE} \
+                && cat ./NOTICE > /from_docker_host/dst/NOTICE \
             "
 
         if [ "${SKIP_VERIFY}" = "false" ]; then

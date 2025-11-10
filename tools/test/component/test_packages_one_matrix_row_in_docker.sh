@@ -17,6 +17,10 @@ function show_help() {
 function parse_args() {
     echo "arguments: $*"
 
+    matrix_row=""
+    packages_dir=""
+    logs_dir=""
+
     while [[ "$#" -gt 0 ]]; do
         case $1 in
             --matrix_row)
@@ -63,34 +67,6 @@ function parse_args() {
     echo "matrix_row: ${matrix_row}"
     echo "packages_dir: ${packages_dir}"
     echo "logs_dir: ${logs_dir}"
-}
-
-function should_pass_env_var_to_docker () {
-    env_var_name_to_check="${1:?}"
-
-    if [[ ${env_var_name_to_check} == "ELASTIC_OTEL_PHP_TESTS_"* ]]; then
-        echo "true"
-        return
-    fi
-
-    echo "false"
-}
-
-function build_docker_env_vars_command_line_part () {
-    # $1 should be the name of the environment variable to hold the result
-    # local -n makes `result_var' reference to the variable named by $1
-    local -n result_var=${1:?}
-    result_var=()
-    # Iterate over environment variables
-    # The code is copied from https://stackoverflow.com/questions/25765282/bash-loop-through-variables-containing-pattern-in-name
-    while IFS='=' read -r env_var_name env_var_value ; do
-        should_pass=$(should_pass_env_var_to_docker "${env_var_name}")
-        if [ "${should_pass}" == "false" ] ; then
-            continue
-        fi
-        echo "Passing env var to docker: name: ${env_var_name}, value: ${env_var_value}"
-        result_var+=(-e "${env_var_name}=${env_var_value}")
-    done < <(env)
 }
 
 function select_Dockerfile_based_on_package_type () {
@@ -203,22 +179,7 @@ function main() {
 
     build_docker_env_vars_command_line_part docker_run_cmd_line_args
 
-    local volume_mount_opts
-    build_container_volume_mount_options volume_mount_opts
-    docker_run_cmd_line_args+=("${volume_mount_opts[@]}")
-
-    local composer_json_file_name
-    composer_json_file_name="$(build_generated_composer_json_file_name test)"
-    local composer_json_full_path="${repo_root_dir:?}/${elastic_otel_php_build_tools_composer_lock_files_dir_name:?}/${composer_json_file_name}"
-    docker_run_cmd_line_args+=(-v "${composer_json_full_path}/:/repo_root/composer.json:ro")
-
-    local PHP_version_no_dot
-    PHP_version_no_dot="$(convert_dot_separated_to_no_dot_version "${ELASTIC_OTEL_PHP_TESTS_PHP_VERSION}")"
-    local composer_lock_file_name
-    composer_lock_file_name="$(build_generated_composer_lock_file_name test "${PHP_version_no_dot}")"
-    local composer_lock_full_path="${repo_root_dir:?}/${elastic_otel_php_build_tools_composer_lock_files_dir_name:?}/${composer_lock_file_name}"
-    docker_run_cmd_line_args+=(-v "${composer_lock_full_path}/:/repo_root/composer.lock:ro")
-
+    docker_run_cmd_line_args+=(-v "${repo_root_dir}/:/read_only_repo_root/:ro")
     docker_run_cmd_line_args+=(-v "${packages_dir}:/elastic_otel_php_tests/packages:ro")
     docker_run_cmd_line_args+=(-v "${logs_dir}:/elastic_otel_php_tests/logs")
 

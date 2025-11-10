@@ -30,7 +30,7 @@ jobs:
         with:
           name: php-dependencies
           path: |
-            prod/php/vendor_per_PHP_version
+            prod/php/vendor_*
             prod/php/ElasticOTel/PhpPartVersion.php
             prod/php/ElasticOTel/Log/LogFeature.php
             NOTICE

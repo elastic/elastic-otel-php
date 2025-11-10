@@ -50,14 +50,14 @@ TEST_F(DependencyAutoLoaderGuardTest, discardAppFileBecauseItWasDeliveredByEDOT)
 
     guard_.setBootstrapPath("/elatic/prod/php/bootstrap.php");
 
-    ASSERT_FALSE(guard_.shouldDiscardFileCompilation("/elatic/prod/php/vendor_per_PHP_version/84/first-package/test.php"));  // file from elastic scope - no action
-    ASSERT_FALSE(guard_.shouldDiscardFileCompilation("/elatic/prod/php/vendor_per_PHP_version/84/second-package/test.php")); // file from elastic scope - no action
+    ASSERT_FALSE(guard_.shouldDiscardFileCompilation("/elatic/prod/php/vendor_84/first-package/test.php"));  // file from elastic scope - no action
+    ASSERT_FALSE(guard_.shouldDiscardFileCompilation("/elatic/prod/php/vendor_84/second-package/test.php")); // file from elastic scope - no action
 
     // clang-format off
     EXPECT_CALL(*bridge_, getNewlyCompiledFiles(::testing::_, 0, 0)).Times(::testing::Exactly(1)).WillOnce(
         ::testing::DoAll(
-            ::testing::InvokeArgument<0>("/elatic/prod/php/vendor_per_PHP_version/84/first-package/test.php"sv), // we have that file in cache
-            ::testing::InvokeArgument<0>("/elatic/prod/php/vendor_per_PHP_version/84/second-package/test.php"sv), // we have that file in cache
+            ::testing::InvokeArgument<0>("/elatic/prod/php/vendor_84/first-package/test.php"sv), // we have that file in cache
+            ::testing::InvokeArgument<0>("/elatic/prod/php/vendor_84/second-package/test.php"sv), // we have that file in cache
             ::testing::Return(std::pair<int, int>(2, 1)))); // returns index in class/file hashmaps
     // clang-format on
 
@@ -69,14 +69,14 @@ TEST_F(DependencyAutoLoaderGuardTest, discardSecondAppFileBecauseItWasDeliveredB
 
     guard_.setBootstrapPath("/elatic/prod/php/bootstrap.php");
 
-    ASSERT_FALSE(guard_.shouldDiscardFileCompilation("/elatic/prod/php/vendor_per_PHP_version/84/first-package/test.php"));  // file from elastic scope - no action
-    ASSERT_FALSE(guard_.shouldDiscardFileCompilation("/elatic/prod/php/vendor_per_PHP_version/84/second-package/test.php")); // file from elastic scope - no action
+    ASSERT_FALSE(guard_.shouldDiscardFileCompilation("/elatic/prod/php/vendor_84/first-package/test.php"));  // file from elastic scope - no action
+    ASSERT_FALSE(guard_.shouldDiscardFileCompilation("/elatic/prod/php/vendor_84/second-package/test.php")); // file from elastic scope - no action
 
     // clang-format off
     EXPECT_CALL(*bridge_, getNewlyCompiledFiles(::testing::_, 0, 0)).Times(::testing::Exactly(1)).WillOnce(
         ::testing::DoAll(
-            ::testing::InvokeArgument<0>("/elatic/prod/php/vendor_per_PHP_version/84/first-package/test.php"sv), // we have that file in cache
-            ::testing::InvokeArgument<0>("/elatic/prod/php/vendor_per_PHP_version/84/second-package/test.php"sv), // we have that file in cache
+            ::testing::InvokeArgument<0>("/elatic/prod/php/vendor_84/first-package/test.php"sv), // we have that file in cache
+            ::testing::InvokeArgument<0>("/elatic/prod/php/vendor_84/second-package/test.php"sv), // we have that file in cache
             ::testing::Return(std::pair<int, int>(2, 1)))); // returns index in class/file hashmaps
     // clang-format on
 
@@ -88,15 +88,15 @@ TEST_F(DependencyAutoLoaderGuardTest, getCompiledFilesListProgressively) {
 
     guard_.setBootstrapPath("/elatic/prod/php/bootstrap.php");
 
-    ASSERT_FALSE(guard_.shouldDiscardFileCompilation("/elatic/prod/php/vendor_per_PHP_version/84/first-package/test.php"));  // file from elastic scope - no action
-    ASSERT_FALSE(guard_.shouldDiscardFileCompilation("/elatic/prod/php/vendor_per_PHP_version/84/second-package/test.php")); // file from elastic scope - no action
+    ASSERT_FALSE(guard_.shouldDiscardFileCompilation("/elatic/prod/php/vendor_84/first-package/test.php"));  // file from elastic scope - no action
+    ASSERT_FALSE(guard_.shouldDiscardFileCompilation("/elatic/prod/php/vendor_84/second-package/test.php")); // file from elastic scope - no action
 
     ::testing::InSequence s;
 
     // clang-format off
     EXPECT_CALL(*bridge_, getNewlyCompiledFiles(::testing::_, 0, 0)).Times(::testing::Exactly(1)).WillOnce(
         ::testing::DoAll(
-            ::testing::InvokeArgument<0>("/elatic/prod/php/vendor_per_PHP_version/84/first-package/test.php"sv), // we have that file in cache
+            ::testing::InvokeArgument<0>("/elatic/prod/php/vendor_84/first-package/test.php"sv), // we have that file in cache
             ::testing::Return(std::pair<int, int>(10, 20)))); // returns index in class/file hashmaps
     // clang-format on
 
@@ -105,7 +105,7 @@ TEST_F(DependencyAutoLoaderGuardTest, getCompiledFilesListProgressively) {
     // clang-format off
     EXPECT_CALL(*bridge_, getNewlyCompiledFiles(::testing::_, 10, 20)).Times(::testing::Exactly(1)).WillOnce(
         ::testing::DoAll(
-            ::testing::InvokeArgument<0>("/elatic/prod/php/vendor_per_PHP_version/84/second-package/test.php"sv), // we have that file in cache
+            ::testing::InvokeArgument<0>("/elatic/prod/php/vendor_84/second-package/test.php"sv), // we have that file in cache
             ::testing::Return(std::pair<int, int>(11, 21)))); // returns index in class/file hashmaps
     // clang-format on
 
@@ -124,14 +124,14 @@ TEST_F(DependencyAutoLoaderGuardTest, fileNotInVendorFolder) {
     EXPECT_CALL(*bridge_, getPhpVersionMajorMinor()).Times(::testing::Exactly(1)).WillOnce(::testing::Return(std::pair<int, int>(8, 4)));
     guard_.setBootstrapPath("/elatic/prod/php/bootstrap.php");
 
-    ASSERT_FALSE(guard_.shouldDiscardFileCompilation("/elatic/prod/php/vendor_per_PHP_version/84/first-package/test.php")); // file from elastic scope - no action
+    ASSERT_FALSE(guard_.shouldDiscardFileCompilation("/elatic/prod/php/vendor_84/first-package/test.php")); // file from elastic scope - no action
 
     ::testing::InSequence s;
 
     // clang-format off
     EXPECT_CALL(*bridge_, getNewlyCompiledFiles(::testing::_, 0, 0)).Times(::testing::Exactly(1)).WillOnce(
         ::testing::DoAll(
-            ::testing::InvokeArgument<0>("/elatic/prod/php/vendor_per_PHP_version/84/first-package/test.php"sv), // we have that file in cache
+            ::testing::InvokeArgument<0>("/elatic/prod/php/vendor_84/first-package/test.php"sv), // we have that file in cache
             ::testing::Return(std::pair<int, int>(10, 20)))); // returns index in class/file hashmaps
     // clang-format on
 
@@ -148,11 +148,11 @@ TEST_F(DependencyAutoLoaderGuardTest, wrongVendorFolder_shouldntHappen) {
     // clang-format off
     EXPECT_CALL(*bridge_, getNewlyCompiledFiles(::testing::_, 0, 0)).Times(::testing::Exactly(1)).WillOnce(
         ::testing::DoAll(
-            ::testing::InvokeArgument<0>("/elatic/prod/php/vendor_per_PHP_version/80/first-package/test.php"sv), // we have that file in cache
+            ::testing::InvokeArgument<0>("/elatic/prod/php/vendor_80/first-package/test.php"sv), // we have that file in cache
             ::testing::Return(std::pair<int, int>(2, 1)))); // returns index in class/file hashmaps
     // clang-format on
 
-    ASSERT_FALSE(guard_.shouldDiscardFileCompilation("/elatic/prod/php/vendor_per_PHP_version/80/first-package/test.php")); // file NOT from elastic scope - wrong vendor folder
+    ASSERT_FALSE(guard_.shouldDiscardFileCompilation("/elatic/prod/php/vendor_80/first-package/test.php")); // file NOT from elastic scope - wrong vendor folder
 
     // clang-format off
     EXPECT_CALL(*bridge_, getNewlyCompiledFiles(::testing::_, 2, 1)).Times(::testing::Exactly(1)).WillOnce(

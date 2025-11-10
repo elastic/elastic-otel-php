@@ -95,6 +95,11 @@ final class BuildToolsLog
         self::withLevelAndFeature($level, $level->name, /* feature */ null, $file, $line, $fqMethod, $msg, $context);
     }
 
+    public static function shortenFqMethod(string $fqMethod): string
+    {
+        return str_starts_with($fqMethod, __NAMESPACE__) ? substr($fqMethod, strlen(__NAMESPACE__) + 1) : $fqMethod;
+    }
+
     /**
      * @param Context $context
      */
@@ -105,7 +110,7 @@ final class BuildToolsLog
         }
 
         $ctxSuffix = count($context) === 0 ? '' : (' ; ' . json_encode($context));
-        $funcAdapted = str_starts_with($fqMethod, __NAMESPACE__) ? substr($fqMethod, strlen(__NAMESPACE__) + 1) : $fqMethod;
+        $funcAdapted = self::shortenFqMethod($fqMethod);
         $fileAdapted = basename($file);
         $lineToWrite = '[' . strtoupper($levelName) . ']';
         if ($feature !== null) {
@@ -158,7 +163,12 @@ final class BuildToolsLog
 
     public static function isLevelEnabled(LogLevel $level): bool
     {
+        return self::getMaxEnabledLevel()->value >= $level->value;
+    }
+
+    public static function getMaxEnabledLevel(): LogLevel
+    {
         self::assertNotNull(self::$maxEnabledLevel);
-        return self::$maxEnabledLevel->value >= $level->value;
+        return self::$maxEnabledLevel;
     }
 }

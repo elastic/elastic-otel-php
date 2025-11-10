@@ -222,7 +222,7 @@ final class PhpPartFacade
         return ProdPhpDir::$fullPath . DIRECTORY_SEPARATOR . (
             self::isInDevMode()
                 ? ('..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'vendor')
-                : ('vendor_per_PHP_version' . DIRECTORY_SEPARATOR . PHP_MAJOR_VERSION . PHP_MINOR_VERSION)
+                : ('vendor_' . PHP_MAJOR_VERSION . PHP_MINOR_VERSION)
             );
     }
 

@@ -6,20 +6,30 @@ show_help() {
     echo "Usage: $0 --php_versions <versions>"
     echo
     echo "Arguments:"
-    echo "  --php_versions           Required. List of PHP versions separated by spaces (e.g., '81 82 83 84')."
+    echo "  --php_versions      Required. List of PHP versions separated by spaces (e.g., '81 82 83 84')."
+    echo "  --logs_dir          Required. Full path to the directory where generated logs will be stored. NOTE: All existing files in this directory will be deleted"
     echo
     echo "Example:"
-    echo "  $0 --php_versions '81 82 83 84'"
+    echo "  $0 --php_versions '81 82 83 84' --logs_dir '/directory/to/store/logs'"
 }
 
 # Function to parse arguments
 parse_args() {
+    echo "arguments: $*"
+
+    PHP_versions_no_dot=""
+    logs_dir=""
+
     while [[ "$#" -gt 0 ]]; do
         case $1 in
             --php_versions)
                 # SC2206: Quote to prevent word splitting/globbing, or split robustly with mapfile or read -a.
                 # shellcheck disable=SC2206
                 PHP_versions_no_dot=($2)
+                shift
+                ;;
+            --logs_dir)
+                logs_dir="$2"
                 shift
                 ;;
             --help)
@@ -34,24 +44,34 @@ parse_args() {
         esac
         shift
     done
+
+    if [ -z "${PHP_versions_no_dot[*]}" ] ; then
+        echo "<php_versions> argument is missing"
+        show_help
+        exit 1
+    fi
+    if [ -z "${logs_dir}" ] ; then
+        echo "<logs_dir> argument is missing"
+        show_help
+        exit 1
+    fi
+
+    echo "PHP_versions_no_dot: ${PHP_versions_no_dot[*]}"
+    echo "logs_dir: ${logs_dir}"
 }
 
 main() {
     this_script_dir="$(dirname "${BASH_SOURCE[0]}")"
     this_script_dir="$(realpath "${this_script_dir}")"
+    echo "Entered ${BASH_SOURCE[0]}"
 
     repo_root_dir="$(realpath "${PWD}")"
     source "${repo_root_dir}/tools/shared.sh"
 
     parse_args "$@"
 
-    # SC2128: Expanding an array without an index only gives the first element.
-    # shellcheck disable=SC2128
-    if [[ -z "$PHP_versions_no_dot" ]]; then
-        echo "Error: Missing required arguments."
-        show_help
-        exit 1
-    fi
+    ensure_dir_exists_and_empty "${logs_dir}"
+    touch "${logs_dir}/z_dummy_file_to_make_directory_non-empty"
 
     # ./tools/build/configure_php_templates.sh must be called before any .php scripts in ./tools/build/
     # because .php scripts in ./tools/build/ depend on some of .php source files
@@ -60,41 +80,35 @@ main() {
 
     php ./tools/build/verify_generated_composer_lock_files.php
 
-    local env_kind="prod"
+    # SC2034: <env var> appears unused. Verify use (or export if used externally).
+    # shellcheck disable=SC2034
+    ELASTIC_OTEL_PHP_TESTS_LOGS_DIRECTORY="/elastic_otel_php_tests/logs"
+    local docker_run_env_vars_cmd_line_args=()
+    build_docker_env_vars_command_line_part docker_run_env_vars_cmd_line_args
 
     for PHP_version_no_dot in "${PHP_versions_no_dot[@]}"; do
-
-        local composer_json_file_name
-        composer_json_file_name="$(build_generated_composer_json_file_name "${env_kind}")"
-        local composer_json_full_path="${repo_root_dir:?}/${elastic_otel_php_build_tools_composer_lock_files_dir_name:?}/${composer_json_file_name}"
-
-        local composer_lock_file_name
-        composer_lock_file_name="$(build_generated_composer_lock_file_name "${env_kind}" "${PHP_version_no_dot}")"
-        local composer_lock_full_path="${repo_root_dir:?}/${elastic_otel_php_build_tools_composer_lock_files_dir_name:?}/${composer_lock_file_name}"
-
         local PHP_docker_image
         PHP_docker_image=$(build_light_PHP_docker_image_name_for_version_no_dot "${PHP_version_no_dot}")
 
-        local volume_mount_opts
-        build_container_volume_mount_options volume_mount_opts
-        echo "volume_mount_opts: " "${volume_mount_opts[@]}"
-
-        # shellcheck disable=SC2068
         docker run --rm \
-            "${volume_mount_opts[@]}" \
-            -v "${composer_json_full_path}:/repo_root/composer.json:ro" \
-            -v "${composer_lock_full_path}:/repo_root/composer.lock:ro" \
+            "${docker_run_env_vars_cmd_line_args[@]}" \
+            -v "${PWD}/:/repo_root/:ro" \
+            -v "${logs_dir}:/elastic_otel_php_tests/logs" \
             -w "/repo_root" \
             "${PHP_docker_image}" \
             sh -c "\
-                apk update && apk add bash git \
+                mkdir -p /tmp/repo \
+                && cp -r /repo_root/* /tmp/repo/ \
+                && cd /tmp/repo/ \
+                && rm -rf composer.json composer.lock ./vendor/ ./prod/php/vendor_* \
+                && apk update && apk add bash git \
                 && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
-                && echo \"ls -l .\" && ls -l . \
-                && ls -l ${elastic_otel_php_files_to_mount_in_container[*]:?} ${elastic_otel_php_dirs_to_mount_in_container[*]:?} \
-                && php ./tools/build/install_php_deps_in_test_env.php \
+                && php ./tools/build/select_json_lock_and_install_PHP_deps.php test \
                 && composer run-script -- static_check_and_run_unit_tests \
             "
     done
+
+    echo "Exiting ${BASH_SOURCE[0]}"
 }
 
 main "$@"

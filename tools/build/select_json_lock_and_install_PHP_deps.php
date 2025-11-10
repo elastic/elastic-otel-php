@@ -25,4 +25,4 @@ namespace ElasticOTelTools\Build;
 
 require __DIR__ . DIRECTORY_SEPARATOR . 'bootstrap_build_tools.php';
 
-InstallPhpDeps::installUsingCurrentJsonLock(PhpDepsEnvKind::prod);
+InstallPhpDeps::selectJsonLockAndInstall(BuildToolsUtil::getCommandLineArgs());

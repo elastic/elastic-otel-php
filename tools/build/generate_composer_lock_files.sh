@@ -52,8 +52,6 @@ function should_remove_not_dev_dep_from_composer_json_for_test_env() {
     local package_prefixes_to_remove_if_present=("open-telemetry/opentelemetry-auto-")
     local packages_to_remove_if_present=("php-http/guzzle7-adapter")
     packages_to_remove_if_present+=("nyholm/psr7-server")
-    packages_to_remove_if_present+=("open-telemetry/exporter-otlp")
-    packages_to_remove_if_present+=("open-telemetry/sdk")
 
     for package_prefix_to_remove_if_present in "${package_prefixes_to_remove_if_present[@]}" ; do
         if [[ "${dep_name}" == "${package_prefix_to_remove_if_present}"* ]]; then
@@ -241,12 +239,6 @@ function main() {
     echo "repo_temp_copy_dir: ${repo_temp_copy_dir}"
     
     copy_file "${repo_root_dir}/composer.json" "${repo_temp_copy_dir}/"
-
-    for dir_to_copy_rel_path in "${elastic_otel_php_adapt_to_PHP_81_dirs_used_by_install_rel_path[@]:?}" ; do
-        local dst_dir="${repo_temp_copy_dir}/${dir_to_copy_rel_path}"
-        mkdir -p "${dst_dir}"
-        copy_dir_contents "${repo_root_dir}/${dir_to_copy_rel_path}" "${dst_dir}"
-    done
 
     pushd "${repo_temp_copy_dir}" || exit 1
         # composer run-script -- download_and_adapt_packages_to_PHP_81 "${repo_temp_copy_dir}"

@@ -96,7 +96,7 @@ function configure_from_template() {
 
     local _OUTPUT_FILE=${_ARG_INPUT_FILE%.template}
 
-    echo "Configuring file ${_OUTPUT_FILE} from ${_ARG_INPUT_FILE} (current directory: ${PWD})"
+    echo "Configuring file ${_OUTPUT_FILE} from ${_ARG_INPUT_FILE}"
 
     configure_file "${_ARG_INPUT_FILE}" >"${_OUTPUT_FILE}"
 }
@@ -106,6 +106,5 @@ function configure_from_template() {
 _PROJECT_PROPERTIES_LOGGER_FEATURES_ENUM_VALUES=$(transform_comma_separated_values_into_php_const_members "${_PROJECT_PROPERTIES_LOGGER_FEATURES_ENUM_VALUES}")
 _PROJECT_PROPERTIES_VERSION="${_PROJECT_PROPERTIES_VERSION}$(get_git_hash)"
 
-# Make sure any directory used by this script is included in elastic_otel_php_adapt_to_PHP_81_dirs_used_by_install_rel_path in tools/shared.sh
 configure_from_template "prod/php/ElasticOTel/Log/LogFeature.php.template"
 configure_from_template "prod/php/ElasticOTel/PhpPartVersion.php.template"

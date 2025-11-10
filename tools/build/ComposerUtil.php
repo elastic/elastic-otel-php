@@ -25,6 +25,7 @@ declare(strict_types=1);
 
 namespace ElasticOTelTools\Build;
 
+use Elastic\OTel\Log\LogLevel;
 use Elastic\OTel\PhpPartFacade;
 
 /**
@@ -63,6 +64,12 @@ final class ComposerUtil
      */
     public static function execComposerInstallShellCommand(bool $withDev, string $additionalArgs = '', array $envVars = []): void
     {
+        $logLevel = LogLevel::info;
+        if (BuildToolsLog::isLevelEnabled($logLevel)) {
+            self::logWithLevel($logLevel, __LINE__, __METHOD__, 'Current directory: ' . BuildToolsUtil::getCurrentDirectory());
+            BuildToolsUtil::listDirectoryContents(BuildToolsUtil::getCurrentDirectory());
+            BuildToolsUtil::listFileContents(BuildToolsUtil::partsToPath(BuildToolsUtil::getCurrentDirectory(), ComposerUtil::COMPOSER_JSON_FILE_NAME));
+        }
         $cmdParts = [];
         $cmdParts[] = self::convertEnvVarsToCmdLinePart($envVars);
         $cmdParts[] = 'composer ' . self::COMPOSER_INSTALL_CMD_IGNORE_PLATFORM_REQ_ARGS . ' --no-interaction';
@@ -74,7 +81,7 @@ final class ComposerUtil
 
     public static function buildToGeneratedFileFullPath(string $repoRootPath, string $fileName): string
     {
-        return BuildToolsFileUtil::realPath($repoRootPath . DIRECTORY_SEPARATOR . self::GENERATED_FILES_DIR_NAME . DIRECTORY_SEPARATOR . $fileName);
+        return BuildToolsUtil::realPath($repoRootPath . DIRECTORY_SEPARATOR . self::GENERATED_FILES_DIR_NAME . DIRECTORY_SEPARATOR . $fileName);
     }
 
     public static function buildGeneratedComposerJsonFileName(PhpDepsEnvKind $envKind): string

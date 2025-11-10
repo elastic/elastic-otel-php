@@ -194,15 +194,12 @@ function main() {
     current_github_workflow_log_group_name="Setting the environment for ${BASH_SOURCE[0]}"
     echo "::group::${current_github_workflow_log_group_name}"
 
-    this_script_full_path="${BASH_SOURCE[0]}"
-    this_script_dir="$( dirname "${this_script_full_path}" )"
-    this_script_dir="$( realpath "${this_script_dir}" )"
-
-    repo_root_dir="$( realpath "${this_script_dir}/../../.." )"
-    source "${repo_root_dir}/tools/shared.sh"
-
-    # Make sure all the directories and files are indeed mounted
-    ls -l "${elastic_otel_php_files_to_mount_in_container[@]:?}" "${elastic_otel_php_dirs_to_mount_in_container[@]:?}"
+    mkdir -p /tmp/repo
+    export repo_root_dir="/tmp/repo"
+    cp -r /read_only_repo_root/* "${repo_root_dir}/"
+    cd "${repo_root_dir}/"
+    rm -rf composer.json composer.lock ./vendor/ ./prod/php/vendor_*
+    source "./tools/shared.sh"
 
     echo 'Before setting PHP_INI_SCAN_DIR'
     print_info_about_environment
@@ -220,9 +217,6 @@ function main() {
 
     echo 'After setting PHP_INI_SCAN_DIR'
     print_info_about_environment
-
-    repo_root_dir="$( realpath "${this_script_dir}/../../.." )"
-    source "${repo_root_dir}/tools/shared.sh"
 
     start_syslog_and_set_related_config
 
@@ -245,7 +239,7 @@ function main() {
     current_github_workflow_log_group_name="Installing PHP dependencies using composer"
     start_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
-    php ./tools/build/install_php_deps_in_test_env.php
+    php ./tools/build/select_json_lock_and_install_PHP_deps.php test
 
     end_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
@@ -259,7 +253,7 @@ function main() {
     start_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
     export ELASTIC_OTEL_PHP_TESTS_LOGS_DIRECTORY="/elastic_otel_php_tests/logs"
-    /repo_root/tools/test/component/test_installed_package_one_matrix_row.sh
+    ./tools/test/component/test_installed_package_one_matrix_row.sh
 }
 
 main "$@"

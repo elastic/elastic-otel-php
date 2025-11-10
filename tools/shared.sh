@@ -14,9 +14,6 @@ export elastic_otel_php_native_otlp_exporters_based_on_php_impl_version="${nativ
 export elastic_otel_php_build_tools_composer_lock_files_dir_name="generated_composer_lock_files"
 export elastic_otel_php_build_tools_composer_lock_files_dir="${repo_root_dir:?}/${elastic_otel_php_build_tools_composer_lock_files_dir_name:?}"
 
-export elastic_otel_php_files_to_mount_in_container=("elastic-otel-php.properties" "phpcs.xml" "phpstan.dist.neon" "phpunit.xml")
-export elastic_otel_php_dirs_to_mount_in_container=("prod" "tests" "tools")
-
 # Make sure the following value is in sync with the rest of locations where it's used:
 #   - tools/build/AdaptPackagesToPhp81.php
 # The path is relative to repo root
@@ -26,11 +23,6 @@ export elastic_otel_php_packages_adapted_to_PHP_81_rel_path="build/adapted_to_PH
 #   - tools/build/AdaptPackagesToPhp81.php
 # The path is relative to repo root
 export elastic_otel_php_composer_home_for_packages_adapted_to_PHP_81_rel_path="build/adapted_to_PHP_81/composer_home"
-
-# Make sure the following value is in sync with the rest of locations where it's used:
-#   - tools/build/AdaptPackagesToPhp81.php
-# The path is relative to repo root
-export elastic_otel_php_adapt_to_PHP_81_dirs_used_by_install_rel_path=("${elastic_otel_php_build_tools_composer_lock_files_dir_name}" "prod/php" "tools/build")
 
 function get_supported_php_versions_as_string() {
     local supported_php_versions_as_string=""
@@ -316,18 +308,30 @@ function copy_dir_if_exists() {
     fi
 }
 
-function build_container_volume_mount_options() {
+function should_pass_env_var_to_docker () {
+    env_var_name_to_check="${1:?}"
+
+    if [[ ${env_var_name_to_check} == "ELASTIC_OTEL_"* ]] || [[ ${env_var_name_to_check} == "OTEL_"* ]]; then
+        echo "true"
+        return
+    fi
+
+    echo "false"
+}
+
+function build_docker_env_vars_command_line_part () {
     # $1 should be the name of the environment variable to hold the result
     # local -n makes `result_var' reference to the variable named by $1
     local -n result_var=${1:?}
     result_var=()
-
-    local files_to_mount=("elastic-otel-php.properties" "phpcs.xml" "phpstan.dist.neon" "phpunit.xml")
-    for file_to_mount in "${files_to_mount[@]:?}" ; do
-        result_var+=(-v "${PWD}/${file_to_mount}:/repo_root/${file_to_mount}:ro")
-    done
-    local dirs_to_mount=("prod" "tests" "tools")
-    for dir_to_mount in "${dirs_to_mount[@]:?}" ; do
-        result_var+=(-v "${PWD}/${dir_to_mount}/:/repo_root/${dir_to_mount}/:ro")
-    done
+    # Iterate over environment variables
+    # The code is copied from https://stackoverflow.com/questions/25765282/bash-loop-through-variables-containing-pattern-in-name
+    while IFS='=' read -r env_var_name env_var_value ; do
+        should_pass=$(should_pass_env_var_to_docker "${env_var_name}")
+        if [ "${should_pass}" == "false" ] ; then
+            continue
+        fi
+        echo "Passing env var to docker: name: ${env_var_name}, value: ${env_var_value}"
+        result_var+=(-e "${env_var_name}=${env_var_value}")
+    done < <(env)
 }
