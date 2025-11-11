@@ -25,4 +25,4 @@ namespace ElasticOTelTools\Build;
 
 require __DIR__ . DIRECTORY_SEPARATOR . 'bootstrap_build_tools.php';
 
-AdaptPackagesToPhp81::downloadAdaptPackagesAndGenConfig();
+AdaptPhpDepsTo81::downloadAdaptPackagesAndGenConfig();

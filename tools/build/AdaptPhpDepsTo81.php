@@ -34,7 +34,7 @@ use RuntimeException;
  *
  * @noinspection PhpUnused
  */
-final class AdaptPackagesToPhp81
+final class AdaptPhpDepsTo81
 {
     use BuildToolsAssertTrait;
     use BuildToolsLoggingClassTrait;
