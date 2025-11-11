@@ -35,7 +35,7 @@ function parse_args() {
     done
 }
 
-function build_command_to_derive_composer_json_for_prod_env() {
+function build_command_to_derive_for_prod() {
     # Make some inconsequential change to composer.json just to make the one for dev different from the one for production.
     # So that the hash codes are different and ComposerAutoloaderInit<composer.json hash code> classes defined in vendor/composer/autoload_real.php
     # in the installed package and component tests vendor directories have different names.
@@ -46,8 +46,69 @@ function build_command_to_derive_composer_json_for_prod_env() {
     echo "composer --no-interaction --no-scripts --no-update --dev --quiet remove ext-mysqli"
 }
 
-function should_remove_not_dev_dep_from_composer_json_for_test_env() {
-    dep_name="${1:?}"
+function should_keep_dev_dep_for_prod_static_check() {
+    local dep_name="${1:?}"
+
+    local package_prefixes_to_keep=("php-parallel-lint/")
+    package_prefixes_to_keep+=("phpstan/")
+
+    local packages_to_keep+=("slevomat/coding-standard")
+    package_prefixes_to_keep+=("squizlabs/php_codesniffer")
+
+    for package_prefix_to_keep in "${package_prefixes_to_keep[@]}" ; do
+        if [[ "${dep_name}" == "${package_prefix_to_keep}"* ]]; then
+            echo "true"
+            return
+        fi
+    done
+
+    for package_to_keep in "${packages_to_keep[@]}" ; do
+        if [[ "${dep_name}" == "${package_to_keep}" ]]; then
+            echo "true"
+            return
+        fi
+    done
+
+    echo "false"
+}
+
+function build_list_of_dev_deps_to_remove_for_prod_static_check() {
+    local base_composer_json_full_path="${1:?}"
+
+    mapfile -t present_deps_in_quotes< <(jq '."require-dev" | keys | .[]' "${base_composer_json_full_path}")
+
+    local deps_to_remove=()
+    for present_dep_in_quotes in "${present_deps_in_quotes[@]}" ; do
+        local present_dep="${present_dep_in_quotes%\"}"
+        present_dep="${present_dep#\"}"
+        present_deps+=("${present_dep}")
+        should_keep=$(should_keep_dev_dep_for_prod_static_check "${present_dep}")
+        if [[ "${should_keep}" != "true" ]]; then
+            deps_to_remove+=("${present_dep}")
+        fi
+    done
+
+    if [ ${#deps_to_remove[@]} -eq 0 ]; then
+        echo "There should be at least one package to remove to generate composer json derived for test env"
+        exit 1
+    fi
+
+    echo "${deps_to_remove[*]}"
+}
+
+function build_command_to_derive_composer_json_for_prod_static_check() {
+    local base_composer_json_full_path="${1:?}"
+
+    # composer json for prod_static_check env is used to run 'composer run-script -- static_check' on prod code
+    # so we would like to remove all the dev dependencies that are not used by 'composer run-script -- static_check'
+    local dev_deps_to_remove
+    dev_deps_to_remove=$(build_list_of_dev_deps_to_remove_for_prod_static_check "${base_composer_json_full_path}")
+
+    echo "composer --no-scripts --no-update --quiet --dev remove ${dev_deps_to_remove}"
+}
+
+function should_remove_not_dev_dep_for_test() {
+    local dep_name="${1:?}"
 
     local package_prefixes_to_remove_if_present=("open-telemetry/opentelemetry-auto-")
     local packages_to_remove_if_present=("php-http/guzzle7-adapter")
@@ -70,15 +131,17 @@ function should_remove_not_dev_dep_from_composer_json_for_test_env() {
     echo "false"
 }
 
-function build_list_of_not_dev_deps_to_remove_from_composer_json_for_test_env() {
-    mapfile -t present_deps_in_quotes< <(jq '."require" | keys | .[]' "${repo_root_dir}/composer.json")
+function build_list_of_not_dev_deps_to_remove_for_test() {
+    local base_composer_json_full_path="${1:?}"
+
+    mapfile -t present_deps_in_quotes< <(jq '."require" | keys | .[]' "${base_composer_json_full_path}")
 
     local deps_to_remove=()
     for present_dep_in_quotes in "${present_deps_in_quotes[@]}" ; do
         local present_dep="${present_dep_in_quotes%\"}"
         present_dep="${present_dep#\"}"
         present_deps+=("${present_dep}")
-        should_remove=$(should_remove_not_dev_dep_from_composer_json_for_test_env "${present_dep}")
+        should_remove=$(should_remove_not_dev_dep_for_test "${present_dep}")
         if [ "${should_remove}" == "true" ] ; then
             deps_to_remove+=("${present_dep}")
         fi
@@ -92,14 +155,15 @@ function build_list_of_not_dev_deps_to_remove_from_composer_json_for_test_env() 
     echo "${deps_to_remove[*]}"
 }
 
-function build_command_to_derive_composer_json_for_test_env() {
+function build_command_to_derive_for_test() {
+    local base_composer_json_full_path="${1:?}"
+
     # composer json for test env is used in PHPUnit and application code for component tests context
     # so we would like to not have any dependencies that we don't use in tests code and that should be loaded by EDOT package
     # such as open-telemetry/opentelemetry-auto-*, etc.
     # We would like to make sure that those dependencies are loaded by EDOT package and not loaded from tests vendor
-
     local not_dev_deps_to_remove
-    not_dev_deps_to_remove=$(build_list_of_not_dev_deps_to_remove_from_composer_json_for_test_env)
+    not_dev_deps_to_remove=$(build_list_of_not_dev_deps_to_remove_for_test "${base_composer_json_full_path}")
 
     echo "composer --no-scripts --no-update --quiet remove ${not_dev_deps_to_remove}"
 }
@@ -126,10 +190,13 @@ function derive_composer_json_for_env_kind() {
     local command_to_derive
     case ${env_kind} in
         prod)
-            command_to_derive=$(build_command_to_derive_composer_json_for_prod_env)
+            command_to_derive=$(build_command_to_derive_for_prod)
+            ;;
+        prod_static_check)
+            command_to_derive=$(build_command_to_derive_composer_json_for_prod_static_check "${base_composer_json_full_path}")
             ;;
         test)
-            command_to_derive=$(build_command_to_derive_composer_json_for_test_env)
+            command_to_derive=$(build_command_to_derive_for_test "${base_composer_json_full_path}")
             ;;
         *)
             echo "There is no way to generate derived composer json for environment kind ${env_kind}"
@@ -262,12 +329,12 @@ function main() {
     echo "ls -al ${generated_composer_lock_files_stage_dir}"
     ls -al "${generated_composer_lock_files_stage_dir}"
 
-    for env_kind in "prod" "test"; do
+    for env_kind in "prod" "prod_static_check" "test"; do
         derive_composer_json_for_env_kind "${env_kind}"
     done
 
     for PHP_version_no_dot in "${elastic_otel_php_supported_php_versions[@]:?}" ; do
-        for env_kind in "dev" "prod" "test"; do
+        for env_kind in "dev" "prod" "prod_static_check" "test"; do
             generate_composer_lock_for_PHP_version "${env_kind}" "${PHP_version_no_dot}"
         done
     done

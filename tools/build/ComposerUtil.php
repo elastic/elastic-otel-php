@@ -109,7 +109,7 @@ final class ComposerUtil
     public static function convertEnvKindToWithDev(PhpDepsEnvKind $envKind): bool
     {
         return match ($envKind) {
-            PhpDepsEnvKind::dev, PhpDepsEnvKind::test => true,
+            PhpDepsEnvKind::dev, PhpDepsEnvKind::prod_static_check, PhpDepsEnvKind::test => true,
             PhpDepsEnvKind::prod => false,
         };
     }

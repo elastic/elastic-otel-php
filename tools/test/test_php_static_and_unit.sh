@@ -90,6 +90,12 @@ main() {
         local PHP_docker_image
         PHP_docker_image=$(build_light_PHP_docker_image_name_for_version_no_dot "${PHP_version_no_dot}")
 
+        # To run static check on prod (without dev only dependencies)
+        local PhpStan_neon_bootstrapFiles_value_line_original="- ./tests/bootstrap.php"
+        local PhpStan_neon_bootstrapFiles_value_line_for_prod="- ./tests/bootstrapProdStaticCheck.php"
+        local PhpStan_neon_bootstrapFiles_value_line_original_escaped="${PhpStan_neon_bootstrapFiles_value_line_original//\//\\\/}"
+        local PhpStan_neon_bootstrapFiles_value_line_for_prod_escaped="${PhpStan_neon_bootstrapFiles_value_line_for_prod//\//\\\/}"
+        local replace_PhpStan_neon_bootstrapFiles_for_prod="sed -i 's/${PhpStan_neon_bootstrapFiles_value_line_original_escaped}/${PhpStan_neon_bootstrapFiles_value_line_for_prod_escaped}/g'"
         docker run --rm \
             "${docker_run_env_vars_cmd_line_args[@]}" \
             -v "${PWD}/:/repo_root/:ro" \
@@ -97,12 +103,27 @@ main() {
             -w "/repo_root" \
             "${PHP_docker_image}" \
             sh -c "\
-                mkdir -p /tmp/repo \
-                && cp -r /repo_root/* /tmp/repo/ \
-                && cd /tmp/repo/ \
-                && rm -rf composer.json composer.lock ./vendor/ ./prod/php/vendor_* \
-                && apk update && apk add bash git \
+                apk update && apk add bash git \
                 && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
+                && echo 'Running static check on prod (without dev only dependencies); PHP_version_no_dot:' ${PHP_version_no_dot} \
+                && mkdir -p /tmp/repo \
+                && cp -r /repo_root/* /tmp/repo/ \
+                && rm -rf /tmp/repo/composer.json /tmp/repo/composer.lock /tmp/repo/vendor/ /tmp/repo/prod/php/vendor_* \
+                && mv /tmp/repo/tests /tmp/repo/tests_original \
+                && mkdir /tmp/repo/tests \
+                && mv /tmp/repo/tests_original/elastic_otel_extension_stubs /tmp/repo/tests/elastic_otel_extension_stubs \
+                && mv /tmp/repo/tests_original/bootstrapProdStaticCheck.php /tmp/repo/tests/bootstrapProdStaticCheck.php \
+                && rm -rf /tmp/repo/tests_original/ \
+                && ${replace_PhpStan_neon_bootstrapFiles_for_prod} /tmp/repo/phpstan.dist.neon \
+                && cd /tmp/repo/ \
+                && php ./tools/build/select_json_lock_and_install_PHP_deps.php prod_static_check \
+                && composer run-script -- static_check \
+                && echo 'Running static check and unit tests; PHP_version_no_dot:' ${PHP_version_no_dot} \
+                && cd / && rm -rf /tmp/repo/ \
+                && mkdir -p /tmp/repo \
+                && cp -r /repo_root/* /tmp/repo/ \
+                && rm -rf /tmp/repo/composer.json /tmp/repo/composer.lock /tmp/repo/vendor/ /tmp/repo/prod/php/vendor_* \
+                && cd /tmp/repo/ \
                 && php ./tools/build/select_json_lock_and_install_PHP_deps.php test \
                 && composer run-script -- static_check_and_run_unit_tests \
             "
