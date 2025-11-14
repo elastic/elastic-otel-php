@@ -21,8 +21,13 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTests\ComponentTests\Util;
+namespace ElasticOTelTools;
 
-require __DIR__ . '/../../../bootstrapDev.php';
-
-CliScriptAppCodeHost::run();
+function requireComposerAutoload(string $phpFileFullPath): void
+{
+    if (file_exists($phpFileFullPath)) {
+        require $phpFileFullPath;
+    } else {
+        die("Error: $phpFileFullPath is missing - maybe dependencies were not installed correctly/at all?" . PHP_EOL);
+    }
+}

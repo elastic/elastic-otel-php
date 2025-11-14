@@ -26,16 +26,19 @@ namespace ElasticOTelTools\Build;
 use Elastic\OTel\AutoloaderElasticOTelClasses;
 use Elastic\OTel\BootstrapStageLogger;
 use Elastic\OTel\Log\LogLevel;
+use ElasticOTelTools\ToolsLog;
 use RuntimeException;
+
+require __DIR__ . '/bootstrap_shared.php';
 
 const ELASTIC_OTEL_PHP_TOOLS_LOG_LEVEL_ENV_VAR_NAME = 'ELASTIC_OTEL_PHP_TOOLS_LOG_LEVEL';
 
-require __DIR__ . DIRECTORY_SEPARATOR . 'BuildToolsAssertTrait.php';
-require __DIR__ . DIRECTORY_SEPARATOR . 'BuildToolsLog.php';
-require __DIR__ . DIRECTORY_SEPARATOR . 'BuildToolsLoggingClassTrait.php';
+require __DIR__ . DIRECTORY_SEPARATOR . 'ToolsAssertTrait.php';
+require __DIR__ . DIRECTORY_SEPARATOR . 'ToolsLog.php';
+require __DIR__ . DIRECTORY_SEPARATOR . 'ToolsLoggingClassTrait.php';
 
 // __DIR__ is "<repo root>/tools/build"
-$repoRootDir = realpath($repoRootDirTempVal = __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..');
+$repoRootDir = realpath($repoRootDirTempVal = __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'tools');
 if ($repoRootDir === false) {
     throw new RuntimeException("realpath returned false for $repoRootDirTempVal");
 }
@@ -53,11 +56,11 @@ $getMaxEnabledLogLevelConfig = function (): ?LogLevel {
 
     return LogLevel::tryToFindByName(strtolower($envVarVal));
 };
-$maxEnabledLogLevel = $getMaxEnabledLogLevelConfig() ?? BuildToolsLog::DEFAULT_LEVEL;
-BuildToolsLog::configure($maxEnabledLogLevel);
+$maxEnabledLogLevel = $getMaxEnabledLogLevelConfig() ?? ToolsLog::DEFAULT_LEVEL;
+ToolsLog::configure($maxEnabledLogLevel);
 
 $writeToSinkForBootstrapStageLogger = function (int $level, int $feature, string $file, int $line, string $func, string $text): void {
-    BuildToolsLog::writeAsProdSink($level, $feature, $file, $line, $func, $text);
+    ToolsLog::writeAsProdSink($level, $feature, $file, $line, $func, $text);
 };
 BootstrapStageLogger::configure($maxEnabledLogLevel->value, $prodPhpElasticOTelPath, __NAMESPACE__, $writeToSinkForBootstrapStageLogger);
 

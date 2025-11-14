@@ -19,20 +19,19 @@
  * under the License.
  */
 
-/** @noinspection PhpIllegalPsrClassPathInspection */
-
 declare(strict_types=1);
 
 namespace ElasticOTelTools\Build;
 
 use Elastic\OTel\Util\EnumUtilTrait;
 
+/**
+ * Make sure this enum values are in sync with the rest of locations where it's defined (see elastic_otel_php_deps_env_kinds in <repo root>/tools/shared.sh)
+ */
 enum PhpDepsEnvKind
 {
     use EnumUtilTrait;
 
     case dev;
     case prod;
-    case prod_static_check;
-    case test;
 }

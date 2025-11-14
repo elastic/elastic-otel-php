@@ -21,8 +21,8 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTools\Build;
+namespace ElasticOTelTools\Test;
 
-require __DIR__ . DIRECTORY_SEPARATOR . 'bootstrap_build_tools.php';
+require __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'bootstrap_tools.php';
 
-InstallPhpDeps::selectJsonLockAndInstall(BuildToolsUtil::getCommandLineArgs());
+StaticCheckProd::check(basename(__FILE__));

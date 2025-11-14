@@ -19,11 +19,9 @@
  * under the License.
  */
 
-/** @noinspection PhpIllegalPsrClassPathInspection */
-
 declare(strict_types=1);
 
-namespace ElasticOTelTools\Build;
+namespace ElasticOTelTools;
 
 use DirectoryIterator;
 use Elastic\OTel\Log\LogLevel;
@@ -35,10 +33,10 @@ use Throwable;
 /**
  * @phpstan-type EnvVars array<string, string>
  */
-final class BuildToolsUtil
+final class ToolsUtil
 {
-    use BuildToolsAssertTrait;
-    use BuildToolsLoggingClassTrait;
+    use ToolsAssertTrait;
+    use ToolsLoggingClassTrait;
 
     private const KEEP_TEMP_FILES_ENV_VAR_NAME = 'ELASTIC_OTEL_PHP_TOOLS_KEEP_TEMP_FILES';
 
@@ -47,9 +45,9 @@ final class BuildToolsUtil
     /**
      * @param callable(): void $code
      */
-    public static function runCmdLineImpl(string $calledFromFqMethod, callable $code): void
+    public static function runCmdLineImpl(string $dbgCalledFrom, callable $code): void
     {
-        self::logInfo(__LINE__, __METHOD__, 'Running code for command line: ' . BuildToolsLog::shortenFqMethod($calledFromFqMethod), ['log level' => BuildToolsLog::getMaxEnabledLevel()->name]);
+        self::logInfo(__LINE__, __METHOD__, 'Running code for command line: ' . $dbgCalledFrom, ['log level' => ToolsLog::getMaxEnabledLevel()->name]);
 
         $exitCode = 0;
 
@@ -60,7 +58,7 @@ final class BuildToolsUtil
             self::logThrowable(LogLevel::critical, __LINE__, __METHOD__, $throwable);
         }
 
-        self::logInfo(__LINE__, __METHOD__, 'Finished running code for command line: ' . BuildToolsLog::shortenFqMethod($calledFromFqMethod), compact('exitCode'));
+        self::logInfo(__LINE__, __METHOD__, 'Finished running code for command line: ' . $dbgCalledFrom, compact('exitCode'));
         exit($exitCode);
     }
 
@@ -153,6 +151,11 @@ final class BuildToolsUtil
         );
     }
 
+    /**
+     * @param callable(): void $code
+     *
+     * @noinspection PhpDocMissingThrowsInspection
+     */
     public static function changeCurrentDirectoryRunCodeAndRestore(string $newCurrentDir, callable $code): void
     {
         $originalCurrentDir = self::getCurrentDirectory();
@@ -272,6 +275,17 @@ final class BuildToolsUtil
         );
     }
 
+    public static function moveFile(string $fromFilePath, string $toFilePath, bool $allowOverwrite = false): void
+    {
+        self::logInfo(__LINE__, __METHOD__, "Moving file $fromFilePath to $toFilePath");
+        $allowOverwriteOpt = ($allowOverwrite ? (self::isCurrentOsWindows() ? '/y' : '-f') : '');
+        self::execShellCommand(
+            self::isCurrentOsWindows()
+                ? "move $allowOverwriteOpt \"$fromFilePath\" \"$toFilePath\""
+                : "mv $allowOverwriteOpt \"$fromFilePath\" \"$toFilePath\""
+        );
+    }
+
     public static function getFileContents(string $filePath): string
     {
         $result = file_get_contents($filePath);
@@ -340,7 +354,7 @@ final class BuildToolsUtil
         self::execShellCommand(
             self::isCurrentOsWindows()
                 ? "xcopy /y /s /e \"$fromDirPath\\*\" \"$toDirPath\\\""
-                : "cp -r \"$fromDirPath/\"* \"$toDirPath/\"",
+                : "cp -r \"$fromDirPath/.\" \"$toDirPath/\"",
         );
     }
 
@@ -370,9 +384,30 @@ final class BuildToolsUtil
         self::logInfo(__LINE__, __METHOD__, "Deleting directory $dirPath");
         self::execShellCommand(
             self::isCurrentOsWindows()
-                ? "DEL /F /Q /S \"$dirPath\" && RD /S /Q \"$dirPath\""
+                ? "rmdir /s /q \"$dirPath\""
                 : "rm -rf \"$dirPath\""
         );
+    }
+
+    public static function deleteDirectoryContents(string $dirPath): void
+    {
+        self::logInfo(__LINE__, __METHOD__, "Deleting directory $dirPath");
+        if (self::isCurrentOsWindows()) {
+            self::deleteDirectory($dirPath);
+            self::createDirectory($dirPath);
+        } else {
+            self::execShellCommand("rm -rf \"$dirPath\"/*");
+        }
+    }
+
+    public static function ensureEmptyDirectory(string $dirPath): void
+    {
+        self::logInfo(__LINE__, __METHOD__, "Ensuring directory is empty: $dirPath");
+        if (is_dir($dirPath)) {
+            ToolsUtil::deleteDirectoryContents($dirPath);
+        } else {
+            ToolsUtil::createDirectory($dirPath);
+        }
     }
 
     public static function deleteTempDirectory(string $dirPath): void
@@ -475,7 +510,7 @@ final class BuildToolsUtil
     }
 
     /**
-     * Must be defined in class using BuildToolsLoggingClassTrait
+     * Must be defined in class using ToolsLoggingClassTrait
      */
     private static function getCurrentSourceCodeFile(): string
     {

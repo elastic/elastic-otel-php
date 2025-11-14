@@ -26,14 +26,14 @@ namespace ElasticOTelTests\UnitTests\UtilTests;
 use Elastic\OTel\Log\LogFeature;
 use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\TestCaseBase;
-use ElasticOTelTools\Build\BuildToolsLog;
+use ElasticOTelTools\ToolsLog;
 use ReflectionClass;
 
-final class BuildToolsUtilTest extends TestCaseBase
+final class ToolsUtilTest extends TestCaseBase
 {
     public static function testProdLogFeatureValueToNameMap(): void
     {
-        $logFeatureValueToNameMap = AssertEx::notEmptyArray(BuildToolsLog::buildProdLogFeatureValueToNameMap());
+        $logFeatureValueToNameMap = AssertEx::notEmptyArray(ToolsLog::buildProdLogFeatureValueToNameMap());
 
         $assertValueToName = function (int $value, string $expectedName) use ($logFeatureValueToNameMap): void {
             self::assertSame($expectedName, AssertEx::arrayHasKey($value, $logFeatureValueToNameMap));

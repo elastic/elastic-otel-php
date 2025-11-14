@@ -239,7 +239,7 @@ function main() {
     current_github_workflow_log_group_name="Installing PHP dependencies using composer"
     start_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
-    php ./tools/build/select_json_lock_and_install_PHP_deps.php test
+    php ./tools/build/select_composer_json_lock_and_install_PHP_deps.php test
 
     end_github_workflow_log_group "${current_github_workflow_log_group_name}"
 

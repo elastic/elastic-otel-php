@@ -11,18 +11,29 @@ export elastic_otel_php_test_groups_short_names=("${test_groups_short_names[@]:?
 export elastic_otel_php_otel_proto_version="${otel_proto_version:?}"
 export elastic_otel_php_native_otlp_exporters_based_on_php_impl_version="${native_otlp_exporters_based_on_php_impl_version:?}"
 
+# Make sure the following value is in sync with the rest of locations where it's defined:
+#   - tools/build/PhpDepsEnvKind.php
+export elastic_otel_php_deps_env_kinds=("dev" "prod")
+
+# Make sure the following value is in sync with the rest of locations where it's defined:
+#   - tools/build/InstallPhpDeps.php
 export elastic_otel_php_build_tools_composer_lock_files_dir_name="generated_composer_lock_files"
 export elastic_otel_php_build_tools_composer_lock_files_dir="${repo_root_dir:?}/${elastic_otel_php_build_tools_composer_lock_files_dir_name:?}"
 
-# Make sure the following value is in sync with the rest of locations where it's used:
-#   - tools/build/AdaptPackagesToPhp81.php
+# Make sure the following value is in sync with the rest of locations where it's defined:
+#   - tools/build/AdaptPhpDepsTo81.php
 # The path is relative to repo root
 export elastic_otel_php_packages_adapted_to_PHP_81_rel_path="build/adapted_to_PHP_81/packages"
 
-# Make sure the following value is in sync with the rest of locations where it's used:
-#   - tools/build/AdaptPackagesToPhp81.php
+# Make sure the following value is in sync with the rest of locations where it's defined:
+#   - tools/build/AdaptPhpDepsTo81.php
 # The path is relative to repo root
 export elastic_otel_php_composer_home_for_packages_adapted_to_PHP_81_rel_path="build/adapted_to_PHP_81/composer_home"
+
+# Make sure the following value is in sync with the rest of locations where it's defined:
+#   - tools/build/InstallPhpDeps.php
+#   - tests/bootstrapDev.php
+export elastic_otel_php_vendor_prod_dir_name="vendor_prod"
 
 function get_supported_php_versions_as_string() {
     local supported_php_versions_as_string=""
@@ -211,17 +222,41 @@ function end_github_workflow_log_group() {
     echo "::endgroup::${group_name}"
 }
 
-function build_generated_composer_json_file_name() {
+function map_env_kind_to_generated_composer_file_name_prefix() {
     local env_kind="${1:?}"
 
-    echo "${env_kind}.json"
+    local base_file_name_prefix="composer"
+    case "${env_kind}" in
+        "dev")
+            echo "${base_file_name_prefix}"
+            ;;
+        "prod")
+            echo "${base_file_name_prefix}_${env_kind}"
+            ;;
+        *)
+            echo "Unknown env_kind: ${env_kind}"
+            return 1
+            ;;
+    esac
+}
+
+function build_composer_json_file_name() {
+    local env_kind="${1:?}"
+
+    local file_name
+    file_name="$(map_env_kind_to_generated_composer_file_name_prefix "${env_kind}")"
+
+    echo "${file_name}.json"
 }
 
 function build_generated_composer_lock_file_name() {
     local env_kind="${1:?}"
     local PHP_version_no_dot="${2:?}"
 
-    echo "${env_kind}_${PHP_version_no_dot}.lock"
+    local file_name_prefix
+    file_name_prefix="$(map_env_kind_to_generated_composer_file_name_prefix "${env_kind}")"
+
+    echo "${file_name_prefix}_${PHP_version_no_dot}.lock"
 }
 
 function build_light_PHP_docker_image_name_for_version_no_dot() {
@@ -253,14 +288,8 @@ function copy_dir_contents() {
     local src_dir="${1:?}"
     local dst_dir="${2:?}"
 
-    local src_dir_ls
-    src_dir_ls=$(ls -A "${src_dir}/")
-    if [ -z "${src_dir_ls}" ]; then
-        return
-    fi
-
     echo "Copying directory contents ${src_dir}/ to ${dst_dir}/ ..."
-    cp -r "${src_dir}/"* "${dst_dir}/"
+    cp -r "${src_dir}/." "${dst_dir}/"
 }
 
 function copy_dir_contents_overwrite() {
@@ -308,7 +337,7 @@ function copy_dir_if_exists() {
     fi
 }
 
-function should_pass_env_var_to_docker () {
+function should_pass_env_var_to_docker() {
     env_var_name_to_check="${1:?}"
 
     if [[ ${env_var_name_to_check} == "ELASTIC_OTEL_"* ]] || [[ ${env_var_name_to_check} == "OTEL_"* ]]; then
@@ -319,7 +348,7 @@ function should_pass_env_var_to_docker () {
     echo "false"
 }
 
-function build_docker_env_vars_command_line_part () {
+function build_docker_env_vars_command_line_part() {
     # $1 should be the name of the environment variable to hold the result
     # local -n makes `result_var' reference to the variable named by $1
     local -n result_var=${1:?}
@@ -334,4 +363,17 @@ function build_docker_env_vars_command_line_part () {
         echo "Passing env var to docker: name: ${env_var_name}, value: ${env_var_value}"
         result_var+=(-e "${env_var_name}=${env_var_value}")
     done < <(env)
+}
+
+function is_valid_php_deps_env_kind() {
+    local env_kind_to_check="${1:?}"
+
+    for env_kind in "${elastic_otel_php_deps_env_kinds[@]}" ; do
+        if [[ "${env_kind_to_check}" == "${env_kind}" ]]; then
+            echo "true"
+            return
+        fi
+    done
+
+    echo "false"
 }

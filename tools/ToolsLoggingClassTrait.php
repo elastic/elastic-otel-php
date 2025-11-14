@@ -19,19 +19,17 @@
  * under the License.
  */
 
-/** @noinspection PhpIllegalPsrClassPathInspection */
-
 declare(strict_types=1);
 
-namespace ElasticOTelTools\Build;
+namespace ElasticOTelTools;
 
 use Elastic\OTel\Log\LogLevel;
 use Throwable;
 
 /**
- * @phpstan-import-type Context from BuildToolsLog
+ * @phpstan-import-type Context from ToolsLog
  */
-trait BuildToolsLoggingClassTrait
+trait ToolsLoggingClassTrait
 {
     /**
      * @param Context $context
@@ -40,8 +38,8 @@ trait BuildToolsLoggingClassTrait
      */
     private static function logWithLevel(LogLevel $level, int $line, string $fqMethod, string $msg, array $context = []): void
     {
-        // getCurrentSourceCodeFile() must be defined in class using BuildToolsLoggingClassTrait
-        BuildToolsLog::withLevel($level, self::getCurrentSourceCodeFile(), $line, $fqMethod, $msg, $context);
+        // getCurrentSourceCodeFile() must be defined in class using ToolsLoggingClassTrait
+        ToolsLog::withLevel($level, self::getCurrentSourceCodeFile(), $line, $fqMethod, $msg, $context);
     }
 
     /**
@@ -106,7 +104,7 @@ trait BuildToolsLoggingClassTrait
 
     private static function logThrowable(LogLevel $level, int $line, string $fqMethod, Throwable $throwable): void
     {
-        if (!BuildToolsLog::isLevelEnabled(LogLevel::critical)) {
+        if (!ToolsLog::isLevelEnabled(LogLevel::critical)) {
             return;
         }
 
@@ -118,7 +116,7 @@ trait BuildToolsLoggingClassTrait
             return is_scalar($propVal) ? strval($propVal) : $defaultValue;
         };
         self::logWithLevel($level, $line, $fqMethod, 'Caught throwable: ' . $throwable->getMessage());
-        BuildToolsLog::writeLineRaw('Stack trace:');
+        ToolsLog::writeLineRaw('Stack trace:');
         foreach ($throwable->getTrace() as $traceEntry) {
             $text = $getTraceEntryProp($traceEntry, 'file', '<FILE>') . ':' . $getTraceEntryProp($traceEntry, 'line', '<LINE>');
             $text .= ' (' . $getTraceEntryProp($traceEntry, 'class', '<CLASS>') . '::' . $getTraceEntryProp($traceEntry, 'function', '<FUNC>') . ')';

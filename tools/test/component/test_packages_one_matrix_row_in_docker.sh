@@ -104,9 +104,13 @@ function does_tests_group_need_external_services () {
 }
 
 function on_script_exit () {
+    local exit_code=$?
+
     if [ "${should_start_external_services}" == "true" ] ; then
         "${this_script_dir}/stop_external_services.sh"
     fi
+
+    exit ${exit_code}
 }
 
 function main() {

@@ -24,17 +24,16 @@ declare(strict_types=1);
 use ElasticOTelTests\Util\RepoRootDir;
 use ElasticOTelTests\Util\ExceptionUtil;
 
-// Ensure that composer has installed all dependencies
-if (!file_exists($vendorAutoload = (__DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.php'))) {
-    die("Error: $vendorAutoload is missing - dependencies must be installed using composer" . PHP_EOL);
-}
+require __DIR__ . '/../tools/bootstrap_shared.php';
 
-// Disable deprecation notices starting from PHP 8.4
-// Deprecated: funcAbc(): Implicitly marking parameter $xyz as nullable is deprecated, the explicit nullable type must be used instead
-error_reporting(PHP_VERSION_ID < 80400 ? E_ALL : (E_ALL & ~E_DEPRECATED));
+/** @noinspection PhpFullyQualifiedNameUsageInspection */
+\ElasticOTelTools\requireComposerAutoload(__DIR__ . "/../vendor/autoload.php");
 
-require $vendorAutoload;
-// Substitutes should be loaded IMMEDIATELY AFTER vendor
+// TODO: Sergey Kleyman: It should not be necessary to load vendor_prod for dev
+/** @noinspection PhpFullyQualifiedNameUsageInspection */
+\ElasticOTelTools\requireComposerAutoload(__DIR__ . "/../vendor_prod/autoload.php");
+
+// Substitutes should be loaded IMMEDIATELY AFTER vendor autoload
 require __DIR__ . '/substitutes/load.php';
 
 ExceptionUtil::runCatchLogRethrow(

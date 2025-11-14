@@ -21,8 +21,9 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTests\ComponentTests\Util;
+require __DIR__ . '/../bootstrap_shared.php';
 
-require __DIR__ . '/../../../bootstrapDev.php';
+/** @noinspection PhpFullyQualifiedNameUsageInspection */
+\ElasticOTelTools\requireComposerAutoload(__DIR__ . '/../../vendor_prod/autoload.php');
 
-CliScriptAppCodeHost::run();
+require __DIR__ . '/../../tests/elastic_otel_extension_stubs/load.php';

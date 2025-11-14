@@ -21,8 +21,10 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTests\ComponentTests\Util;
+namespace ElasticOTelTools\Build;
 
-require __DIR__ . '/../../../bootstrapDev.php';
+use ElasticOTelTools\ToolsUtil;
 
-CliScriptAppCodeHost::run();
+require __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'bootstrap_tools.php';
+
+InstallPhpDeps::selectComposerLockAndInstall(basename(__FILE__), ToolsUtil::getCommandLineArgs());
