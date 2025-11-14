@@ -19,8 +19,6 @@
  * under the License.
  */
 
-/** @noinspection PhpComposerExtensionStubsInspection */
-
 declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests;
@@ -51,13 +49,6 @@ use Throwable;
 final class PackagesPhpRequirementTest extends ComponentTestCaseBase
 {
     private const PROD_VENDOR_DIR_KEY = 'prod_vendor_dir';
-
-    private const PACKAGES_EXPECTED_NOT_SUPPORT_PHP_81 = [
-        'open-telemetry/opentelemetry-auto-curl',
-        'open-telemetry/opentelemetry-auto-mysqli',
-        'open-telemetry/opentelemetry-auto-pdo',
-        'open-telemetry/opentelemetry-auto-postgresql',
-    ];
 
     public function testSemverConstraint(): void
     {
@@ -100,13 +91,6 @@ final class PackagesPhpRequirementTest extends ComponentTestCaseBase
         $assertThrows('8.1.2.3-extra', '^8.1');
     }
 
-    private static function isCurrentPhpVersion81(): bool
-    {
-        // If the current PHP version is 8.1.*
-        // @phpstan-ignore-next-line
-        return (80100 <= PHP_VERSION_ID) && (PHP_VERSION_ID < 80200);
-    }
-
     private static function getCurrentPhpVersion(): string
     {
         // PHP_VERSION: 5.3.6-13ubuntu3.2
@@ -122,7 +106,7 @@ final class PackagesPhpRequirementTest extends ComponentTestCaseBase
 
     private static function getPackagePhpVersionConstraints(string $packageDir): ?string
     {
-        $packageComposerJsonFilePath = FileUtil::listToPath([$packageDir, 'composer.json']);
+        $packageComposerJsonFilePath = FileUtil::partsToPath($packageDir, 'composer.json');
         if (!file_exists($packageComposerJsonFilePath)) {
             return null;
         }
@@ -163,6 +147,7 @@ final class PackagesPhpRequirementTest extends ComponentTestCaseBase
     private static function assertOpcacheEnabled(): void
     {
         DebugContext::getCurrentScope(/* out */ $dbgCtx);
+        /** @noinspection PhpComposerExtensionStubsInspection */
         $opcacheStatus = AssertEx::isArray(opcache_get_status());
         $dbgCtx->add(compact('opcacheStatus'));
         $opcacheEnabled = AssertEx::isBool(AssertEx::arrayHasKey('opcache_enabled', $opcacheStatus));
@@ -175,33 +160,25 @@ final class PackagesPhpRequirementTest extends ComponentTestCaseBase
         $currentPhpVersion = self::getCurrentPhpVersion();
         $dbgCtx->add(compact('currentPhpVersion'));
 
-        $numberOfPackagesNotSupportCurrentPhpVersion = 0;
         self::callForEachPackage(
             $prodVendorDir,
-            function (string $packageVendor, string $packageName) use ($prodVendorDir, $dbgCtx, $currentPhpVersion, &$numberOfPackagesNotSupportCurrentPhpVersion) {
-                $packageDir = FileUtil::listToPath([$prodVendorDir, $packageVendor, $packageName]);
+            function (string $packageVendor, string $packageName) use ($prodVendorDir, $dbgCtx, $currentPhpVersion) {
+                $packageDir = FileUtil::partsToPath($prodVendorDir, $packageVendor, $packageName);
                 if (($phpVersionConstraints = self::getPackagePhpVersionConstraints($packageDir)) === null) {
-                    return;
-                }
-
-                $dbgCtx->add(compact('phpVersionConstraints'));
-                if (Semver::satisfies($currentPhpVersion, $phpVersionConstraints)) {
                     return;
                 }
 
                 $packageFqName = "$packageVendor/$packageName";
                 $dbgCtx->add(compact('packageFqName'));
-                self::assertTrue(self::isCurrentPhpVersion81());
-                if (!in_array($packageFqName, self::PACKAGES_EXPECTED_NOT_SUPPORT_PHP_81)) {
+                $dbgCtx->add(compact('phpVersionConstraints'));
+                if (!Semver::satisfies($currentPhpVersion, $phpVersionConstraints)) {
                     self::fail(
                         'Encountered a package with PHP constraints that are not satisfied by the current PHP version; '
                         . "package: $packageFqName, PHP constraints: $phpVersionConstraints, current PHP version: $currentPhpVersion"
                     );
                 }
-                ++$numberOfPackagesNotSupportCurrentPhpVersion;
             }
         );
-        self::assertSame(self::isCurrentPhpVersion81() ? count(self::PACKAGES_EXPECTED_NOT_SUPPORT_PHP_81) : 0, $numberOfPackagesNotSupportCurrentPhpVersion);
     }
 
     private static function containsHiddenDirInPath(string $filePath): bool

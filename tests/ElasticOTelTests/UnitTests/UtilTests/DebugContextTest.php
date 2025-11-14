@@ -23,9 +23,10 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\UnitTests\UtilTests;
 
+use Elastic\OTel\Util\BoolUtil;
 use ElasticOTelTests\Util\ArrayUtilForTests;
 use ElasticOTelTests\Util\AssertEx;
-use ElasticOTelTests\Util\BoolUtil;
+use ElasticOTelTests\Util\BoolUtilForTests;
 use ElasticOTelTests\Util\DataProviderForTestBuilder;
 use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\DebugContextConfig;
@@ -253,7 +254,7 @@ class DebugContextTest extends TestCaseBase
     {
         $builder = new DataProviderForTestBuilder();
         foreach ($optionsToVariate as $optionName) {
-            $builder->addKeyedDimensionAllValuesCombinable($optionName, BoolUtil::allValuesStartingFrom(DebugContextConfig::DEFAULT_VALUES[$optionName]));
+            $builder->addKeyedDimensionAllValuesCombinable($optionName, BoolUtilForTests::allValuesStartingFrom(DebugContextConfig::DEFAULT_VALUES[$optionName]));
         }
         return $builder;
     }
@@ -877,7 +878,7 @@ class DebugContextTest extends TestCaseBase
                    ->addBoolKeyedDimensionOnlyFirstValueCombinable(self::SHOULD_MIDDLE_NON_VENDOR_CALL_ADD_CONTEXT_KEY)
                    ->addBoolKeyedDimensionOnlyFirstValueCombinable(self::SHOULD_BOTTOM_NON_VENDOR_CALL_ADD_CONTEXT_KEY)
                     // Use Assert::assertXYZ with all the combinations in other dimensions and Assert::fail only with the first tuple of the combinations in other dimensions
-                   ->addKeyedDimensionOnlyFirstValueCombinable(self::USE_FAIL_TO_TRIGGER_ASSERTION_KEY, BoolUtil::allValuesStartingFrom(false))
+                   ->addKeyedDimensionOnlyFirstValueCombinable(self::USE_FAIL_TO_TRIGGER_ASSERTION_KEY, BoolUtilForTests::allValuesStartingFrom(false))
                    ->buildAsMixedMaps();
     }
 

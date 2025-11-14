@@ -85,7 +85,7 @@ function start_syslog () {
 function start_syslog_and_set_related_config () {
     local start_syslog_started
     start_syslog_started=$(start_syslog)
-    if [ "${start_syslog_started}" != "true" ]; then
+    if [[ "${start_syslog_started}" != "true" ]]; then
         # By default tests log level escalation mechanism uses log_level_syslog production option
         # If there is not syslog running then let's use log_level_stderr
         export ELASTIC_OTEL_PHP_TESTS_ESCALATED_RERUNS_PROD_CODE_LOG_LEVEL_OPTION_NAME=log_level_stderr
@@ -194,12 +194,12 @@ function main() {
     current_github_workflow_log_group_name="Setting the environment for ${BASH_SOURCE[0]}"
     echo "::group::${current_github_workflow_log_group_name}"
 
-    this_script_full_path="${BASH_SOURCE[0]}"
-    this_script_dir="$( dirname "${this_script_full_path}" )"
-    this_script_dir="$( realpath "${this_script_dir}" )"
-
-    repo_root_dir="$( realpath "${this_script_dir}/../../.." )"
-    source "${repo_root_dir}/tools/shared.sh"
+    mkdir -p /tmp/repo
+    export repo_root_dir="/tmp/repo"
+    cp -r /read_only_repo_root/* "${repo_root_dir}/"
+    cd "${repo_root_dir}/"
+    rm -rf composer.json composer.lock ./vendor/ ./prod/php/vendor_*
+    source "./tools/shared.sh"
 
     echo 'Before setting PHP_INI_SCAN_DIR'
     print_info_about_environment
@@ -217,9 +217,6 @@ function main() {
 
     echo 'After setting PHP_INI_SCAN_DIR'
     print_info_about_environment
-
-    repo_root_dir="$( realpath "${this_script_dir}/../../.." )"
-    source "${repo_root_dir}/tools/shared.sh"
 
     start_syslog_and_set_related_config
 
@@ -242,15 +239,7 @@ function main() {
     current_github_workflow_log_group_name="Installing PHP dependencies using composer"
     start_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
-    cp -f /composer_to_use.json ./composer.json
-    cp -f /composer_to_use.lock ./composer.lock
-    rm -rf ./vendor/ ./prod/php/vendor_*/
-    composer --check-lock --no-check-all validate
-    ELASTIC_OTEL_TOOLS_ALLOW_DIRECT_COMPOSER_COMMAND=true composer --no-interaction install
-
-    # Allow access from docker's host under non-root user to files created by composer install command above
-    chown -R "${ELASTIC_OTEL_PHP_TESTS_DOCKER_RUNNING_USER_ID:?}:${ELASTIC_OTEL_PHP_TESTS_DOCKER_RUNNING_USER_GROUP_ID:?}" .
-    chmod -R 777 .
+    php ./tools/build/select_json_lock_and_install_PHP_deps.php test
 
     end_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
@@ -264,7 +253,7 @@ function main() {
     start_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
     export ELASTIC_OTEL_PHP_TESTS_LOGS_DIRECTORY="/elastic_otel_php_tests/logs"
-    /repo_root/tools/test/component/test_installed_package_one_matrix_row.sh
+    ./tools/test/component/test_installed_package_one_matrix_row.sh
 }
 
 main "$@"

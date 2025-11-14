@@ -115,6 +115,8 @@ final class AssertEx
      * @phpstan-param array<TKey, TValue> $actualArray
      *
      * @phpstan-return TValue
+     *
+     * @phpstan-assert array{key: mixed, ...} $actualArray
      */
     public static function arrayHasKey(string|int $expectedKey, array $actualArray): mixed
     {

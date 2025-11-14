@@ -56,6 +56,15 @@ final class BootstrapTests
         Assert::assertFalse(PhpPartFacade::$wasBootstrapCalled);
     }
 
+    public static function bootstrapTool(string $dbgProcessName): void
+    {
+        ExceptionUtil::runCatchLogRethrow(
+            function () use ($dbgProcessName): void {
+                self::bootstrapShared($dbgProcessName);
+            }
+        );
+    }
+
     public static function bootstrapUnitTests(): void
     {
         ExceptionUtil::runCatchLogRethrow(

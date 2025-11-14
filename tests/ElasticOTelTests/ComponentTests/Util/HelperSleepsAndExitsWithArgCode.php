@@ -25,7 +25,7 @@ namespace ElasticOTelTests\ComponentTests\Util;
 
 use ElasticOTelTests\Util\AmbientContextForTests;
 use ElasticOTelTests\Util\AssertEx;
-use ElasticOTelTests\Util\BoolUtil;
+use ElasticOTelTests\Util\BoolUtilForTests;
 use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
 use ElasticOTelTests\Util\Log\Logger;
@@ -82,7 +82,7 @@ final class HelperSleepsAndExitsWithArgCode extends SpawnedProcessBase
          *
          * @see https://www.php.net/manual/en/ini.core.php#ini.register-argc-argv
          */
-        Assert::assertTrue(BoolUtil::fromString(AssertEx::isString(ini_get('register_argc_argv'))));
+        Assert::assertTrue(BoolUtilForTests::fromString(AssertEx::isString(ini_get('register_argc_argv'))));
 
         /** @var list<string> $argv */
         global $argv;

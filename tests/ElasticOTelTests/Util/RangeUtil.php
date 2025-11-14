@@ -36,10 +36,6 @@ final class RangeUtil
     use StaticClassTrait;
 
     /**
-     * @param int $begin
-     * @param int $end
-     * @param int $step
-     *
      * @return iterable<int>
      */
     public static function generate(int $begin, int $end, int $step = 1): iterable

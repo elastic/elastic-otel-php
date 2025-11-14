@@ -59,7 +59,7 @@ final class CliScriptAppCodeHostHandle extends AppCodeHostHandle
 
     public static function getRunScriptNameFullPath(): string
     {
-        return FileUtil::listToPath([__DIR__, CliScriptAppCodeHost::SCRIPT_TO_RUN_APP_CODE_HOST]);
+        return FileUtil::partsToPath(__DIR__, CliScriptAppCodeHost::SCRIPT_TO_RUN_APP_CODE_HOST);
     }
 
     /** @inheritDoc */

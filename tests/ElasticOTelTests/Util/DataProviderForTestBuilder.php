@@ -194,7 +194,7 @@ final class DataProviderForTestBuilder
      */
     public function addBoolDimension(bool $onlyFirstValueCombinable): self
     {
-        return $this->addDimension($onlyFirstValueCombinable, BoolUtil::ALL_VALUES);
+        return $this->addDimension($onlyFirstValueCombinable, BoolUtilForTests::ALL_VALUES);
     }
 
     /**
@@ -222,7 +222,7 @@ final class DataProviderForTestBuilder
      */
     public function addBoolKeyedDimension(string $dimensionKey, bool $onlyFirstValueCombinable): self
     {
-        return $this->addKeyedDimension($dimensionKey, $onlyFirstValueCombinable, BoolUtil::ALL_VALUES);
+        return $this->addKeyedDimension($dimensionKey, $onlyFirstValueCombinable, BoolUtilForTests::ALL_VALUES);
     }
 
     /**
@@ -230,7 +230,7 @@ final class DataProviderForTestBuilder
      */
     public function addNullableBoolKeyedDimension(string $dimensionKey, bool $onlyFirstValueCombinable): self
     {
-        return $this->addKeyedDimension($dimensionKey, $onlyFirstValueCombinable, BoolUtil::ALL_NULLABLE_VALUES);
+        return $this->addKeyedDimension($dimensionKey, $onlyFirstValueCombinable, BoolUtilForTests::ALL_NULLABLE_VALUES);
     }
 
     /**

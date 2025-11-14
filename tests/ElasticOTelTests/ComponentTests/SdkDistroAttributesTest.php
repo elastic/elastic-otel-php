@@ -34,7 +34,7 @@ use ElasticOTelTests\ComponentTests\Util\AttributesExpectations;
 use ElasticOTelTests\ComponentTests\Util\OTelUtil;
 use ElasticOTelTests\ComponentTests\Util\WaitForOTelSignalCounts;
 use ElasticOTelTests\Util\AssertEx;
-use ElasticOTelTests\Util\BoolUtil;
+use ElasticOTelTests\Util\BoolUtilForTests;
 use ElasticOTelTests\Util\Config\OptionForProdName;
 use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\IterableUtil;
@@ -69,8 +69,8 @@ final class SdkDistroAttributesTest extends ComponentTestCaseBase
          * @return iterable<array<string, mixed>>
          */
         $generateDataSets = function (): iterable {
-            foreach (BoolUtil::ALL_VALUES as $shouldSetServiceName) {
-                $shouldSetServiceVersionVariants = $shouldSetServiceName ? BoolUtil::ALL_VALUES : [false];
+            foreach (BoolUtilForTests::ALL_VALUES as $shouldSetServiceName) {
+                $shouldSetServiceVersionVariants = $shouldSetServiceName ? BoolUtilForTests::ALL_VALUES : [false];
                 foreach ($shouldSetServiceVersionVariants as $shouldSetServiceVersion) {
                     yield [
                         self::SHOULD_SET_SERVICE_NAME_KEY => $shouldSetServiceName,

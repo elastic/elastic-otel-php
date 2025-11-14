@@ -36,7 +36,7 @@ use ElasticOTelTests\ComponentTests\Util\SpanExpectationsBuilder;
 use ElasticOTelTests\ComponentTests\Util\UrlUtil;
 use ElasticOTelTests\ComponentTests\Util\WaitForOTelSignalCounts;
 use ElasticOTelTests\Util\ArrayUtilForTests;
-use ElasticOTelTests\Util\BoolUtil;
+use ElasticOTelTests\Util\BoolUtilForTests;
 use ElasticOTelTests\Util\Config\OptionForProdName;
 use ElasticOTelTests\Util\Config\OptionsForProdDefaultValues;
 use ElasticOTelTests\Util\DebugContext;
@@ -66,9 +66,9 @@ final class TransactionSpanTest extends ComponentTestCaseBase
          * @return iterable<array<string, mixed>>
          */
         $generateDataSets = function (): iterable {
-            foreach (BoolUtil::ALL_NULLABLE_VALUES as $transactionSpanEnabled) {
-                foreach (BoolUtil::ALL_NULLABLE_VALUES as $transactionSpanEnabledCli) {
-                    $shouldAppCodeCreateDummySpanValues = self::isTransactionSpanEnabled($transactionSpanEnabled, $transactionSpanEnabledCli) ? BoolUtil::ALL_VALUES : [true];
+            foreach (BoolUtilForTests::ALL_NULLABLE_VALUES as $transactionSpanEnabled) {
+                foreach (BoolUtilForTests::ALL_NULLABLE_VALUES as $transactionSpanEnabledCli) {
+                    $shouldAppCodeCreateDummySpanValues = self::isTransactionSpanEnabled($transactionSpanEnabled, $transactionSpanEnabledCli) ? BoolUtilForTests::ALL_VALUES : [true];
                     foreach ($shouldAppCodeCreateDummySpanValues as $shouldAppCodeCreateDummySpan) {
                         yield [
                             OptionForProdName::transaction_span_enabled->name     => $transactionSpanEnabled,

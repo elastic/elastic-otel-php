@@ -26,7 +26,6 @@ namespace ElasticOTelTests\Util;
 use Closure;
 use DirectoryIterator;
 use Elastic\OTel\Util\StaticClassTrait;
-use Elastic\OTel\Util\TextUtil;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
 use ElasticOTelTests\Util\Log\LoggableToString;
 use PHPUnit\Framework\Assert;
@@ -35,11 +34,6 @@ use RecursiveIteratorIterator;
 use RuntimeException;
 use SplFileInfo;
 
-/**
- * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
- *
- * @internal
- */
 final class FileUtil
 {
     use StaticClassTrait;
@@ -95,19 +89,14 @@ final class FileUtil
         fclose($fileHandle);
     }
 
-    /**
-     * @param string[] $list
-     *
-     * @return string
-     */
-    public static function listToPath(array $list): string
+    public static function partsToPath(string ...$parts): string
     {
         $result = '';
-        foreach ($list as $pathElement) {
-            if (!TextUtil::isEmptyString($result)) {
+        foreach ($parts as $part) {
+            if ($result !== '' && $part !== '') {
                 $result .= DIRECTORY_SEPARATOR;
             }
-            $result .= $pathElement;
+            $result .= $part;
         }
         return $result;
     }

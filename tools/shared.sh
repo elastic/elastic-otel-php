@@ -11,10 +11,18 @@ export elastic_otel_php_test_groups_short_names=("${test_groups_short_names[@]:?
 export elastic_otel_php_otel_proto_version="${otel_proto_version:?}"
 export elastic_otel_php_native_otlp_exporters_based_on_php_impl_version="${native_otlp_exporters_based_on_php_impl_version:?}"
 
-export elastic_otel_php_build_tools_composer_lock_files_dir="${repo_root_dir:?}/generated_composer_lock_files"
-export elastic_otel_php_build_tools_composer_json_for_dev_file_name="dev.json"
-export elastic_otel_php_build_tools_composer_json_for_prod_file_name="prod.json"
-export elastic_otel_php_build_tools_composer_json_for_tests_file_name="tests.json"
+export elastic_otel_php_build_tools_composer_lock_files_dir_name="generated_composer_lock_files"
+export elastic_otel_php_build_tools_composer_lock_files_dir="${repo_root_dir:?}/${elastic_otel_php_build_tools_composer_lock_files_dir_name:?}"
+
+# Make sure the following value is in sync with the rest of locations where it's used:
+#   - tools/build/AdaptPackagesToPhp81.php
+# The path is relative to repo root
+export elastic_otel_php_packages_adapted_to_PHP_81_rel_path="build/adapted_to_PHP_81/packages"
+
+# Make sure the following value is in sync with the rest of locations where it's used:
+#   - tools/build/AdaptPackagesToPhp81.php
+# The path is relative to repo root
+export elastic_otel_php_composer_home_for_packages_adapted_to_PHP_81_rel_path="build/adapted_to_PHP_81/composer_home"
 
 function get_supported_php_versions_as_string() {
     local supported_php_versions_as_string=""
@@ -203,14 +211,20 @@ function end_github_workflow_log_group() {
     echo "::endgroup::${group_name}"
 }
 
-function build_composer_lock_file_name_for_PHP_version() {
+function build_generated_composer_json_file_name() {
+    local env_kind="${1:?}"
+
+    echo "${env_kind}.json"
+}
+
+function build_generated_composer_lock_file_name() {
     local env_kind="${1:?}"
     local PHP_version_no_dot="${2:?}"
 
     echo "${env_kind}_${PHP_version_no_dot}.lock"
 }
 
-build_light_PHP_docker_image_name_for_version_no_dot() {
+function build_light_PHP_docker_image_name_for_version_no_dot() {
     local PHP_version_no_dot="${1:?}"
 
     local PHP_version_dot_separated
@@ -219,15 +233,105 @@ build_light_PHP_docker_image_name_for_version_no_dot() {
     echo "php:${PHP_version_dot_separated}-cli-alpine"
 }
 
-verify_composer_json_in_sync_with_dev_copy() {
-    local dev_copy_full_path="${elastic_otel_php_build_tools_composer_lock_files_dir:?}/${elastic_otel_php_build_tools_composer_json_for_dev_file_name:?}"
+function copy_file() {
+    local src_file="${1:?}"
+    local dst_file="${2:?}"
 
-    local has_compared_the_same=""
-    diff "${dev_copy_full_path}" "${repo_root_dir}/composer.json" &> /dev/null || has_compared_the_same="false"
-    if [ "${has_compared_the_same}" = "false" ]; then
-        echo "Diff between ${dev_copy_full_path} and ${repo_root_dir}/composer.json"
-        diff "${dev_copy_full_path}" "${repo_root_dir}/composer.json" || true
-        echo "It seems composer.json was changed after generate_composer_lock_files.sh was run - you need to re-run ./tools/build/generate_composer_lock_files.sh"
-        exit 1
+    echo "Copying file ${src_file} to ${dst_file} ..."
+    cp "${src_file}" "${dst_file}"
+}
+
+function copy_file_overwrite() {
+    local src_file="${1:?}"
+    local dst_file="${2:?}"
+
+    echo "Copying file ${src_file} to ${dst_file} ..."
+    cp -f "${src_file}" "${dst_file}"
+}
+
+function copy_dir_contents() {
+    local src_dir="${1:?}"
+    local dst_dir="${2:?}"
+
+    local src_dir_ls
+    src_dir_ls=$(ls -A "${src_dir}/")
+    if [ -z "${src_dir_ls}" ]; then
+        return
     fi
+
+    echo "Copying directory contents ${src_dir}/ to ${dst_dir}/ ..."
+    cp -r "${src_dir}/"* "${dst_dir}/"
+}
+
+function copy_dir_contents_overwrite() {
+    local src_dir="${1:?}"
+    local dst_dir="${2:?}"
+
+    local src_dir_ls
+    src_dir_ls=$(ls -A "${src_dir}/")
+    if [ -z "${src_dir_ls}" ]; then
+        return
+    fi
+
+    echo "Copying directory contents ${src_dir}/ to ${dst_dir}/ ..."
+    cp -r -f "${src_dir}/"* "${dst_dir}/"
+}
+
+function delete_dir_contents() {
+    local dir_contents_to_delete="${1:?}"
+
+    if [ -d "${dir_contents_to_delete}" ]; then
+        echo "Deleting contents of ${dir_contents_to_delete}/ ..."
+        rm -rf "${dir_contents_to_delete:?}/"*
+    fi
+}
+
+function delete_temp_dir() {
+    local dir_to_delete="${1:?}"
+
+    if [ -n "${ELASTIC_OTEL_PHP_TOOLS_KEEP_TEMP_FILES+x}" ] && [ "${ELASTIC_OTEL_PHP_TOOLS_KEEP_TEMP_FILES}" == "true" ]; then
+        echo "Keeping temporary directory ${dir_to_delete}/"
+        return
+    fi
+
+    echo "Deleting temporary directory ${dir_to_delete}/ ..."
+    rm -rf "${dir_to_delete:?}/"
+}
+
+function copy_dir_if_exists() {
+    local src_dir="${1:?}"
+    local dst_dir="${2:?}"
+
+    if [ -d "${src_dir}" ]; then
+        mkdir -p "${dst_dir}/"
+        copy_dir_contents "${src_dir}" "${dst_dir}"
+    fi
+}
+
+function should_pass_env_var_to_docker () {
+    env_var_name_to_check="${1:?}"
+
+    if [[ ${env_var_name_to_check} == "ELASTIC_OTEL_"* ]] || [[ ${env_var_name_to_check} == "OTEL_"* ]]; then
+        echo "true"
+        return
+    fi
+
+    echo "false"
+}
+
+function build_docker_env_vars_command_line_part () {
+    # $1 should be the name of the environment variable to hold the result
+    # local -n makes `result_var' reference to the variable named by $1
+    local -n result_var=${1:?}
+    result_var=()
+    # Iterate over environment variables
+    # The code is copied from https://stackoverflow.com/questions/25765282/bash-loop-through-variables-containing-pattern-in-name
+    while IFS='=' read -r env_var_name env_var_value ; do
+        should_pass=$(should_pass_env_var_to_docker "${env_var_name}")
+        if [ "${should_pass}" == "false" ] ; then
+            continue
+        fi
+        echo "Passing env var to docker: name: ${env_var_name}, value: ${env_var_value}"
+        result_var+=(-e "${env_var_name}=${env_var_value}")
+    done < <(env)
 }

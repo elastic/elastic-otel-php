@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "d981b14caa7eb946d8d70a143cdd62f8",
+    "content-hash": "535e86219e0b34eb72664041e5cff632",
     "packages": [
         {
             "name": "brick/math",
@@ -837,23 +837,17 @@
         {
             "name": "open-telemetry/opentelemetry-auto-curl",
             "version": "0.0.3",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/opentelemetry-php/contrib-auto-curl.git",
-                "reference": "cb9dd67e5fcbedb5409c6574f6ae330d6f4483f2"
-            },
             "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/opentelemetry-php/contrib-auto-curl/zipball/cb9dd67e5fcbedb5409c6574f6ae330d6f4483f2",
-                "reference": "cb9dd67e5fcbedb5409c6574f6ae330d6f4483f2",
-                "shasum": ""
+                "type": "path",
+                "url": "build/adapted_to_PHP_81/packages/open-telemetry/opentelemetry-auto-curl",
+                "reference": "0fecbe86101202a0d9354c41cd70c386af7726ad"
             },
             "require": {
                 "ext-curl": "*",
                 "ext-opentelemetry": "*",
                 "open-telemetry/api": "^1.0",
                 "open-telemetry/sem-conv": "^1.30",
-                "php": "^8.2"
+                "php": "8.1.*"
             },
             "require-dev": {
                 "friendsofphp/php-cs-fixer": "^3",
@@ -868,14 +862,18 @@
             },
             "type": "library",
             "autoload": {
-                "files": [
-                    "_register.php"
-                ],
                 "psr-4": {
                     "OpenTelemetry\\Contrib\\Instrumentation\\Curl\\": "src/"
+                },
+                "files": [
+                    "_register.php"
+                ]
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "OpenTelemetry\\Tests\\Instrumentation\\Curl\\": "tests/"
                 }
             },
-            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "Apache-2.0"
             ],
@@ -889,11 +887,10 @@
                 "otel",
                 "tracing"
             ],
-            "support": {
-                "issues": "https://github.com/opentelemetry-php/contrib-auto-curl/issues",
-                "source": "https://github.com/opentelemetry-php/contrib-auto-curl/tree/0.0.3"
-            },
-            "time": "2025-02-25T01:30:01+00:00"
+            "transport-options": {
+                "symlink": false,
+                "relative": true
+            }
         },
         {
             "name": "open-telemetry/opentelemetry-auto-http-async",
@@ -1027,23 +1024,17 @@
         {
             "name": "open-telemetry/opentelemetry-auto-mysqli",
             "version": "0.0.2",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/opentelemetry-php/contrib-auto-mysqli.git",
-                "reference": "2276db6c672fe29137fb940b34ced7b328d21471"
-            },
             "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/opentelemetry-php/contrib-auto-mysqli/zipball/2276db6c672fe29137fb940b34ced7b328d21471",
-                "reference": "2276db6c672fe29137fb940b34ced7b328d21471",
-                "shasum": ""
+                "type": "path",
+                "url": "build/adapted_to_PHP_81/packages/open-telemetry/opentelemetry-auto-mysqli",
+                "reference": "27220a1d73c2889938bf5da8e0f84c66cd2b088b"
             },
             "require": {
                 "ext-mysqli": "*",
                 "ext-opentelemetry": "*",
                 "open-telemetry/api": "^1.0",
                 "open-telemetry/sem-conv": "^1.30",
-                "php": "^8.2",
+                "php": "8.1.*",
                 "symfony/polyfill-mbstring": "^1.31"
             },
             "require-dev": {
@@ -1062,14 +1053,18 @@
             },
             "type": "library",
             "autoload": {
-                "files": [
-                    "_register.php"
-                ],
                 "psr-4": {
                     "OpenTelemetry\\Contrib\\Instrumentation\\MySqli\\": "src/"
+                },
+                "files": [
+                    "_register.php"
+                ]
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "OpenTelemetry\\Tests\\Instrumentation\\MySqli\\": "tests/"
                 }
             },
-            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "Apache-2.0"
             ],
@@ -1084,32 +1079,25 @@
                 "otel",
                 "tracing"
             ],
-            "support": {
-                "issues": "https://github.com/opentelemetry-php/contrib-auto-mysqli/issues",
-                "source": "https://github.com/opentelemetry-php/contrib-auto-mysqli/tree/0.0.2"
-            },
-            "time": "2025-02-25T01:30:01+00:00"
+            "transport-options": {
+                "symlink": false,
+                "relative": true
+            }
         },
         {
             "name": "open-telemetry/opentelemetry-auto-pdo",
             "version": "0.1.1",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/opentelemetry-php/contrib-auto-pdo.git",
-                "reference": "63c7bdbb914e422f5cd198259e2bc7d229c8ea33"
-            },
             "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/opentelemetry-php/contrib-auto-pdo/zipball/63c7bdbb914e422f5cd198259e2bc7d229c8ea33",
-                "reference": "63c7bdbb914e422f5cd198259e2bc7d229c8ea33",
-                "shasum": ""
+                "type": "path",
+                "url": "build/adapted_to_PHP_81/packages/open-telemetry/opentelemetry-auto-pdo",
+                "reference": "abf10bb774285846c59ee0c671d3f875cfb3f69c"
             },
             "require": {
                 "ext-opentelemetry": "*",
                 "ext-pdo": "*",
                 "open-telemetry/api": "^1.0",
                 "open-telemetry/sem-conv": "^1.32",
-                "php": "^8.2",
+                "php": "8.1.*",
                 "symfony/polyfill-mbstring": "^1.31"
             },
             "require-dev": {
@@ -1129,14 +1117,18 @@
             },
             "type": "library",
             "autoload": {
-                "files": [
-                    "_register.php"
-                ],
                 "psr-4": {
                     "OpenTelemetry\\Contrib\\Instrumentation\\PDO\\": "src/"
+                },
+                "files": [
+                    "_register.php"
+                ]
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "OpenTelemetry\\Tests\\Instrumentation\\PDO\\": "tests/"
                 }
             },
-            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "Apache-2.0"
             ],
@@ -1150,31 +1142,25 @@
                 "pdo",
                 "tracing"
             ],
-            "support": {
-                "source": "https://github.com/opentelemetry-php/contrib-auto-pdo/tree/0.1.1"
-            },
-            "time": "2025-05-14T00:19:47+00:00"
+            "transport-options": {
+                "symlink": false,
+                "relative": true
+            }
         },
         {
             "name": "open-telemetry/opentelemetry-auto-postgresql",
             "version": "dev-main",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/opentelemetry-php/contrib-auto-postgresql.git",
-                "reference": "4bae7f912dcc3db738265836ebd3bc2f32fa6ff1"
-            },
             "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/opentelemetry-php/contrib-auto-postgresql/zipball/4bae7f912dcc3db738265836ebd3bc2f32fa6ff1",
-                "reference": "4bae7f912dcc3db738265836ebd3bc2f32fa6ff1",
-                "shasum": ""
+                "type": "path",
+                "url": "build/adapted_to_PHP_81/packages/open-telemetry/opentelemetry-auto-postgresql",
+                "reference": "8c79f8e7eb968f83510eb8ee7d75d4f3e200a3a9"
             },
             "require": {
                 "ext-opentelemetry": "*",
                 "ext-pgsql": "*",
                 "open-telemetry/api": "^1.0",
                 "open-telemetry/sem-conv": "^1.30",
-                "php": "^8.2",
+                "php": "8.1.*",
                 "symfony/polyfill-mbstring": "^1.31"
             },
             "require-dev": {
@@ -1191,17 +1177,20 @@
             "suggest": {
                 "ext-mbstring": "For better performance than symfony/polyfill-mbstring"
             },
-            "default-branch": true,
             "type": "library",
             "autoload": {
-                "files": [
-                    "_register.php"
-                ],
                 "psr-4": {
                     "OpenTelemetry\\Contrib\\Instrumentation\\PostgreSql\\": "src/"
+                },
+                "files": [
+                    "_register.php"
+                ]
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "OpenTelemetry\\Tests\\Instrumentation\\PostgreSql\\": "tests/"
                 }
             },
-            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "Apache-2.0"
             ],
@@ -1215,11 +1204,10 @@
                 "postgresql",
                 "tracing"
             ],
-            "support": {
-                "issues": "https://github.com/opentelemetry-php/contrib-auto-postgresql/issues",
-                "source": "https://github.com/opentelemetry-php/contrib-auto-postgresql/tree/main"
-            },
-            "time": "2025-10-22T12:55:47+00:00"
+            "transport-options": {
+                "symlink": false,
+                "relative": true
+            }
         },
         {
             "name": "open-telemetry/opentelemetry-auto-slim",
@@ -3110,16 +3098,16 @@
         },
         {
             "name": "justinrainbow/json-schema",
-            "version": "6.6.0",
+            "version": "6.6.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/jsonrainbow/json-schema.git",
-                "reference": "68ba7677532803cc0c5900dd5a4d730537f2b2f3"
+                "reference": "fd8e5c6b1badb998844ad34ce0abcd71a0aeb396"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/jsonrainbow/json-schema/zipball/68ba7677532803cc0c5900dd5a4d730537f2b2f3",
-                "reference": "68ba7677532803cc0c5900dd5a4d730537f2b2f3",
+                "url": "https://api.github.com/repos/jsonrainbow/json-schema/zipball/fd8e5c6b1badb998844ad34ce0abcd71a0aeb396",
+                "reference": "fd8e5c6b1badb998844ad34ce0abcd71a0aeb396",
                 "shasum": ""
             },
             "require": {
@@ -3179,9 +3167,9 @@
             ],
             "support": {
                 "issues": "https://github.com/jsonrainbow/json-schema/issues",
-                "source": "https://github.com/jsonrainbow/json-schema/tree/6.6.0"
+                "source": "https://github.com/jsonrainbow/json-schema/tree/6.6.1"
             },
-            "time": "2025-10-10T11:34:09+00:00"
+            "time": "2025-11-07T18:30:29+00:00"
         },
         {
             "name": "marc-mabe/php-enum",
@@ -6960,16 +6948,16 @@
         },
         {
             "name": "symfony/service-contracts",
-            "version": "v3.6.0",
+            "version": "v3.6.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/service-contracts.git",
-                "reference": "f021b05a130d35510bd6b25fe9053c2a8a15d5d4"
+                "reference": "45112560a3ba2d715666a509a0bc9521d10b6c43"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/service-contracts/zipball/f021b05a130d35510bd6b25fe9053c2a8a15d5d4",
-                "reference": "f021b05a130d35510bd6b25fe9053c2a8a15d5d4",
+                "url": "https://api.github.com/repos/symfony/service-contracts/zipball/45112560a3ba2d715666a509a0bc9521d10b6c43",
+                "reference": "45112560a3ba2d715666a509a0bc9521d10b6c43",
                 "shasum": ""
             },
             "require": {
@@ -7023,7 +7011,7 @@
                 "standards"
             ],
             "support": {
-                "source": "https://github.com/symfony/service-contracts/tree/v3.6.0"
+                "source": "https://github.com/symfony/service-contracts/tree/v3.6.1"
             },
             "funding": [
                 {
@@ -7035,11 +7023,15 @@
                     "type": "github"
                 },
                 {
+                    "url": "https://github.com/nicolas-grekas",
+                    "type": "github"
+                },
+                {
                     "url": "https://tidelift.com/funding/github/packagist/symfony/symfony",
                     "type": "tidelift"
                 }
             ],
-            "time": "2025-04-25T09:37:31+00:00"
+            "time": "2025-07-15T11:30:57+00:00"
         },
         {
             "name": "symfony/string",

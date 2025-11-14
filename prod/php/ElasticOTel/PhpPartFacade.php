@@ -28,6 +28,7 @@ namespace Elastic\OTel;
 use Elastic\OTel\HttpTransport\ElasticHttpTransportFactory;
 use Elastic\OTel\InferredSpans\InferredSpans;
 use Elastic\OTel\Log\ElasticLogWriter;
+use Elastic\OTel\Util\BoolUtil;
 use Elastic\OTel\Util\HiddenConstructorTrait;
 use OpenTelemetry\API\Globals;
 use OpenTelemetry\SDK\Registry;
@@ -115,7 +116,7 @@ final class PhpPartFacade
 
         try {
             require __DIR__ . DIRECTORY_SEPARATOR . 'AutoloaderElasticOTelClasses.php';
-            AutoloaderElasticOTelClasses::register(__DIR__);
+            AutoloaderElasticOTelClasses::register(__NAMESPACE__, __DIR__);
 
             InstrumentationBridge::singletonInstance()->bootstrap();
             self::prepareForOTelSdk();
@@ -182,40 +183,9 @@ final class PhpPartFacade
         return true;
     }
 
-    private static function stringToBool(string $strVal): ?bool
+    private static function isInDevMode(): bool
     {
-        /**
-         * @var string[] $trueStringValues
-         * @noinspection PhpRedundantVariableDocTypeInspection
-         */
-        static $trueStringValues = ['true', 'yes', 'on', '1'];
-        foreach ($trueStringValues as $trueStringValue) {
-            if (strcasecmp($strVal, $trueStringValue) === 0) {
-                return true;
-            }
-        }
-
-        /**
-         * @var string[] $falseStringValues
-         * @noinspection PhpRedundantVariableDocTypeInspection
-         */
-        static $falseStringValues = ['false', 'no', 'off', '0'];
-        foreach ($falseStringValues as $falseStringValue) {
-            if (strcasecmp($strVal, $falseStringValue) === 0) {
-                return false;
-            }
-        }
-
-        return null;
-    }
-
-    private static function getBoolEnvVar(string $envVarName, bool $default): bool
-    {
-        $envVarVal = getenv($envVarName);
-        if (is_string($envVarVal) && (($parsedVal = self::stringToBool($envVarVal)) !== null)) {
-            return $parsedVal;
-        }
-        return $default;
+        return self::getBoolEnvVar(self::MODE_IS_DEV_ENV_VAR_NAME, default: false);
     }
 
     private static function isEnabled(): bool
@@ -223,9 +193,13 @@ final class PhpPartFacade
         return self::getBoolEnvVar(self::IS_ENABLED_ENV_VAR_NAME, default: true);
     }
 
-    public static function isInDevMode(): bool
+    public static function getBoolEnvVar(string $envVarName, bool $default): bool
     {
-        return self::getBoolEnvVar(self::MODE_IS_DEV_ENV_VAR_NAME, default: false);
+        $envVarVal = getenv($envVarName);
+        if (is_string($envVarVal) && (($parsedVal = BoolUtil::parseValue($envVarVal)) !== null)) {
+            return $parsedVal;
+        }
+        return $default;
     }
 
     /**
