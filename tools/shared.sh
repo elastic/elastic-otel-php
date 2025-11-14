@@ -2,6 +2,31 @@
 set -e -u -o pipefail
 #set -x
 
+function print_caller_stack_trace() {
+    local numberCallStackFrames
+    numberCallStackFrames=${#FUNCNAME[@]}
+    echo "Call stack (${numberCallStackFrames} frames - most recent on top):"
+
+    local i
+    # Stop at 1 to skip the this function itself
+    # SC2004: $/${} is unnecessary on arithmetic variables.
+    # shellcheck disable=SC2004
+    for (( i=0; i<${numberCallStackFrames}; ++i )); do
+        local func="${FUNCNAME[$i]}"
+        local file="${BASH_SOURCE[$i]}"
+        local line="${BASH_LINENO[$((i-1))]}" # BASH_LINENO is off by one index
+        echo "    ${file}:${line} ; ${func}()"
+    done
+    # Add the main script entry point
+    echo "    ${BASH_SOURCE[0]}:${BASH_LINENO[0]} main"
+}
+
+if [[ -z "${repo_root_dir+x}" ]]; then
+    echo "repo_root_dir must be set before sourcing ${BASH_SOURCE[0]}"
+    print_caller_stack_trace
+    exit 1
+fi
+
 source "${repo_root_dir:?}/elastic-otel-php.properties"
 export elastic_otel_php_version="${version:?}"
 export elastic_otel_php_supported_php_versions=("${supported_php_versions[@]:?}")

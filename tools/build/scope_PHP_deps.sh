@@ -93,9 +93,8 @@ main() {
     this_script_name="$(basename -- "${this_script_full_path}")"
     this_script_name="${this_script_name%.*}"
 
-    # this_script_dir is <repo root>/tools/build/
-    scripts_repo_root_dir="$(realpath "${this_script_dir}/../../")"
-    source "${scripts_repo_root_dir}/tools/shared.sh"
+    repo_root_dir="$(realpath "${PWD}")"
+    source "${repo_root_dir}/tools/shared.sh"
 
     # Parse arguments
     parse_args "$@"

@@ -190,6 +190,14 @@ main() {
         local docker_run_env_vars_cmd_line_args=()
         build_docker_env_vars_command_line_part docker_run_env_vars_cmd_line_args
 
+        # The ${VAR+x} expansion expands to x if VAR is set (even if empty), and to nothing if VAR is unset.
+        # This allows you to test for its existence without actually using its value.
+        if [[ -n "${GITHUB_SHA+x}" ]]; then
+            docker_run_env_vars_cmd_line_args+=(-e "GITHUB_SHA=${GITHUB_SHA}")
+        else
+            docker_run_env_vars_cmd_line_args+=(-e "GITHUB_SHA=dummy_github_sha")
+        fi
+
         docker run --rm \
             "${docker_run_env_vars_cmd_line_args[@]}" \
             -v "${repo_root_dir}/:/read_only_repo_root/:ro" \
@@ -203,7 +211,7 @@ main() {
                 && mkdir -p /tmp/repo \
                 && cp -r /read_only_repo_root/* /tmp/repo/ \
                 && cd /tmp/repo/ \
-                && rm -rf composer.json composer.lock ./vendor/ ./vendor_prod/ ./prod/php/vendor_* \
+                && rm -rf composer*.lock ./vendor_* ./prod/php/vendor_* \
                 && php ./tools/build/select_composer_lock_and_install.php prod \
                 && ./tools/build/scope_PHP_deps.sh --input_dir ./vendor_prod --output_dir /docker_host_dst/vendor_prod \
                 && chown -R ${current_user_id}:${current_user_group_id} /docker_host_dst/vendor_prod/ \

@@ -86,28 +86,36 @@ main() {
     local docker_run_env_vars_cmd_line_args=()
     build_docker_env_vars_command_line_part docker_run_env_vars_cmd_line_args
 
+    # The ${VAR+x} expansion expands to x if VAR is set (even if empty), and to nothing if VAR is unset.
+    # This allows you to test for its existence without actually using its value.
+    if [[ -n "${GITHUB_SHA+x}" ]]; then
+        docker_run_env_vars_cmd_line_args+=(-e "GITHUB_SHA=${GITHUB_SHA}")
+    else
+        docker_run_env_vars_cmd_line_args+=(-e "GITHUB_SHA=dummy_github_sha")
+    fi
+
     for PHP_version_no_dot in "${PHP_versions_no_dot[@]}"; do
         local PHP_docker_image
         PHP_docker_image=$(build_light_PHP_docker_image_name_for_version_no_dot "${PHP_version_no_dot}")
 
         docker run --rm \
             "${docker_run_env_vars_cmd_line_args[@]}" \
-            -v "${PWD}/:/repo_root/:ro" \
+            -v "${PWD}/:/read_only_repo_root/:ro" \
             -v "${logs_dir}:/elastic_otel_php_tests/logs" \
-            -w "/repo_root" \
+            -w "/" \
             "${PHP_docker_image}" \
             sh -c "\
-                apk update && apk add bash git \
+                apk update && apk add bash \
                 && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
                 && echo 'Running static check on prod (without dev only dependencies); PHP_version_no_dot:' ${PHP_version_no_dot} \
+                && cd /read_only_repo_root/ \
                 && php ./tools/test/static_check_prod.php \
                 && echo 'Running static check and unit tests; PHP_version_no_dot:' ${PHP_version_no_dot} \
-                && cd / && rm -rf /tmp/repo/ \
                 && mkdir -p /tmp/repo \
-                && cp -r /repo_root/* /tmp/repo/ \
-                && rm -rf /tmp/repo/composer.json /tmp/repo/composer.lock /tmp/repo/vendor/ /tmp/repo/prod/php/vendor_* \
+                && cp -r /read_only_repo_root/* /tmp/repo/ \
+                && rm -rf /tmp/repo/composer*.lock /tmp/repo/vendor*/ /tmp/repo/prod/php/vendor_* \
                 && cd /tmp/repo/ \
-                && php ./tools/build/select_composer_json_lock_and_install_PHP_deps.php test \
+                && ./tools/build/install_PHP_deps_in_dev_env.sh \
                 && composer run-script -- static_check_and_run_unit_tests \
             "
     done

@@ -75,7 +75,7 @@ final class ComposerUtil
         $cmdParts = [];
         $cmdParts[] = self::convertEnvVarsToCmdLinePart($envVars);
         $cmdParts[] = 'composer ' . self::INSTALL_CMD_IGNORE_PLATFORM_REQ_ARGS . ' --no-interaction';
-        $cmdParts[] = $withDev ? '--dev' : '--no-dev';
+        $cmdParts[] = $withDev ? '' : '--no-dev'; // --dev is deprecated and installing packages listed in require-dev is the default behavior
         $cmdParts[] = $additionalArgs;
         $cmdParts[] = 'install';
         self::execCommand(ToolsUtil::buildShellCommand($cmdParts));

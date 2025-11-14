@@ -39,45 +39,45 @@ final class StaticCheckProd
 
     public static function check(string $dbgCalledFrom): void
     {
-        ToolsUtil::runCmdLineImpl(
-            $dbgCalledFrom,
-            function (): void {
-                ComposerUtil::verifyThatComposerJsonAndLockAreInSync();
+        ToolsUtil::runCmdLineImpl($dbgCalledFrom, fn() => self::checkImpl());
+    }
 
-                $repoRootDir = ToolsUtil::getCurrentDirectory();
-                ToolsUtil::runCodeOnUniqueNameTempDir(
-                    tempDirNamePrefix: ToolsUtil::fqClassNameToShort(__CLASS__) . '_' . __FUNCTION__ . '_',
-                    code: function (string $tempRepoDir) use ($repoRootDir): void {
-                        ToolsUtil::copyDirectoryContents($repoRootDir, $tempRepoDir);
+    private static function checkImpl(): void
+    {
+        ComposerUtil::verifyThatComposerJsonAndLockAreInSync();
 
-                        // delete all <$tempRepoDir>/prod/php/vendor_*
-                        foreach (ToolsUtil::iterateDirectory($tempRepoDir) as $entryInfo) {
-                            if (str_starts_with($entryInfo->getFilename(), 'vendor_')) {
-                                ToolsUtil::deleteDirectory($entryInfo->getRealPath());
-                            }
-                        }
+        $repoRootDir = ToolsUtil::getCurrentDirectory();
+        ToolsUtil::runCodeOnUniqueNameTempDir(
+            tempDirNamePrefix: ToolsUtil::fqClassNameToShort(__CLASS__) . '_',
+            code: function (string $tempRepoDir) use ($repoRootDir): void {
+                ToolsUtil::copyDirectoryContents($repoRootDir, $tempRepoDir);
 
-                        // in <repo root>/tests leave only elastic_otel_extension_stubs
-                        ToolsUtil::deleteDirectoryContents(ToolsUtil::partsToPath($tempRepoDir, 'tests'));
-                        $subDirToKeep = 'tests/elastic_otel_extension_stubs';
-                        $dstSubDir = ToolsUtil::partsToPath($tempRepoDir, ToolsUtil::adaptUnixDirectorySeparators($subDirToKeep));
-                        ToolsUtil::createDirectory($dstSubDir);
-                        ToolsUtil::copyDirectoryContents(ToolsUtil::partsToPath($repoRootDir, ToolsUtil::adaptUnixDirectorySeparators($subDirToKeep)), $dstSubDir);
-
-                        ToolsUtil::deleteDirectory(ToolsUtil::partsToPath($tempRepoDir, ComposerUtil::VENDOR_DIR_NAME));
-                        InstallPhpDeps::selectComposerLock(PhpDepsEnvKind::dev);
-                        self::reduceDevJson($tempRepoDir);
-                        ToolsUtil::listFileContents(ToolsUtil::partsToPath($tempRepoDir, ComposerUtil::JSON_FILE_NAME));
-                        InstallPhpDeps::composerInstallAllowDirect(PhpDepsEnvKind::dev);
-                        ToolsUtil::listDirectoryContents(ToolsUtil::partsToPath($tempRepoDir, ComposerUtil::VENDOR_DIR_NAME));
-
-                        InstallPhpDeps::selectComposerLockAndInstall(PhpDepsEnvKind::prod);
-
-                        self::adaptPhpStanConfig($tempRepoDir);
-
-                        ComposerUtil::execCommand('composer run-script -- static_check');
+                // delete all <$tempRepoDir>/prod/php/vendor_*
+                foreach (ToolsUtil::iterateDirectory($tempRepoDir) as $entryInfo) {
+                    if (str_starts_with($entryInfo->getFilename(), 'vendor_')) {
+                        ToolsUtil::deleteDirectory($entryInfo->getRealPath());
                     }
-                );
+                }
+
+                // in <repo root>/tests leave only elastic_otel_extension_stubs
+                ToolsUtil::deleteDirectoryContents(ToolsUtil::partsToPath($tempRepoDir, 'tests'));
+                $subDirToKeep = 'tests/elastic_otel_extension_stubs';
+                $dstSubDir = ToolsUtil::partsToPath($tempRepoDir, ToolsUtil::adaptUnixDirectorySeparators($subDirToKeep));
+                ToolsUtil::createDirectory($dstSubDir);
+                ToolsUtil::copyDirectoryContents(ToolsUtil::partsToPath($repoRootDir, ToolsUtil::adaptUnixDirectorySeparators($subDirToKeep)), $dstSubDir);
+
+                ToolsUtil::deleteDirectory(ToolsUtil::partsToPath($tempRepoDir, ComposerUtil::VENDOR_DIR_NAME));
+                InstallPhpDeps::selectComposerLock(PhpDepsEnvKind::dev);
+                self::reduceDevJson($tempRepoDir);
+                ToolsUtil::listFileContents(ToolsUtil::partsToPath($tempRepoDir, ComposerUtil::JSON_FILE_NAME));
+                InstallPhpDeps::composerInstallAllowDirect(PhpDepsEnvKind::dev);
+                ToolsUtil::listDirectoryContents(ToolsUtil::partsToPath($tempRepoDir, ComposerUtil::VENDOR_DIR_NAME));
+
+                InstallPhpDeps::selectComposerLockAndInstall(PhpDepsEnvKind::prod);
+
+                self::adaptPhpStanConfig($tempRepoDir);
+
+                ComposerUtil::execCommand('composer run-script -- static_check');
             }
         );
     }
@@ -96,6 +96,7 @@ final class StaticCheckProd
         ];
         /** @var list<string> $packagesToKeep */
         static $packagesToKeep = [
+            'dealerdirect/phpcodesniffer-composer-installer',
             'slevomat/coding-standard',
             'squizlabs/php_codesniffer'
         ];

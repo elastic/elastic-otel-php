@@ -112,10 +112,10 @@ final class InstallPhpDeps
         }
 
         self::assertSame(PhpDepsEnvKind::prod, $envKind);
+        $repoRootDir = ToolsUtil::getCurrentDirectory();
         ToolsUtil::runCodeOnUniqueNameTempDir(
             tempDirNamePrefix: ToolsUtil::fqClassNameToShort(__CLASS__) . '_' . __FUNCTION__ . '_',
-            code: function (string $tempRepoDir): void {
-                $repoRootDir = ToolsUtil::getCurrentDirectory();
+            code: function (string $tempRepoDir) use ($repoRootDir): void {
                 self::copyComposerJsonLock(PhpDepsEnvKind::prod, $repoRootDir, $tempRepoDir);
                 self::installInTempAndCopyToVendorProd($tempRepoDir, $repoRootDir);
             }
