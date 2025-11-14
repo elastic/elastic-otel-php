@@ -21,7 +21,7 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTools\Build;
+namespace ElasticOTelTools\build;
 
 use Elastic\OTel\Log\LogLevel;
 use Elastic\OTel\PhpPartFacade;
@@ -64,7 +64,7 @@ final class ComposerUtil
      *
      * @link https://getcomposer.org/doc/03-cli.md#install-i
      */
-    public static function execComposerInstallShellCommand(bool $withDev, string $additionalArgs = '', array $envVars = []): void
+    public static function execInstall(bool $withDev, string $additionalArgs = '', array $envVars = []): void
     {
         $logLevel = LogLevel::info;
         if (ToolsLog::isLevelEnabled($logLevel)) {
@@ -78,18 +78,19 @@ final class ComposerUtil
         $cmdParts[] = $withDev ? '--dev' : '--no-dev';
         $cmdParts[] = $additionalArgs;
         $cmdParts[] = 'install';
-        ToolsUtil::execShellCommand(ToolsUtil::buildShellCommand($cmdParts));
+        self::execCommand(ToolsUtil::buildShellCommand($cmdParts));
     }
 
     /**
      * @link https://getcomposer.org/doc/03-cli.md#dump-autoload-dumpautoload
      */
-    public static function execComposerDumpAutoLoad(bool $withDev): void
+    public static function execDumpAutoLoad(bool $withDev, bool $classmapAuthoritative): void
     {
-        $cmdParts = ['composer --no-interaction --optimize --classmap-authoritative --strict-psr'];
+        $cmdParts = ['composer --no-interaction --optimize'];
         $cmdParts[] = $withDev ? '--dev' : '--no-dev';
+        $cmdParts[] = $classmapAuthoritative ? '--classmap-authoritative' : '';
         $cmdParts[] = 'dump-autoload';
-        ToolsUtil::execShellCommand(ToolsUtil::buildShellCommand($cmdParts));
+        self::execCommand(ToolsUtil::buildShellCommand($cmdParts));
     }
 
     /**
@@ -97,18 +98,23 @@ final class ComposerUtil
      *
      * @link https://getcomposer.org/doc/03-cli.md#remove-rm-uninstall
      */
-    public static function execComposerRemove(array $packagesToRemove, string $additionalArgs = ''): void
+    public static function execRemove(array $packagesToRemove, string $additionalArgs = ''): void
     {
         $cmdParts = ['composer'];
         $cmdParts[] = $additionalArgs;
         $cmdParts[] = 'remove';
         $cmdParts[] = implode(' ', $packagesToRemove);
-        ToolsUtil::execShellCommand(ToolsUtil::buildShellCommand($cmdParts));
+        self::execCommand(ToolsUtil::buildShellCommand($cmdParts));
+    }
+
+    public static function execCommand(string $composerCmdLine): void
+    {
+        ToolsUtil::execShellCommand($composerCmdLine, ['current directory' => ToolsUtil::getCurrentDirectory()]);
     }
 
     public static function verifyThatComposerJsonAndLockAreInSync(): void
     {
-        ToolsUtil::execShellCommand('composer --check-lock --no-check-all validate');
+        self::execCommand('composer --check-lock --no-check-all validate');
     }
 
     /**

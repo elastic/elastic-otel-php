@@ -33,7 +33,7 @@ use ElasticOTelTests\Util\Log\LoggableToJsonEncodable;
 use ElasticOTelTests\Util\Log\LoggingSubsystem;
 use PHPUnit\Framework\Assert;
 
-final class BootstrapTests
+final class BootstrapTestsUtil
 {
     use StaticClassTrait;
 

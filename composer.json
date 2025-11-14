@@ -36,16 +36,14 @@
         "psr-4": {
             "Elastic\\OTel\\": "./prod/php/ElasticOTel/",
             "ElasticOTelTests\\": "./tests/ElasticOTelTests/",
-            "ElasticOTelTools\\Build\\": "./tools/build/"
+            "ElasticOTelTools\\": "./tools/"
         }
     },
     "config": {
         "process-timeout": 0,
         "sort-packages": true,
         "allow-plugins": {
-            "dealerdirect/phpcodesniffer-composer-installer": true,
-            "php-http/discovery": true,
-            "tbachert/spi": true
+            "dealerdirect/phpcodesniffer-composer-installer": true
         }
     },
     "scripts": {

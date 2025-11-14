@@ -21,7 +21,7 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTools\Build;
+namespace ElasticOTelTools\build;
 
 use Elastic\OTel\Util\EnumUtilTrait;
 

@@ -28,10 +28,12 @@ use Elastic\OTel\Log\LogLevel;
 use Elastic\OTel\PhpPartFacade;
 use JsonException;
 use RuntimeException;
+use SplFileInfo;
 use Throwable;
 
 /**
  * @phpstan-type EnvVars array<string, string>
+ * @phpstan-import-type Context from ToolsLog
  */
 final class ToolsUtil
 {
@@ -107,9 +109,12 @@ final class ToolsUtil
         return $cachedResult;
     }
 
-    public static function execShellCommand(string $shellCmd): void
+    /**
+     * @param Context $dbgCtx
+     */
+    public static function execShellCommand(string $shellCmd, array $dbgCtx = []): void
     {
-        self::logInfo(__LINE__, __METHOD__, "Executing shell command: $shellCmd");
+        self::logInfo(__LINE__, __METHOD__, "Executing shell command: $shellCmd", $dbgCtx);
         $retVal = system($shellCmd, /* out */ $exitCode);
         self::assertNotFalse($retVal, compact('retVal'));
         self::assert($exitCode === 0, '$exitCode === 0' . ' ; shellCmd: ' . $shellCmd . ' ; exitCode: ' . $exitCode . ' ; retVal: ' . $retVal);
@@ -144,23 +149,32 @@ final class ToolsUtil
     {
         $tempDir = self::createTempDirectoryGenerateUniqueName($tempDirNamePrefix);
         return self::runCodeAndCleanUp(
-            function () use ($tempDir, $code): mixed {
-                return $code($tempDir);
+            code: function () use ($code, $tempDir): mixed {
+                return self::changeCurrentDirectoryRunCodeAndRestore(
+                    $tempDir,
+                    function () use ($code, $tempDir): mixed {
+                        return $code($tempDir);
+                    },
+                );
             },
-            cleanUp: fn() => self::deleteTempDirectory($tempDir)
+            cleanUp: fn() => self::deleteTempDirectory($tempDir),
         );
     }
 
     /**
-     * @param callable(): void $code
+     * @template TCodeRetVal
+     * *
+     * @param callable(string $currentDir): TCodeRetVal $code
+     *
+     * @phpstan-return TCodeRetVal
      *
      * @noinspection PhpDocMissingThrowsInspection
      */
-    public static function changeCurrentDirectoryRunCodeAndRestore(string $newCurrentDir, callable $code): void
+    public static function changeCurrentDirectoryRunCodeAndRestore(string $newCurrentDir, callable $code): mixed
     {
         $originalCurrentDir = self::getCurrentDirectory();
         self::changeCurrentDirectory($newCurrentDir);
-        self::runCodeAndCleanUp($code, cleanUp: fn() => self::changeCurrentDirectory($originalCurrentDir));
+        return self::runCodeAndCleanUp(code: fn() => $code($newCurrentDir), cleanUp: fn() => self::changeCurrentDirectory($originalCurrentDir));
     }
 
     public static function encodeJson(mixed $data, bool $prettyPrint = false): string
@@ -270,7 +284,7 @@ final class ToolsUtil
         $allowOverwriteOpt = ($allowOverwrite ? (self::isCurrentOsWindows() ? '/y' : '-f') : '');
         self::execShellCommand(
             self::isCurrentOsWindows()
-                ? "copy $allowOverwriteOpt \"$fromFilePath\" \"$toFilePath\""
+                ? "copy $allowOverwriteOpt \"$fromFilePath\" \"$toFilePath\" > NUL"
                 : "cp $allowOverwriteOpt \"$fromFilePath\" \"$toFilePath\""
         );
     }
@@ -353,7 +367,7 @@ final class ToolsUtil
         self::logInfo(__LINE__, __METHOD__, "Copying directory contents from $fromDirPath to $toDirPath");
         self::execShellCommand(
             self::isCurrentOsWindows()
-                ? "xcopy /y /s /e \"$fromDirPath\\*\" \"$toDirPath\\\""
+                ? "xcopy /y /s /e /q \"$fromDirPath\\*\" \"$toDirPath\\\""
                 : "cp -r \"$fromDirPath/.\" \"$toDirPath/\"",
         );
     }
@@ -432,6 +446,20 @@ final class ToolsUtil
         self::assertNotFalse($chdirRetVal, compact('chdirRetVal'));
     }
 
+    /**
+     * @return iterable<SplFileInfo>
+     */
+    public static function iterateDirectory(string $dirPath): iterable
+    {
+        foreach (new DirectoryIterator($dirPath) as $fileInfo) {
+            if ($fileInfo->getFilename() === '.' || $fileInfo->getFilename() === '..') {
+                continue;
+            }
+
+            yield $fileInfo;
+        }
+    }
+
     public static function listDirectoryContents(string $dirPath, int $recursiveDepth = 0): void
     {
         self::logInfo(__LINE__, __METHOD__, "Contents  of directory $dirPath:");
@@ -445,11 +473,7 @@ final class ToolsUtil
             return;
         }
 
-        foreach (new DirectoryIterator($dirPath) as $fileInfo) {
-            if ($fileInfo->getFilename() === '.' || $fileInfo->getFilename() === '..') {
-                continue;
-            }
-
+        foreach (self::iterateDirectory($dirPath) as $fileInfo) {
             self::listDirectoryContents($fileInfo->getRealPath(), $recursiveDepth - 1);
         }
     }

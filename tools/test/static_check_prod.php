@@ -21,8 +21,8 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTools\Test;
+namespace ElasticOTelTools\test;
 
-require __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'bootstrap_tools.php';
+require __DIR__ . '/../bootstrap_tools.php';
 
 StaticCheckProd::check(basename(__FILE__));

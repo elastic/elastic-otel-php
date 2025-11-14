@@ -21,10 +21,10 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTools\Build;
+namespace ElasticOTelTools\build;
 
 use ElasticOTelTools\ToolsUtil;
 
-require __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'bootstrap_tools.php';
+require __DIR__ . '/../bootstrap_tools.php';
 
-InstallPhpDeps::selectComposerLockAndInstall(basename(__FILE__), ToolsUtil::getCommandLineArgs());
+InstallPhpDeps::selectComposerLockAndInstallCmdLine(basename(__FILE__), ToolsUtil::getCommandLineArgs());

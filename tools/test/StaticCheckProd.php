@@ -21,13 +21,13 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTools\Test;
+namespace ElasticOTelTools\test;
 
-use ElasticOTelTools\Build\ComposerUtil;
-use ElasticOTelTools\Build\InstallPhpDeps;
-use ElasticOTelTools\Build\PhpDepsEnvKind;
-use ElasticOTelTools\ToolsLoggingClassTrait;
+use ElasticOTelTools\build\ComposerUtil;
+use ElasticOTelTools\build\InstallPhpDeps;
+use ElasticOTelTools\build\PhpDepsEnvKind;
 use ElasticOTelTools\ToolsAssertTrait;
+use ElasticOTelTools\ToolsLoggingClassTrait;
 use ElasticOTelTools\ToolsUtil;
 
 final class StaticCheckProd
@@ -42,47 +42,42 @@ final class StaticCheckProd
         ToolsUtil::runCmdLineImpl(
             $dbgCalledFrom,
             function (): void {
+                ComposerUtil::verifyThatComposerJsonAndLockAreInSync();
+
+                $repoRootDir = ToolsUtil::getCurrentDirectory();
                 ToolsUtil::runCodeOnUniqueNameTempDir(
                     tempDirNamePrefix: ToolsUtil::fqClassNameToShort(__CLASS__) . '_' . __FUNCTION__ . '_',
-                    code: function (string $tempRepoDir): void {
-                        $repoRootDir = ToolsUtil::getCurrentDirectory();
-                        InstallPhpDeps::copyComposerJsonLock(PhpDepsEnvKind::dev, $repoRootDir, $tempRepoDir);
-                        ToolsUtil::changeCurrentDirectoryRunCodeAndRestore(
-                            $tempRepoDir,
-                            function () use ($tempRepoDir): void {
-                                self::reduceDevJson($tempRepoDir);
-                                ToolsUtil::listFileContents(ToolsUtil::partsToPath($tempRepoDir, ComposerUtil::JSON_FILE_NAME));
-                                ToolsUtil::listDirectoryContents($tempRepoDir);
-                                InstallPhpDeps::composerInstallAllowDirect(PhpDepsEnvKind::dev);
-                                ToolsUtil::listDirectoryContents(ToolsUtil::partsToPath($tempRepoDir, ComposerUtil::VENDOR_DIR_NAME));
-                            },
-                        );
+                    code: function (string $tempRepoDir) use ($repoRootDir): void {
+                        ToolsUtil::copyDirectoryContents($repoRootDir, $tempRepoDir);
+
+                        // delete all <$tempRepoDir>/prod/php/vendor_*
+                        foreach (ToolsUtil::iterateDirectory($tempRepoDir) as $entryInfo) {
+                            if (str_starts_with($entryInfo->getFilename(), 'vendor_')) {
+                                ToolsUtil::deleteDirectory($entryInfo->getRealPath());
+                            }
+                        }
+
+                        // in <repo root>/tests leave only elastic_otel_extension_stubs
+                        ToolsUtil::deleteDirectoryContents(ToolsUtil::partsToPath($tempRepoDir, 'tests'));
+                        $subDirToKeep = 'tests/elastic_otel_extension_stubs';
+                        $dstSubDir = ToolsUtil::partsToPath($tempRepoDir, ToolsUtil::adaptUnixDirectorySeparators($subDirToKeep));
+                        ToolsUtil::createDirectory($dstSubDir);
+                        ToolsUtil::copyDirectoryContents(ToolsUtil::partsToPath($repoRootDir, ToolsUtil::adaptUnixDirectorySeparators($subDirToKeep)), $dstSubDir);
+
+                        ToolsUtil::deleteDirectory(ToolsUtil::partsToPath($tempRepoDir, ComposerUtil::VENDOR_DIR_NAME));
+                        InstallPhpDeps::selectComposerLock(PhpDepsEnvKind::dev);
+                        self::reduceDevJson($tempRepoDir);
+                        ToolsUtil::listFileContents(ToolsUtil::partsToPath($tempRepoDir, ComposerUtil::JSON_FILE_NAME));
+                        InstallPhpDeps::composerInstallAllowDirect(PhpDepsEnvKind::dev);
+                        ToolsUtil::listDirectoryContents(ToolsUtil::partsToPath($tempRepoDir, ComposerUtil::VENDOR_DIR_NAME));
+
+                        InstallPhpDeps::selectComposerLockAndInstall(PhpDepsEnvKind::prod);
+
+                        self::adaptPhpStanConfig($tempRepoDir);
+
+                        ComposerUtil::execCommand('composer run-script -- static_check');
                     }
                 );
-
-                //# To run static check on prod (without dev only dependencies)
-                //local PhpStan_neon_bootstrapFiles_value_line_original="- ./tests/bootstrap.php"
-                //local PhpStan_neon_bootstrapFiles_value_line_for_prod_static_check="- ./tests/bootstrapProdStaticCheck.php"
-                //local PhpStan_neon_bootstrapFiles_value_line_original_escaped="${PhpStan_neon_bootstrapFiles_value_line_original//\//\\\/}"
-                //local PhpStan_neon_bootstrapFiles_value_line_for_prod_static_check_escaped="${PhpStan_neon_bootstrapFiles_value_line_for_prod_static_check//\//\\\/}"
-                //local replace_PhpStan_neon_bootstrapFiles_for_prod_static_check=\
-                //                  "sed -i 's/${PhpStan_neon_bootstrapFiles_value_line_original_escaped}/${PhpStan_neon_bootstrapFiles_value_line_for_prod_static_check_escaped}/g'"
-                //&& mkdir -p /tmp/repo \
-                //&& cp -r /repo_root/* /tmp/repo/ \
-                //&& rm -rf /tmp/repo/composer.json /tmp/repo/composer.lock /tmp/repo/vendor/ /tmp/repo/prod/php/vendor_* \
-                //&& mv /tmp/repo/tests /tmp/repo/tests_original \
-                //&& mkdir /tmp/repo/tests \
-                //&& mv /tmp/repo/tests_original/elastic_otel_extension_stubs /tmp/repo/tests/elastic_otel_extension_stubs \
-                //&& mv /tmp/repo/tests_original/bootstrapProdStaticCheck.php /tmp/repo/tests/bootstrapProdStaticCheck.php \
-                //&& rm -rf /tmp/repo/tests_original/ \
-                //&& ${replace_PhpStan_neon_bootstrapFiles_for_prod_static_check} /tmp/repo/phpstan.dist.neon \
-                //&& cd /tmp/repo/ \
-                //&& php ./tools/build/select_composer_json_lock_and_install_PHP_deps.php prod_static_check \
-                //&& composer run-script -- static_check \
-                //                $repoRootDir = ToolsUtil::getCurrentDirectory();
-                // TODO: Sergey Kleyman: Implement: tools/test/static_check_prod.php
-
-                self::assertFail('TODO: Sergey Kleyman: Implement: ' . __METHOD__);
             }
         );
     }
@@ -130,7 +125,20 @@ final class StaticCheckProd
     {
         // We should not manipulate composer.json directly because
         // we would like for composer.lock to updated as well
-        ComposerUtil::execComposerRemove(self::devPackagesNotUsedForStaticCheck($tempRepoDir), '--no-scripts --no-update --dev');
+        ComposerUtil::execRemove(self::devPackagesNotUsedForStaticCheck($tempRepoDir), '--no-scripts --no-install --dev');
+    }
+
+    private static function adaptPhpStanConfig(string $tempRepoDir): void
+    {
+        $phpStanConfigFilePath = ToolsUtil::partsToPath($tempRepoDir, 'phpstan.dist.neon');
+        ToolsUtil::putFileContents($phpStanConfigFilePath, self::adaptPhpStanConfigContent(ToolsUtil::getFileContents($phpStanConfigFilePath)));
+    }
+
+    public static function adaptPhpStanConfigContent(string $content): string
+    {
+        $newContent = str_replace('- ./tools/test/PHPStan_bootstrapFiles.php', '- ./tools/test/PHPStan_bootstrapFiles_static_check_prod.php', $content, /* out */ $countReplaced);
+        self::assertSame(1, $countReplaced);
+        return $newContent;
     }
 
     /**

@@ -21,8 +21,8 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTools\Build;
+namespace ElasticOTelTools\build;
 
-require __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'bootstrap_tools.php';
+require __DIR__ . '/../bootstrap_tools.php';
 
 AdaptPhpDepsTo81::downloadAdaptPackagesAndGenConfig();

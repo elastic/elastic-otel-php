@@ -21,4 +21,4 @@
 
 declare(strict_types=1);
 
-require __DIR__ . '/../../tests/bootstrapDev.php';
+require __DIR__ . '/../../tests/ElasticOTelTests/bootstrap_tests_shared.php';

@@ -23,27 +23,26 @@ declare(strict_types=1);
 
 use ElasticOTelTests\Util\RepoRootDir;
 use ElasticOTelTests\Util\ExceptionUtil;
+use ElasticOTelTools\BootstrapSharedUtil;
 
-require __DIR__ . '/../tools/bootstrap_shared.php';
+require __DIR__ . '/../../tools/bootstrap_shared.php';
 
-/** @noinspection PhpFullyQualifiedNameUsageInspection */
-\ElasticOTelTools\requireComposerAutoload(__DIR__ . "/../vendor/autoload.php");
+BootstrapSharedUtil::requireComposerAutoload(__DIR__ . "/../../vendor/autoload.php");
 
 // TODO: Sergey Kleyman: It should not be necessary to load vendor_prod for dev
-/** @noinspection PhpFullyQualifiedNameUsageInspection */
-\ElasticOTelTools\requireComposerAutoload(__DIR__ . "/../vendor_prod/autoload.php");
+BootstrapSharedUtil::requireComposerAutoload(__DIR__ . "/../../vendor_prod/autoload.php");
 
 // Substitutes should be loaded IMMEDIATELY AFTER vendor autoload
-require __DIR__ . '/substitutes/load.php';
+require __DIR__ . '/../substitutes/load.php';
 
 ExceptionUtil::runCatchLogRethrow(
     function (): void {
-        RepoRootDir::setFullPath(__DIR__ . '/..');
+        RepoRootDir::setFullPath(__DIR__ . '/../..');
 
-        require __DIR__ . '/polyfills/load.php';
-        require __DIR__ . '/elastic_otel_extension_stubs/load.php';
-        require __DIR__ . '/dummyFuncForTestsWithoutNamespace.php';
-        require __DIR__ . '/ElasticOTelTests/dummyFuncForTestsWithNamespace.php';
+        require __DIR__ . '/../polyfills/load.php';
+        require __DIR__ . '/../elastic_otel_extension_stubs/load.php';
+        require __DIR__ . '/../dummyFuncForTestsWithoutNamespace.php';
+        require __DIR__ . '/dummyFuncForTestsWithNamespace.php';
     }
 );
 

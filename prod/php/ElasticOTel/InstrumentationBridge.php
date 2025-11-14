@@ -61,7 +61,7 @@ final class InstrumentationBridge
     {
         self::elasticOTelHook(null, 'spl_autoload_register', null, $this->retryDelayedHooks(...));
 
-        require ProdPhpDir::$fullPath . DIRECTORY_SEPARATOR . 'OpenTelemetry' . DIRECTORY_SEPARATOR . 'Instrumentation' . DIRECTORY_SEPARATOR . 'hook.php';
+        require ProdPhpDir::$fullPath . '/OpenTelemetry/Instrumentation/hook.php';
 
         $this->enableDebugHooks = (bool)elastic_otel_get_config_option_by_name('debug_php_hooks_enabled');
 

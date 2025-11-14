@@ -21,11 +21,11 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTools\Build;
+namespace ElasticOTelTools\build;
 
 use Elastic\OTel\Util\ArrayUtil;
-use ElasticOTelTools\ToolsLoggingClassTrait;
 use ElasticOTelTools\ToolsAssertTrait;
+use ElasticOTelTools\ToolsLoggingClassTrait;
 use ElasticOTelTools\ToolsUtil;
 use RuntimeException;
 
@@ -134,10 +134,7 @@ final class AdaptPhpDepsTo81
                 ToolsUtil::copyFile($prodComposerJsonPath, $minimalComposerJsonPath);
                 $packagesNameToVersion = self::reduceComposerJsonToPackagesToAdaptOnly($minimalComposerJsonPath);
                 ToolsUtil::listFileContents($minimalComposerJsonPath);
-                ToolsUtil::changeCurrentDirectoryRunCodeAndRestore(
-                    $workDir,
-                    fn() => ComposerUtil::execComposerInstallShellCommand(withDev: false, additionalArgs: self::COMPOSER_IGNORE_PHP_REQ_CMD_OPT . ' --no-plugins --no-scripts'),
-                );
+                ComposerUtil::execInstall(withDev: false, additionalArgs: self::COMPOSER_IGNORE_PHP_REQ_CMD_OPT . ' --no-plugins --no-scripts');
                 self::adaptPackages($packagesNameToVersion, $workDir, $adaptedPackagesDir);
                 ToolsUtil::listDirectoryContents($adaptedPackagesDir, recursiveDepth: 1);
                 return $packagesNameToVersion;

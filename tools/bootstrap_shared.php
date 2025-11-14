@@ -25,4 +25,4 @@ declare(strict_types=1);
 // Deprecated: funcAbc(): Implicitly marking parameter $xyz as nullable is deprecated, the explicit nullable type must be used instead
 error_reporting(PHP_VERSION_ID < 80400 ? E_ALL : (E_ALL & ~E_DEPRECATED));
 
-require __DIR__ . '/bootstrap_shared_util.php';
+require __DIR__ . '/BootstrapSharedUtil.php';

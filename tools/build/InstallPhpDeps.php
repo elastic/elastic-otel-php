@@ -21,7 +21,7 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTools\Build;
+namespace ElasticOTelTools\build;
 
 use Elastic\OTel\Util\BoolUtil;
 use ElasticOTelTools\ToolsLoggingClassTrait;
@@ -65,7 +65,7 @@ final class InstallPhpDeps
     /**
      * @param list<string> $cmdLineArgs
      */
-    public static function selectComposerLockAndInstall(string $dbgCalledFrom, array $cmdLineArgs): void
+    public static function selectComposerLockAndInstallCmdLine(string $dbgCalledFrom, array $cmdLineArgs): void
     {
         ToolsUtil::runCmdLineImpl(
             $dbgCalledFrom,
@@ -73,13 +73,18 @@ final class InstallPhpDeps
                 self::assertCount(1, $cmdLineArgs);
                 $envKind = self::assertNotNull(PhpDepsEnvKind::tryToFindByName($cmdLineArgs[0]));
 
-                self::selectComposerLock($envKind);
-                self::install($envKind);
+                self::selectComposerLockAndInstall($envKind);
             }
         );
     }
 
-    private static function selectComposerLock(PhpDepsEnvKind $envKind): void
+    public static function selectComposerLockAndInstall(PhpDepsEnvKind $envKind): void
+    {
+        self::selectComposerLock($envKind);
+        self::install($envKind);
+    }
+
+    public static function selectComposerLock(PhpDepsEnvKind $envKind): void
     {
         $repoRootDir = ToolsUtil::getCurrentDirectory();
         $generatedLockFile = self::buildToGeneratedFileFullPath($repoRootDir, self::buildGeneratedComposerLockFileNameForCurrentPhpVersion($envKind));
@@ -122,9 +127,16 @@ final class InstallPhpDeps
      */
     public static function composerInstallAllowDirect(PhpDepsEnvKind $envKind, array $envVars = []): void
     {
-        $withDev = self::mapEnvKindToWithDev($envKind);
-        ComposerUtil::execComposerInstallShellCommand($withDev, envVars: [ComposerUtil::ALLOW_DIRECT_COMMAND_ENV_VAR_NAME => BoolUtil::toString(true)] + $envVars);
-        ComposerUtil::execComposerDumpAutoLoad($withDev);
+        $withDev = match ($envKind) {
+            PhpDepsEnvKind::dev => true,
+            PhpDepsEnvKind::prod => false,
+        };
+        $classmapAuthoritative = match ($envKind) {
+            PhpDepsEnvKind::dev => false,
+            PhpDepsEnvKind::prod => true,
+        };
+        ComposerUtil::execInstall($withDev, envVars: [ComposerUtil::ALLOW_DIRECT_COMMAND_ENV_VAR_NAME => BoolUtil::toString(true)] + $envVars);
+        ComposerUtil::execDumpAutoLoad($withDev, $classmapAuthoritative);
     }
 
     /**
@@ -132,14 +144,11 @@ final class InstallPhpDeps
      */
     public static function installInTempAndCopyToVendorProd(string $tempRepoDir, string $repoRootDir, array $envVars = []): void
     {
+        self::assertSame($tempRepoDir, ToolsUtil::getCurrentDirectory());
+
         self::renameProdComposerJsonLock($tempRepoDir);
 
-        ToolsUtil::changeCurrentDirectoryRunCodeAndRestore(
-            $tempRepoDir,
-            function () use ($envVars): void {
-                self::composerInstallAllowDirect(PhpDepsEnvKind::prod, $envVars);
-            }
-        );
+        self::composerInstallAllowDirect(PhpDepsEnvKind::prod, $envVars);
 
         $dstVendorProdDir = ToolsUtil::partsToPath($repoRootDir, InstallPhpDeps::VENDOR_PROD_DIR_NAME);
         ToolsUtil::ensureEmptyDirectory($dstVendorProdDir);
@@ -179,14 +188,6 @@ final class InstallPhpDeps
          * @see build_generated_composer_lock_file_name() finction in tool/shared.sh
          */
         return self::mapEnvKindToGeneratedComposerFileNamePrefix($envKind) . '_' . PHP_MAJOR_VERSION . PHP_MINOR_VERSION . '.' . ComposerUtil::LOCK_FILE_EXT;
-    }
-
-    private static function mapEnvKindToWithDev(PhpDepsEnvKind $envKind): bool
-    {
-        return match ($envKind) {
-            PhpDepsEnvKind::dev => true,
-            PhpDepsEnvKind::prod => false,
-        };
     }
 
     public static function copyComposerJsonLock(PhpDepsEnvKind $envKind, string $srcDir, string $dstDir): void

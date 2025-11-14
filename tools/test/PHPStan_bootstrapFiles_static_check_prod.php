@@ -21,9 +21,10 @@
 
 declare(strict_types=1);
 
-require __DIR__ . '/../bootstrap_shared.php';
+use ElasticOTelTools\BootstrapSharedUtil;
 
-/** @noinspection PhpFullyQualifiedNameUsageInspection */
-\ElasticOTelTools\requireComposerAutoload(__DIR__ . '/../../vendor_prod/autoload.php');
+require __DIR__ . '/../bootstrap_tools.php';
+
+BootstrapSharedUtil::requireComposerAutoload(__DIR__ . "/../../vendor_prod/autoload.php");
 
 require __DIR__ . '/../../tests/elastic_otel_extension_stubs/load.php';
