@@ -69,6 +69,9 @@ main() {
     fi
 
     local generated_composer_lock_files_dir="${work_repo_root_dir}/${elastic_otel_php_generated_composer_lock_files_dir_name:?}"
+    local composer_json_file_name
+    composer_json_file_name="$(build_composer_json_file_name "prod")"
+    local composer_json_full_path="${generated_composer_lock_files_dir}/${composer_json_file_name}"
     failed_versions=()
     for PHP_version_no_dot in "${PHP_versions_no_dot[@]}"; do
         local PHP_version_dot_separated
@@ -76,9 +79,6 @@ main() {
 
         echo "::group::Scanning PHP dependencies for PHP version ${PHP_version_dot_separated} ..."
 
-        local composer_json_file_name
-        composer_json_file_name="$(build_composer_json_file_name "prod")"
-        local composer_json_full_path="${generated_composer_lock_files_dir}/${composer_json_file_name}"
         local composer_lock_file_name
         composer_lock_file_name="$(build_generated_composer_lock_file_name "prod" "${PHP_version_no_dot}")"
         local composer_lock_full_path="${generated_composer_lock_files_dir}/${composer_lock_file_name}"
