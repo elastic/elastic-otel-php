@@ -390,6 +390,8 @@ function build_docker_env_vars_command_line_part() {
 function build_docker_read_only_volume_mounts_command_line_part() {
     # $1 should be the name of the environment variable to hold the result
     # local -n makes `result_var' reference to the variable named by $1
+    # SC2178: Variable was used as an array but is now assigned a string.
+    # shellcheck disable=SC2178
     local -n result_var=${1:?}
     result_var=()
     local src_root_dir="${2:?}"
