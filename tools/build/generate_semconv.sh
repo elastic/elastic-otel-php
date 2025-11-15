@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
+set -e -u -o pipefail
+#set -x
 
-set -euo pipefail
+this_script_dir="$(dirname "${BASH_SOURCE[0]}")"
+this_script_dir="$(realpath "${this_script_dir}")"
+src_repo_root_dir="$(realpath "${this_script_dir}/../..")"
+source "${src_repo_root_dir}/tools/read_properties.sh"
 
-source ./tools/read_properties.sh
-
-read_properties elastic-otel-php.properties _PROJECT_PROPERTIES
+read_properties "${src_repo_root_dir}/elastic-otel-php.properties" _PROJECT_PROPERTIES
 
 SEMCONV_VERSION=${_PROJECT_PROPERTIES_OTEL_SEMCONV_VERSION}
 BUILD_DIR=$(realpath "build/semconv")

@@ -1,6 +1,6 @@
-#!/bin/bash
-
-set -x
+#!/usr/bin/env bash
+set -e -u -o pipefail
+#set -x
 
 SKIP_CONFIGURE=false
 

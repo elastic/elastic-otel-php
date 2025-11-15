@@ -37,12 +37,12 @@ final class InstallPhpDeps
     use ToolsLoggingClassTrait;
 
     /**
-     * Make sure the following value is in sync with the rest of locations where it's defined (see elastic_otel_php_build_tools_composer_lock_files_dir in <repo root>/tools/shared.sh)
+     * Make sure the following value is in sync with the rest of locations where it's defined (see elastic_otel_php_generated_composer_lock_files_dir_name in <repo root>/tools/shared.sh)
      */
     private const GENERATED_FILES_DIR_NAME = 'generated_composer_lock_files';
 
     /**
-     * Make sure the following value is in sync with the rest of locations where it's defined (see elastic_otel_php_build_tools_composer_lock_files_dir in <repo root>/tools/shared.sh)
+     * Make sure the following value is in sync with the rest of locations where it's defined (see elastic_otel_php_vendor_prod_dir_name in <repo root>/tools/shared.sh)
      */
     public const VENDOR_PROD_DIR_NAME = 'vendor_prod';
 

@@ -21,13 +21,11 @@ function print_caller_stack_trace() {
     echo "    ${BASH_SOURCE[0]}:${BASH_LINENO[0]} main"
 }
 
-if [[ -z "${repo_root_dir+x}" ]]; then
-    echo "repo_root_dir must be set before sourcing ${BASH_SOURCE[0]}"
-    print_caller_stack_trace
-    exit 1
-fi
+this_script_dir="$(dirname "${BASH_SOURCE[0]}")"
+this_script_dir="$(realpath "${this_script_dir}")"
+src_repo_root_dir="$(realpath "${this_script_dir}/..")"
 
-source "${repo_root_dir:?}/elastic-otel-php.properties"
+source "${src_repo_root_dir}/elastic-otel-php.properties"
 export elastic_otel_php_version="${version:?}"
 export elastic_otel_php_supported_php_versions=("${supported_php_versions[@]:?}")
 export elastic_otel_php_supported_package_types=("${supported_package_types[@]:?}")
@@ -42,8 +40,7 @@ export elastic_otel_php_deps_env_kinds=("dev" "prod")
 
 # Make sure the following value is in sync with the rest of locations where it's defined:
 #   - tools/build/InstallPhpDeps.php
-export elastic_otel_php_build_tools_composer_lock_files_dir_name="generated_composer_lock_files"
-export elastic_otel_php_build_tools_composer_lock_files_dir="${repo_root_dir:?}/${elastic_otel_php_build_tools_composer_lock_files_dir_name:?}"
+export elastic_otel_php_generated_composer_lock_files_dir_name="generated_composer_lock_files"
 
 # Make sure the following value is in sync with the rest of locations where it's defined:
 #   - tools/build/AdaptPhpDepsTo81.php
@@ -388,6 +385,19 @@ function build_docker_env_vars_command_line_part() {
         echo "Passing env var to docker: name: ${env_var_name}, value: ${env_var_value}"
         result_var+=(-e "${env_var_name}=${env_var_value}")
     done < <(env)
+}
+
+function build_docker_read_only_volume_mounts_command_line_part() {
+    # $1 should be the name of the environment variable to hold the result
+    # local -n makes `result_var' reference to the variable named by $1
+    local -n result_var=${1:?}
+    result_var=()
+    local src_root_dir="${2:?}"
+    local dst_root_dir="${3:?}"
+    local rel_paths=("${@:4}")
+    for rel_path in "${rel_paths[@]:?}" ; do
+        result_var+=(-v "${src_root_dir}/${rel_path}:${dst_root_dir}/${rel_path}:ro")
+    done
 }
 
 function is_valid_php_deps_env_kind() {

@@ -48,10 +48,10 @@
     },
     "scripts": {
         "pre-install-cmd": [
-            "php tools/build/direct_composer_install_update_not_allowed.php install"
+            "php ./tools/build/direct_composer_install_update_not_allowed.php install"
         ],
         "pre-update-cmd": [
-            "php tools/build/direct_composer_install_update_not_allowed.php update"
+            "php ./tools/build/direct_composer_install_update_not_allowed.php update"
         ],
         "generate_lock_use_current_json": [
             "@putenv ELASTIC_OTEL_PHP_TOOLS_ALLOW_DIRECT_COMPOSER_COMMAND=true",

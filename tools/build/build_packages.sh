@@ -2,11 +2,11 @@
 set -e -u -o pipefail
 #set -x
 
-this_script_dir="$( dirname "${BASH_SOURCE[0]}" )"
-this_script_dir="$( realpath "${this_script_dir}" )"
+this_script_dir="$(dirname "${BASH_SOURCE[0]}")"
+this_script_dir="$(realpath "${this_script_dir}")"
+src_repo_root_dir="$(realpath "${this_script_dir}/../..")"
 
-repo_root_dir="$( realpath "${this_script_dir}/../.." )"
-source "${repo_root_dir}/tools/shared.sh"
+source "${src_repo_root_dir}/tools/shared.sh"
 
 PACKAGE_SHA="unknown"
 

@@ -6,15 +6,15 @@ function generate_composer_lock_for_PHP_version() {
     local env_kind="${1:?}"
     local PHP_version_no_dot="${2:?}"
 
-    php ./tools/build/verify_generated_composer_lock_files.php
+    php "${src_repo_root_dir}/tools/build/verify_generated_composer_lock_files.php"
 
     local composer_json_file_name
     composer_json_file_name="$(build_composer_json_file_name "${env_kind}")"
-    local composer_json_full_path="${repo_root_dir}/${composer_json_file_name}"
+    local composer_json_full_path="${work_repo_root_dir}/${composer_json_file_name}"
 
     local composer_lock_file_name
     composer_lock_file_name="$(build_generated_composer_lock_file_name "${env_kind}" "${PHP_version_no_dot}")"
-    local composer_lock_full_path="${repo_root_dir}/${composer_json_file_name}"
+    local composer_lock_full_path="${work_repo_root_dir}/${composer_json_file_name}"
 
     local PHP_docker_image
     PHP_docker_image=$(build_light_PHP_docker_image_name_for_version_no_dot "${PHP_version_no_dot}")
@@ -29,13 +29,13 @@ function generate_composer_lock_for_PHP_version() {
     local install_vendor_in_docker_cmd=""
     case "${env_kind}" in
         "dev")
-            docker_vendor_mount_opt=(-v "${repo_root_dir}/vendor/:/repo_root/vendor/:ro")
+            docker_vendor_mount_opt=(-v "${work_repo_root_dir}/vendor/:/repo_root/vendor/:ro")
             ;;
         "prod")
             # TODO: Sergey Kleyman: REMOVE: prod: vendor -> vendor
-            docker_vendor_mount_opt=(-v "${repo_root_dir}/vendor/:/repo_root/vendor/:ro")
+            docker_vendor_mount_opt=(-v "${work_repo_root_dir}/vendor/:/repo_root/vendor/:ro")
             # TODO: Sergey Kleyman: UNCOMMENT: vendor_prod -> vendor
-#            docker_vendor_mount_opt=(-v "${repo_root_dir}/vendor_prod/:/repo_root/vendor/:ro")
+#            docker_vendor_mount_opt=(-v "${work_repo_root_dir}/vendor_prod/:/repo_root/vendor/:ro")
             ;;
         *)
             echo "Unknown env_kind: ${env_kind}"
@@ -68,8 +68,12 @@ function generate_composer_lock_for_PHP_version() {
 }
 
 function main() {
-    repo_root_dir="$(realpath "${PWD}")"
-    source "${repo_root_dir}/tools/shared.sh"
+    work_repo_root_dir="$(realpath "${PWD}")"
+    this_script_dir="$(dirname "${BASH_SOURCE[0]}")"
+    this_script_dir="$(realpath "${this_script_dir}")"
+    src_repo_root_dir="$(realpath "${this_script_dir}/../..")"
+
+    source "${src_repo_root_dir}/tools/shared.sh"
 
     for PHP_version_no_dot in "${elastic_otel_php_supported_php_versions[@]:?}" ; do
         for env_kind in "${elastic_otel_php_deps_env_kinds[@]:?}" ; do
