@@ -91,8 +91,8 @@ verify_otlp_exporters() {
         sh -c \
         "\
             apk update && apk add bash git \
+            && /repo_root/tools/install_composer.sh \
             && mkdir /used_as_base && cd /used_as_base \
-            && ./tools/install_composer.sh \
             && composer require ${php_impl_package_name}:${elastic_otel_php_native_otlp_exporters_based_on_php_impl_version:?} \
             && composer --no-dev install \
             && diff -r /used_as_base/vendor/${php_impl_package_name} /new_vendor/${php_impl_package_name} \
