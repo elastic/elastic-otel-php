@@ -7,6 +7,7 @@ CONAN_CACHE_PATH=""
 INTERACTIVE=""
 NCPU=""
 SKIP_CONFIGURE=false
+SKIP_UNIT_TESTS=false
 
 show_help() {
     echo "Usage: $0 --build_architecture <architecture> [--ncpu <num_cpus>] [--conan_cache_path <conan_cache_path>] [--skip_configure] [--skip_unit_tests]"
