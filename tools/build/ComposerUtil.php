@@ -86,7 +86,7 @@ final class ComposerUtil
      */
     public static function execDumpAutoLoad(bool $withDev, bool $classmapAuthoritative): void
     {
-        $cmdParts = ['composer --no-interaction --optimize'];
+        $cmdParts = ['composer --no-interaction --optimize-autoloader'];
         $cmdParts[] = $withDev ? '--dev' : '--no-dev';
         $cmdParts[] = $classmapAuthoritative ? '--classmap-authoritative' : '';
         $cmdParts[] = 'dump-autoload';
