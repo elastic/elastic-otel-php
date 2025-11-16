@@ -21,9 +21,9 @@ function print_caller_stack_trace() {
     echo "    ${BASH_SOURCE[0]}:${BASH_LINENO[0]} main"
 }
 
-this_script_dir="$(dirname "${BASH_SOURCE[0]}")"
-this_script_dir="$(realpath "${this_script_dir}")"
-src_repo_root_dir="$(realpath "${this_script_dir}/..")"
+tools_shared_script_dir="$(dirname "${BASH_SOURCE[0]}")"
+tools_shared_script_dir="$(realpath "${tools_shared_script_dir}")"
+src_repo_root_dir="$(realpath "${tools_shared_script_dir}/..")"
 
 source "${src_repo_root_dir}/elastic-otel-php.properties"
 export elastic_otel_php_version="${version:?}"

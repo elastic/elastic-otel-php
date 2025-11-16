@@ -28,7 +28,6 @@ function main() {
     # Code below was taken from https://getcomposer.org/doc/faqs/how-to-install-composer-programmatically.md
 
     temp_dir="$(mktemp -d)"
-    echo "ls -l ${temp_dir}"
 
     pushd "${temp_dir}" || exit 1
 
