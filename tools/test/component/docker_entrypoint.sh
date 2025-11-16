@@ -239,8 +239,7 @@ function main() {
 
     /docker_host_repo_root/tools/copy_repo_exclude_generated.sh /docker_host_repo_root /tmp/repo
      cd /tmp/repo
-
-    "${src_repo_root_dir}/tools/build/install_PHP_deps_in_dev_env.sh"
+    ./tools/build/install_PHP_deps_in_dev_env.sh
 
     end_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
