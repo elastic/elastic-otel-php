@@ -4,7 +4,7 @@ set -e -u -o pipefail
 
 BUILD_ARCHITECTURE=""
 CONAN_CACHE_PATH=""
-INTERACTIVE=""
+INTERACTIVE=false
 NCPU=""
 SKIP_CONFIGURE=false
 SKIP_UNIT_TESTS=false
@@ -43,7 +43,7 @@ parse_args() {
                 SKIP_CONFIGURE=true
                 ;;
             --interactive)
-                INTERACTIVE=" -i "
+                INTERACTIVE=true
                 ;;
             --skip_unit_tests)
                 SKIP_UNIT_TESTS=true
@@ -87,15 +87,12 @@ echo "SKIP_CONFIGURE: $SKIP_CONFIGURE"
 
 if [ "$SKIP_CONFIGURE" = true ]; then
     echo "Skipping configuration step..."
+    CONFIGURE=""
 else
     CONFIGURE="cmake --preset ${BUILD_ARCHITECTURE}-release  && "
 fi
 
-if [[ -n "${GITHUB_ACTIONS+x}" ]] && [[ "$GITHUB_ACTIONS" == true ]]; then
-    USERID=" -u : "
-else
-    USERID=" -u $(id -u):$(id -g) "
-fi
+docker_run_cmd_line_args+=(-u "$(id -u):$(id -g)")
 
 if [ "$SKIP_UNIT_TESTS" = true ]; then
     UNIT_TESTS="echo \"Skipped unit tests (SKIP_UNIT_TESTS: $SKIP_UNIT_TESTS).\""
@@ -107,9 +104,11 @@ if [[ -n "${GITHUB_SHA+x}" ]]; then
     docker_run_cmd_line_args+=(-e "GITHUB_SHA=${GITHUB_SHA}")
 fi
 
-ls -al "${PWD}"
+if [[ "${INTERACTIVE}" == true ]]; then
+    docker_run_cmd_line_args+=(-i)
+fi
 
-docker run --rm -t "${INTERACTIVE}" "${USERID}" -v "${PWD}:/source" \
+docker run --rm -t -v "${PWD}:/source" \
     "${docker_run_cmd_line_args[@]}" \
     -w /source/prod/native \
     "elasticobservability/apm-agent-php-dev:native-build-gcc-14.2.0-${BUILD_ARCHITECTURE}-0.0.1" \

@@ -61,9 +61,6 @@ function generate_composer_lock_for_PHP_version() {
     local PHP_docker_image
     PHP_docker_image=$(build_light_PHP_docker_image_name_for_version_no_dot "${PHP_version_no_dot}")
 
-    echo "composer_json_full_path: ${composer_json_full_path} ..."
-    echo "composer_lock_file_name: ${composer_lock_file_name} ..."
-
     local docker_run_additional_args=()
     if [ "${PHP_version_no_dot}" = "81" ]; then
         docker_run_additional_args+=(-v "${repo_temp_copy_dir}/${elastic_otel_php_packages_adapted_to_PHP_81_rel_path:?}:/docker_host_repo_root/${elastic_otel_php_packages_adapted_to_PHP_81_rel_path:?}:ro")
@@ -115,9 +112,6 @@ function main() {
     current_user_group_id="$(id -g)"
 
     trap on_script_exit EXIT
-
-    repo_temp_copy_dir="$(mktemp -d)"
-    echo "repo_temp_copy_dir: ${repo_temp_copy_dir}"
 
     copy_all_env_kinds_composer_json_files "${repo_temp_copy_dir}"
 
