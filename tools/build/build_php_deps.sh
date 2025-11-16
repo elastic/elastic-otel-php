@@ -197,8 +197,6 @@ main() {
         # This allows you to test for its existence without actually using its value.
         if [[ -n "${GITHUB_SHA+x}" ]]; then
             docker_run_env_vars_cmd_line_args+=(-e "GITHUB_SHA=${GITHUB_SHA}")
-        else
-            docker_run_env_vars_cmd_line_args+=(-e "GITHUB_SHA=dummy_github_sha")
         fi
 
         docker run --rm \

@@ -85,8 +85,6 @@ main() {
     # This allows you to test for its existence without actually using its value.
     if [[ -n "${GITHUB_SHA+x}" ]]; then
         docker_run_cmd_line_args+=(-e "GITHUB_SHA=${GITHUB_SHA}")
-    else
-        docker_run_cmd_line_args+=(-e "GITHUB_SHA=dummy_sha")
     fi
 
     for PHP_version_no_dot in "${PHP_versions_no_dot[@]}"; do

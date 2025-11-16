@@ -70,13 +70,15 @@ if [[ -z "$BUILD_ARCHITECTURE" ]]; then
     exit 1
 fi
 
+docker_run_cmd_line_args=()
+
 # Building mount point and environment if ${CONAN_CACHE_PATH} not empty
 if [[ -n "${CONAN_CACHE_PATH}" ]]; then
     echo "CONAN_CACHE_PATH: ${CONAN_CACHE_PATH}"
     # due safety not mounting user home folder but only .conan
     mkdir -p "${CONAN_CACHE_PATH}"
     # https://docs.conan.io/2/reference/environment.html#conan-home
-    CONAN_HOME_MP=(-e "CONAN_HOME=/conan_home" -v "${CONAN_CACHE_PATH}:/conan_home")
+    docker_run_cmd_line_args+=(-e "CONAN_HOME=/conan_home" -v "${CONAN_CACHE_PATH}:/conan_home")
 fi
 
 echo "BUILD_ARCHITECTURE: $BUILD_ARCHITECTURE"
@@ -101,17 +103,14 @@ else
     UNIT_TESTS="ctest --preset ${BUILD_ARCHITECTURE}-release --verbose"
 fi
 
-pass_GITHUB_SHA_env_var_cmd_opt=()
 if [[ -n "${GITHUB_SHA+x}" ]]; then
-    pass_GITHUB_SHA_env_var_cmd_opt=(-e "GITHUB_SHA=${GITHUB_SHA}")
+    docker_run_cmd_line_args+=(-e "GITHUB_SHA=${GITHUB_SHA}")
 fi
 
 ls -al "${PWD}"
 
-docker run --rm -t ${INTERACTIVE} ${USERID} -v ${PWD}:/source \
-    "${CONAN_HOME_MP[@]}" \
+docker run --rm -t "${INTERACTIVE}" "${USERID}" -v "${PWD}:/source" \
+    "${docker_run_cmd_line_args[@]}" \
     -w /source/prod/native \
-    "${pass_GITHUB_SHA_env_var_cmd_opt[@]}" \
-    elasticobservability/apm-agent-php-dev:native-build-gcc-14.2.0-${BUILD_ARCHITECTURE}-0.0.1 \
+    "elasticobservability/apm-agent-php-dev:native-build-gcc-14.2.0-${BUILD_ARCHITECTURE}-0.0.1" \
     sh -c "id && echo CONAN_HOME: \$CONAN_HOME && ${CONFIGURE} cmake --build --preset ${BUILD_ARCHITECTURE}-release ${NCPU} && ${UNIT_TESTS}"
-

@@ -189,8 +189,6 @@ function main() {
 
     if [[ -n "${GITHUB_SHA+x}" ]]; then
         docker_run_cmd_line_args+=(-e "GITHUB_SHA=${GITHUB_SHA}")
-    else
-        docker_run_cmd_line_args+=(-e "GITHUB_SHA=dummy_sha")
     fi
 
     if [ "${should_start_external_services}" == "true" ] ; then

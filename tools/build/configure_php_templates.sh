@@ -23,8 +23,8 @@ read_properties "${src_repo_root_dir}/elastic-otel-php.properties" _PROJECT_PROP
 # Returns:
 #   The git hash string will be printed to stdout
 get_git_hash() {
-    if [[ -n "${GITHUB_SHA+x}" ]] && [[ -n "${GITHUB_SHA}" ]]; then
-        echo "${GITHUB_SHA}"
+    if [[ -n "${GITHUB_SHA+x}" ]]; then
+        echo ""
         return
     fi
 
