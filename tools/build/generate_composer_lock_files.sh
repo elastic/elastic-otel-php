@@ -66,25 +66,25 @@ function generate_composer_lock_for_PHP_version() {
 
     local docker_run_additional_args=()
     if [ "${PHP_version_no_dot}" = "81" ]; then
-        docker_run_additional_args+=(-v "${repo_temp_copy_dir}/${elastic_otel_php_packages_adapted_to_PHP_81_rel_path:?}:/repo_root/${elastic_otel_php_packages_adapted_to_PHP_81_rel_path:?}:ro")
+        docker_run_additional_args+=(-v "${repo_temp_copy_dir}/${elastic_otel_php_packages_adapted_to_PHP_81_rel_path:?}:/docker_host_repo_root/${elastic_otel_php_packages_adapted_to_PHP_81_rel_path:?}:ro")
         local composer_home_config_json_rel_path="${elastic_otel_php_composer_home_for_packages_adapted_to_PHP_81_rel_path:?}/config.json"
-        docker_run_additional_args+=(-v "${repo_temp_copy_dir}/${composer_home_config_json_rel_path}:/repo_root/${composer_home_config_json_rel_path}:ro")
-        docker_run_additional_args+=(-e "COMPOSER_HOME=/repo_root/${elastic_otel_php_composer_home_for_packages_adapted_to_PHP_81_rel_path:?}")
+        docker_run_additional_args+=(-v "${repo_temp_copy_dir}/${composer_home_config_json_rel_path}:/docker_host_repo_root/${composer_home_config_json_rel_path}:ro")
+        docker_run_additional_args+=(-e "COMPOSER_HOME=/docker_host_repo_root/${elastic_otel_php_composer_home_for_packages_adapted_to_PHP_81_rel_path:?}")
     fi
 
     docker run --rm \
-        -v "${composer_json_full_path}:/repo_root/composer.json:ro" \
-        -v "${src_repo_root_dir}/elastic-otel-php.properties:/repo_root/elastic-otel-php.properties:ro" \
-        -v "${src_repo_root_dir}/tools:/repo_root/tools:ro" \
+        -v "${composer_json_full_path}:/docker_host_repo_root/composer.json:ro" \
+        -v "${src_repo_root_dir}/elastic-otel-php.properties:/docker_host_repo_root/elastic-otel-php.properties:ro" \
+        -v "${src_repo_root_dir}/tools:/docker_host_repo_root/tools:ro" \
         -v "${stage_generated_composer_lock_files_dir}:/docker_host_dst/stage_generated_composer_lock_files_dir" \
         "${docker_run_additional_args[@]}" \
-        -w "/repo_root" \
+        -w "/docker_host_repo_root" \
         "${PHP_docker_image}" \
         sh -c "\
             apk update && apk add bash \
             && ./tools/install_composer.sh \
             && composer run-script -- generate_lock_use_current_json \
-            && cp -f /repo_root/composer.lock /docker_host_dst/stage_generated_composer_lock_files_dir/${composer_lock_file_name} \
+            && cp -f /docker_host_repo_root/composer.lock /docker_host_dst/stage_generated_composer_lock_files_dir/${composer_lock_file_name} \
             && chown ${current_user_id}:${current_user_group_id} /docker_host_dst/stage_generated_composer_lock_files_dir/${composer_lock_file_name} \
             && chmod +r,u+w /docker_host_dst/stage_generated_composer_lock_files_dir/${composer_lock_file_name} \
         "

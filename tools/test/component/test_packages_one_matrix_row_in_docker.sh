@@ -185,8 +185,13 @@ function main() {
     docker_run_cmd_line_args+=(-w "/docker_host_repo_root")
     docker_run_cmd_line_args+=(-v "${packages_dir}:/elastic_otel_php_tests/packages:ro")
     docker_run_cmd_line_args+=(-v "${logs_dir}:/elastic_otel_php_tests/logs")
-
     docker_run_cmd_line_args+=(-v "${this_script_dir}/custom_php_config.ini:/elastic_otel_php_tests/php_ini_scan_dir/custom_php_config.ini:ro")
+
+    if [[ -n "${GITHUB_SHA+x}" ]]; then
+        docker_run_cmd_line_args+=(-e "GITHUB_SHA=${GITHUB_SHA}")
+    else
+        docker_run_cmd_line_args+=(-e "GITHUB_SHA=dummy_sha")
+    fi
 
     if [ "${should_start_external_services}" == "true" ] ; then
         docker_run_cmd_line_args+=("--network=${ELASTIC_OTEL_PHP_TESTS_DOCKER_NETWORK:?}")

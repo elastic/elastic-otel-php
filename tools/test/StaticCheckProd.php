@@ -111,7 +111,7 @@ final class StaticCheckProd
         };
 
         $jsonFileContents = ToolsUtil::getFileContents(ToolsUtil::partsToPath($tempRepoDir, ComposerUtil::JSON_FILE_NAME));
-        $jsonDecoded = self::assertIsArray(ToolsUtil::decodeJson($jsonFileContents, asAssocArray: true));
+        $jsonDecoded = self::assertIsArray(ToolsUtil::decodeJson($jsonFileContents));
         $requireDevSection = self::assertIsArray($jsonDecoded[self::COMPOSER_JSON_REQUIRE_DEV_KEY]);
         $result = [];
         foreach ($requireDevSection as $fqPackageName => $_) {

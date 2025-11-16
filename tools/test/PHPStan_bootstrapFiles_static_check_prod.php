@@ -23,8 +23,7 @@ declare(strict_types=1);
 
 use ElasticOTelTools\BootstrapSharedUtil;
 
-require __DIR__ . '/../bootstrap_tools.php';
-
+require __DIR__ . '/../bootstrap_shared.php';
 BootstrapSharedUtil::requireComposerAutoload(__DIR__ . "/../../vendor_prod/autoload.php");
 
 require __DIR__ . '/../../tests/elastic_otel_extension_stubs/load.php';

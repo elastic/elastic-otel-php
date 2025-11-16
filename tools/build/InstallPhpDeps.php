@@ -23,6 +23,7 @@ declare(strict_types=1);
 
 namespace ElasticOTelTools\build;
 
+use Elastic\OTel\Util\ArrayUtil;
 use Elastic\OTel\Util\BoolUtil;
 use ElasticOTelTools\ToolsLoggingClassTrait;
 use ElasticOTelTools\ToolsAssertTrait;
@@ -57,6 +58,7 @@ final class InstallPhpDeps
                     $repoRootJsonPath = $repoRootDir . DIRECTORY_SEPARATOR . $fileName;
                     $generatedFilesJsonPath = self::buildToGeneratedFileFullPath($repoRootDir, $fileName);
                     self::assertFilesHaveSameContent($repoRootJsonPath, $generatedFilesJsonPath);
+                    self::verifyPackagesVersionsInDevAndProdLockMatch($repoRootDir);
                 }
             }
         );
@@ -206,6 +208,98 @@ final class InstallPhpDeps
             $srcFileName = $srcFileNameNoExt . '.' . $composerFileExtension;
             $dstFileName = ComposerUtil::JSON_FILE_NAME_NO_EXT . '.' . $composerFileExtension;
             ToolsUtil::moveFile(ToolsUtil::partsToPath($tempRepoDir, $srcFileName), ToolsUtil::partsToPath($tempRepoDir, $dstFileName));
+        }
+    }
+
+    private const PACKAGES_KEY = 'packages';
+    private const PACKAGES_DEV_KEY = 'packages-dev';
+    private const NAME_KEY = 'name';
+    private const VERSION_KEY = 'version';
+
+    /**
+     * @return non-empty-array<string, string>
+     *
+     * @noinspection PhpDocMissingThrowsInspection
+     */
+    private static function readPackagesVersions(string $lockFilePath): array
+    {
+        $dbgCtx = compact('lockFilePath');
+        $dbgCtxPackagesSectionIt = [];
+        $dbgCtx['dbgCtxPackagesSectionIt'] =& $dbgCtxPackagesSectionIt;
+        $dbgCtxPackagePropsIt = [];
+        $dbgCtx['dbgCtxPackagePropsIt'] =& $dbgCtxPackagePropsIt;
+
+        $decodedLock = self::assertIsArray(ToolsUtil::decodeJson(ToolsUtil::getFileContents($lockFilePath)));
+        $result = [];
+
+        foreach ([self::PACKAGES_KEY, self::PACKAGES_DEV_KEY] as $packagesSectionKey) {
+            $dbgCtxPackagesSectionIt = compact('packagesSectionKey');
+            if (!ArrayUtil::getValueIfKeyExists($packagesSectionKey, $decodedLock, /* out */ $packagesSection)) {
+                continue;
+            }
+            self::assertIsArray($packagesSection);
+            foreach ($packagesSection as $packageProps) {
+                $dbgCtxPackagePropsIt = compact('packageProps');
+                self::assertIsArray($packageProps);
+                $packageName = self::assertIsString(self::assertArrayHasKey(self::NAME_KEY, $packageProps));
+                $packageVersion = self::assertIsString(self::assertArrayHasKey(self::VERSION_KEY, $packageProps));
+                if (ArrayUtil::getValueIfKeyExists($packageName, $result, /* out */ $alreadyPresentPackageVersion)) {
+                    self::assertSame($alreadyPresentPackageVersion, $packageVersion);
+                } else {
+                    $result[$packageName] = $packageVersion;
+                }
+            }
+            $dbgCtxPackagePropsIt = [];
+        }
+        $dbgCtxPackagesSectionIt = [];
+
+        /** @var array<string, string> $result */
+        return self::assertArrayNotEmpty($result);
+    }
+
+    private static function verifyPackagesVersionsInDevAndProdLockMatch(string $repoRootDir): void
+    {
+        $prodLockFilePrefix = self::mapEnvKindToGeneratedComposerFileNamePrefix(PhpDepsEnvKind::prod);
+        $foundProdLockFiles = [];
+        foreach (ToolsUtil::iterateDirectory(ToolsUtil::partsToPath($repoRootDir, self::GENERATED_FILES_DIR_NAME)) as $generatedFileInfo) {
+            if (str_starts_with($generatedFileInfo->getBasename(), $prodLockFilePrefix) && $generatedFileInfo->getExtension() === ComposerUtil::LOCK_FILE_EXT) {
+                $foundProdLockFiles[] = $generatedFileInfo->getRealPath();
+            }
+        }
+        sort(/* ref */ $foundProdLockFiles);
+        foreach ($foundProdLockFiles as $prodLockFileFullPath) {
+            $dbgCtx = compact('prodLockFileFullPath');
+
+            $prodLockFileName = basename($prodLockFileFullPath);
+            $dbgCtx += compact('prodLockFileName');
+            $devLockFileName = self::mapEnvKindToGeneratedComposerFileNamePrefix(PhpDepsEnvKind::dev) . substr($prodLockFileName, strlen($prodLockFilePrefix));
+            $devLockFileFullPath = ToolsUtil::partsToPath(dirname($prodLockFileFullPath), $devLockFileName);
+            $dbgCtx += compact('devLockFileFullPath');
+            self::assertFileExists($devLockFileFullPath, array_reverse($dbgCtx));
+
+            $devPackagesVersions = self::readPackagesVersions($devLockFileFullPath);
+            $dbgCtx += compact('devPackagesVersions');
+            $prodPackagesVersions = self::readPackagesVersions($prodLockFileFullPath);
+            $dbgCtx += compact('prodPackagesVersions');
+            $dbgCtxPackageIt = [];
+            $dbgCtx['dbgCtxPackageIt'] =& $dbgCtxPackageIt;
+            foreach ($devPackagesVersions as $packageName => $devPackageVersion) {
+                $dbgCtxPackageIt = [];
+                $dbgCtxPackageIt = compact('packageName', 'devPackageVersion');
+                if (ArrayUtil::getValueIfKeyExists($packageName, $prodPackagesVersions, /* out */ $prodPackageVersion)) {
+                    $dbgCtxPackageIt += compact('prodPackageVersion');
+                    if ($devPackageVersion === $prodPackageVersion) {
+                        continue;
+                    }
+                    self::assertFail(
+                        'Encountered a package with different versions in dev and prod lock files'
+                        . "; package name: $packageName, version in dev lock: $devPackageVersion, version in prod lock: $prodPackageVersion"
+                        . ", dev lock file: $devLockFileName, prod lock file: $prodLockFileName"
+                        . ' ; ' . ToolsUtil::encodeJson($dbgCtx)
+                    );
+                }
+            }
+            $dbgCtxPackageIt = [];
         }
     }
 

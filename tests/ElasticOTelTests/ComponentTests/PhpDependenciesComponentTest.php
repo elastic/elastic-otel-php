@@ -54,7 +54,7 @@ use Throwable;
 /**
  * @group does_not_require_external_services
  */
-final class PhpDepsTest extends ComponentTestCaseBase
+final class PhpDependenciesComponentTest extends ComponentTestCaseBase
 {
     /**
      * Make sure this value is in sync with the rest of locations where it's defined (see scope_namespace in <repo root>/tools/build/scope_PHP_deps.sh)
@@ -124,7 +124,7 @@ final class PhpDepsTest extends ComponentTestCaseBase
             return null;
         }
         $jsonEncoded = FileUtil::getFileContents($packageComposerJsonFilePath);
-        $jsonDecoded = AssertEx::isArray(JsonUtil::decode($jsonEncoded, asAssocArray: true));
+        $jsonDecoded = AssertEx::isArray(JsonUtil::decode($jsonEncoded));
         $requireMap = AssertEx::isArray(AssertEx::arrayHasKey('require', $jsonDecoded));
         return AssertEx::isString(AssertEx::arrayHasKey('php', $requireMap));
     }
@@ -211,7 +211,7 @@ final class PhpDepsTest extends ComponentTestCaseBase
     private static function verifyPhpSourceFileNamespace(string $filePath, array $statements): void
     {
         $visitNode = function (PhpParserNode $node) use ($filePath): void {
-            $logger = PhpDepsTest::getLoggerStatic(__NAMESPACE__, __CLASS__, __FILE__)->addAllContext(compact('filePath'));
+            $logger = PhpDependenciesComponentTest::getLoggerStatic(__NAMESPACE__, __CLASS__, __FILE__)->addAllContext(compact('filePath'));
             $loggerProxy = $logger->ifDebugLevelEnabledNoLine(__FUNCTION__);
 
             if ($node instanceof PhpParserNodeNamespace) {

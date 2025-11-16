@@ -21,7 +21,7 @@
 
 declare(strict_types=1);
 
-require __DIR__ . '/../../../bootstrap_tests_shared.php';
+require __DIR__ . '/../../bootstrap_tests_shared.php';
 
 use ElasticOTelTests\ComponentTests\Util\ResourcesCleaner;
 

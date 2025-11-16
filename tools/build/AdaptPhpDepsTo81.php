@@ -149,7 +149,7 @@ final class AdaptPhpDepsTo81
     {
         $fileContents = ToolsUtil::getFileContents($minimalComposerJsonFilePath);
         self::logDebug(__LINE__, __METHOD__, 'Entered; fileContents: ' . $fileContents);
-        $fileContentsJsonDecoded = self::assertIsArray(ToolsUtil::decodeJson($fileContents, asAssocArray: true));
+        $fileContentsJsonDecoded = self::assertIsArray(ToolsUtil::decodeJson($fileContents));
         // Keep only "require" top key
         $resultArray = array_filter($fileContentsJsonDecoded, fn ($key) => $key === self::COMPOSER_JSON_REQUIRE_KEY, ARRAY_FILTER_USE_KEY);
         self::assertCount(1, $resultArray);
@@ -186,7 +186,7 @@ final class AdaptPhpDepsTo81
     private static function adaptPackageComposerJson(string $composerJsonFilePath, string $packageVersion): void
     {
         $fileContents = ToolsUtil::getFileContents($composerJsonFilePath);
-        $jsonDecoded = self::assertIsArray(ToolsUtil::decodeJson($fileContents, asAssocArray: true));
+        $jsonDecoded = self::assertIsArray(ToolsUtil::decodeJson($fileContents));
         $resultArray = $jsonDecoded;
         if (ArrayUtil::getValueIfKeyExists(self::COMPOSER_JSON_VERSION_KEY, $jsonDecoded, /* out */ $alreadyPresentVersion) && ($alreadyPresentVersion !== $packageVersion)) {
             self::assertIsString($alreadyPresentVersion);

@@ -192,9 +192,9 @@ final class ToolsUtil
         return $encodedData;
     }
 
-    public static function decodeJson(string $encodedData, bool $asAssocArray): mixed
+    public static function decodeJson(string $encodedData): mixed
     {
-        $decodedData = json_decode($encodedData, /* assoc: */ $asAssocArray);
+        $decodedData = json_decode($encodedData, /* associative: */ true);
         if ($decodedData === null && ($encodedData !== 'null')) {
             throw new JsonException(
                 'json_decode() failed.'

@@ -285,7 +285,7 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
             throw new ComponentTestsInfraException(ExceptionUtil::buildMessage('Unexpected content type', $dbgCtx));
         }
 
-        $responseBodyDecodedJson = JsonUtil::decode($responseBody, asAssocArray: true);
+        $responseBodyDecodedJson = JsonUtil::decode($responseBody);
         Assert::assertIsArray($responseBodyDecodedJson);
         Assert::assertTrue(ArrayUtil::getValueIfKeyExists(AgentBackendCommEventsBlock::class, $responseBodyDecodedJson, /* out */ $newEventsWrappedSerialized));
         Assert::assertIsString($newEventsWrappedSerialized);

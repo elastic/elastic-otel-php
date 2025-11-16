@@ -219,6 +219,26 @@ trait ToolsAssertTrait
     }
 
     /**
+     * @template TKey of array-key
+     * @template TValue
+     *
+     * @param array<TKey, TValue> $actual
+     * @param ?array<string, mixed> $dbgCtx
+     *
+     * @return non-empty-array<TKey, TValue>
+     *
+     * @phpstan-assert non-empty-array<TKey, TValue> $actual
+     *
+     * @noinspection PhpUnused
+     */
+    public static function assertArrayNotEmpty(array $actual, ?array $dbgCtx = null): array
+    {
+        $dbgName = $dbgCtx === null ? 'actual' : array_key_first($dbgCtx);
+        self::assert(count($actual) !== 0, "count($dbgName) !== 0" . self::convertAssertDbgCtxToStringToAppend($dbgCtx));
+        return $actual;
+    }
+
+    /**
      * @template TValue
      * *
      * @param TValue|false $actual

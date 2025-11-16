@@ -78,15 +78,15 @@ main() {
     # SC2034: <env var> appears unused. Verify use (or export if used externally).
     # shellcheck disable=SC2034
     ELASTIC_OTEL_PHP_TESTS_LOGS_DIRECTORY="/elastic_otel_php_tests/logs"
-    local docker_run_env_vars_cmd_line_args=()
-    build_docker_env_vars_command_line_part docker_run_env_vars_cmd_line_args
+    local docker_run_cmd_line_args=()
+    build_docker_env_vars_command_line_part docker_run_cmd_line_args
 
     # The ${VAR+x} expansion expands to x if VAR is set (even if empty), and to nothing if VAR is unset.
     # This allows you to test for its existence without actually using its value.
     if [[ -n "${GITHUB_SHA+x}" ]]; then
-        docker_run_env_vars_cmd_line_args+=(-e "GITHUB_SHA=${GITHUB_SHA}")
+        docker_run_cmd_line_args+=(-e "GITHUB_SHA=${GITHUB_SHA}")
     else
-        docker_run_env_vars_cmd_line_args+=(-e "GITHUB_SHA=dummy_github_sha")
+        docker_run_cmd_line_args+=(-e "GITHUB_SHA=dummy_sha")
     fi
 
     for PHP_version_no_dot in "${PHP_versions_no_dot[@]}"; do
@@ -94,7 +94,7 @@ main() {
         PHP_docker_image=$(build_light_PHP_docker_image_name_for_version_no_dot "${PHP_version_no_dot}")
 
         docker run --rm \
-            "${docker_run_env_vars_cmd_line_args[@]}" \
+            "${docker_run_cmd_line_args[@]}" \
             -v "${work_repo_root_dir}:/docker_host_repo_root:ro" \
             -v "${logs_dir}:/elastic_otel_php_tests/logs" \
             -w "/docker_host_repo_root" \
