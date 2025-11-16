@@ -181,7 +181,7 @@ function main() {
 
     build_docker_env_vars_command_line_part docker_run_cmd_line_args
 
-    docker_run_cmd_line_args+=(-v "${work_repo_root_dir}:/docker_host_repo_root:ro")
+    docker_run_cmd_line_args+=(-v "${src_repo_root_dir}:/docker_host_repo_root:ro")
     docker_run_cmd_line_args+=(-w "/docker_host_repo_root")
     docker_run_cmd_line_args+=(-v "${packages_dir}:/elastic_otel_php_tests/packages:ro")
     docker_run_cmd_line_args+=(-v "${logs_dir}:/elastic_otel_php_tests/logs")
