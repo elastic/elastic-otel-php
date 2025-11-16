@@ -23,8 +23,15 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests;
 
-use ElasticOTelTests\BootstrapTests;
+use ElasticOTelTests\BootstrapTestsUtil;
+use ElasticOTelTests\Util\AmbientContextForTests;
+use ElasticOTelTests\Util\ExceptionUtil;
 
-require __DIR__ . '/../../bootstrap.php';
+require __DIR__ . '/../bootstrap_tests_shared.php';
 
-BootstrapTests::bootstrapComponentTests();
+ExceptionUtil::runCatchLogRethrow(
+    function (): void {
+        BootstrapTestsUtil::bootstrapShared(dbgProcessName: 'Component tests');
+        AmbientContextForTests::testConfig()->validateForComponentTests();
+    }
+);

@@ -19,8 +19,6 @@
  * under the License.
  */
 
-/** @noinspection PhpIllegalPsrClassPathInspection */
-
 declare(strict_types=1);
 
 namespace Elastic\OTel\Util;
@@ -59,7 +57,7 @@ final class ArrayUtil
      * @phpstan-param array<TKey, TArrayValue> $array
      * @phpstan-param TFallbackValue           $fallbackValue
      *
-     * @return TArrayValue|TFallbackValue
+     * @phpstan-return TArrayValue|TFallbackValue
      */
     public static function getValueIfKeyExistsElse(string|int $key, array $array, mixed $fallbackValue): mixed
     {

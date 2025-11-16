@@ -19,29 +19,34 @@
  * under the License.
  */
 
-/** @noinspection PhpIllegalPsrClassPathInspection */
-
 declare(strict_types=1);
 
-namespace ElasticOTelTools\Build;
+namespace ElasticOTelTools\build;
 
 use Elastic\OTel\Log\LogLevel;
 use Elastic\OTel\PhpPartFacade;
+use ElasticOTelTools\ToolsLoggingClassTrait;
+use ElasticOTelTools\ToolsAssertTrait;
+use ElasticOTelTools\ToolsLog;
+use ElasticOTelTools\ToolsUtil;
 
 /**
- * @phpstan-import-type EnvVars from BuildToolsUtil
+ * @phpstan-import-type EnvVars from ToolsUtil
  */
 final class ComposerUtil
 {
-    use BuildToolsAssertTrait;
-    use BuildToolsLoggingClassTrait;
+    use ToolsAssertTrait;
+    use ToolsLoggingClassTrait;
 
-    public const ALLOW_DIRECT_COMPOSER_COMMAND_ENV_VAR_NAME = 'ELASTIC_OTEL_PHP_TOOLS_ALLOW_DIRECT_COMPOSER_COMMAND';
+    public const ALLOW_DIRECT_COMMAND_ENV_VAR_NAME = 'ELASTIC_OTEL_PHP_TOOLS_ALLOW_DIRECT_COMPOSER_COMMAND';
 
-    public const COMPOSER_JSON_FILE_NAME = 'composer.json';
-    public const COMPOSER_LOCK_FILE_NAME = 'composer.lock';
+    public const JSON_FILE_NAME_NO_EXT = 'composer';
+    public const JSON_FILE_EXT = 'json';
+    public const LOCK_FILE_EXT = 'lock';
+    public const JSON_FILE_NAME = self::JSON_FILE_NAME_NO_EXT . '.' . self::JSON_FILE_EXT;
+    public const VENDOR_DIR_NAME = 'vendor';
 
-    private const COMPOSER_INSTALL_CMD_IGNORE_PLATFORM_REQ_ARGS =
+    private const INSTALL_CMD_IGNORE_PLATFORM_REQ_ARGS =
         '--ignore-platform-req=ext-mysqli'
         . ' '
         . '--ignore-platform-req=ext-pgsql'
@@ -49,85 +54,83 @@ final class ComposerUtil
         . '--ignore-platform-req=ext-opentelemetry'
     ;
 
-    /**
-     * @see elastic_otel_php_build_tools_composer_lock_files_dir in tool/shared.sh
-     */
-    private const GENERATED_FILES_DIR_NAME = 'generated_composer_lock_files';
-
     public static function shouldAllowDirectCommand(): bool
     {
-        return PhpPartFacade::getBoolEnvVar(self::ALLOW_DIRECT_COMPOSER_COMMAND_ENV_VAR_NAME, default: false);
+        return PhpPartFacade::getBoolEnvVar(self::ALLOW_DIRECT_COMMAND_ENV_VAR_NAME, default: false);
     }
 
     /**
-     * @param EnvVars $envVars
+     * @phpstan-param EnvVars $envVars
+     *
+     * @link https://getcomposer.org/doc/03-cli.md#install-i
      */
-    public static function execComposerInstallShellCommand(bool $withDev, string $additionalArgs = '', array $envVars = []): void
+    public static function execInstall(bool $withDev, string $additionalArgs = '', array $envVars = []): void
     {
         $logLevel = LogLevel::info;
-        if (BuildToolsLog::isLevelEnabled($logLevel)) {
-            self::logWithLevel($logLevel, __LINE__, __METHOD__, 'Current directory: ' . BuildToolsUtil::getCurrentDirectory());
-            BuildToolsUtil::listDirectoryContents(BuildToolsUtil::getCurrentDirectory());
-            BuildToolsUtil::listFileContents(BuildToolsUtil::partsToPath(BuildToolsUtil::getCurrentDirectory(), ComposerUtil::COMPOSER_JSON_FILE_NAME));
+        if (ToolsLog::isLevelEnabled($logLevel)) {
+            self::logWithLevel($logLevel, __LINE__, __METHOD__, 'Current directory: ' . ToolsUtil::getCurrentDirectory());
+            ToolsUtil::listDirectoryContents(ToolsUtil::getCurrentDirectory());
+            ToolsUtil::listFileContents(ToolsUtil::partsToPath(ToolsUtil::getCurrentDirectory(), ComposerUtil::JSON_FILE_NAME));
         }
         $cmdParts = [];
         $cmdParts[] = self::convertEnvVarsToCmdLinePart($envVars);
-        $cmdParts[] = 'composer ' . self::COMPOSER_INSTALL_CMD_IGNORE_PLATFORM_REQ_ARGS . ' --no-interaction';
-        $cmdParts[] = $withDev ? '' : '--no-dev';
+        $cmdParts[] = 'composer ' . self::INSTALL_CMD_IGNORE_PLATFORM_REQ_ARGS . ' --no-interaction';
+        $cmdParts[] = $withDev ? '' : '--no-dev'; // --dev is deprecated and installing packages listed in require-dev is the default behavior
         $cmdParts[] = $additionalArgs;
         $cmdParts[] = 'install';
-        BuildToolsUtil::execShellCommand(BuildToolsUtil::buildShellCommand($cmdParts));
+        self::execCommand(ToolsUtil::buildShellCommand($cmdParts));
     }
 
-    public static function buildToGeneratedFileFullPath(string $repoRootPath, string $fileName): string
+    /**
+     * @link https://getcomposer.org/doc/03-cli.md#dump-autoload-dumpautoload
+     */
+    public static function execDumpAutoLoad(bool $withDev, bool $classmapAuthoritative): void
     {
-        return BuildToolsUtil::realPath($repoRootPath . DIRECTORY_SEPARATOR . self::GENERATED_FILES_DIR_NAME . DIRECTORY_SEPARATOR . $fileName);
+        $cmdParts = ['composer --no-interaction --optimize'];
+        $cmdParts[] = $withDev ? '--dev' : '--no-dev';
+        $cmdParts[] = $classmapAuthoritative ? '--classmap-authoritative' : '';
+        $cmdParts[] = 'dump-autoload';
+        self::execCommand(ToolsUtil::buildShellCommand($cmdParts));
     }
 
-    public static function buildGeneratedComposerJsonFileName(PhpDepsEnvKind $envKind): string
+    /**
+     * @param list<string> $packagesToRemove
+     *
+     * @link https://getcomposer.org/doc/03-cli.md#remove-rm-uninstall
+     */
+    public static function execRemove(array $packagesToRemove, string $additionalArgs = ''): void
     {
-        /**
-         * @see build_generated_composer_json_file_name() finction in tool/shared.sh
-         */
-
-        return $envKind->name . '.json';
+        $cmdParts = ['composer'];
+        $cmdParts[] = $additionalArgs;
+        $cmdParts[] = 'remove';
+        $cmdParts[] = implode(' ', $packagesToRemove);
+        self::execCommand(ToolsUtil::buildShellCommand($cmdParts));
     }
 
-    public static function buildGeneratedComposerLockFileNameForCurrentPhpVersion(PhpDepsEnvKind $envKind): string
+    public static function execCommand(string $composerCmdLine): void
     {
-        /**
-         * @see build_generated_composer_lock_file_name() finction in tool/shared.sh
-         */
-        return $envKind->name . '_' . PHP_MAJOR_VERSION . PHP_MINOR_VERSION . '.lock';
+        ToolsUtil::execShellCommand($composerCmdLine, ['current directory' => ToolsUtil::getCurrentDirectory()]);
     }
 
     public static function verifyThatComposerJsonAndLockAreInSync(): void
     {
-        BuildToolsUtil::execShellCommand('composer --check-lock --no-check-all validate');
-    }
-
-    public static function convertEnvKindToWithDev(PhpDepsEnvKind $envKind): bool
-    {
-        return match ($envKind) {
-            PhpDepsEnvKind::dev, PhpDepsEnvKind::prod_static_check, PhpDepsEnvKind::test => true,
-            PhpDepsEnvKind::prod => false,
-        };
+        self::execCommand('composer --check-lock --no-check-all validate');
     }
 
     /**
-     * @param EnvVars $envVars
+     * @phpstan-param EnvVars $envVars
      */
     private static function convertEnvVarsToCmdLinePart(array $envVars): string
     {
         $cmdParts = [];
         foreach ($envVars as $envVarName => $envVarVal) {
-            $cmdParts[] = BuildToolsUtil::isCurrentOsWindows() ? "set \"$envVarName=$envVarVal\" &&" : "$envVarName=\"$envVarVal\"";
+            $cmdParts[] = ToolsUtil::isCurrentOsWindows() ? "set \"$envVarName=$envVarVal\" &&" : "$envVarName=\"$envVarVal\"";
         }
-        return BuildToolsUtil::buildShellCommand($cmdParts);
+        return ToolsUtil::buildShellCommand($cmdParts);
     }
 
     /**
-     * Must be defined in class using BuildToolsLoggingClassTrait
+     * Must be defined in class using ToolsLoggingClassTrait
      */
     private static function getCurrentSourceCodeFile(): string
     {
