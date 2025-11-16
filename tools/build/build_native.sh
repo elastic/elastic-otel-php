@@ -92,7 +92,11 @@ else
     CONFIGURE="cmake --preset ${BUILD_ARCHITECTURE}-release  && "
 fi
 
-docker_run_cmd_line_args+=(-u "$(id -u):$(id -g)")
+if [[ -n "${GITHUB_ACTIONS+x}" ]] && [[ "${GITHUB_ACTIONS}" == "true" ]]; then
+    docker_run_cmd_line_args+=(-u :)
+else
+    docker_run_cmd_line_args+=(-u "$(id -u):$(id -g)")
+fi
 
 if [ "$SKIP_UNIT_TESTS" = true ]; then
     UNIT_TESTS="echo \"Skipped unit tests (SKIP_UNIT_TESTS: $SKIP_UNIT_TESTS).\""
@@ -108,7 +112,7 @@ if [[ "${INTERACTIVE}" == true ]]; then
     docker_run_cmd_line_args+=(-i)
 fi
 
-docker run --rm -t -v "${PWD}:/source" \
+docker run --rm -t -v  "${PWD}:/source" \
     "${docker_run_cmd_line_args[@]}" \
     -w /source/prod/native \
     "elasticobservability/apm-agent-php-dev:native-build-gcc-14.2.0-${BUILD_ARCHITECTURE}-0.0.1" \

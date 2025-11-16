@@ -113,6 +113,8 @@ function main() {
 
     trap on_script_exit EXIT
 
+    repo_temp_copy_dir="$(mktemp -d)"
+
     copy_all_env_kinds_composer_json_files "${repo_temp_copy_dir}"
 
     pushd "${repo_temp_copy_dir}" || exit 1
