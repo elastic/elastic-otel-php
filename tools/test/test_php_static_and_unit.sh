@@ -108,9 +108,9 @@ main() {
             "${PHP_docker_image}" \
             sh -c "\
                 apk update && apk add bash rsync \
-                && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
                 && /docker_host_repo_root/tools/copy_repo_exclude_generated.sh /docker_host_repo_root /tmp/repo \
                 && cd /tmp/repo \
+                && ./tools/install_composer.sh \
                 && echo 'Running static check on prod (without dev only dependencies); PHP_version_no_dot:' ${PHP_version_no_dot} \
                 && php ./tools/test/static_check_prod.php \
                 && echo 'Running static check and unit tests; PHP_version_no_dot:' ${PHP_version_no_dot} \

@@ -154,7 +154,7 @@ main() {
 #        "${PHP_docker_image}" \
 #        sh -c \
 #        "\
-#            curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
+#            ./tools/install_composer.sh \
 #            && echo 'memory_limit=256M' > /usr/local/etc/php/conf.d/custom_config_for_php_scoper.ini \
 #            && echo -n 'memory_limit: ' && php -r \"echo ini_get('memory_limit') . PHP_EOL;\" \
 #            && mkdir -p /tmp/stage/scoper && cd /tmp/stage/scoper \

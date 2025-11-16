@@ -21,12 +21,15 @@ function exec_composer_outdated() {
     PHP_version_dot_separated="$(convert_no_dot_to_dot_separated_version "${PHP_version_no_dot}")"
 
     docker run --rm \
+        -v "${src_repo_root_dir}/elastic-otel-php.properties:/repo_root/elastic-otel-php.properties:ro" \
+        -v "${src_repo_root_dir}/tools:/repo_root/tools:ro" \
         -v "${composer_json_full_path}:/repo_root/composer.json:ro" \
         -v "${composer_lock_full_path}:/repo_root/composer.lock:ro" \
         -w "/repo_root" \
         "${PHP_docker_image}" \
         sh -c "\
-            curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin > /dev/null \
+            apk update && apk add bash \
+            && ./tools/install_composer.sh \
             && composer --check-lock --no-check-all validate > /dev/null \
             && echo \"------------------------------------------------------------------------\" \
             && echo \"----------------------------------------\" \

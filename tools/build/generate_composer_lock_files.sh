@@ -74,12 +74,15 @@ function generate_composer_lock_for_PHP_version() {
 
     docker run --rm \
         -v "${composer_json_full_path}:/repo_root/composer.json:ro" \
+        -v "${src_repo_root_dir}/elastic-otel-php.properties:/repo_root/elastic-otel-php.properties:ro" \
+        -v "${src_repo_root_dir}/tools:/repo_root/tools:ro" \
         -v "${stage_generated_composer_lock_files_dir}:/docker_host_dst/stage_generated_composer_lock_files_dir" \
         "${docker_run_additional_args[@]}" \
         -w "/repo_root" \
         "${PHP_docker_image}" \
         sh -c "\
-            curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
+            apk update && apk add bash \
+            && ./tools/install_composer.sh \
             && composer run-script -- generate_lock_use_current_json \
             && cp -f /repo_root/composer.lock /docker_host_dst/stage_generated_composer_lock_files_dir/${composer_lock_file_name} \
             && chown ${current_user_id}:${current_user_group_id} /docker_host_dst/stage_generated_composer_lock_files_dir/${composer_lock_file_name} \

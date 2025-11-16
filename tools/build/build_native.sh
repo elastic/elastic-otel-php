@@ -3,6 +3,8 @@ set -e -u -o pipefail
 #set -x
 
 SKIP_CONFIGURE=false
+INTERACTIVE=""
+CONAN_CACHE_PATH=""
 
 show_help() {
     echo "Usage: $0 --build_architecture <architecture> [--ncpu <num_cpus>] [--conan_cache_path <conan_cache_path>] [--skip_configure] [--skip_unit_tests]"
@@ -84,7 +86,7 @@ else
     CONFIGURE="cmake --preset ${BUILD_ARCHITECTURE}-release  && "
 fi
 
-if [ "$GITHUB_ACTIONS" = true ]; then
+if [[ -n "${GITHUB_ACTIONS+x}" ]] && [[ "$GITHUB_ACTIONS" == true ]]; then
     USERID=" -u : "
 else
     USERID=" -u $(id -u):$(id -g) "
@@ -96,12 +98,17 @@ else
     UNIT_TESTS="ctest --preset ${BUILD_ARCHITECTURE}-release --verbose"
 fi
 
+pass_GITHUB_SHA_env_var_cmd_opt=()
+if [[ -n "${GITHUB_SHA+x}" ]]; then
+    pass_GITHUB_SHA_env_var_cmd_opt=(-e "GITHUB_SHA=${GITHUB_SHA}")
+fi
+
 ls -al "${PWD}"
 
 docker run --rm -t ${INTERACTIVE} ${USERID} -v ${PWD}:/source \
     "${CONAN_HOME_MP[@]}" \
     -w /source/prod/native \
-    -e GITHUB_SHA=${GITHUB_SHA} \
+    "${pass_GITHUB_SHA_env_var_cmd_opt[@]}" \
     elasticobservability/apm-agent-php-dev:native-build-gcc-14.2.0-${BUILD_ARCHITECTURE}-0.0.1 \
     sh -c "id && echo CONAN_HOME: \$CONAN_HOME && ${CONFIGURE} cmake --build --preset ${BUILD_ARCHITECTURE}-release ${NCPU} && ${UNIT_TESTS}"
 

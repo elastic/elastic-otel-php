@@ -83,14 +83,16 @@ verify_otlp_exporters() {
 
     local has_compared_the_same=""
     docker run --rm \
+        -v "${src_repo_root_dir}/elastic-otel-php.properties:/repo_root/elastic-otel-php.properties:ro" \
+        -v "${src_repo_root_dir}/tools:/repo_root/tools:ro" \
         -v "${vendor_dir}:/new_vendor:ro" \
         -w / \
         "${PHP_docker_image}" \
         sh -c \
         "\
-            mkdir /used_as_base && cd /used_as_base \
-            && apk update && apk add bash git \
-            && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
+            apk update && apk add bash git \
+            && mkdir /used_as_base && cd /used_as_base \
+            && ./tools/install_composer.sh \
             && composer require ${php_impl_package_name}:${elastic_otel_php_native_otlp_exporters_based_on_php_impl_version:?} \
             && composer --no-dev install \
             && diff -r /used_as_base/vendor/${php_impl_package_name} /new_vendor/${php_impl_package_name} \
@@ -208,9 +210,9 @@ main() {
             "${PHP_docker_image}" \
             sh -c "\
                 apk update && apk add bash rsync \
-                && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
                 && /docker_host_repo_root/tools/copy_repo_exclude_generated.sh /docker_host_repo_root /tmp/repo \
                 && cd /tmp/repo \
+                && ./tools/install_composer.sh \
                 && php ./tools/build/select_composer_lock_and_install.php prod \
                 && ./tools/build/scope_PHP_deps.sh --input_dir ./vendor_prod --output_dir /docker_host_dst/vendor_prod \
                 && chown -R ${current_user_id}:${current_user_group_id} /docker_host_dst/vendor_prod/ \
