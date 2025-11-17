@@ -19,8 +19,6 @@
  * under the License.
  */
 
-/** @noinspection PhpIllegalPsrClassPathInspection */
-
 declare(strict_types=1);
 
 namespace Elastic\OTel;
@@ -80,9 +78,9 @@ final class PhpPartFacade
     {
         self::$wasBootstrapCalled = true;
 
-        require __DIR__ . DIRECTORY_SEPARATOR . 'BootstrapStageLogger.php';
+        require __DIR__ . '/BootstrapStageLogger.php';
 
-        BootstrapStageLogger::configure($maxEnabledLogLevel, __DIR__, __NAMESPACE__);
+        BootstrapStageLogger::configure($maxEnabledLogLevel, __DIR__);
         BootstrapStageLogger::logDebug(
             'Starting bootstrap sequence...'
             . "; elasticOTelNativePartVersion: $elasticOTelNativePartVersion" . "; maxEnabledLogLevel: $maxEnabledLogLevel" . "; requestInitStartTime: $requestInitStartTime",
@@ -115,7 +113,7 @@ final class PhpPartFacade
         }
 
         try {
-            require __DIR__ . DIRECTORY_SEPARATOR . 'AutoloaderElasticOTelClasses.php';
+            require __DIR__ . '/AutoloaderElasticOTelClasses.php';
             AutoloaderElasticOTelClasses::register(__NAMESPACE__, __DIR__);
 
             InstrumentationBridge::singletonInstance()->bootstrap();
@@ -221,7 +219,7 @@ final class PhpPartFacade
     {
         return ProdPhpDir::$fullPath . DIRECTORY_SEPARATOR . (
             self::isInDevMode()
-                ? ('..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'vendor')
+                ? ('..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'vendor_prod')
                 : ('vendor_' . PHP_MAJOR_VERSION . PHP_MINOR_VERSION)
             );
     }

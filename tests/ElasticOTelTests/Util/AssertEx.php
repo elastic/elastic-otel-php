@@ -154,13 +154,14 @@ final class AssertEx
     }
 
     /**
-     * @template T
+     * @template TKey of array-key
+     * @template TValue
      *
-     * @param array<T> $actual
+     * @param array<TKey, TValue> $actual
      *
-     * @return non-empty-array<T>
+     * @return non-empty-array<TKey, TValue>
      *
-     * @phpstan-assert non-empty-array<T> $actual
+     * @phpstan-assert non-empty-array<TKey, TValue> $actual
      *
      * @noinspection PhpUnused
      */

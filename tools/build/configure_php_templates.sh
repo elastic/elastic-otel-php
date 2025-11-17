@@ -1,15 +1,13 @@
-#!/bin/bash
-#
+#!/usr/bin/env bash
+set -e -u -o pipefail
+#set -x
+
 # This script generates PHP files from template files.
 # The data to populate the templates is retrieved from the elastic-otel-php.properties file
 # using the read_properties.sh script, which processes the properties and stores them
 # in environment variables with the _PROJECT_PROPERTIES prefix.
 # In the template file, each text of the form @_PROJECT_PROPERTIES_SOME_VARIABLE@
 # will be replaced with the content of the environment variable _PROJECT_PROPERTIES_SOME_VARIABLE
-
-set -o pipefail
-set -e
-set -u
 
 source ./tools/read_properties.sh
 
@@ -22,31 +20,34 @@ read_properties elastic-otel-php.properties _PROJECT_PROPERTIES
 # Returns:
 #   The git hash string will be printed to stdout
 get_git_hash() {
-    if [ -z "${GITHUB_SHA+x}" ]; then
-        IS_DIRTY=false
-
-        git diff-index --quiet HEAD --
-        GIT_RESULT=$?
-
-        if [ $GIT_RESULT -ne 0 ]; then
-            IS_DIRTY=true
-        fi
-
-        GIT_VERSION=$(git rev-parse --short HEAD 2>/dev/null)
-        GIT_RESULT=$?
-
-        if [ $GIT_RESULT -ne 0 ]; then
-            TMP_OUTPUT_HASH=""
-        else
-            if [ "$IS_DIRTY" = true ]; then
-                TMP_OUTPUT_HASH="~${GIT_VERSION}-dirty"
-            else
-                TMP_OUTPUT_HASH="~${GIT_VERSION}"
-            fi
-        fi
-
-        echo "$TMP_OUTPUT_HASH"
+    if [[ -n "${GITHUB_SHA+x}" ]]; then
+        echo ""
+        return
     fi
+
+    IS_DIRTY=false
+
+    git diff-index --quiet HEAD --
+    GIT_RESULT=$?
+
+    if [ $GIT_RESULT -ne 0 ]; then
+        IS_DIRTY=true
+    fi
+
+    GIT_VERSION=$(git rev-parse --short HEAD 2>/dev/null)
+    GIT_RESULT=$?
+
+    if [ $GIT_RESULT -ne 0 ]; then
+        TMP_OUTPUT_HASH=""
+    else
+        if [ "$IS_DIRTY" = true ]; then
+            TMP_OUTPUT_HASH="~${GIT_VERSION}-dirty"
+        else
+            TMP_OUTPUT_HASH="~${GIT_VERSION}"
+        fi
+    fi
+
+    echo "$TMP_OUTPUT_HASH"
 }
 
 # Transform comma-separated values into a PHP 8.0 compatible "enum" class

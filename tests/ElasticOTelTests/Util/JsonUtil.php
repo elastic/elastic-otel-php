@@ -45,7 +45,7 @@ final class JsonUtil
         return $encodedData;
     }
 
-    public static function decode(string $encodedData, bool $asAssocArray): mixed
+    public static function decode(string $encodedData, bool $asAssocArray = true): mixed
     {
         $decodedData = json_decode($encodedData, /* assoc: */ $asAssocArray);
         if ($decodedData === null && ($encodedData !== 'null')) {

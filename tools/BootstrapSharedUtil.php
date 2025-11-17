@@ -21,14 +21,16 @@
 
 declare(strict_types=1);
 
-// Ensure that composer has installed all dependencies
-if (!file_exists($vendorAutoload = (__DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.php'))) {
-    die("Error: $vendorAutoload is missing - dependencies must be installed using composer" . PHP_EOL);
+namespace ElasticOTelTools;
+
+final class BootstrapSharedUtil
+{
+    public static function requireComposerAutoload(string $phpFileFullPath): void
+    {
+        if (file_exists($phpFileFullPath)) {
+            require $phpFileFullPath;
+        } else {
+            die("Error: $phpFileFullPath is missing - maybe dependencies were not installed correctly/at all?" . PHP_EOL);
+        }
+    }
 }
-
-// Disable deprecation notices starting from PHP 8.4
-// Deprecated: funcAbc(): Implicitly marking parameter $xyz as nullable is deprecated, the explicit nullable type must be used instead
-error_reporting(PHP_VERSION_ID < 80400 ? E_ALL : (E_ALL & ~E_DEPRECATED));
-
-require $vendorAutoload;
-require __DIR__ . '/elastic_otel_extension_stubs/load.php';
