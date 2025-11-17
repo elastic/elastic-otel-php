@@ -35,12 +35,12 @@ export elastic_otel_php_otel_proto_version="${otel_proto_version:?}"
 export elastic_otel_php_native_otlp_exporters_based_on_php_impl_version="${native_otlp_exporters_based_on_php_impl_version:?}"
 
 # Make sure the following value is in sync with the rest of locations where it's defined:
-#   - tools/build/PhpDepsEnvKind.php
-export elastic_otel_php_deps_env_kinds=("dev" "prod")
+#   - tools/build/InstallPhpDeps.php
+export elastic_otel_php_generated_composer_lock_files_dir_name="generated_composer_lock_files"
 
 # Make sure the following value is in sync with the rest of locations where it's defined:
 #   - tools/build/InstallPhpDeps.php
-export elastic_otel_php_generated_composer_lock_files_dir_name="generated_composer_lock_files"
+export elastic_otel_php_generated_files_copy_of_composer_json_file_name="copy_of_composer.json"
 
 # Make sure the following value is in sync with the rest of locations where it's defined:
 #   - tools/build/AdaptPhpDepsTo81.php
@@ -244,41 +244,10 @@ function end_github_workflow_log_group() {
     echo "::endgroup::${group_name}"
 }
 
-function map_env_kind_to_generated_composer_file_name_prefix() {
-    local env_kind="${1:?}"
-
-    local base_file_name_prefix="composer"
-    case "${env_kind}" in
-        "dev")
-            echo "${base_file_name_prefix}"
-            ;;
-        "prod")
-            echo "${base_file_name_prefix}_${env_kind}"
-            ;;
-        *)
-            echo "Unknown env_kind: ${env_kind}"
-            return 1
-            ;;
-    esac
-}
-
-function build_composer_json_file_name() {
-    local env_kind="${1:?}"
-
-    local file_name
-    file_name="$(map_env_kind_to_generated_composer_file_name_prefix "${env_kind}")"
-
-    echo "${file_name}.json"
-}
-
 function build_generated_composer_lock_file_name() {
-    local env_kind="${1:?}"
-    local PHP_version_no_dot="${2:?}"
+    local PHP_version_no_dot="${1:?}"
 
-    local file_name_prefix
-    file_name_prefix="$(map_env_kind_to_generated_composer_file_name_prefix "${env_kind}")"
-
-    echo "${file_name_prefix}_${PHP_version_no_dot}.lock"
+    echo "composer_${PHP_version_no_dot}.lock"
 }
 
 function build_light_PHP_docker_image_name_for_version_no_dot() {
@@ -400,17 +369,4 @@ function build_docker_read_only_volume_mounts_command_line_part() {
     for rel_path in "${rel_paths[@]:?}" ; do
         result_var+=(-v "${src_root_dir}/${rel_path}:${dst_root_dir}/${rel_path}:ro")
     done
-}
-
-function is_valid_php_deps_env_kind() {
-    local env_kind_to_check="${1:?}"
-
-    for env_kind in "${elastic_otel_php_deps_env_kinds[@]}" ; do
-        if [[ "${env_kind_to_check}" == "${env_kind}" ]]; then
-            echo "true"
-            return
-        fi
-    done
-
-    echo "false"
 }

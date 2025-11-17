@@ -16,7 +16,6 @@ prod/php/ElasticOTel/Log/LogFeature.php
 
 # Composer
 composer.lock
-composer_prod.lock
 composer.phar
 vendor/
 vendor_prod/

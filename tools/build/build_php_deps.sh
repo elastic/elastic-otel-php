@@ -172,7 +172,7 @@ main() {
         fi
 
         local composer_lock_file_name
-        composer_lock_file_name="$(build_generated_composer_lock_file_name "prod" "${PHP_version_no_dot}")"
+        composer_lock_file_name="$(build_generated_composer_lock_file_name "${PHP_version_no_dot}")"
         local composer_lock_full_path="${work_repo_root_dir}/${elastic_otel_php_generated_composer_lock_files_dir_name:?}/${composer_lock_file_name}"
         INSTALLED_SEMCONV_VERSION=$(jq -r '.packages[] | select(.name == "open-telemetry/sem-conv") | .version' "${composer_lock_full_path}")
 

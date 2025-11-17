@@ -27,8 +27,9 @@ use ElasticOTelTools\BootstrapSharedUtil;
 
 require __DIR__ . '/../../tools/bootstrap_shared.php';
 
-BootstrapSharedUtil::requireComposerAutoload(__DIR__ . "/../../vendor/autoload.php");
+BootstrapSharedUtil::requireComposerAutoload(__DIR__ . "/../../vendor_prod/autoload.php");
 
+BootstrapSharedUtil::requireComposerAutoload(__DIR__ . "/../../vendor/autoload.php");
 // Substitutes should be loaded IMMEDIATELY AFTER vendor autoload
 require __DIR__ . '/../substitutes/load.php';
 

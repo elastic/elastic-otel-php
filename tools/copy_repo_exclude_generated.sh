@@ -11,7 +11,6 @@ function main() {
     rsync_opts+=(--exclude '.idea')
     rsync_opts+=(--exclude '/build/')
     rsync_opts+=(--exclude '/composer.lock')
-    rsync_opts+=(--exclude '/composer_prod.lock')
     rsync_opts+=(--exclude '/prod/native/_build/')
     rsync_opts+=(--exclude '/prod/php/vendor_*/')
     rsync_opts+=(--exclude '/vendor/')

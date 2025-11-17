@@ -9,12 +9,9 @@ set -e -u -o pipefail
 # In the template file, each text of the form @_PROJECT_PROPERTIES_SOME_VARIABLE@
 # will be replaced with the content of the environment variable _PROJECT_PROPERTIES_SOME_VARIABLE
 
-this_script_dir="$(dirname "${BASH_SOURCE[0]}")"
-this_script_dir="$(realpath "${this_script_dir}")"
-src_repo_root_dir="$(realpath "${this_script_dir}/../..")"
-source "${src_repo_root_dir}/tools/read_properties.sh"
+source ./tools/read_properties.sh
 
-read_properties "${src_repo_root_dir}/elastic-otel-php.properties" _PROJECT_PROPERTIES
+read_properties elastic-otel-php.properties _PROJECT_PROPERTIES
 
 # The function only works if the environment variable GITHUB_SHA is not set
 # It retrieves the hash of the current commit, and appends '-dirty' if there are local changes

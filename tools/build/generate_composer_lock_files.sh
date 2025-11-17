@@ -35,28 +35,13 @@ function parse_args() {
     done
 }
 
-function copy_all_env_kinds_composer_json_files() {
-    local dst_dir="${1:?}"
-
-    for env_kind in "${elastic_otel_php_deps_env_kinds[@]:?}" ; do
-        local composer_json_for_env_kind_file_name
-        composer_json_for_env_kind_file_name="$(build_composer_json_file_name "${env_kind}")"
-        copy_file "${src_repo_root_dir}/${composer_json_for_env_kind_file_name}" "${dst_dir}/"
-    done
-}
-
 function generate_composer_lock_for_PHP_version() {
-    local env_kind="${1:?}"
-    local PHP_version_no_dot="${2:?}"
-
-    local composer_json_file_name
-    composer_json_file_name="$(build_composer_json_file_name "${env_kind}")"
-    local composer_json_full_path="${stage_generated_composer_lock_files_dir}/${composer_json_file_name}"
+    local PHP_version_no_dot="${1:?}"
 
     local composer_lock_file_name
-    composer_lock_file_name="$(build_generated_composer_lock_file_name "${env_kind}" "${PHP_version_no_dot}")"
+    composer_lock_file_name="$(build_generated_composer_lock_file_name "${PHP_version_no_dot}")"
 
-    echo "Generating ${composer_lock_file_name} from ${composer_json_full_path} ..."
+    echo "Generating ${composer_lock_file_name} ..."
 
     local PHP_docker_image
     PHP_docker_image=$(build_light_PHP_docker_image_name_for_version_no_dot "${PHP_version_no_dot}")
@@ -70,7 +55,7 @@ function generate_composer_lock_for_PHP_version() {
     fi
 
     docker run --rm \
-        -v "${composer_json_full_path}:/docker_host_repo_root/composer.json:ro" \
+        -v "${repo_temp_copy_dir}/composer.json:/docker_host_repo_root/composer.json:ro" \
         -v "${src_repo_root_dir}/elastic-otel-php.properties:/docker_host_repo_root/elastic-otel-php.properties:ro" \
         -v "${src_repo_root_dir}/tools:/docker_host_repo_root/tools:ro" \
         -v "${stage_generated_composer_lock_files_dir}:/docker_host_dst/stage_generated_composer_lock_files_dir" \
@@ -115,12 +100,12 @@ function main() {
 
     repo_temp_copy_dir="$(mktemp -d)"
 
-    copy_all_env_kinds_composer_json_files "${repo_temp_copy_dir}"
+    cp "${work_repo_root_dir}/composer.json" "${repo_temp_copy_dir}/"
 
     pushd "${repo_temp_copy_dir}" || exit 1
         # composer run-script -- download_and_adapt_packages_to_PHP_81 "${repo_temp_copy_dir}"
         #   expects
-        #       - "./composer_prod.json"
+        #       - "./composer.json"
         #   creates
         #       - "./${elastic_otel_php_packages_adapted_to_PHP_81_rel_path:?}/"
         #       - "./${elastic_otel_php_composer_home_for_packages_adapted_to_PHP_81_rel_path:?}/config.json"
@@ -130,12 +115,10 @@ function main() {
     stage_generated_composer_lock_files_dir="${repo_temp_copy_dir}/${elastic_otel_php_generated_composer_lock_files_dir_name:?}"
     mkdir -p "${stage_generated_composer_lock_files_dir}"
 
-    copy_all_env_kinds_composer_json_files "${stage_generated_composer_lock_files_dir}"
+    cp "${repo_temp_copy_dir}/composer.json" "${stage_generated_composer_lock_files_dir}/${elastic_otel_php_generated_files_copy_of_composer_json_file_name:?}"
 
     for PHP_version_no_dot in "${elastic_otel_php_supported_php_versions[@]:?}" ; do
-        for env_kind in "${elastic_otel_php_deps_env_kinds[@]:?}" ; do
-            generate_composer_lock_for_PHP_version "${env_kind}" "${PHP_version_no_dot}"
-        done
+        generate_composer_lock_for_PHP_version "${PHP_version_no_dot}"
     done
 
     pushd "${repo_temp_copy_dir}" || exit 1

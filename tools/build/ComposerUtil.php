@@ -44,7 +44,15 @@ final class ComposerUtil
     public const JSON_FILE_EXT = 'json';
     public const LOCK_FILE_EXT = 'lock';
     public const JSON_FILE_NAME = self::JSON_FILE_NAME_NO_EXT . '.' . self::JSON_FILE_EXT;
+    public const LOCK_FILE_NAME = self::JSON_FILE_NAME_NO_EXT . '.' . self::LOCK_FILE_EXT;
     public const VENDOR_DIR_NAME = 'vendor';
+
+    public const JSON_PHP_KEY = 'php';
+    public const JSON_REQUIRE_KEY = 'require';
+    public const JSON_REQUIRE_DEV_KEY = 'require-dev';
+
+    public const HOME_ENV_VAR_NAME = 'COMPOSER_HOME';
+    public const HOME_CONFIG_JSON_FILE_NAME = 'config.json';
 
     private const INSTALL_CMD_IGNORE_PLATFORM_REQ_ARGS =
         '--ignore-platform-req=ext-mysqli'
@@ -72,13 +80,11 @@ final class ComposerUtil
             ToolsUtil::listDirectoryContents(ToolsUtil::getCurrentDirectory());
             ToolsUtil::listFileContents(ToolsUtil::partsToPath(ToolsUtil::getCurrentDirectory(), ComposerUtil::JSON_FILE_NAME));
         }
-        $cmdParts = [];
-        $cmdParts[] = self::convertEnvVarsToCmdLinePart($envVars);
-        $cmdParts[] = 'composer ' . self::INSTALL_CMD_IGNORE_PLATFORM_REQ_ARGS . ' --no-interaction';
+        $cmdParts = ['composer ' . self::INSTALL_CMD_IGNORE_PLATFORM_REQ_ARGS . ' --no-interaction'];
         $cmdParts[] = $withDev ? '' : '--no-dev'; // --dev is deprecated and installing packages listed in require-dev is the default behavior
         $cmdParts[] = $additionalArgs;
         $cmdParts[] = 'install';
-        self::execCommand(ToolsUtil::buildShellCommand($cmdParts));
+        self::execCommand(ToolsUtil::buildShellCommand($cmdParts, $envVars));
     }
 
     /**
@@ -94,39 +100,34 @@ final class ComposerUtil
     }
 
     /**
-     * @param list<string> $packagesToRemove
+     * @phpstan-param list<string> $packagesToRemove
+     * @phpstan-param EnvVars $envVars
      *
      * @link https://getcomposer.org/doc/03-cli.md#remove-rm-uninstall
      */
-    public static function execRemove(array $packagesToRemove, string $additionalArgs = ''): void
+    public static function execRemove(array $packagesToRemove, string $additionalArgs = '', array $envVars = []): void
     {
-        $cmdParts = ['composer'];
+        $cmdParts = ['composer ' . self::INSTALL_CMD_IGNORE_PLATFORM_REQ_ARGS . ' --no-interaction'];
         $cmdParts[] = $additionalArgs;
         $cmdParts[] = 'remove';
-        $cmdParts[] = implode(' ', $packagesToRemove);
-        self::execCommand(ToolsUtil::buildShellCommand($cmdParts));
+        self::execCommand(ToolsUtil::buildShellCommand(array_merge($cmdParts, $packagesToRemove), $envVars));
     }
 
-    public static function execCommand(string $composerCmdLine): void
+    /**
+     * @phpstan-param string|array<string> $cmdOrParts
+     * @phpstan-param EnvVars $envVars
+     */
+    public static function execCommand(string|array $cmdOrParts, array $envVars = []): void
     {
-        ToolsUtil::execShellCommand($composerCmdLine, ['current directory' => ToolsUtil::getCurrentDirectory()]);
+        ToolsUtil::execShellCommand(
+            ToolsUtil::buildShellCommand(is_string($cmdOrParts) ? [$cmdOrParts] : $cmdOrParts, $envVars),
+            ['current directory' => ToolsUtil::getCurrentDirectory()]
+        );
     }
 
     public static function verifyThatComposerJsonAndLockAreInSync(): void
     {
         self::execCommand('composer --check-lock --no-check-all validate');
-    }
-
-    /**
-     * @phpstan-param EnvVars $envVars
-     */
-    private static function convertEnvVarsToCmdLinePart(array $envVars): string
-    {
-        $cmdParts = [];
-        foreach ($envVars as $envVarName => $envVarVal) {
-            $cmdParts[] = ToolsUtil::isCurrentOsWindows() ? "set \"$envVarName=$envVarVal\" &&" : "$envVarName=\"$envVarVal\"";
-        }
-        return ToolsUtil::buildShellCommand($cmdParts);
     }
 
     /**

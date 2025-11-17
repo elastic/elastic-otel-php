@@ -34,11 +34,13 @@ use ElasticOTelTests\ComponentTests\Util\EnvVarUtilForTests;
 use ElasticOTelTests\ComponentTests\Util\OTelUtil;
 use ElasticOTelTests\ComponentTests\Util\ProcessUtil;
 use ElasticOTelTests\ComponentTests\Util\WaitForOTelSignalCounts;
+use ElasticOTelTests\Util\ArrayUtilForTests;
 use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\FileUtil;
 use ElasticOTelTests\Util\JsonUtil;
 use ElasticOTelTests\Util\TimeUtil;
+use ElasticOTelTests\Util\VendorDir;
 use Override;
 use PhpParser\Error as PhpParserError;
 use PhpParser\Node as PhpParserNode;
@@ -54,7 +56,7 @@ use Throwable;
 /**
  * @group does_not_require_external_services
  */
-final class PhpDependenciesComponentTest extends ComponentTestCaseBase
+final class PhpDepsComponentTest extends ComponentTestCaseBase
 {
     /**
      * Make sure this value is in sync with the rest of locations where it's defined (see scope_namespace in <repo root>/tools/build/scope_PHP_deps.sh)
@@ -211,7 +213,7 @@ final class PhpDependenciesComponentTest extends ComponentTestCaseBase
     private static function verifyPhpSourceFileNamespace(string $filePath, array $statements): void
     {
         $visitNode = function (PhpParserNode $node) use ($filePath): void {
-            $logger = PhpDependenciesComponentTest::getLoggerStatic(__NAMESPACE__, __CLASS__, __FILE__)->addAllContext(compact('filePath'));
+            $logger = PhpDepsComponentTest::getLoggerStatic(__NAMESPACE__, __CLASS__, __FILE__)->addAllContext(compact('filePath'));
             $loggerProxy = $logger->ifDebugLevelEnabledNoLine(__FUNCTION__);
 
             if ($node instanceof PhpParserNodeNamespace) {
@@ -302,12 +304,58 @@ final class PhpDependenciesComponentTest extends ComponentTestCaseBase
         self::assertSame(0, $procInfo['exitCode']);
     }
 
+    private const SOME_PROD_ONLY_PACKAGES = [
+        'open-telemetry/exporter-otlp',
+        'open-telemetry/opentelemetry-auto-curl',
+        'open-telemetry/opentelemetry-auto-laravel',
+        'open-telemetry/sdk',
+        'open-telemetry/sem-conv',
+    ];
+
+    private const SOME_DEV_ONLY_PACKAGES = [
+        'dealerdirect/phpcodesniffer-composer-installer',
+        'php-parallel-lint/php-parallel-lint',
+        'phpstan/phpstan',
+        'phpstan/phpstan-phpunit',
+        'phpunit/phpunit',
+        'react/http',
+        'slevomat/coding-standard',
+        'squizlabs/php_codesniffer',
+    ];
+
+    private static function verifyVendorContainsPackage(string $vendorDir, string $fqPackageName): void
+    {
+        self::assertDirectoryExists(FileUtil::partsToPath($vendorDir, FileUtil::adaptUnixDirectorySeparators($fqPackageName)));
+    }
+
+    private static function verifyVendorDoesNotContainPackage(string $vendorDir, string $fqPackageName): void
+    {
+        self::assertDirectoryDoesNotExist(FileUtil::partsToPath($vendorDir, FileUtil::adaptUnixDirectorySeparators($fqPackageName)));
+    }
+
+    private static function verifyVendorDevAndProdOnlyPackages(string $prodVendorDir): void
+    {
+        /** @var array<string, list<string>> $vendorDirToOnlyPackages */
+        $vendorDirToOnlyPackages = [
+            $prodVendorDir => self::SOME_PROD_ONLY_PACKAGES,
+            VendorDir::getFullPath() => self::SOME_DEV_ONLY_PACKAGES,
+        ];
+
+        foreach ($vendorDirToOnlyPackages as $vendorDir => $onlyPackages) {
+            $otherVendorDir = ArrayUtilForTests::getSingleValue(array_filter(array_keys($vendorDirToOnlyPackages), fn ($vDir) => $vDir !== $vendorDir));
+            foreach ($onlyPackages as $fqPackageName) {
+                self::verifyVendorContainsPackage($prodVendorDir, $fqPackageName);
+                self::verifyVendorDoesNotContainPackage($otherVendorDir, $fqPackageName);
+            }
+        }
+    }
+
     public static function appCodeForTestPackagesHaveCorrectPhpVersion(): void
     {
         OTelUtil::addActiveSpanAttributes([self::PROD_VENDOR_DIR_KEY => PhpPartFacade::getVendorDirPath()]);
     }
 
-    public function testPackagesPhpSourceFiles(): void
+    public function testPackagesInVendorForProd(): void
     {
         self::assertOpcacheEnabled();
 
@@ -329,5 +377,7 @@ final class PhpDependenciesComponentTest extends ComponentTestCaseBase
         self::verifyPackagesPhpVersion($prodVendorDir);
         self::verifyPhpSourceFilesUsingParser($prodVendorDir);
         self::verifyPhpSourceFilesUsingOpCache($prodVendorDir);
+
+        self::verifyVendorDevAndProdOnlyPackages($prodVendorDir);
     }
 }

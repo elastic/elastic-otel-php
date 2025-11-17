@@ -121,19 +121,26 @@ final class ToolsUtil
     }
 
     /**
-     * @param array<string> $parts
+     * @phpstan-param array<string> $parts
+     * @phpstan-param EnvVars $envVars
      */
-    public static function buildShellCommand(array $parts): string
+    public static function buildShellCommand(array $parts, array $envVars = []): string
     {
-        $cmd = '';
-        foreach ($parts as $part) {
-            if ($part === '') {
-                continue;
-            }
-            $cmd .= ($cmd === '' ? '' : ' ') . $part;
-        }
+        return implode(' ', array_merge(self::convertEnvVarsToCmdLinePart($envVars), $parts));
+    }
 
-        return $cmd;
+    /**
+     * @phpstan-param EnvVars $envVars
+     *
+     * @return list<string>
+     */
+    private static function convertEnvVarsToCmdLinePart(array $envVars): array
+    {
+        $cmdParts = [];
+        foreach ($envVars as $envVarName => $envVarVal) {
+            $cmdParts[] = ToolsUtil::isCurrentOsWindows() ? "set \"$envVarName=$envVarVal\" &&" : "$envVarName=\"$envVarVal\"";
+        }
+        return $cmdParts;
     }
 
     /**
@@ -289,6 +296,7 @@ final class ToolsUtil
         );
     }
 
+    /** @noinspection PhpUnused */
     public static function moveFile(string $fromFilePath, string $toFilePath, bool $allowOverwrite = false): void
     {
         self::logInfo(__LINE__, __METHOD__, "Moving file $fromFilePath to $toFilePath");
