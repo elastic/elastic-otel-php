@@ -21,8 +21,8 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTests\ComponentTests\Util;
+use ElasticOTelTests\BootstrapTestsSharedUtil;
 
-require __DIR__ . '/bootstrapAppCodeHost.php';
+require __DIR__ . '/../../BootstrapTestsSharedUtil.php';
 
-CliScriptAppCodeHost::run();
+BootstrapTestsSharedUtil::bootstrapTestsContext(autoloadProd: false);

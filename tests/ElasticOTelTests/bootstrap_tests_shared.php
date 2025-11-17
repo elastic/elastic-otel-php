@@ -21,28 +21,11 @@
 
 declare(strict_types=1);
 
-use ElasticOTelTests\Util\RepoRootDir;
-use ElasticOTelTests\Util\ExceptionUtil;
-use ElasticOTelTools\BootstrapSharedUtil;
+use ElasticOTelTests\BootstrapTestsSharedUtil;
 
-require __DIR__ . '/../../tools/bootstrap_shared.php';
+require __DIR__ . '/BootstrapTestsSharedUtil.php';
 
-BootstrapSharedUtil::requireComposerAutoload(__DIR__ . "/../../vendor_prod/autoload.php");
-
-BootstrapSharedUtil::requireComposerAutoload(__DIR__ . "/../../vendor/autoload.php");
-// Substitutes should be loaded IMMEDIATELY AFTER vendor autoload
-require __DIR__ . '/../substitutes/load.php';
-
-ExceptionUtil::runCatchLogRethrow(
-    function (): void {
-        RepoRootDir::setFullPath(__DIR__ . '/../..');
-
-        require __DIR__ . '/../polyfills/load.php';
-        require __DIR__ . '/../elastic_otel_extension_stubs/load.php';
-        require __DIR__ . '/../dummyFuncForTestsWithoutNamespace.php';
-        require __DIR__ . '/dummyFuncForTestsWithNamespace.php';
-    }
-);
+BootstrapTestsSharedUtil::bootstrapTestsContext(autoloadProd: true);
 
 /*
 Dummy comment to verify PHP source code max allowed line length (which is 200).

@@ -120,7 +120,7 @@ trait ToolsLoggingClassTrait
         foreach ($throwable->getTrace() as $traceEntry) {
             $text = $getTraceEntryProp($traceEntry, 'file', '<FILE>') . ':' . $getTraceEntryProp($traceEntry, 'line', '<LINE>');
             $text .= ' (' . $getTraceEntryProp($traceEntry, 'class', '<CLASS>') . '::' . $getTraceEntryProp($traceEntry, 'function', '<FUNC>') . ')';
-            self::logInfo(__LINE__, __METHOD__, "\t" . $text);
+            ToolsLog::writeLineRaw("\t" . $text);
         }
     }
 }

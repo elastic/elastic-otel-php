@@ -34,13 +34,14 @@ use ElasticOTelTests\ComponentTests\Util\EnvVarUtilForTests;
 use ElasticOTelTests\ComponentTests\Util\OTelUtil;
 use ElasticOTelTests\ComponentTests\Util\ProcessUtil;
 use ElasticOTelTests\ComponentTests\Util\WaitForOTelSignalCounts;
-use ElasticOTelTests\Util\ArrayUtilForTests;
 use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\FileUtil;
 use ElasticOTelTests\Util\JsonUtil;
 use ElasticOTelTests\Util\TimeUtil;
 use ElasticOTelTests\Util\VendorDir;
+use ElasticOTelTools\build\InstallPhpDeps;
+use ElasticOTelTools\build\PhpDepsEnvKind;
 use Override;
 use PhpParser\Error as PhpParserError;
 use PhpParser\Node as PhpParserNode;
@@ -304,49 +305,14 @@ final class PhpDepsComponentTest extends ComponentTestCaseBase
         self::assertSame(0, $procInfo['exitCode']);
     }
 
-    private const SOME_PROD_ONLY_PACKAGES = [
-        'open-telemetry/exporter-otlp',
-        'open-telemetry/opentelemetry-auto-curl',
-        'open-telemetry/opentelemetry-auto-laravel',
-        'open-telemetry/sdk',
-        'open-telemetry/sem-conv',
-    ];
-
-    private const SOME_DEV_ONLY_PACKAGES = [
-        'dealerdirect/phpcodesniffer-composer-installer',
-        'php-parallel-lint/php-parallel-lint',
-        'phpstan/phpstan',
-        'phpstan/phpstan-phpunit',
-        'phpunit/phpunit',
-        'react/http',
-        'slevomat/coding-standard',
-        'squizlabs/php_codesniffer',
-    ];
-
-    private static function verifyVendorContainsPackage(string $vendorDir, string $fqPackageName): void
-    {
-        self::assertDirectoryExists(FileUtil::partsToPath($vendorDir, FileUtil::adaptUnixDirectorySeparators($fqPackageName)));
-    }
-
-    private static function verifyVendorDoesNotContainPackage(string $vendorDir, string $fqPackageName): void
-    {
-        self::assertDirectoryDoesNotExist(FileUtil::partsToPath($vendorDir, FileUtil::adaptUnixDirectorySeparators($fqPackageName)));
-    }
-
     private static function verifyVendorDevAndProdOnlyPackages(string $prodVendorDir): void
     {
-        /** @var array<string, list<string>> $vendorDirToOnlyPackages */
-        $vendorDirToOnlyPackages = [
-            $prodVendorDir => self::SOME_PROD_ONLY_PACKAGES,
-            VendorDir::getFullPath() => self::SOME_DEV_ONLY_PACKAGES,
-        ];
-
-        foreach ($vendorDirToOnlyPackages as $vendorDir => $onlyPackages) {
-            $otherVendorDir = ArrayUtilForTests::getSingleValue(array_filter(array_keys($vendorDirToOnlyPackages), fn ($vDir) => $vDir !== $vendorDir));
-            foreach ($onlyPackages as $fqPackageName) {
-                self::verifyVendorContainsPackage($prodVendorDir, $fqPackageName);
-                self::verifyVendorDoesNotContainPackage($otherVendorDir, $fqPackageName);
-            }
+        foreach (PhpDepsEnvKind::cases() as $envKind) {
+            $vendorDir = match ($envKind) {
+                PhpDepsEnvKind::dev => VendorDir::getFullPath(),
+                PhpDepsEnvKind::prod => $prodVendorDir,
+            };
+            InstallPhpDeps::verifyDevProdOnlyPackages($envKind, $vendorDir);
         }
     }
 

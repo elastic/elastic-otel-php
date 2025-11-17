@@ -282,7 +282,16 @@ trait ToolsAssertTrait
     public static function assertDirectoryExists(string $dirPath, ?array $dbgCtx = null): void
     {
         $dbgName = $dbgCtx === null ? 'actual' : array_key_first($dbgCtx);
-        self::assert(is_dir($dirPath), "file_exists($dbgName) && is_dir($dbgName)" . self::convertAssertDbgCtxToStringToAppend($dbgCtx));
+        self::assert(is_dir($dirPath), "is_dir($dbgName)" . self::convertAssertDbgCtxToStringToAppend($dbgCtx));
+    }
+
+    /**
+     * @param ?array<string, mixed> $dbgCtx
+     */
+    public static function assertDirectoryDoesNotExist(string $dirPath, ?array $dbgCtx = null): void
+    {
+        $dbgName = $dbgCtx === null ? 'actual' : array_key_first($dbgCtx);
+        self::assert(!is_dir($dirPath), "!is_dir($dbgName)" . self::convertAssertDbgCtxToStringToAppend($dbgCtx));
     }
 
     /**

@@ -86,6 +86,7 @@ final class InstallPhpDeps
             PhpDepsEnvKind::dev => self::installDev($repoRootDir),
             PhpDepsEnvKind::prod => self::installProd($repoRootDir),
         };
+        self::verifyDevProdOnlyPackages($envKind, ToolsUtil::partsToPath($repoRootDir, self::mapEnvKindToVendorDirName($envKind)));
     }
 
     public static function selectComposerLock(string $repoRootDir): void
@@ -169,14 +170,9 @@ final class InstallPhpDeps
      */
     public static function installInTempAndCopy(PhpDepsEnvKind $envKind, string $repoRootDir, callable $preProcess): void
     {
-        $dstVendorDirName = match ($envKind) {
-            PhpDepsEnvKind::dev => ComposerUtil::VENDOR_DIR_NAME,
-            PhpDepsEnvKind::prod => self::VENDOR_PROD_DIR_NAME,
-        };
-
         ToolsUtil::runCodeOnUniqueNameTempDir(
             tempDirNamePrefix: ToolsUtil::fqClassNameToShort(__CLASS__) . '_' . __FUNCTION__ . "_for_{$envKind->name}_",
-            code: function (string $tempRepoDir) use ($envKind, $repoRootDir, $preProcess, $dstVendorDirName): void {
+            code: function (string $tempRepoDir) use ($envKind, $repoRootDir, $preProcess): void {
                 self::copyComposerJsonLock($repoRootDir, $tempRepoDir);
                 $dstToolsDir = ToolsUtil::partsToPath($tempRepoDir, 'tools');
                 ToolsUtil::createDirectory($dstToolsDir);
@@ -185,7 +181,7 @@ final class InstallPhpDeps
 
                 self::composerInstallNoScripts($envKind, $envVars);
 
-                $dstVendorDir = ToolsUtil::partsToPath($repoRootDir, $dstVendorDirName);
+                $dstVendorDir = ToolsUtil::partsToPath($repoRootDir, self::mapEnvKindToVendorDirName($envKind));
                 ToolsUtil::ensureEmptyDirectory($dstVendorDir);
                 ToolsUtil::copyDirectoryContents(ToolsUtil::partsToPath($tempRepoDir, ComposerUtil::VENDOR_DIR_NAME), $dstVendorDir);
             }
@@ -239,6 +235,54 @@ final class InstallPhpDeps
         foreach ([ComposerUtil::JSON_FILE_EXT, ComposerUtil::LOCK_FILE_EXT] as $composerFileExtension) {
             $composerFileName = ComposerUtil::JSON_FILE_NAME_NO_EXT . '.' . $composerFileExtension;
             ToolsUtil::copyFile(ToolsUtil::partsToPath($srcDir, $composerFileName), ToolsUtil::partsToPath($dstDir, $composerFileName));
+        }
+    }
+
+    private static function mapEnvKindToVendorDirName(PhpDepsEnvKind $envKind): string
+    {
+        return match ($envKind) {
+            PhpDepsEnvKind::dev => ComposerUtil::VENDOR_DIR_NAME,
+            PhpDepsEnvKind::prod => self::VENDOR_PROD_DIR_NAME,
+        };
+    }
+
+    public static function verifyDevProdOnlyPackages(PhpDepsEnvKind $envKind, string $vendorDir): void
+    {
+        /** @var ?array<string, list<string>> $envKindToOnlyPackages */
+        static $envKindToOnlyPackages = null;
+        if ($envKindToOnlyPackages === null) {
+            $envKindToOnlyPackages = [
+                PhpDepsEnvKind::prod->name => [
+                    'open-telemetry/exporter-otlp',
+                    'open-telemetry/opentelemetry-auto-curl',
+                    'open-telemetry/opentelemetry-auto-laravel',
+                    'open-telemetry/sdk',
+                    'open-telemetry/sem-conv',
+                ],
+                PhpDepsEnvKind::dev->name => [
+                    'dealerdirect/phpcodesniffer-composer-installer',
+                    'php-parallel-lint/php-parallel-lint',
+                    'phpstan/phpstan',
+                    'phpstan/phpstan-phpunit',
+                    'phpunit/phpunit',
+                    'react/http',
+                    'slevomat/coding-standard',
+                    'squizlabs/php_codesniffer',
+                ],
+            ];
+        }
+        self::assertNotNull($envKindToOnlyPackages);
+
+        foreach ($envKindToOnlyPackages as $currentEnvKind => $onlyPackages) {
+            foreach ($onlyPackages as $fqPackageName) {
+                $packageDir = ToolsUtil::partsToPath($vendorDir, ToolsUtil::adaptUnixDirectorySeparators($fqPackageName));
+                $dbgCtx = compact('packageDir', 'vendorDir', 'fqPackageName', 'currentEnvKind');
+                if ($envKind->name === $currentEnvKind) {
+                    self::assertDirectoryExists($packageDir, $dbgCtx);
+                } else {
+                    self::assertDirectoryDoesNotExist($packageDir, $dbgCtx);
+                }
+            }
         }
     }
 
