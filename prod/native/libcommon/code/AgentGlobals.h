@@ -54,6 +54,7 @@ class DependencyAutoLoaderGuard;
 namespace coordinator {
 class CoordinatorMessagesDispatcher;
 class CoordinatorProcess;
+class CoordinatorConfigurationProvider;
 } // namespace coordinator
 namespace transport {
 class CurlSender;
@@ -97,6 +98,7 @@ public:
     std::shared_ptr<SharedMemoryState> sharedMemory_;
     std::shared_ptr<RequestScope> requestScope_;
     std::shared_ptr<coordinator::CoordinatorMessagesDispatcher> messagesDispatcher_;
+    std::shared_ptr<coordinator::CoordinatorConfigurationProvider> coordinatorConfigProvider_;
     std::shared_ptr<coordinator::CoordinatorProcess> coordinatorProcess_;
 };
 

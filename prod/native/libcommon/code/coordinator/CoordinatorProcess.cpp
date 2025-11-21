@@ -22,6 +22,7 @@
 namespace elasticapm::php::coordinator {
 
 void CoordinatorProcess::coordinatorLoop() {
+    configProvider_->beginConfigurationFetching();
     setupPeriodicTasks();
     periodicTaskExecutor_->resumePeriodicTasks();
 

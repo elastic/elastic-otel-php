@@ -57,6 +57,7 @@ void ElasticDynamicConfigurationAdapter::update(configFiles_t const &files) {
     auto elasticConfig = files.find("elastic"s);
     if (elasticConfig == std::end(files)) {
         options_.clear();
+        return;
     }
 
     options_ = remapOptions(parseJsonConfigFile(elasticConfig->second));
@@ -86,6 +87,7 @@ ElasticDynamicConfigurationAdapter::optionsMap_t ElasticDynamicConfigurationAdap
             }
 
             result[EL_STRINGIFY(ELASTIC_OTEL_LOG_LEVEL)] = loglevel;
+            ELOG_DEBUG(logger_, CONFIG, "ElasticDynamicConfigurationAdapter remapOptions Mapped remote 'logging_level->{}' to '{}->{}'.", opt.second, EL_STRINGIFY(ELASTIC_OTEL_LOG_LEVEL), loglevel);
         }
 
         if (opt.first == "infer_spans") {
@@ -94,6 +96,7 @@ ElasticDynamicConfigurationAdapter::optionsMap_t ElasticDynamicConfigurationAdap
             } else if (opt.second == "false"s) {
                 result[EL_STRINGIFY(ELASTIC_OTEL_INFERRED_SPANS_ENABLED)] = "false"s;
             }
+            ELOG_DEBUG(logger_, CONFIG, "ElasticDynamicConfigurationAdapter remapOptions Mapped remote 'infer_spans->{}' to '{}->{}'.", opt.second, EL_STRINGIFY(ELASTIC_OTEL_INFERRED_SPANS_ENABLED), result[EL_STRINGIFY(ELASTIC_OTEL_INFERRED_SPANS_ENABLED)]);
         }
     }
 

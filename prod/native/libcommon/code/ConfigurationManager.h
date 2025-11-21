@@ -31,6 +31,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <unordered_map>
 #include <variant>
 
 
@@ -44,6 +45,8 @@ using namespace std::string_literals;
 
 class ConfigurationManager {
 public:
+    using configFiles_t = std::unordered_map<std::string, std::string>; // filename->content
+
     using optionValueProvider_t = std::function<std::optional<std::string>(std::string_view)>;
     struct OptionMetadata  {
         enum type { boolean, string, duration, loglevel, bytes } type;
@@ -63,9 +66,9 @@ public:
     }
 
 //TODO lock
-    void update();
+    void update(configFiles_t configFiles = {});
 
-//TODO lock
+    // TODO lock
     bool updateIfChanged(ConfigurationSnapshot &snapshot) {
         if (snapshot.revision != current_.revision) {
             snapshot = current_;
@@ -94,6 +97,7 @@ private:
 
 private:
     optionValueProvider_t readIniValue_;
+    // TODO implement prioritized list of config data providers
     optionValueProvider_t readDynamicOptionValue_;
     std::atomic_uint64_t upcomingConfigRevision_ = 0;
     ConfigurationSnapshot current_;

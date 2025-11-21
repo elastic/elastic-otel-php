@@ -35,6 +35,8 @@
 #include <memory>
 #include <string>
 
+#include "CoordinatorConfigurationProvider.h"
+
 namespace elasticapm::php::coordinator {
 
 namespace {
@@ -46,8 +48,7 @@ constexpr static std::chrono::minutes cleanUpLostMessagesInterval(1);
 class CoordinatorProcess : public boost::noncopyable, public ForkableInterface {
 
 public:
-    CoordinatorProcess(std::shared_ptr<LoggerInterface> logger, std::shared_ptr<CoordinatorMessagesDispatcher> messagesDispatcher)
-        : logger_(std::move(logger)), messagesDispatcher_(std::move(messagesDispatcher)) {
+    CoordinatorProcess(std::shared_ptr<LoggerInterface> logger, std::shared_ptr<CoordinatorMessagesDispatcher> messagesDispatcher, std::shared_ptr<CoordinatorConfigurationProvider> configProvider) : logger_(std::move(logger)), messagesDispatcher_(std::move(messagesDispatcher)), configProvider_(std::move(configProvider)) {
     }
     ~CoordinatorProcess() {
     }
@@ -100,6 +101,7 @@ private:
 
     CoordinatorTelemetrySignalsSender coordinatorSender_{logger_, [this](const std::string &payload) { return processor_.sendPayload(payload); }};
     std::shared_ptr<CoordinatorMessagesDispatcher> messagesDispatcher_;
+    std::shared_ptr<CoordinatorConfigurationProvider> configProvider_;
 
     int processId_ = 0;
     int parentProcessId_ = 0;

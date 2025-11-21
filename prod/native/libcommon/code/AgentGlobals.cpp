@@ -33,6 +33,7 @@
 #include "ResourceDetector.h"
 #include "coordinator/CoordinatorProcess.h"
 #include "coordinator/CoordinatorMessagesDispatcher.h"
+#include "coordinator/CoordinatorConfigurationProvider.h"
 #include "transport/HttpTransportAsync.h"
 #include "transport/OpAmp.h"
 #include "DependencyAutoLoaderGuard.h"
@@ -64,12 +65,13 @@ AgentGlobals::AgentGlobals(std::shared_ptr<LoggerInterface> logger,
     periodicTaskExecutor_(),
     httpTransportAsync_(std::make_shared<elasticapm::php::transport::HttpTransportAsync<>>(logger_, config_)),
     resourceDetector_(std::make_shared<opentelemetry::php::ResourceDetector>(bridge_)),
-    elasticDynamicConfig_(std::make_shared<opentelemetry::php::config::ElasticDynamicConfigurationAdapter>()),
+    elasticDynamicConfig_(std::make_shared<opentelemetry::php::config::ElasticDynamicConfigurationAdapter>(logger_)),
     opAmp_(std::make_shared<opentelemetry::php::transport::OpAmp>(logger_, config_, httpTransportAsync_, resourceDetector_)),
     sharedMemory_(std::make_shared<elasticapm::php::SharedMemoryState>()),
-    requestScope_(std::make_shared<elasticapm::php::RequestScope>(logger_, bridge_, sapi_, sharedMemory_, dependencyAutoLoaderGuard_, inferredSpans_, config_, [hs = hooksStorage_]() { hs->clear(); }, [this]() { return getPeriodicTaskExecutor();})),
+    requestScope_(std::make_shared<elasticapm::php::RequestScope>(logger_, bridge_, sapi_, sharedMemory_, dependencyAutoLoaderGuard_, inferredSpans_, config_, [hs = hooksStorage_]() { hs->clear(); }, [this]() { return getPeriodicTaskExecutor();}, [this]() { return coordinatorConfigProvider_->triggerUpdateIfChanged(); })),
     messagesDispatcher_(std::make_shared<elasticapm::php::coordinator::CoordinatorMessagesDispatcher>(logger_, httpTransportAsync_)),
-    coordinatorProcess_(std::make_shared<elasticapm::php::coordinator::CoordinatorProcess>(logger_, messagesDispatcher_))
+    coordinatorConfigProvider_(std::make_shared<elasticapm::php::coordinator::CoordinatorConfigurationProvider>(logger_, opAmp_)),
+    coordinatorProcess_(std::make_shared<elasticapm::php::coordinator::CoordinatorProcess>(logger_, messagesDispatcher_, coordinatorConfigProvider_))
     {
         config_->addConfigUpdateWatcher([logger = logger_, stderrsink = logSinkStdErr_, syslogsink = logSinkSysLog_, filesink = logSinkFile_](ConfigurationSnapshot const &cfg) {
             stderrsink->setLevel(cfg.log_level_stderr);

@@ -26,8 +26,8 @@
 #include "ModuleGlobals.h"
 #include "ModuleFunctionsImpl.h"
 #include "InternalFunctionInstrumentation.h"
-#include "coordinator/CoordinatorProcess.h"
 #undef snprintf
+#include "coordinator/CoordinatorProcess.h"
 #include "transport/OpAmp.h"
 #include "PhpBridge.h"
 #include "OtlpExporter/LogsConverter.h"
@@ -334,7 +334,10 @@ PHP_FUNCTION(elastic_get_remote_configuration) {
         fname.emplace(ZSTR_VAL(fileName), ZSTR_LEN(fileName));
     }
 
-    auto config = ELASTICAPM_G(globals)->opAmp_->getConfiguration();
+    auto config = ELASTICAPM_G(globals)->config_->get().remoteConfigFiles;
+
+    ELOG_DEBUG(EAPM_GL(logger_).get(), CONFIG, "elastic_get_remote_configuration snapshot revision: '{}', files count: '{}'", ELASTICAPM_G(globals)->config_->get().revision, config.size());
+
     if (fname.has_value()) {
         if (auto cfgFound = config.find(fname.value()); cfgFound != config.end()) {
             RETURN_STRINGL(cfgFound->second.c_str(), cfgFound->second.length());

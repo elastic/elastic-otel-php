@@ -115,12 +115,7 @@ static PHP_GINIT_FUNCTION(elastic_otel) {
 
     try {
         elastic_otel_globals->globals = new elasticapm::php::AgentGlobals(logger, std::move(logSinkStdErr), std::move(logSinkSysLog), std::move(logSinkFile), std::move(phpBridge), std::move(hooksStorage), std::move(inferredSpans), [](elasticapm::php::ConfigurationSnapshot &cfg) { return configManager.updateIfChanged(cfg); });
-
-        elastic_otel_globals->globals->opAmp_->addConfigUpdateWatcher([elasticDynamicCfg = elastic_otel_globals->globals->elasticDynamicConfig_](auto const &cfgFiles) {
-            elasticDynamicCfg->update(cfgFiles);
-            configManager.setReadDynamicOptionValue([dyn = elasticDynamicCfg](std::string_view optionName) -> std::optional<std::string> { return dyn->getOption(std::string(optionName)); }); // TODO should be done once on init, implement prioritized list of config data providers in CfgMngr
-            configManager.update();
-        });
+        configManager.setReadDynamicOptionValue([elasticDynamicCfg = elastic_otel_globals->globals->elasticDynamicConfig_](std::string_view optionName) -> std::optional<std::string> { return elasticDynamicCfg->getOption(std::string(optionName)); });
 
     } catch (std::exception const &e) {
         ELOGF_CRITICAL(logger, MODULE, "Unable to allocate AgentGlobals. '%s'", e.what());
