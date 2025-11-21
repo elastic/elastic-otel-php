@@ -22,6 +22,7 @@
 #include "LogLevel.h"
 #include <string>
 #include <chrono>
+#include <unordered_map>
 
 #define ELASTIC_OTEL_BOOTSTRAP_PHP_PART_FILE bootstrap_php_part_file
 #define ELASTIC_OTEL_ENABLED enabled
@@ -99,6 +100,8 @@ using namespace std::string_literals;
 using namespace std::chrono_literals;
 
 struct ConfigurationSnapshot {
+    using configFiles_t = std::unordered_map<std::string, std::string>; // filename->content
+
     std::string ELASTIC_OTEL_BOOTSTRAP_PHP_PART_FILE;
     bool ELASTIC_OTEL_ENABLED = true;
     std::string ELASTIC_OTEL_LOG_FILE;
@@ -166,6 +169,7 @@ struct ConfigurationSnapshot {
     std::string OTEL_EXPORTER_OTLP_LOGS_ENDPOINT;
 
     uint64_t revision = 0;
+    configFiles_t remoteConfigFiles;
 };
 
 } // namespace elasticapm::php

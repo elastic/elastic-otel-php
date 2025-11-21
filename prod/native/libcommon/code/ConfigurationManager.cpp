@@ -91,10 +91,11 @@ ConfigurationManager::optionValue_t ConfigurationManager::getOptionValue(std::st
     }
 }
 
-void ConfigurationManager::update() {
+void ConfigurationManager::update(configFiles_t configFiles) {
     ConfigurationSnapshot newConfig;
     newConfig.revision = getNextRevision();
-    ELOG_DEBUG(logger_, CONFIG, "ConfigurationManager::update new revision: {}", newConfig.revision);
+    newConfig.remoteConfigFiles = std::move(configFiles);
+    ELOG_DEBUG(logger_, CONFIG, "ConfigurationManager::update new revision: {} configFiles: {}", newConfig.revision, newConfig.remoteConfigFiles.size());
 
     for (auto const &entry : options_) {
         auto optionVal = fetchStringValue(entry.first, entry.second.otelNativeOption);

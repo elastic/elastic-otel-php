@@ -26,8 +26,8 @@
 #include "ModuleGlobals.h"
 #include "ModuleFunctionsImpl.h"
 #include "InternalFunctionInstrumentation.h"
-#include "transport/HttpTransportAsync.h"
 #undef snprintf
+#include "coordinator/CoordinatorProcess.h"
 #include "transport/OpAmp.h"
 #include "PhpBridge.h"
 #include "OtlpExporter/LogsConverter.h"
@@ -260,8 +260,7 @@ PHP_FUNCTION(initialize) {
     ZEND_HASH_FOREACH_END();
 
     elasticapm::php::transport::HttpEndpointSSLOptions sslOptions = getSSLOptionsForSignalsEndpoint(std::string_view(ZSTR_VAL(endpoint), ZSTR_LEN(endpoint)));
-
-    EAPM_GL(httpTransportAsync_)->initializeConnection(std::string(ZSTR_VAL(endpoint), ZSTR_LEN(endpoint)), ZSTR_HASH(endpoint), std::string(ZSTR_VAL(contentType), ZSTR_LEN(contentType)), endpointHeaders, std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::duration<double>(timeout)), static_cast<std::size_t>(maxRetries), std::chrono::milliseconds(retryDelay), sslOptions);
+    EAPM_GL(coordinatorProcess_)->getCoordinatorSender().initializeConnection(std::string(ZSTR_VAL(endpoint), ZSTR_LEN(endpoint)), ZSTR_HASH(endpoint), std::string(ZSTR_VAL(contentType), ZSTR_LEN(contentType)), endpointHeaders, std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::duration<double>(timeout)), static_cast<std::size_t>(maxRetries), std::chrono::milliseconds(retryDelay), sslOptions);
 }
 
 ZEND_BEGIN_ARG_INFO_EX(ArgInfoSend, 0, 0, 2)
@@ -277,7 +276,7 @@ PHP_FUNCTION(enqueue) {
     Z_PARAM_STR(payload)
     ZEND_PARSE_PARAMETERS_END();
 
-    EAPM_GL(httpTransportAsync_)->enqueue(ZSTR_HASH(endpoint), std::span<std::byte>(reinterpret_cast<std::byte *>(ZSTR_VAL(payload)), ZSTR_LEN(payload)));
+    EAPM_GL(coordinatorProcess_)->getCoordinatorSender().enqueue(ZSTR_HASH(endpoint), std::span<std::byte>(reinterpret_cast<std::byte *>(ZSTR_VAL(payload)), ZSTR_LEN(payload)));
 }
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(elastic_otel_force_set_object_property_value_arginfo, 0, 3, _IS_BOOL, 0)
@@ -383,7 +382,10 @@ PHP_FUNCTION(elastic_get_remote_configuration) {
         fname.emplace(ZSTR_VAL(fileName), ZSTR_LEN(fileName));
     }
 
-    auto config = ELASTICAPM_G(globals)->opAmp_->getConfiguration();
+    auto config = ELASTICAPM_G(globals)->config_->get().remoteConfigFiles;
+
+    ELOG_DEBUG(EAPM_GL(logger_).get(), CONFIG, "elastic_get_remote_configuration snapshot revision: '{}', files count: '{}'", ELASTICAPM_G(globals)->config_->get().revision, config.size());
+
     if (fname.has_value()) {
         if (auto cfgFound = config.find(fname.value()); cfgFound != config.end()) {
             RETURN_STRINGL(cfgFound->second.c_str(), cfgFound->second.length());

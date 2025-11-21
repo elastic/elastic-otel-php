@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package elasticapm.php.coordinator;
+
+message EstablishConnectionCommand {
+    string endpoint_url = 1;
+    uint64 endpoint_hash = 2;
+    string content_type = 3;
+    map<string, string> endpoint_headers = 4;
+    uint64 timeout_ms = 5;
+    uint32 max_retries = 6;
+    uint64 retry_delay_ms = 7;
+
+    message HttpEndpointSSLOptions {
+        bool insecure_skip_verify = 1;
+        string ca_info = 2;
+        string cert = 3;
+        string cert_key = 4;
+        string cert_key_password = 5;
+    }
+
+    HttpEndpointSSLOptions ssl_options = 8;
+}
+
+message SendEndpointPayloadCommand {
+    uint64 endpoint_hash = 1;
+    bytes payload = 2;
+}
+
+message WorkerStartedCommand {
+    uint32 process_id = 1;
+    uint32 parent_process_id = 2;
+}
+
+message WorkerIsGoingToShutdownCommand {
+    uint32 process_id = 1;
+    uint32 parent_process_id = 2;
+}
+
+message CoordinatorCommand {
+    enum CommandType {
+        UNKNOWN = 0;
+        ESTABLISH_CONNECTION = 1;
+        SEND_ENDPOINT_PAYLOAD = 2;
+        WORKER_STARTED = 3;
+        WORKER_IS_GOING_TO_SHUTDOWN = 4;
+    }
+
+    CommandType type = 1;
+
+    EstablishConnectionCommand establish_connection = 2;
+    SendEndpointPayloadCommand send_endpoint_payload = 3;
+    WorkerStartedCommand worker_started = 4;
+    WorkerIsGoingToShutdownCommand worker_is_going_to_shutdown = 5;
+}
