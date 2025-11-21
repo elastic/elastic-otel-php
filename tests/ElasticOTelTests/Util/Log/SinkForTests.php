@@ -27,11 +27,6 @@ use DateTime;
 use Elastic\OTel\Log\LogLevel;
 use ElasticOTelTests\Util\TextUtilForTests;
 
-/**
- * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
- *
- * @internal
- */
 final class SinkForTests extends SinkBase
 {
     public function __construct(

@@ -50,12 +50,15 @@
 ZEND_DECLARE_MODULE_GLOBALS( elastic_otel )
 
 elasticapm::php::ConfigurationManager configManager([](std::string_view iniName) -> std::optional<std::string> {
-    zend_bool exists = false;
-    auto value = zend_ini_string_ex(iniName.data(), iniName.length(), 0, &exists);
-    if (!value) {
+    auto val = cfg_get_entry(iniName.data(), iniName.length());
+
+    elasticapm::php::AutoZval autoZval(val);
+    auto optStringView = autoZval.getOptStringView();
+    if (!optStringView.has_value()) {
         return std::nullopt;
     }
-    return std::string(value);
+
+    return std::string(*optStringView);
 });
 
 #ifndef ZEND_PARSE_PARAMETERS_NONE

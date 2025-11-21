@@ -24,39 +24,17 @@ declare(strict_types=1);
 namespace ElasticOTelTests\Util;
 
 /**
- * @phpstan-import-type Context from DebugContextScope
+ * @phpstan-import-type ScopeContext from DebugContextScope
  */
 final class DebugContextScopeRef
 {
     public function __construct(
-        private readonly DebugContextSingleton $containingStack,
-        private ?DebugContextScope $scope,
+        private readonly ?DebugContextScope $scope,
     ) {
     }
 
-    public function __destruct()
-    {
-        if (DebugContextConfig::useDestructors()) {
-            $this->popThisScope(numberOfStackFramesToSkip: 1);
-        }
-    }
-
     /**
-     * @param non-negative-int $numberOfStackFramesToSkip
-     */
-    public function popThisScope(int $numberOfStackFramesToSkip = 0): void
-    {
-        if ($this->scope === null) {
-            return;
-        }
-
-        $this->containingStack->popTopScope($this->scope, $numberOfStackFramesToSkip + 1);
-        $this->scope->reset(['This scope was pop-ed' => true]);
-        $this->scope = null;
-    }
-
-    /**
-     * @phpstan-param Context $ctx
+     * @phpstan-param ScopeContext $ctx
      */
     public function add(array $ctx): void
     {
@@ -69,7 +47,7 @@ final class DebugContextScopeRef
     }
 
     /**
-     * @phpstan-param Context $ctx
+     * @phpstan-param ScopeContext $ctx
      */
     public function resetTopSubScope(array $ctx): void
     {

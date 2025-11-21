@@ -26,17 +26,17 @@ namespace ElasticOTelTests\ComponentTests;
 use ElasticOTelTests\ComponentTests\Util\AppCodeHostParams;
 use ElasticOTelTests\ComponentTests\Util\AppCodeRequestParams;
 use ElasticOTelTests\ComponentTests\Util\AppCodeTarget;
+use ElasticOTelTests\ComponentTests\Util\AttributesExpectations;
 use ElasticOTelTests\ComponentTests\Util\ComponentTestCaseBase;
 use ElasticOTelTests\ComponentTests\Util\HttpAppCodeHostHandle;
 use ElasticOTelTests\ComponentTests\Util\HttpAppCodeRequestParams;
-use ElasticOTelTests\ComponentTests\Util\Span;
-use ElasticOTelTests\ComponentTests\Util\SpanAttributesExpectations;
+use ElasticOTelTests\ComponentTests\Util\OtlpData\Span;
+use ElasticOTelTests\ComponentTests\Util\OtlpData\SpanKind;
 use ElasticOTelTests\ComponentTests\Util\SpanExpectationsBuilder;
-use ElasticOTelTests\ComponentTests\Util\SpanKind;
 use ElasticOTelTests\ComponentTests\Util\UrlUtil;
-use ElasticOTelTests\ComponentTests\Util\WaitForEventCounts;
+use ElasticOTelTests\ComponentTests\Util\WaitForOTelSignalCounts;
 use ElasticOTelTests\Util\ArrayUtilForTests;
-use ElasticOTelTests\Util\BoolUtil;
+use ElasticOTelTests\Util\BoolUtilForTests;
 use ElasticOTelTests\Util\Config\OptionForProdName;
 use ElasticOTelTests\Util\Config\OptionsForProdDefaultValues;
 use ElasticOTelTests\Util\DebugContext;
@@ -66,9 +66,9 @@ final class TransactionSpanTest extends ComponentTestCaseBase
          * @return iterable<array<string, mixed>>
          */
         $generateDataSets = function (): iterable {
-            foreach (BoolUtil::ALL_NULLABLE_VALUES as $transactionSpanEnabled) {
-                foreach (BoolUtil::ALL_NULLABLE_VALUES as $transactionSpanEnabledCli) {
-                    $shouldAppCodeCreateDummySpanValues = self::isTransactionSpanEnabled($transactionSpanEnabled, $transactionSpanEnabledCli) ? BoolUtil::ALL_VALUES : [true];
+            foreach (BoolUtilForTests::ALL_NULLABLE_VALUES as $transactionSpanEnabled) {
+                foreach (BoolUtilForTests::ALL_NULLABLE_VALUES as $transactionSpanEnabledCli) {
+                    $shouldAppCodeCreateDummySpanValues = self::isTransactionSpanEnabled($transactionSpanEnabled, $transactionSpanEnabledCli) ? BoolUtilForTests::ALL_VALUES : [true];
                     foreach ($shouldAppCodeCreateDummySpanValues as $shouldAppCodeCreateDummySpan) {
                         yield [
                             OptionForProdName::transaction_span_enabled->name     => $transactionSpanEnabled,
@@ -131,7 +131,7 @@ final class TransactionSpanTest extends ComponentTestCaseBase
             $expectedRootSpanKind = SpanKind::server;
             /** @var HttpAppCodeHostHandle $appCodeHost */
             $expectedRootSpanUrlParts = UrlUtil::buildUrlPartsWithDefaults(port: $appCodeHost->httpServerHandle->getMainPort());
-            $rootSpanAttributesExpectations = new SpanAttributesExpectations(
+            $rootSpanAttributesExpectations = new AttributesExpectations(
                 [
                     TraceAttributes::HTTP_REQUEST_METHOD       => HttpAppCodeRequestParams::DEFAULT_HTTP_REQUEST_METHOD,
                     TraceAttributes::SERVER_ADDRESS            => $expectedRootSpanUrlParts->host,
@@ -144,7 +144,7 @@ final class TransactionSpanTest extends ComponentTestCaseBase
             );
         } else {
             $expectedRootSpanKind = SpanKind::server;
-            $rootSpanAttributesExpectations = new SpanAttributesExpectations(
+            $rootSpanAttributesExpectations = new AttributesExpectations(
                 attributes:           [
                                           self::DID_APP_CODE_FINISH_SUCCESSFULLY_KEY => true,
                                       ],
@@ -164,24 +164,24 @@ final class TransactionSpanTest extends ComponentTestCaseBase
         $expectedDummySpanKind = SpanKind::internal;
         $expectationsForDummySpan = (new SpanExpectationsBuilder())->name(self::APP_CODE_DUMMY_SPAN_NAME)->kind($expectedDummySpanKind)->build();
 
-        $exportedData = $testCaseHandle->waitForEnoughExportedData(WaitForEventCounts::spans($expectedSpanCount));
-        $dbgCtx->add(compact('exportedData'));
+        $agentBackendComms = $testCaseHandle->waitForEnoughAgentBackendComms(WaitForOTelSignalCounts::spans($expectedSpanCount));
+        $dbgCtx->add(compact('agentBackendComms'));
 
         $rootSpan = null;
         $dummySpan = null;
         if ($isTransactionSpanEnabled) {
-            $rootSpans = IterableUtil::toList($exportedData->findRootSpans());
+            $rootSpans = IterableUtil::toList($agentBackendComms->findRootSpans());
             self::assertCount(1, $rootSpans);
             /** @var Span $rootSpan */
             $rootSpan = ArrayUtilForTests::getFirstValue($rootSpans);
             if ($shouldAppCodeCreateDummySpan) {
-                $childSpans = IterableUtil::toList($exportedData->findChildSpans($rootSpan->id));
+                $childSpans = IterableUtil::toList($agentBackendComms->findChildSpans($rootSpan->id));
                 self::assertCount(1, $childSpans);
                 /** @var Span $dummySpan */
                 $dummySpan = ArrayUtilForTests::getFirstValue($childSpans);
             }
         } else {
-            $dummySpan = $exportedData->singleSpan();
+            $dummySpan = $agentBackendComms->singleSpan();
         }
         $dbgCtx->add(compact('rootSpan', 'dummySpan'));
 

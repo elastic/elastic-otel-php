@@ -39,7 +39,7 @@ public:
 
     ~CoordinatorTelemetrySignalsSender() = default;
 
-    void initializeConnection(std::string endpointUrl, std::size_t endpointHash, std::string contentType, enpointHeaders_t const &endpointHeaders, std::chrono::milliseconds timeout, std::size_t maxRetries, std::chrono::milliseconds retryDelay);
+    void initializeConnection(std::string endpointUrl, std::size_t endpointHash, std::string contentType, enpointHeaders_t const &endpointHeaders, std::chrono::milliseconds timeout, std::size_t maxRetries, std::chrono::milliseconds retryDelay, elasticapm::php::transport::HttpEndpointSSLOptions sslOptions);
     void enqueue(std::size_t endpointHash, std::span<std::byte> payload, responseCallback_t callback = {});
     void updateRetryDelay(size_t endpointHash, std::chrono::milliseconds retryDelay) {
     }

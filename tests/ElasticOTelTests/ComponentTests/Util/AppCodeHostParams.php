@@ -58,7 +58,7 @@ class AppCodeHostParams implements LoggableInterface
     public string $spawnedProcessInternalId;
 
     public function __construct(
-        public readonly string $dbgProcessName
+        public readonly string $dbgProcessNamePrefix
     ) {
         $this->prodOptions = new Map();
     }
@@ -158,7 +158,7 @@ class AppCodeHostParams implements LoggableInterface
                 }
 
                 // Keep environment variable 'is dev mode'
-                if ($envVarName === PhpPartFacade::CONFIG_ENV_VAR_NAME_DEV_INTERNAL_MODE_IS_DEV) {
+                if ($envVarName === PhpPartFacade::MODE_IS_DEV_ENV_VAR_NAME) {
                     return true;
                 }
 

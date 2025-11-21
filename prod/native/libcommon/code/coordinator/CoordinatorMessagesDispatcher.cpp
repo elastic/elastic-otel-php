@@ -38,30 +38,25 @@ void CoordinatorMessagesDispatcher::processRecievedMessage(const std::span<const
                 return;
             }
             const auto &c = command.establish_connection();
-            ELOG_DEBUG(logger_, COORDINATOR,
-                      "CoordinatorMessagesDispatcher: EstablishConnection: url='{}' hash={} content_type='{}' headers={} timeout_ms={} max_retries={} retry_delay_ms={}",
-                      c.endpoint_url(),
-                      c.endpoint_hash(),
-                      c.content_type(),
-                      c.endpoint_headers_size(),
-                      c.timeout_ms(),
-                      c.max_retries(),
-                      c.retry_delay_ms());
+
+            elasticapm::php::transport::HttpEndpointSSLOptions sslOptions;
+            if (c.has_ssl_options()) {
+                const auto &sslOpts = c.ssl_options();
+                sslOptions.insecureSkipVerify = sslOpts.insecure_skip_verify();
+                sslOptions.caInfo = sslOpts.ca_info();
+                sslOptions.cert = sslOpts.cert();
+                sslOptions.certKey = sslOpts.cert_key();
+                sslOptions.certKeyPassword = sslOpts.cert_key_password();
+            }
+
+            ELOG_DEBUG(logger_, COORDINATOR, "CoordinatorMessagesDispatcher: EstablishConnection: url='{}' hash={} content_type='{}' headers={} timeout_ms={} max_retries={} retry_delay_ms={} SSL options[insecure_skip_verify={}, ca_info='{}', cert='{}', cert_key='{}', cert_key_password='{}']", c.endpoint_url(), c.endpoint_hash(), c.content_type(), c.endpoint_headers_size(), c.timeout_ms(), c.max_retries(), c.retry_delay_ms(), sslOptions.insecureSkipVerify, sslOptions.caInfo, sslOptions.cert, sslOptions.certKey, sslOptions.certKeyPassword.empty() ? "" : "<redacted>");
 
             std::vector<std::pair<std::string_view, std::string_view>> headers;
             for (const auto &h : c.endpoint_headers()) {
                 headers.emplace_back(h.first, h.second);
             }
 
-            httpTransport_->initializeConnection(
-                c.endpoint_url(),
-                c.endpoint_hash(),
-                c.content_type(),
-                headers,
-                std::chrono::milliseconds(c.timeout_ms()),
-                c.max_retries(),
-                std::chrono::milliseconds(c.retry_delay_ms())
-            );
+            httpTransport_->initializeConnection(c.endpoint_url(), c.endpoint_hash(), c.content_type(), headers, std::chrono::milliseconds(c.timeout_ms()), c.max_retries(), std::chrono::milliseconds(c.retry_delay_ms()), sslOptions);
 
             break;
         }

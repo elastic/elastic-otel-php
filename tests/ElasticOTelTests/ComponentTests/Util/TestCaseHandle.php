@@ -44,7 +44,7 @@ final class TestCaseHandle implements LoggableInterface
 
     private ResourcesCleanerHandle $resourcesCleaner;
 
-    private MockOTelCollectorHandle $MockOTelCollector;
+    private MockOTelCollectorHandle $mockOTelCollector;
 
     /** @var AppCodeInvocation[] */
     public array $appCodeInvocations = [];
@@ -66,7 +66,7 @@ final class TestCaseHandle implements LoggableInterface
         $globalTestInfra = ComponentTestsPHPUnitExtension::getGlobalTestInfra();
         $globalTestInfra->onTestStart();
         $this->resourcesCleaner = $globalTestInfra->getResourcesCleaner();
-        $this->MockOTelCollector = $globalTestInfra->getMockOTelCollector();
+        $this->mockOTelCollector = $globalTestInfra->getMockOTelCollector();
         $this->portsInUse = $globalTestInfra->getPortsInUse();
     }
 
@@ -110,22 +110,22 @@ final class TestCaseHandle implements LoggableInterface
         return $this->additionalHttpAppCodeHost;
     }
 
-    public function waitForEnoughExportedData(IsEnoughExportedDataInterface $expectedIsEnough): ExportedData
+    public function waitForEnoughAgentBackendComms(IsEnoughAgentBackendCommsInterface $expectedIsEnough): AgentBackendComms
     {
         Assert::assertNotEmpty($this->appCodeInvocations);
-        $dataAccumulator = new ExportedDataAccumulator();
+        $accumulator = new AgentBackendCommsAccumulator();
         $hasPassed = (new PollingCheck(__FUNCTION__ . ' passes', intval(TimeUtil::secondsToMicroseconds(self::MAX_WAIT_TIME_DATA_FROM_AGENT_SECONDS))))->run(
-            function () use ($expectedIsEnough, $dataAccumulator) {
-                $dataAccumulator->addAgentToOTeCollectorEvents($this->MockOTelCollector->fetchNewData(shouldWait: true));
-                return $dataAccumulator->isEnough($expectedIsEnough);
+            function () use ($expectedIsEnough, $accumulator) {
+                $accumulator->addEvents($this->mockOTelCollector->fetchNewAgentBackendCommEvents(shouldWait: true));
+                return $accumulator->isEnough($expectedIsEnough);
             }
         );
 
-        $accumulatedData = $dataAccumulator->getAccumulatedData();
+        $accumulatedData = $accumulator->getResult();
         if (!$hasPassed) {
             DebugContext::getCurrentScope(/* out */ $dbgCtx);
             $accumulatedDataSummary = $accumulatedData->dbgGetSummary();
-            $dbgCtx->add(compact('expectedIsEnough', 'accumulatedDataSummary', 'accumulatedData', 'dataAccumulator'));
+            $dbgCtx->add(compact('expectedIsEnough', 'accumulatedDataSummary', 'accumulatedData', 'accumulator'));
             Assert::fail('The expected exported data has not arrived; ' . LoggableToString::convert(compact('expectedIsEnough', 'accumulatedDataSummary')));
         }
 
@@ -139,7 +139,7 @@ final class TestCaseHandle implements LoggableInterface
             $params->setProdOption(AmbientContextForTests::testConfig()->escalatedRerunsProdCodeLogLevelOptionName() ?? OptionForProdName::log_level_syslog, $escalatedLogLevelForProdCodeAsString);
         }
         /** @noinspection HttpUrlsUsage */
-        $params->setProdOption(OptionForProdName::exporter_otlp_endpoint, 'http://' . HttpServerHandle::CLIENT_LOCALHOST_ADDRESS . ':' . $this->MockOTelCollector->getPortForAgent());
+        $params->setProdOption(OptionForProdName::exporter_otlp_endpoint, 'http://' . HttpServerHandle::CLIENT_LOCALHOST_ADDRESS . ':' . $this->mockOTelCollector->getPortForAgent());
     }
 
     public function addAppCodeInvocation(AppCodeInvocation $appCodeInvocation): void
@@ -215,7 +215,11 @@ final class TestCaseHandle implements LoggableInterface
         };
     }
 
-    /** @noinspection PhpUnused */
+    public function getResourcesCleaner(): ResourcesCleanerHandle
+    {
+        return $this->resourcesCleaner;
+    }
+
     public function getResourcesClient(): ResourcesClient
     {
         return $this->resourcesCleaner->getClient();

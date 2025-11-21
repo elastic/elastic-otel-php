@@ -23,6 +23,9 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
+use ElasticOTelTests\ComponentTests\Util\OtlpData\Span;
+use ElasticOTelTests\ComponentTests\Util\OtlpData\SpanKind;
+
 final class SpanExpectations implements ExpectationsInterface
 {
     use ExpectationsTrait;
@@ -33,7 +36,7 @@ final class SpanExpectations implements ExpectationsInterface
     public function __construct(
         public readonly StringExpectations $name,
         public readonly LeafExpectations $kind,
-        public readonly SpanAttributesExpectations $attributes,
+        public readonly AttributesExpectations $attributes,
     ) {
     }
 

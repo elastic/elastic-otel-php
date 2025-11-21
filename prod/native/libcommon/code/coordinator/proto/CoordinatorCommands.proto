@@ -10,6 +10,16 @@ message EstablishConnectionCommand {
     uint64 timeout_ms = 5;
     uint32 max_retries = 6;
     uint64 retry_delay_ms = 7;
+
+    message HttpEndpointSSLOptions {
+        bool insecure_skip_verify = 1;
+        string ca_info = 2;
+        string cert = 3;
+        string cert_key = 4;
+        string cert_key_password = 5;
+    }
+
+    HttpEndpointSSLOptions ssl_options = 8;
 }
 
 message SendEndpointPayloadCommand {

@@ -119,7 +119,7 @@ final class DataProviderForTestBuilder
             function (array $resultSoFar) use ($values): iterable {
                 $expectedKeyForList = 0;
                 foreach (self::adaptArrayToMultiUseIterable($values)() as $key => $val) {
-                    yield array_merge($resultSoFar, ($key === $expectedKeyForList) ? [$val] : [$key => $val]);
+                    yield array_merge($resultSoFar, (($key === $expectedKeyForList) || !ArrayUtilForTests::isOfArrayKeyType($key)) ? [$val] : [$key => $val]);
                     ++$expectedKeyForList;
                 }
             }
@@ -194,7 +194,7 @@ final class DataProviderForTestBuilder
      */
     public function addBoolDimension(bool $onlyFirstValueCombinable): self
     {
-        return $this->addDimension($onlyFirstValueCombinable, BoolUtil::ALL_VALUES);
+        return $this->addDimension($onlyFirstValueCombinable, BoolUtilForTests::ALL_VALUES);
     }
 
     /**
@@ -222,7 +222,7 @@ final class DataProviderForTestBuilder
      */
     public function addBoolKeyedDimension(string $dimensionKey, bool $onlyFirstValueCombinable): self
     {
-        return $this->addKeyedDimension($dimensionKey, $onlyFirstValueCombinable, BoolUtil::ALL_VALUES);
+        return $this->addKeyedDimension($dimensionKey, $onlyFirstValueCombinable, BoolUtilForTests::ALL_VALUES);
     }
 
     /**
@@ -230,7 +230,7 @@ final class DataProviderForTestBuilder
      */
     public function addNullableBoolKeyedDimension(string $dimensionKey, bool $onlyFirstValueCombinable): self
     {
-        return $this->addKeyedDimension($dimensionKey, $onlyFirstValueCombinable, BoolUtil::ALL_NULLABLE_VALUES);
+        return $this->addKeyedDimension($dimensionKey, $onlyFirstValueCombinable, BoolUtilForTests::ALL_NULLABLE_VALUES);
     }
 
     /**

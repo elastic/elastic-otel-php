@@ -137,7 +137,7 @@ final class InstrumentationBridge
         }
     }
 
-    private function retryDelayedHooks(): void
+    public function retryDelayedHooks(): void
     {
         $delayedHooksCount = count($this->delayedHooks);
         BootstrapStageLogger::logTrace('Entered. delayedHooks count: ' . $delayedHooksCount, __FILE__, __LINE__, __CLASS__, __FUNCTION__);

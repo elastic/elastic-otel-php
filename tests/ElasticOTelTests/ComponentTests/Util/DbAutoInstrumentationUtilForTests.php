@@ -24,7 +24,7 @@ declare(strict_types=1);
 namespace ElasticOTelTests\ComponentTests\Util;
 
 use Elastic\OTel\Util\StaticClassTrait;
-use ElasticOTelTests\Util\BoolUtil;
+use ElasticOTelTests\Util\BoolUtilForTests;
 
 final class DbAutoInstrumentationUtilForTests
 {
@@ -51,7 +51,7 @@ final class DbAutoInstrumentationUtilForTests
          * @return iterable<array<mixed>>
          */
         return function (array $resultSoFar): iterable {
-            foreach (BoolUtil::ALL_VALUES as $wrapInTx) {
+            foreach (BoolUtilForTests::ALL_VALUES as $wrapInTx) {
                 $rollbackValues = $wrapInTx ? [false, true] : [false];
                 foreach ($rollbackValues as $rollback) {
                     yield array_merge(

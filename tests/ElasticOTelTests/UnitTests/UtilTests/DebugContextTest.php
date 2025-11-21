@@ -23,9 +23,10 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\UnitTests\UtilTests;
 
+use Elastic\OTel\Util\BoolUtil;
 use ElasticOTelTests\Util\ArrayUtilForTests;
 use ElasticOTelTests\Util\AssertEx;
-use ElasticOTelTests\Util\BoolUtil;
+use ElasticOTelTests\Util\BoolUtilForTests;
 use ElasticOTelTests\Util\DataProviderForTestBuilder;
 use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\DebugContextConfig;
@@ -52,8 +53,8 @@ use const ElasticOTelTests\DUMMY_FUNC_FOR_TESTS_WITH_NAMESPACE_FUNCTION;
 
 /**
  * @phpstan-import-type ConfigOptionName from DebugContext
- * @phpstan-import-type Context from DebugContext
- * @phpstan-import-type ContextsStack from DebugContext
+ * @phpstan-import-type ScopeContext from DebugContext
+ * @phpstan-import-type ScopeNameToContext from DebugContext
  * @phpstan-type ExpectedContextsStack list<Pair<string, array<string, mixed>>>
  */
 class DebugContextTest extends TestCaseBase
@@ -68,7 +69,7 @@ class DebugContextTest extends TestCaseBase
 
     private static function shortcutTestIfDebugContextIsDisabledByDefault(): bool
     {
-        // Use BoolUtil::toString to avoid error "boolean expression is always false/true" from static analysis
+        // Use BoolUtil::toString to avoid the error "boolean expression is always false/true" from static analysis
         if (BoolUtil::toString(DebugContextConfig::ENABLED_DEFAULT_VALUE) === 'false') {
             self::dummyAssert();
             return true;
@@ -93,9 +94,9 @@ class DebugContextTest extends TestCaseBase
     }
 
     /**
-     * @phpstan-param Context $actualCtx
-     * @phpstan-param Context $args
-     * @phpstan-param Context $addedCtx
+     * @phpstan-param ScopeContext $actualCtx
+     * @phpstan-param ScopeContext $args
+     * @phpstan-param ScopeContext $addedCtx
      */
     private static function assertScopeContext(array $actualCtx, ?object $thisObj, array $args, array $addedCtx): void
     {
@@ -169,6 +170,8 @@ class DebugContextTest extends TestCaseBase
             self::assertStringContainsString(__CLASS__, $actualCtxDesc, $dbgCtxStr);
             self::assertSame(count($expectedCtx), count($actualCtx), $dbgCtxStr);
             foreach (IterableUtil::zip(IterableUtil::keys($expectedCtx), IterableUtil::keys($actualCtx)) as [$expectedKey, $actualKey]) {
+                AssertEx::ofArrayKeyType($expectedKey);
+                AssertEx::ofArrayKeyType($actualKey);
                 $dbgCtx = array_merge($dbgCtx, compact('expectedKey', 'actualKey'));
                 $dbgCtxStr = LoggableToString::convert($dbgCtx);
                 self::assertSame($expectedKey, $actualKey, $dbgCtxStr);
@@ -178,7 +181,7 @@ class DebugContextTest extends TestCaseBase
     }
 
     /**
-     * @phpstan-param Context               $initialCtx
+     * @phpstan-param ScopeContext          $initialCtx
      * @phpstan-param ExpectedContextsStack $expectedContextsStackFromCaller
      *
      * @return ExpectedContextsStack
@@ -208,7 +211,7 @@ class DebugContextTest extends TestCaseBase
 
     /**
      * @phpstan-param ExpectedContextsStack $expectedContextsStack
-     * @phpstan-param Context               $ctx
+     * @phpstan-param ScopeContext          $ctx
      */
     private static function addToTopExpectedScope(/* ref */ array $expectedContextsStack, array $ctx): void
     {
@@ -251,7 +254,7 @@ class DebugContextTest extends TestCaseBase
     {
         $builder = new DataProviderForTestBuilder();
         foreach ($optionsToVariate as $optionName) {
-            $builder->addKeyedDimensionAllValuesCombinable($optionName, BoolUtil::allValuesStartingFrom(DebugContextConfig::DEFAULT_VALUES[$optionName]));
+            $builder->addKeyedDimensionAllValuesCombinable($optionName, BoolUtilForTests::allValuesStartingFrom(DebugContextConfig::DEFAULT_VALUES[$optionName]));
         }
         return $builder;
     }
@@ -270,7 +273,7 @@ class DebugContextTest extends TestCaseBase
 
     private static function thisTestAssumesOnlyAddedContext(): void
     {
-        // DebugContext by default should use all scopes not just the ones with added context
+        // DebugContext by default should use all the scopes, not just the ones with added context
         self::assertFalse(DebugContextConfig::onlyAddedContext());
         // This test assumes that only scopes with added context are used
         DebugContextConfig::onlyAddedContext(true);
@@ -278,7 +281,6 @@ class DebugContextTest extends TestCaseBase
 
     private const OPTIONS_TO_VARIATE_FOR_BASIC_CONFIG = [
         DebugContextConfig::ENABLED_OPTION_NAME,
-        DebugContextConfig::USE_DESTRUCTORS_OPTION_NAME,
     ];
 
     /**
@@ -324,30 +326,30 @@ class DebugContextTest extends TestCaseBase
         self::setDebugContextConfigFromTestArgs($testArgs);
         self::thisTestAssumesOnlyAddedContext();
 
-        DebugContext::getCurrentScope(/* out */ $dbgCtx, ['my context' => 'before func']);
-        $expectedContextsStack = self::newExpectedScope(__FUNCTION__, ['my context' => 'before func']);
+        DebugContext::getCurrentScope(/* out */ $dbgCtx, ['my context' => 'before 2nd func']);
+        $expectedContextsStack = self::newExpectedScope(__FUNCTION__, ['my context' => 'before 2nd func']);
 
         /**
          * @param ExpectedContextsStack $expectedContextsStackFromCaller
          */
         $secondFunc = static function (array $expectedContextsStackFromCaller): void {
             /** @var ExpectedContextsStack $expectedContextsStackFromCaller */
-            DebugContext::getCurrentScope(/* out */ $dbgCtx, ['my context' => 'func entry']);
-            $expectedContextsStack = self::newExpectedScope(__FUNCTION__, ['my context' => 'func entry'], $expectedContextsStackFromCaller);
-            self::assertActualTopScopeHasKeyWithSameValue('my context', 'func entry');
+            DebugContext::getCurrentScope(/* out */ $dbgCtx, ['my context' => 'inside 2nd func']);
+            $expectedContextsStack = self::newExpectedScope(__FUNCTION__, ['my context' => 'inside 2nd func'], $expectedContextsStackFromCaller);
+            self::assertActualTopScopeHasKeyWithSameValue('my context', 'inside 2nd func');
 
-            $dbgCtx->add(['some_other_key' => 'inside func']);
-            self::addToTopExpectedScope(/* ref */ $expectedContextsStack, ['some_other_key' => 'inside func']);
-            self::assertActualTopScopeHasKeyWithSameValue('some_other_key', 'inside func');
+            $dbgCtx->add(['some_other_key' => 'inside 2nd func some_other_key']);
+            self::addToTopExpectedScope(/* ref */ $expectedContextsStack, ['some_other_key' => 'inside 2nd func some_other_key']);
+            self::assertActualTopScopeHasKeyWithSameValue('some_other_key', 'inside 2nd func some_other_key');
         };
 
         $secondFunc($expectedContextsStack);
-        self::assertActualTopScopeHasKeyWithSameValue('my context', 'before func');
+        self::assertActualTopScopeHasKeyWithSameValue('my context', 'before 2nd func');
         self::assertActualTopScopeNotHasKey('some_other_key');
 
-        $dbgCtx->add(['my context' => 'after func']);
-        self::addToTopExpectedScope(/* ref */ $expectedContextsStack, ['my context' => 'after func']);
-        self::assertActualTopScopeHasKeyWithSameValue('my context', 'after func');
+        $dbgCtx->add(['my context' => 'after 2nd func']);
+        self::addToTopExpectedScope(/* ref */ $expectedContextsStack, ['my context' => 'after 2nd func']);
+        self::assertActualTopScopeHasKeyWithSameValue('my context', 'after 2nd func');
     }
 
     /**
@@ -635,7 +637,6 @@ class DebugContextTest extends TestCaseBase
         return self::dataProviderBuilderForDebugContextConfig(
             [
                 DebugContextConfig::ENABLED_OPTION_NAME,
-                DebugContextConfig::USE_DESTRUCTORS_OPTION_NAME,
                 DebugContextConfig::ADD_TO_ASSERTION_MESSAGE_OPTION_NAME,
             ]
         )->buildAsMixedMaps();
@@ -687,8 +688,8 @@ class DebugContextTest extends TestCaseBase
         $dbgCtx->add(['dummy key' => 'dummy value']);
 
         /**
-         * @phpstan-param positive-int  $expectedLine
-         * @phpstan-param ContextsStack $contextsStack
+         * @phpstan-param positive-int       $expectedLine
+         * @phpstan-param ScopeNameToContext $contextsStack
          */
         $assertTopScopeLine = function (int $expectedLine): void {
             $contextsStack = DebugContext::getContextsStack();
@@ -713,7 +714,7 @@ class DebugContextTest extends TestCaseBase
      * @param int     $intParam
      * @param ?string $nullableStringParam
      *
-     * @return ContextsStack
+     * @return ScopeNameToContext
      *
      * @noinspection PhpUnusedParameterInspection
      */
@@ -745,7 +746,6 @@ class DebugContextTest extends TestCaseBase
 
         $optionsToVariate = [
             DebugContextConfig::ENABLED_OPTION_NAME,
-            DebugContextConfig::USE_DESTRUCTORS_OPTION_NAME,
             DebugContextConfig::ONLY_ADDED_CONTEXT_OPTION_NAME,
             DebugContextConfig::AUTO_CAPTURE_THIS_OPTION_NAME,
             DebugContextConfig::AUTO_CAPTURE_ARGS_OPTION_NAME,
@@ -780,7 +780,7 @@ class DebugContextTest extends TestCaseBase
 
         if (!DebugContextConfig::onlyAddedContext()) {
             $helperFuncCtx = ArrayUtilForTests::getFirstValue($actualContextsStack);
-            // helperFuncForTestAutoCaptureArgs is static so there is no $this
+            // helperFuncForTestAutoCaptureArgs is static, so there is no $this
             self::assertArrayNotHasKey(DebugContext::THIS_CONTEXT_KEY, $helperFuncCtx);
             foreach (['intParam', 'nullableStringParam'] as $argName) {
                 if (DebugContextConfig::autoCaptureArgs()) {
@@ -818,7 +818,7 @@ class DebugContextTest extends TestCaseBase
         self::setDebugContextConfigFromTestArgs($testArgs);
 
         $capturedVar = 0;
-        /** @var list<ContextsStack> $contextsStacks */
+        /** @var list<ScopeNameToContext> $contextsStacks */
         $contextsStacks = [];
         $closure = function () use (&$capturedVar, &$contextsStacks): int {
             DebugContext::getCurrentScope(/* out */ $dbgCtx);
@@ -851,7 +851,7 @@ class DebugContextTest extends TestCaseBase
             /** @var string $thisFuncCtxDesc */
             self::assertScopeDesc($thisFuncCtxDesc, function: __FUNCTION__, line: $thisFuncLine);
             self::assertTrue(IterableUtil::getNthValue($contextsStack, 1, /* out */ $thisFuncCtx));
-            /** @var Context $thisFuncCtx */
+            /** @var ScopeContext $thisFuncCtx */
             self::assertCount(2, $thisFuncCtx);
             AssertEx::arrayHasKeyWithSameValue(DebugContext::THIS_CONTEXT_KEY, $this, $thisFuncCtx);
             AssertEx::arrayHasKeyWithSameValue('testArgs', $testArgs, $thisFuncCtx);
@@ -878,7 +878,7 @@ class DebugContextTest extends TestCaseBase
                    ->addBoolKeyedDimensionOnlyFirstValueCombinable(self::SHOULD_MIDDLE_NON_VENDOR_CALL_ADD_CONTEXT_KEY)
                    ->addBoolKeyedDimensionOnlyFirstValueCombinable(self::SHOULD_BOTTOM_NON_VENDOR_CALL_ADD_CONTEXT_KEY)
                     // Use Assert::assertXYZ with all the combinations in other dimensions and Assert::fail only with the first tuple of the combinations in other dimensions
-                   ->addKeyedDimensionOnlyFirstValueCombinable(self::USE_FAIL_TO_TRIGGER_ASSERTION_KEY, BoolUtil::allValuesStartingFrom(false))
+                   ->addKeyedDimensionOnlyFirstValueCombinable(self::USE_FAIL_TO_TRIGGER_ASSERTION_KEY, BoolUtilForTests::allValuesStartingFrom(false))
                    ->buildAsMixedMaps();
     }
 
@@ -931,7 +931,7 @@ class DebugContextTest extends TestCaseBase
 
         self::setDebugContextConfigFromTestArgs($testArgs);
 
-        // This test extracts debug context from text added to assertion message
+        // This test extracts debug context from text added to an assertion message
         DebugContextConfig::addToAssertionMessage(true);
 
         $nonVendorCallsDepth = $testArgs->getInt(self::NON_VENDOR_CALLS_DEPTH_KEY);
@@ -1075,7 +1075,7 @@ class DebugContextTest extends TestCaseBase
         self::assertScopeDesc($testFuncScopeDesc, function: __FUNCTION__, line: $testFuncLine);
         self::assertTrue(IterableUtil::getNthValue($decodedContextsStack, $scopeIndex, /* out */ $testFuncScopeCtx));
         self::assertIsArray($testFuncScopeCtx);
-        /** @var Context $testFuncScopeCtx */
+        /** @var ScopeContext $testFuncScopeCtx */
         $addedCtx = $shouldBottomNonVendorCallAddContext ? ['dummy ctx in bottom non-vendor call' => '[value for dummy ctx in bottom non-vendor call]'] : [];
         self::assertScopeContext($testFuncScopeCtx, thisObj: $this, args: compact('testArgs'), addedCtx: $addedCtx);
         --$scopeIndex;
@@ -1093,8 +1093,8 @@ class DebugContextTest extends TestCaseBase
 
             self::assertTrue(IterableUtil::getNthValue($decodedContextsStack, $scopeIndex, /* out */ $dummyFuncForTestsWithNamespaceScopeCtx));
             self::assertIsArray($dummyFuncForTestsWithNamespaceScopeCtx);
-            /** @var Context $dummyFuncForTestsWithNamespaceScopeCtx */
-            // dummyFuncForTestsWithNamespace is freestanding function (i.e., not a function that is a method in a class)
+            /** @var ScopeContext $dummyFuncForTestsWithNamespaceScopeCtx */
+            // dummyFuncForTestsWithNamespace is a freestanding function (i.e., not a function that is a method in a class)
             self::assertScopeContext($dummyFuncForTestsWithNamespaceScopeCtx, thisObj: null, args: ['continuation' => $closureCallingDummyFuncWithoutNamespace], addedCtx: []);
             --$scopeIndex;
         }
@@ -1107,7 +1107,7 @@ class DebugContextTest extends TestCaseBase
 
             self::assertTrue(IterableUtil::getNthValue($decodedContextsStack, $scopeIndex, /* out */ $closureCallingDummyFuncWithoutNamespaceScopeCtx));
             self::assertIsArray($closureCallingDummyFuncWithoutNamespaceScopeCtx);
-            /** @var Context $closureCallingDummyFuncWithoutNamespaceScopeCtx */
+            /** @var ScopeContext $closureCallingDummyFuncWithoutNamespaceScopeCtx */
             $addedCtx = $shouldMiddleNonVendorCallAddContext ? ['dummy ctx in middle non-vendor call' => '[value for dummy ctx in middle non-vendor call]'] : [];
             self::assertScopeContext($closureCallingDummyFuncWithoutNamespaceScopeCtx, thisObj: $this, args: [], addedCtx: $addedCtx);
             --$scopeIndex;
@@ -1126,8 +1126,8 @@ class DebugContextTest extends TestCaseBase
 
             self::assertTrue(IterableUtil::getNthValue($decodedContextsStack, $scopeIndex, /* out */ $dummyFuncForTestsWithoutNamespaceScopeCtx));
             self::assertIsArray($dummyFuncForTestsWithoutNamespaceScopeCtx);
-            /** @var Context $dummyFuncForTestsWithoutNamespaceScopeCtx */
-            // dummyFuncForTestsWithoutNamespace is freestanding function (i.e., not a function that is a method in a class)
+            /** @var ScopeContext $dummyFuncForTestsWithoutNamespaceScopeCtx */
+            // dummyFuncForTestsWithoutNamespace is a freestanding function (i.e., not a function that is a method in a class)
             self::assertScopeContext($dummyFuncForTestsWithoutNamespaceScopeCtx, thisObj: null, args: ['continuation' => $closureCallingHelperFunc], addedCtx: []);
             --$scopeIndex;
         }
@@ -1140,8 +1140,8 @@ class DebugContextTest extends TestCaseBase
 
             self::assertTrue(IterableUtil::getNthValue($decodedContextsStack, $scopeIndex, /* out */ $closureCallingHelperFuncScopeCtx));
             self::assertIsArray($closureCallingHelperFuncScopeCtx);
-            /** @var Context $closureCallingHelperFuncScopeCtx */
-            // $closureCallingHelperFunc is static so there is no $this
+            /** @var ScopeContext $closureCallingHelperFuncScopeCtx */
+            // $closureCallingHelperFunc is static, so there is no $this
             self::assertScopeContext($closureCallingHelperFuncScopeCtx, thisObj: null, args: [], addedCtx: []);
             --$scopeIndex;
         }
@@ -1154,12 +1154,12 @@ class DebugContextTest extends TestCaseBase
 
             self::assertTrue(IterableUtil::getNthValue($decodedContextsStack, $scopeIndex, /* out */ $helperFuncScopeCtx));
             self::assertIsArray($helperFuncScopeCtx);
-            /** @var Context $helperFuncScopeCtx */
+            /** @var ScopeContext $helperFuncScopeCtx */
             $helperFuncArgs = compact('testArgs');
             $helperFuncArgs['lineNumber'] = $helperFuncLine;
             $helperFuncArgs['actualNonVendorCallDepth'] = $nonVendorCallsDepth;
             $addedCtx = $shouldTopNonVendorCallAddContext ? ['dummy ctx in top non-vendor call' => '[value for dummy ctx in top non-vendor call]'] : [];
-            // helperFuncForTestTrimVendorFrames is static so there is no $this
+            // helperFuncForTestTrimVendorFrames is static, so there is no $this
             self::assertScopeContext($helperFuncScopeCtx, thisObj:null, args: $helperFuncArgs, addedCtx: $addedCtx);
             --$scopeIndex;
         }
@@ -1172,7 +1172,7 @@ class DebugContextTest extends TestCaseBase
 
         self::assertTrue(IterableUtil::getNthValue($decodedContextsStack, $scopeIndex, /* out */ $assertionFuncScopeCtx));
         self::assertIsArray($assertionFuncScopeCtx);
-        /** @var Context $assertionFuncScopeCtx */
+        /** @var ScopeContext $assertionFuncScopeCtx */
         $assertionFuncArgs = $useFailToTriggerAssertion ? ['message' => 'Dummy message'] : ['expected' => 1, 'actual' => 2];
         // Assert::assertXyz()/fail() is static method so there is no $this
         self::assertScopeContext($assertionFuncScopeCtx, thisObj: null, args: $assertionFuncArgs, addedCtx: []);
@@ -1206,7 +1206,7 @@ class DebugContextTest extends TestCaseBase
 
         DebugContext::getCurrentScope(/* out */ $dbgCtx);
 
-        // This test extracts debug context from text added to assertion message
+        // This test extracts debug context from text added to an assertion message
         DebugContextConfig::addToAssertionMessage(true);
 
         $listArg = ['a', 1, null, 4.5];

@@ -30,6 +30,7 @@ use JsonException;
 
 final class JsonUtilTest extends TestCaseBase
 {
+    /** @noinspection PhpSameParameterValueInspection */
     private static function decode(string $encodedData, bool $asAssocArray): mixed
     {
         $decodedData = json_decode($encodedData, /* associative: */ $asAssocArray);

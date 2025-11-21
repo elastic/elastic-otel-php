@@ -28,6 +28,7 @@ namespace Elastic\OTel;
 use Elastic\OTel\HttpTransport\ElasticHttpTransportFactory;
 use Elastic\OTel\InferredSpans\InferredSpans;
 use Elastic\OTel\Log\ElasticLogWriter;
+use Elastic\OTel\Util\BoolUtil;
 use Elastic\OTel\Util\HiddenConstructorTrait;
 use OpenTelemetry\API\Globals;
 use OpenTelemetry\SDK\Registry;
@@ -63,19 +64,8 @@ final class PhpPartFacade
     private static bool $rootSpanEnded = false;
     private ?InferredSpans $inferredSpans = null;
 
-    public const CONFIG_ENV_VAR_NAME_DEV_INTERNAL_MODE_IS_DEV = 'ELASTIC_OTEL_PHP_DEV_INTERNAL_MODE_IS_DEV';
-
-    /**
-     * We need to use TELEMETRY_DISTRO_NAME and TELEMETRY_DISTRO_VERSION attribute names before OTel SDK is loaded by composer
-     * so we copy those values to local constants
-     *
-     * @see \OpenTelemetry\SemConv\TraceAttributes::TELEMETRY_DISTRO_NAME
-     * @see \OpenTelemetry\SemConv\TraceAttributes::TELEMETRY_DISTRO_VERSION
-     *
-     * @noinspection PhpUnnecessaryFullyQualifiedNameInspection
-     */
-    public const OTEL_ATTR_NAME_TELEMETRY_DISTRO_NAME = 'telemetry.distro.name';
-    public const OTEL_ATTR_NAME_TELEMETRY_DISTRO_VERSION = 'telemetry.distro.version';
+    public const IS_ENABLED_ENV_VAR_NAME = 'ELASTIC_OTEL_ENABLED';
+    public const MODE_IS_DEV_ENV_VAR_NAME = 'ELASTIC_OTEL_PHP_DEV_INTERNAL_MODE_IS_DEV';
 
     /**
      * Called by the extension
@@ -102,6 +92,17 @@ final class PhpPartFacade
             __FUNCTION__
         );
 
+        if (!self::isEnabled()) {
+            BootstrapStageLogger::logCritical(
+                'bootstrap() is called while EDOT is disabled - aborting bootstrap sequence',
+                __FILE__,
+                __LINE__,
+                __CLASS__,
+                __FUNCTION__
+            );
+            return false;
+        }
+
         if (self::$singletonInstance !== null) {
             BootstrapStageLogger::logCritical(
                 'bootstrap() is called even though singleton instance is already created (probably bootstrap() is called more than once)',
@@ -114,12 +115,18 @@ final class PhpPartFacade
         }
 
         try {
-            require __DIR__ . DIRECTORY_SEPARATOR . 'Autoloader.php';
-            Autoloader::register(__DIR__);
+            require __DIR__ . DIRECTORY_SEPARATOR . 'AutoloaderElasticOTelClasses.php';
+            AutoloaderElasticOTelClasses::register(__NAMESPACE__, __DIR__);
 
             InstrumentationBridge::singletonInstance()->bootstrap();
-            self::prepareEnvForOTelSdk($elasticOTelNativePartVersion);
-            self::registerAutoloader();
+            self::prepareForOTelSdk();
+
+            self::registerAutoloaderForVendorDir();
+
+            // RemoteConfigHandler::fetchAndApply depends on OTel SDK so it has to be called after autoloader for OTel SDK is registered
+            RemoteConfigHandler::fetchAndApply();
+            // OverrideOTelSdkResourceAttributes::register depends on OTel SDK so it has to be called after autoloader for OTel SDK is registered
+            OverrideOTelSdkResourceAttributes::register($elasticOTelNativePartVersion);
             self::registerNativeOtlpSerializer();
             self::registerAsyncTransportFactory();
             self::registerOtelLogWriter();
@@ -138,8 +145,6 @@ final class PhpPartFacade
             });
 
             self::$singletonInstance = new self();
-
-            RemoteConfigHandler::fetchAndApply();
 
             if (elastic_otel_get_config_option_by_name('inferred_spans_enabled')) {
                 self::$singletonInstance->inferredSpans = new InferredSpans(
@@ -178,79 +183,52 @@ final class PhpPartFacade
         return true;
     }
 
-    private static function buildElasticOTelVersion(string $nativePartVersion): string
-    {
-        if ($nativePartVersion === PhpPartVersion::VALUE) {
-            return $nativePartVersion;
-        }
-
-        BootstrapStageLogger::logWarning(
-            'Native part and PHP part versions do not match. native part version: ' . $nativePartVersion . '; PHP part version: ' . PhpPartVersion::VALUE,
-            __FILE__,
-            __LINE__,
-            __CLASS__,
-            __FUNCTION__
-        );
-        return $nativePartVersion . '/' . PhpPartVersion::VALUE;
-    }
-
     private static function isInDevMode(): bool
     {
-        $modeIsDevEnvVarVal = getenv(self::CONFIG_ENV_VAR_NAME_DEV_INTERNAL_MODE_IS_DEV);
-        if (is_string($modeIsDevEnvVarVal)) {
-            /**
-             * @var string[] $trueStringValues
-             * @noinspection PhpRedundantVariableDocTypeInspection
-             */
-            static $trueStringValues = ['true', 'yes', 'on', '1'];
-            foreach ($trueStringValues as $trueStringValue) {
-                if (strcasecmp($modeIsDevEnvVarVal, $trueStringValue) === 0) {
-                    return true;
-                }
-            }
-        }
-        return false;
+        return self::getBoolEnvVar(self::MODE_IS_DEV_ENV_VAR_NAME, default: false);
     }
 
-    private static function prepareEnvForOTelAttributes(string $elasticOTelNativePartVersion): void
+    private static function isEnabled(): bool
     {
-        $envVarName = 'OTEL_RESOURCE_ATTRIBUTES';
-        $envVarValueOnEntry = getenv($envVarName);
-        $envVarValue = (is_string($envVarValueOnEntry) && strlen($envVarValueOnEntry) !== 0) ? ($envVarValueOnEntry . ',') : '';
+        return self::getBoolEnvVar(self::IS_ENABLED_ENV_VAR_NAME, default: true);
+    }
 
-        // https://opentelemetry.io/docs/specs/semconv/resource/#telemetry-distribution-experimental
-        $envVarValue .=
-            self::OTEL_ATTR_NAME_TELEMETRY_DISTRO_NAME . '=elastic'
-            . ','
-            . self::OTEL_ATTR_NAME_TELEMETRY_DISTRO_VERSION . '=' . self::buildElasticOTelVersion($elasticOTelNativePartVersion);
-
-        self::setEnvVar($envVarName, $envVarValue);
+    public static function getBoolEnvVar(string $envVarName, bool $default): bool
+    {
+        $envVarVal = getenv($envVarName);
+        if (is_string($envVarVal) && (($parsedVal = BoolUtil::parseValue($envVarVal)) !== null)) {
+            return $parsedVal;
+        }
+        return $default;
     }
 
     /**
      * @param non-empty-string $envVarName
      */
-    private static function setEnvVar(string $envVarName, string $envVarValue): void
+    public static function setEnvVar(string $envVarName, string $envVarValue): void
     {
         if (!putenv($envVarName . '=' . $envVarValue)) {
             throw new RuntimeException('putenv returned false; $envVarName: ' . $envVarName . '; envVarValue: ' . $envVarValue);
         }
     }
 
-    private static function prepareEnvForOTelSdk(string $elasticOTelNativePartVersion): void
+    private static function prepareForOTelSdk(): void
     {
         self::setEnvVar('OTEL_PHP_AUTOLOAD_ENABLED', 'true');
-        self::prepareEnvForOTelAttributes($elasticOTelNativePartVersion);
     }
 
-    private static function registerAutoloader(): void
+    public static function getVendorDirPath(): string
     {
-        $vendorDir = ProdPhpDir::$fullPath . DIRECTORY_SEPARATOR . (
+        return ProdPhpDir::$fullPath . DIRECTORY_SEPARATOR . (
             self::isInDevMode()
                 ? ('..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'vendor')
                 : ('vendor_' . PHP_MAJOR_VERSION . PHP_MINOR_VERSION)
             );
-        $vendorAutoloadPhp = $vendorDir . '/autoload.php';
+    }
+
+    private static function registerAutoloaderForVendorDir(): void
+    {
+        $vendorAutoloadPhp = self::getVendorDirPath() . '/autoload.php';
         if (!file_exists($vendorAutoloadPhp)) {
             throw new RuntimeException("File $vendorAutoloadPhp does not exist");
         }

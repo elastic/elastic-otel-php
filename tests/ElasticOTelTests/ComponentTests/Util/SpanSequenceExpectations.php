@@ -23,6 +23,7 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
+use ElasticOTelTests\ComponentTests\Util\OtlpData\Span;
 use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\IterableUtil;

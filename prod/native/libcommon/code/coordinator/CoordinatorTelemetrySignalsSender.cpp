@@ -27,7 +27,7 @@
 
 namespace elasticapm::php::coordinator {
 
-void CoordinatorTelemetrySignalsSender::initializeConnection(std::string endpointUrl, std::size_t endpointHash, std::string contentType, enpointHeaders_t const &endpointHeaders, std::chrono::milliseconds timeout, std::size_t maxRetries, std::chrono::milliseconds retryDelay) {
+void CoordinatorTelemetrySignalsSender::initializeConnection(std::string endpointUrl, std::size_t endpointHash, std::string contentType, enpointHeaders_t const &endpointHeaders, std::chrono::milliseconds timeout, std::size_t maxRetries, std::chrono::milliseconds retryDelay, elasticapm::php::transport::HttpEndpointSSLOptions sslOptions) {
 
     coordinator::EstablishConnectionCommand command;
     command.set_endpoint_url(std::move(endpointUrl));
@@ -39,6 +39,12 @@ void CoordinatorTelemetrySignalsSender::initializeConnection(std::string endpoin
     command.set_timeout_ms(timeout.count());
     command.set_max_retries(maxRetries);
     command.set_retry_delay_ms(retryDelay.count());
+
+    command.mutable_ssl_options()->set_insecure_skip_verify(sslOptions.insecureSkipVerify);
+    command.mutable_ssl_options()->set_ca_info(sslOptions.caInfo);
+    command.mutable_ssl_options()->set_cert(sslOptions.cert);
+    command.mutable_ssl_options()->set_cert_key(sslOptions.certKey);
+    command.mutable_ssl_options()->set_cert_key_password(sslOptions.certKeyPassword);
 
     coordinator::CoordinatorCommand coordCommand;
     coordCommand.set_type(coordinator::CoordinatorCommand::ESTABLISH_CONNECTION);

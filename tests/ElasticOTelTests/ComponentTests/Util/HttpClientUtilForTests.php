@@ -107,7 +107,7 @@ final class HttpClientUtilForTests
                  *
                  * http_errors
                  *
-                 * Set to false to disable throwing exceptions on an HTTP protocol errors (i.e., 4xx and 5xx responses).
+                 * Set to false to disable throwing exceptions on HTTP protocol errors (i.e., 4xx and 5xx responses).
                  * Exceptions are thrown by default when HTTP protocol errors are encountered.
                  */
                 RequestOptions::HTTP_ERRORS => false,

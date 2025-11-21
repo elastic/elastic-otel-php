@@ -19,6 +19,7 @@
 
 #include "OpAmp.h"
 #include "common/ProtobufHelper.h"
+#include "transport/HttpEndpointSSLOptions.h"
 #include "CommonUtils.h"
 #include "ResourceDetector.h"
 #include <format>
@@ -66,7 +67,15 @@ void OpAmp::startCommunication() {
         ELOG_DEBUG(log_, OPAMP, "Header: '{}: {}'", k, v);
     }
 
-    transport_->initializeConnection(endpointUrl, endpointHash_, "application/x-protobuf"s, endpointHeaders, config_->get().opamp_send_timeout, config_->get().opamp_send_max_retries, config_->get().opamp_send_retry_delay);
+    elasticapm::php::transport::HttpEndpointSSLOptions sslOptions;
+    sslOptions.insecureSkipVerify = config_->get().opamp_insecure;
+    sslOptions.caInfo = config_->get().opamp_certificate;
+    sslOptions.cert = config_->get().opamp_client_certificate;
+    sslOptions.certKey = config_->get().opamp_client_key;
+    sslOptions.certKeyPassword = config_->get().opamp_client_keypass;
+    ELOG_TRACE(log_, OPAMP, "OpAmp endpoint hash '{:X}' SSL options: insecureSkipVerify: {}, caInfo: '{}', cert: '{}', certKey: '{}', certKeyPassword: '{}'", endpointHash_, sslOptions.insecureSkipVerify, sslOptions.caInfo, sslOptions.cert, sslOptions.certKey, !sslOptions.certKeyPassword.empty() ? "<redacted>"sv : "");
+
+    transport_->initializeConnection(endpointUrl, endpointHash_, "application/x-protobuf"s, endpointHeaders, config_->get().opamp_send_timeout, config_->get().opamp_send_max_retries, config_->get().opamp_send_retry_delay, sslOptions);
     startThread();
     try {
         sendInitialAgentToServer();

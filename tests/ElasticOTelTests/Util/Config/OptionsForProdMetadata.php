@@ -69,6 +69,7 @@ final class OptionsForProdMetadata
             [OptionForProdName::log_level_file, new LogLevelOptionMetadata(OptionsForProdDefaultValues::LOG_LEVEL_FILE)],
             [OptionForProdName::log_level_stderr, new LogLevelOptionMetadata(OptionsForProdDefaultValues::LOG_LEVEL_STDERR)],
             [OptionForProdName::log_level_syslog, new LogLevelOptionMetadata(OptionsForProdDefaultValues::LOG_LEVEL_SYSLOG)],
+            [OptionForProdName::resource_attributes, new NullableStringOptionMetadata()],
             [OptionForProdName::transaction_span_enabled, new BoolOptionMetadata(OptionsForProdDefaultValues::TRANSACTION_SPAN_ENABLED)],
             [OptionForProdName::transaction_span_enabled_cli, new BoolOptionMetadata(OptionsForProdDefaultValues::TRANSACTION_SPAN_ENABLED_CLI)],
         ];

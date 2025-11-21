@@ -23,6 +23,7 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
+use ElasticOTelTests\ComponentTests\Util\OtlpData\SpanKind;
 use ElasticOTelTests\Util\AssertEx;
 use OpenTelemetry\SemConv\TraceAttributes;
 

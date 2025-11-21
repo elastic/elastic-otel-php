@@ -26,6 +26,7 @@ namespace ElasticOTelTests\UnitTests\UtilTests\LogTests;
 use Elastic\OTel\Log\LogLevel;
 use ElasticOTelTests\UnitTests\Util\MockLogPreformattedSink;
 use ElasticOTelTests\Util\ArrayUtilForTests;
+use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\ClassNameUtil;
 use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\IterableUtil;
@@ -91,6 +92,8 @@ class LogContextMapTest extends TestCaseBase
         self::assertCount(count($expectedCtx), $actualCtx);
         foreach (IterableUtil::zip(IterableUtil::keys($expectedCtx), IterableUtil::keys($actualCtx)) as [$expectedKey, $actualKey]) {
             $dbgCtx->add(compact('expectedKey', 'actualKey'));
+            AssertEx::ofArrayKeyType($expectedKey);
+            AssertEx::ofArrayKeyType($actualKey);
             self::assertSame($expectedKey, $actualKey);
             self::assertSame($expectedCtx[$expectedKey], $actualCtx[$actualKey]);
         }
