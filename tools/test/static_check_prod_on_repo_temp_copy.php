@@ -25,4 +25,4 @@ namespace ElasticOTelTools\test;
 
 require __DIR__ . '/../bootstrap_tools.php';
 
-StaticCheckProd::check(basename(__FILE__));
+StaticCheckProd::checkOnRepoTempCopy(basename(__FILE__));

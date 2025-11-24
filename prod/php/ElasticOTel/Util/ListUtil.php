@@ -25,28 +25,38 @@ declare(strict_types=1);
 
 namespace Elastic\OTel\Util;
 
-final class BoolUtil
+final class ListUtil
 {
     use StaticClassTrait;
 
-    public static function toString(bool $val): string
+    /**
+     * @template T
+     *
+     * @param list<T> $from
+     * @param list<T> $to
+     */
+    public static function append(array $from, /* in,out */ array &$to): void
     {
-        return $val ? 'true' : 'false';
+        $to = array_merge($to, $from);
     }
 
-    public static function parseValue(string $envVarVal): ?bool
+    /**
+     * @template T
+     *
+     * @param list<T> $list1
+     * @param list<T> $list2
+     * @param list<T> ...$moreLists
+     *
+     * @return list<T>
+     */
+    public static function concat(array $list1, array $list2, array ...$moreLists): array
     {
-        foreach (['true', 'yes', 'on', '1'] as $trueStringValue) {
-            if (strcasecmp($envVarVal, $trueStringValue) === 0) {
-                return true;
-            }
+        $result = [];
+        self::append($list1, /* ref */ $result);
+        self::append($list2, /* ref */ $result);
+        foreach ($moreLists as $listToAppend) {
+            self::append($listToAppend, /* ref */ $result);
         }
-        foreach (['false', 'no', 'off', '0'] as $falseStringValue) {
-            if (strcasecmp($envVarVal, $falseStringValue) === 0) {
-                return false;
-            }
-        }
-
-        return null;
+        return $result;
     }
 }

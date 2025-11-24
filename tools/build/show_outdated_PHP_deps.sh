@@ -4,14 +4,11 @@ set -e -u -o pipefail
 
 function exec_composer_outdated() {
     local PHP_version_no_dot="${1:?}"
-    local env_kind="${2:?}"
 
-    local composer_json_file_name
-    composer_json_file_name="$(build_composer_json_file_name "${env_kind}")"
-    local composer_json_full_path="${work_repo_root_dir}/${elastic_otel_php_generated_composer_lock_files_dir_name:?}/${composer_json_file_name}"
+    local composer_json_full_path="${work_repo_root_dir}/${elastic_otel_php_generated_composer_lock_files_dir_name:?}/${elastic_otel_php_generated_composer_files_base_file_name:?}.json"
 
     local composer_lock_file_name
-    composer_lock_file_name="$(build_generated_composer_lock_file_name "${env_kind}" "${PHP_version_no_dot}")"
+    composer_lock_file_name="$(build_generated_composer_lock_file_name "${PHP_version_no_dot}")"
     local composer_lock_full_path="${work_repo_root_dir}/${elastic_otel_php_generated_composer_lock_files_dir_name:?}/${composer_lock_file_name}"
 
     local PHP_docker_image
@@ -35,7 +32,7 @@ function exec_composer_outdated() {
             && echo \"----------------------------------------\" \
             && echo \"----------------\" \
             && echo \"----\" \
-            && echo \"'composer outdated' for ${composer_json_file_name} and PHP ${PHP_version_dot_separated}\" \
+            && echo \"'composer outdated' for PHP ${PHP_version_dot_separated}\" \
             && echo \"----\" \
             && echo \"----------------\" \
             && composer --locked --sort-by-age --ignore-platform-req=ext-mysqli --ignore-platform-req=ext-pgsql --ignore-platform-req=ext-opentelemetry outdated \
@@ -56,9 +53,7 @@ function main() {
     php "${src_repo_root_dir}/tools/build/verify_generated_composer_lock_files.php"
 
     for PHP_version_no_dot in "${elastic_otel_php_supported_php_versions[@]:?}" ; do
-        for env_kind in "${elastic_otel_php_deps_env_kinds[@]:?}" ; do
-            exec_composer_outdated "${PHP_version_no_dot}" "${env_kind}"
-        done
+        exec_composer_outdated "${PHP_version_no_dot}"
     done
 }
 

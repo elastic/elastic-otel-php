@@ -69,7 +69,7 @@ main() {
     fi
 
     local generated_composer_lock_files_dir="${work_repo_root_dir}/${elastic_otel_php_generated_composer_lock_files_dir_name:?}"
-    local composer_json_full_path="${generated_composer_lock_files_dir}/${elastic_otel_php_generated_files_copy_of_composer_json_file_name:?}"
+    local composer_json_full_path="${generated_composer_lock_files_dir}/${elastic_otel_php_generated_composer_files_base_file_name:?}.json"
     failed_versions=()
     for PHP_version_no_dot in "${PHP_versions_no_dot[@]}"; do
         local PHP_version_dot_separated

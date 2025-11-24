@@ -74,28 +74,35 @@ final class AdaptPhpDepsTo81
         return (80100 <= PHP_VERSION_ID) && (PHP_VERSION_ID < 80200);
     }
 
-    public static function downloadAdaptPackagesAndGenConfig(): void
+    public static function downloadAdaptPackagesAndGenConfig(string $dbgCalledFrom): void
     {
-        ToolsUtil::runCmdLineImpl(
-            __METHOD__,
-            function (): void {
-                self::downloadAdaptPackagesAndGenConfigImpl(ToolsUtil::getCurrentDirectory());
-            }
-        );
+        ToolsUtil::runCmdLineImpl($dbgCalledFrom, fn() => self::downloadAdaptPackagesAndGenConfigImpl(ToolsUtil::getCurrentDirectory()));
+    }
+
+    /**
+     * @phpstan-return EnvVars
+     */
+    private static function buildComposerHomeDirEnvVar(string $repoRootDir): array
+    {
+        return [ComposerUtil::HOME_ENV_VAR_NAME => ToolsUtil::partsToPath($repoRootDir, ToolsUtil::adaptUnixDirectorySeparators(self::COMPOSER_HOME_FOR_PACKAGES_ADAPTED_TO_PHP_81_REL_PATH))];
+    }
+
+    public static function generateLock(string $repoRootDir): void
+    {
+        ComposerUtil::generateLock(envVars: self::buildComposerHomeDirEnvVar($repoRootDir));
     }
 
     public static function downloadAdaptPackagesGenConfigAndInstallProd(string $repoRootDir): void
     {
         InstallPhpDeps::installInTempAndCopy(
-            PhpDepsEnvKind::prod,
+            PhpDepsGroup::prod,
             $repoRootDir,
             /**
              * @phpstan-return EnvVars
              */
             preProcess: function (string $tempRepoDir): array {
                 self::downloadAdaptPackagesAndGenConfigImpl($tempRepoDir);
-                $composerHomeDir = ToolsUtil::partsToPath($tempRepoDir, ToolsUtil::adaptUnixDirectorySeparators(self::COMPOSER_HOME_FOR_PACKAGES_ADAPTED_TO_PHP_81_REL_PATH));
-                return [ComposerUtil::HOME_ENV_VAR_NAME => $composerHomeDir];
+                return self::buildComposerHomeDirEnvVar($tempRepoDir);
             }
         );
     }
@@ -123,10 +130,8 @@ final class AdaptPhpDepsTo81
                 $minimalComposerJsonPath = ToolsUtil::partsToPath($workDir, ComposerUtil::JSON_FILE_NAME);
                 ToolsUtil::copyFile($prodComposerJsonPath, $minimalComposerJsonPath);
                 $packagesNameToVersion = self::reduceComposerJsonToPackagesToAdaptOnly($minimalComposerJsonPath);
-                ToolsUtil::listFileContents($minimalComposerJsonPath);
-                ComposerUtil::execInstall(withDev: false, additionalArgs: self::COMPOSER_IGNORE_PHP_REQ_CMD_OPT . ' --no-plugins --no-scripts');
+                ComposerUtil::execInstall(withDev: false, additionalArgs: [ComposerUtil::NO_PLUGINS_CMD_LINE_OPT, self::COMPOSER_IGNORE_PHP_REQ_CMD_OPT]);
                 self::adaptPackages($packagesNameToVersion, $workDir, $adaptedPackagesDir);
-                ToolsUtil::listDirectoryContents($adaptedPackagesDir, recursiveDepth: 1);
                 return $packagesNameToVersion;
             },
         );
@@ -141,15 +146,15 @@ final class AdaptPhpDepsTo81
         self::logDebug(__LINE__, __METHOD__, 'Entered; fileContents: ' . $fileContents);
         $fileContentsJsonDecoded = self::assertIsArray(ToolsUtil::decodeJson($fileContents));
         // Keep only "require" top key
-        $resultArray = array_filter($fileContentsJsonDecoded, fn ($key) => $key === ComposerUtil::JSON_REQUIRE_KEY, ARRAY_FILTER_USE_KEY);
+        $resultArray = array_filter($fileContentsJsonDecoded, fn ($key) => $key === ComposerUtil::REQUIRE_KEY, ARRAY_FILTER_USE_KEY);
         self::assertCount(1, $resultArray);
-        self::assertArrayHasKey(ComposerUtil::JSON_REQUIRE_KEY, $resultArray);
+        self::assertArrayHasKey(ComposerUtil::REQUIRE_KEY, $resultArray);
         self::logDebug(__LINE__, __METHOD__, 'After keeping only "require" top key', compact('resultArray'));
         // Keep only packages instrumenting native functions
-        $requireSection = self::assertIsArray($resultArray[ComposerUtil::JSON_REQUIRE_KEY]);
+        $requireSection = self::assertIsArray($resultArray[ComposerUtil::REQUIRE_KEY]);
         $packageNameToVersion = array_filter($requireSection, fn($package) => in_array($package, self::AUTO_INSTRUM_NATIVE_FUNCS_PACKAGES), ARRAY_FILTER_USE_KEY);
         /** @var array<string, string> $packageNameToVersion */
-        $resultArray[ComposerUtil::JSON_REQUIRE_KEY] = $packageNameToVersion;
+        $resultArray[ComposerUtil::REQUIRE_KEY] = $packageNameToVersion;
         $resultArrayEncoded = ToolsUtil::encodeJson($resultArray, prettyPrint: true);
         ToolsUtil::putFileContents($minimalComposerJsonFilePath, $resultArrayEncoded . PHP_EOL);
         return $packageNameToVersion;
@@ -185,8 +190,8 @@ final class AdaptPhpDepsTo81
                 . "; version in package's composer.json: $alreadyPresentVersion ; version in the root composer.json: $packageVersion; repoRootComposerJsonSrcFile: $composerJsonFilePath",
             );
         }
-        self::assertArrayHasKey(ComposerUtil::JSON_REQUIRE_KEY, $resultArray);
-        $requireSectionRef =& $resultArray[ComposerUtil::JSON_REQUIRE_KEY];
+        self::assertArrayHasKey(ComposerUtil::REQUIRE_KEY, $resultArray);
+        $requireSectionRef =& $resultArray[ComposerUtil::REQUIRE_KEY];
         self::assertIsArray($requireSectionRef);
         self::assertArrayHasKey(ComposerUtil::JSON_PHP_KEY, $requireSectionRef);
         $requireSectionRef[ComposerUtil::JSON_PHP_KEY] = '8.1.*';

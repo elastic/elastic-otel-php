@@ -112,12 +112,15 @@ final class ToolsUtil
     /**
      * @param Context $dbgCtx
      */
-    public static function execShellCommand(string $shellCmd, array $dbgCtx = []): void
+    public static function execShellCommand(string $shellCmd, array $dbgCtx = [], bool $assertSuccessExitCode = true): int
     {
         self::logInfo(__LINE__, __METHOD__, "Executing shell command: $shellCmd", $dbgCtx);
         $retVal = system($shellCmd, /* out */ $exitCode);
         self::assertNotFalse($retVal, compact('retVal'));
-        self::assert($exitCode === 0, '$exitCode === 0' . ' ; shellCmd: ' . $shellCmd . ' ; exitCode: ' . $exitCode . ' ; retVal: ' . $retVal);
+        if ($assertSuccessExitCode) {
+            self::assert($exitCode === 0, '$exitCode === 0' . ' ; shellCmd: ' . $shellCmd . ' ; exitCode: ' . $exitCode . ' ; retVal: ' . $retVal);
+        }
+        return $exitCode;
     }
 
     /**

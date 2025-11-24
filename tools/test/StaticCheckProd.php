@@ -24,8 +24,9 @@ declare(strict_types=1);
 namespace ElasticOTelTools\test;
 
 use ElasticOTelTools\build\ComposerUtil;
+use ElasticOTelTools\build\GenerateComposerFiles;
 use ElasticOTelTools\build\InstallPhpDeps;
-use ElasticOTelTools\build\PhpDepsEnvKind;
+use ElasticOTelTools\build\PhpDepsGroup;
 use ElasticOTelTools\ToolsAssertTrait;
 use ElasticOTelTools\ToolsLoggingClassTrait;
 use ElasticOTelTools\ToolsUtil;
@@ -35,77 +36,74 @@ final class StaticCheckProd
     use ToolsAssertTrait;
     use ToolsLoggingClassTrait;
 
-    public static function check(string $dbgCalledFrom): void
+    public static function checkOnRepoTempCopy(string $dbgCalledFrom): void
     {
         ToolsUtil::runCmdLineImpl(
             $dbgCalledFrom,
             function (): void {
-                ComposerUtil::verifyThatComposerJsonAndLockAreInSync();
-                $repoRootDir = ToolsUtil::getCurrentDirectory();
-                ToolsUtil::runCodeOnUniqueNameTempDir(
-                    tempDirNamePrefix: ToolsUtil::fqClassNameToShort(__CLASS__) . '_',
-                    code: function (string $tempRepoDir) use ($repoRootDir): void {
-                        self::checkImpl($repoRootDir, $tempRepoDir);
-                    }
-                );
+                self::checkOnRepoTempCopyImpl();
             }
         );
     }
 
-    private static function checkImpl(string $repoRootDir, string $tempRepoDir): void
+    private static function checkOnRepoTempCopyImpl(): void
     {
-        self::assertSame($tempRepoDir, ToolsUtil::getCurrentDirectory());
+        ComposerUtil::verifyThatComposerJsonAndLockAreInSync();
 
-        self::copyRepoExcludeGenerated($repoRootDir, $tempRepoDir);
+        $tempRepoDir = ToolsUtil::getCurrentDirectory();
 
         // in <repo root>/tests leave only elastic_otel_extension_stubs
-        ToolsUtil::deleteDirectoryContents(ToolsUtil::partsToPath($tempRepoDir, 'tests'));
-        $subDirToKeep = 'tests/elastic_otel_extension_stubs';
-        $dstSubDir = ToolsUtil::partsToPath($tempRepoDir, ToolsUtil::adaptUnixDirectorySeparators($subDirToKeep));
-        ToolsUtil::createDirectory($dstSubDir);
-        ToolsUtil::copyDirectoryContents(ToolsUtil::partsToPath($repoRootDir, ToolsUtil::adaptUnixDirectorySeparators($subDirToKeep)), $dstSubDir);
+        foreach (ToolsUtil::iterateDirectory(ToolsUtil::partsToPath($tempRepoDir, 'tests')) as $itemInTestsDir) {
+            if ($itemInTestsDir->getBasename() === 'elastic_otel_extension_stubs') {
+                continue;
+            }
+            if ($itemInTestsDir->isDir()) {
+                ToolsUtil::deleteDirectory($itemInTestsDir->getRealPath());
+            } else {
+                ToolsUtil::deleteFile($itemInTestsDir->getRealPath());
+            }
+        }
 
         // Install $tempRepoDir/vendor
-        InstallPhpDeps::selectComposerLock($tempRepoDir);
-        self::reduceJsonAndLock($tempRepoDir);
-        ToolsUtil::listFileContents(ToolsUtil::partsToPath($tempRepoDir, ComposerUtil::JSON_FILE_NAME));
-        InstallPhpDeps::composerInstallNoScripts(PhpDepsEnvKind::dev);
-        ToolsUtil::listDirectoryContents(ToolsUtil::partsToPath($tempRepoDir, ComposerUtil::VENDOR_DIR_NAME));
+        InstallPhpDeps::selectComposerJsonAndLock($tempRepoDir, PhpDepsGroup::dev_for_prod_static_check->name);
+        InstallPhpDeps::composerInstall(PhpDepsGroup::dev_for_prod_static_check);
 
-        // Restore original composer.json
-        ToolsUtil::copyFile(ToolsUtil::partsToPath($repoRootDir, ComposerUtil::JSON_FILE_NAME), ToolsUtil::partsToPath($tempRepoDir, ComposerUtil::JSON_FILE_NAME));
+        // Delete composer.json/composer.lock which will be replaced by prod variants next
+        foreach ([ComposerUtil::JSON_FILE_NAME, ComposerUtil::LOCK_FILE_NAME] as $fileName) {
+            ToolsUtil::deleteFile(ToolsUtil::partsToPath($tempRepoDir, $fileName));
+        }
+
         // Install $tempRepoDir/vendor_prod
-        InstallPhpDeps::selectComposerLockAndInstall(PhpDepsEnvKind::prod);
+        InstallPhpDeps::selectComposerJsonAndLock($tempRepoDir, PhpDepsGroup::prod->name);
+        InstallPhpDeps::selectComposerLockAndInstall(PhpDepsGroup::prod);
 
         self::adaptPhpStanConfig($tempRepoDir);
 
-        ComposerUtil::execCommand('composer run-script -- static_check');
+        ComposerUtil::execRunScript('static_check');
     }
 
-    private static function copyRepoExcludeGenerated(string $srcRepoDir, string $dstRepoDir): void
-    {
-        self::assert(!ToolsUtil::isCurrentOsWindows(), __METHOD__ . ' is not implemented (yet?) on Windows');
-        ToolsUtil::execShellCommand("$srcRepoDir/tools/copy_repo_exclude_generated.sh \"$srcRepoDir\" \"$dstRepoDir\"");
-    }
+    public const DEV_FOR_PROD_STATIC_CHECK_PACKAGES = [
+        'dealerdirect/phpcodesniffer-composer-installer',
+        'php-parallel-lint/php-console-highlighter',
+        'php-parallel-lint/php-parallel-lint',
+        'phpstan/phpstan',
+        'slevomat/coding-standard',
+        'squizlabs/php_codesniffer'
+    ];
 
-    private static function reduceJsonAndLock(string $tempRepoDir): void
+    public static function reduceJsonAndLock(string $tempRepoDir): void
     {
         self::assertSame($tempRepoDir, ToolsUtil::getCurrentDirectory());
 
         // We should not manipulate composer.json directly because
         // we would like for composer.lock to updated as well
-        InstallPhpDeps::removeAllProdPackageFromComposerJsonAndLock($tempRepoDir);
+        GenerateComposerFiles::removeAllProdPackagesFromComposerJsonAndLock($tempRepoDir);
 
         /** @var list<string> $devPackagesPrefixesToKeep */
         static $devPackagesPrefixesToKeep = [
-            'php-parallel-lint/',
-            'phpstan/'
         ];
         /** @var list<string> $devPackagesToKeep */
         static $devPackagesToKeep = [
-            'dealerdirect/phpcodesniffer-composer-installer',
-            'slevomat/coding-standard',
-            'squizlabs/php_codesniffer'
         ];
 
         $shouldRemoveDevPackage = static function (string $fqPackageName) use ($devPackagesPrefixesToKeep, $devPackagesToKeep): bool {
@@ -117,7 +115,7 @@ final class StaticCheckProd
             return !in_array($fqPackageName, $devPackagesToKeep);
         };
 
-        InstallPhpDeps::removeDevPackageFromComposerJsonAndLock($tempRepoDir, $shouldRemoveDevPackage);
+        GenerateComposerFiles::removeDevPackagesFromComposerJsonAndLock($tempRepoDir, $shouldRemoveDevPackage);
     }
 
     private static function adaptPhpStanConfig(string $tempRepoDir): void

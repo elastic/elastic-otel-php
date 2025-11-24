@@ -23,9 +23,9 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
+use Elastic\OTel\Util\ArrayUtil;
 use Elastic\OTel\Util\BoolUtil;
 use ElasticOTelTests\Util\AmbientContextForTests;
-use ElasticOTelTests\Util\ArrayUtilForTests;
 use ElasticOTelTests\Util\ClassNameUtil;
 use ElasticOTelTests\Util\HttpMethods;
 use ElasticOTelTests\Util\HttpStatusCodes;
@@ -75,7 +75,7 @@ final class MockOTelCollectorHandle extends HttpServerHandle
 
         $newEvents = MockOTelCollector::decodeGetAgentBackendCommEvents($response);
 
-        if (ArrayUtilForTests::isEmpty($newEvents)) {
+        if (ArrayUtil::isEmpty($newEvents)) {
             $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Fetched NO new data from agent receiver events');
         } else {
             $this->nextIntakeDataRequestIndexToFetch += count($newEvents);

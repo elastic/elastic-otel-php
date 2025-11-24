@@ -23,6 +23,7 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
+use Elastic\OTel\Util\ArrayUtil;
 use ElasticOTelTests\Util\AmbientContextForTests;
 use ElasticOTelTests\Util\ArrayUtilForTests;
 use ElasticOTelTests\Util\EnvVarUtil;
@@ -83,7 +84,7 @@ abstract class HttpServerStarter
     {
         Assert::assertGreaterThanOrEqual(1, $portsToAllocateCount);
         /** @var ?int $lastTriedPort */
-        $lastTriedPort = ArrayUtilForTests::isEmpty($portsInUse) ? null : ArrayUtilForTests::getLastValue($portsInUse);
+        $lastTriedPort = ArrayUtil::isEmpty($portsInUse) ? null : ArrayUtilForTests::getLastValue($portsInUse);
         for ($tryCount = 0; $tryCount < self::MAX_TRIES_TO_START_SERVER; ++$tryCount) {
             $dbgProcessName = DbgProcessNameGenerator::generate($this->dbgProcessNamePrefix);
             /** @var int[] $currentTryPorts */

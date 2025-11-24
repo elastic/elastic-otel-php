@@ -25,4 +25,4 @@ namespace ElasticOTelTools\build;
 
 require __DIR__ . '/../bootstrap_tools.php';
 
-AdaptPhpDepsTo81::downloadAdaptPackagesAndGenConfig(basename(__FILE__));
+GenerateComposerFiles::generateForCurrentPhpVersion(basename(__FILE__));

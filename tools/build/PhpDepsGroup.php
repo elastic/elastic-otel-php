@@ -23,6 +23,13 @@ declare(strict_types=1);
 
 namespace ElasticOTelTools\build;
 
-require __DIR__ . '/../bootstrap_tools.php';
+use Elastic\OTel\Util\EnumUtilTrait;
 
-AdaptPhpDepsTo81::downloadAdaptPackagesAndGenConfig(basename(__FILE__));
+enum PhpDepsGroup
+{
+    use EnumUtilTrait;
+
+    case dev;
+    case prod;
+    case dev_for_prod_static_check;
+}

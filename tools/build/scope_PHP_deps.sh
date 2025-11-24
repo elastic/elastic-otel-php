@@ -2,39 +2,32 @@
 set -e -u -o pipefail
 #set -x
 
-# See https://hub.docker.com/r/humbugphp/php-scoper/tags
-# TODO: Sergey Kleyman: UNCOMMENT
-#php_scoper_container_image_version_to_use="0.18.18"
-#PHP_version_to_use="8.4"
-#scope_namespace="ScopedByElasticOTel"
+# See https://github.com/humbug/php-scoper/releases
+php_scoper_version="0.18.18"
+container_PHP_version="8.4"
+scope_namespace="ScopedByElasticOTel"
 
-#current_user_id="$(id -u)"
-#current_user_group_id="$(id -g)"
+current_user_id="$(id -u)"
+current_user_group_id="$(id -g)"
 
 input_dir=""
 output_dir=""
+PHP_version_to_pass_to_php_scoper=""
 
 log() {
     echo "${this_script_name}:" "${@}"
 }
 
 show_help() {
-    local env_kinds_as_string=""
-    for env_kind in "${elastic_otel_php_deps_env_kinds[@]:?}" ; do
-        if [[ -n "${env_kind}" ]]; then
-            env_kinds_as_string+=", "
-        fi
-        env_kinds_as_string+="${env_kind}"
-    done
-
     echo "Usage: $0 --env_kind <PHP deps env kind>"
     echo
     echo "Arguments:"
     echo "  --input_dir              Required. Input directory."
     echo "  --output_dir             Required. Output directory."
+    echo "  --php_version            Required. PHP version (the format is <MAJOR><MINOR>)."
     echo
     echo "Example:"
-    echo "  $0 --input_dir /my_project/vendor --output_dir /my_project/build/vendor_scoped"
+    echo "  $0 --input_dir /my_project/vendor --output_dir /my_project/build/vendor_scoped --php_version 82"
 }
 
 # Function to parse arguments
@@ -48,6 +41,11 @@ parse_args() {
             ;;
         --output_dir)
             output_dir="${2}"
+            shift
+            shift
+            ;;
+        --php_version)
+            PHP_version_to_pass_to_php_scoper="${2}"
             shift
             shift
             ;;
@@ -71,6 +69,12 @@ parse_args() {
 
     if [ -z "${output_dir}" ]; then
         echo "Error: Required argument <output_dir> is missing."
+        show_help
+        exit 1
+    fi
+
+    if [ -z "${PHP_version_to_pass_to_php_scoper}" ]; then
+        echo "Error: Required argument <php_version> is missing."
         show_help
         exit 1
     fi
@@ -99,91 +103,63 @@ main() {
     # Parse arguments
     parse_args "$@"
 
-    #########################################
-    # TODO: Sergey Kleyman: BEGIN: REMOVE:
-    ###################
-    if [[ "${input_dir}" != "${output_dir}" ]]; then
-        if [ -d "${output_dir}" ]; then
-            delete_dir_contents "${output_dir}"
-        else
-            mkdir -p "${output_dir}"
-        fi
-        copy_dir_contents "${input_dir}" "${output_dir}"
-    fi
-    ###################
-    # END: REMOVE
-    #########################################
+    temp_stage_dir=""
 
-# TODO: Sergey Kleyman: UNCOMMENT
+    trap on_script_exit EXIT
 
-#    temp_stage_dir=""
-#
-#    trap on_script_exit EXIT
-#
-#    temp_stage_dir="$(mktemp -d)"
-#    log "temp_stage_dir: ${temp_stage_dir}"
-#
-#    local PHP_version_to_use_no_dot
-#    PHP_version_to_use_no_dot=$(convert_dot_separated_to_no_dot_version "${PHP_version_to_use}")
-#    local PHP_docker_image
-#    PHP_docker_image=$(build_light_PHP_docker_image_name_for_version_no_dot "${PHP_version_to_use_no_dot}")
-#
-#    log "Pulling docker image: ${PHP_docker_image} ..."
-#    docker pull "${PHP_docker_image}"
-#
-#    local post_process_command=""
-#    case ${env_kind} in
-#        prod)
-#            post_process_command="&& composer dump-autoload --no-dev --optimize --classmap-authoritative"
-#            ;;
-#        dev)
-#            post_process_command="&& composer dump-autoload --dev"
-#            ;;
-#        *)
-#            echo "Unknown environment kind ${env_kind}"
-#            exit 1
-#            ;;
-#    esac
-#
-#    # -v|vv|vvv, --verbose  Increase the verbosity of messages: 1 for normal output, 2 for more verbose output and 3 for debug
-#    local php_scoper_verbosity_opt=""
-#    docker run --rm \
-#        -v "${PWD}/:/docker_host/read_only_repo_root/:ro" \
-#        -v "${temp_stage_dir}/:/docker_host/temp_stage_dir/" \
-#        -w / \
-#        "${PHP_docker_image}" \
-#        sh -c \
-#        "\
-#            ./tools/install_composer.sh \
-#            && echo 'memory_limit=256M' > /usr/local/etc/php/conf.d/custom_config_for_php_scoper.ini \
-#            && echo -n 'memory_limit: ' && php -r \"echo ini_get('memory_limit') . PHP_EOL;\" \
-#            && mkdir -p /tmp/stage/scoper && cd /tmp/stage/scoper \
-#            && cp /docker_host/read_only_repo_root/tools/build/php-scoper.inc.php ./scoper.inc.php \
-#            && composer require humbug/php-scoper:${php_scoper_container_image_version_to_use} \
-#            && ./vendor/bin/php-scoper \
-#                add-prefix \"--prefix=${scope_namespace}\" \
-#                --output-dir=/tmp/stage/scoper/output \
-#                --no-ansi \
-#                --config /docker_host/read_only_repo_root/tools/build/php-scoper.inc.php \
-#                --no-interaction \
-#                ${php_scoper_verbosity_opt} \
-#                /docker_host/read_only_repo_root/vendor \
-#            && echo 'ls -l ./vendor' && ls -l ./vendor \
-#            && mkdir -p /tmp/stage/dump-autoload && mv /tmp/stage/scoper/output /tmp/stage/dump-autoload/vendor \
-#            && cp /docker_host/read_only_repo_root/composer.json /tmp/stage/dump-autoload/ \
-#            && cp /docker_host/read_only_repo_root/composer.lock /tmp/stage/dump-autoload/ \
-#            && cd /tmp/stage/dump-autoload \
-#            ${post_process_command} \
-#            && cp -r /tmp/stage/dump-autoload/vendor/. /docker_host/temp_stage_dir/ \
-#            && chown -R ${current_user_id}:${current_user_group_id} /docker_host/temp_stage_dir/ \
-#            && chmod -R +r,u+w /docker_host/temp_stage_dir/ \
-#        "
-#    ls -l "${temp_stage_dir}"
-#
-#    delete_dir_contents "${PWD}/vendor"
-#
-#    log "Moving contents of ${temp_stage_dir} to ${PWD}/vendor ..."
-#    mv "${temp_stage_dir}/"* "${PWD}/vendor/"
+    temp_stage_dir="$(mktemp -d)"
+    log "temp_stage_dir: ${temp_stage_dir}"
+
+    local container_PHP_version_no_dot
+    container_PHP_version_no_dot=$(convert_dot_separated_to_no_dot_version "${container_PHP_version}")
+    local PHP_docker_image
+    PHP_docker_image=$(build_light_PHP_docker_image_name_for_version_no_dot "${container_PHP_version_no_dot}")
+
+    local PHP_version_to_pass_to_php_scoper_dot_separated
+    PHP_version_to_pass_to_php_scoper_dot_separated=$(convert_no_dot_to_dot_separated_version "${PHP_version_to_pass_to_php_scoper}")
+
+    log "Pulling docker image: ${PHP_docker_image} ..."
+    docker pull "${PHP_docker_image}"
+
+    # -v|vv|vvv, --verbose  Increase the verbosity of messages: 1 for normal output, 2 for more verbose output and 3 for debug
+    local php_scoper_verbosity_opt=""
+    docker run --rm \
+        -v "${src_repo_root_dir}/:/src_repo_root_dir/:ro" \
+        -v "${input_dir}/:/input_dir/:ro" \
+        -v "${temp_stage_dir}/:/temp_stage_dir/" \
+        -w / \
+        "${PHP_docker_image}" \
+        sh -c \
+        "\
+            /src_repo_root_dir/tools/install_composer.sh \
+            && ./tools/set_PHP_ini_option.sh memory_limit 256M \
+            && mkdir -p /tmp/stage/scoper && cd /tmp/stage/scoper \
+            && composer require humbug/php-scoper:${php_scoper_version} \
+            && ./vendor/bin/php-scoper \
+                add-prefix \"--prefix=${scope_namespace}\" \
+                --output-dir=/tmp/stage/scoper/output \
+                --php-version=${PHP_version_to_pass_to_php_scoper_dot_separated} \
+                --no-ansi \
+                --config /src_repo_root_dir/read_only_repo_root/tools/build/php-scoper.inc.php \
+                --no-interaction \
+                ${php_scoper_verbosity_opt} \
+                /docker_host/read_only_repo_root/vendor \
+            /
+            && mkdir -p /tmp/stage/dump-autoload && mv /tmp/stage/scoper/output /tmp/stage/dump-autoload/vendor \
+            && cp /docker_host/read_only_repo_root/composer.json /tmp/stage/dump-autoload/ \
+            && cp /docker_host/read_only_repo_root/composer.lock /tmp/stage/dump-autoload/ \
+            && cd /tmp/stage/dump-autoload \
+            && composer dump-autoload --no-dev --optimize --classmap-authoritative \
+            && cp -r /tmp/stage/dump-autoload/vendor/. /docker_host/temp_stage_dir/ \
+            && chown -R ${current_user_id}:${current_user_group_id} /docker_host/temp_stage_dir/ \
+            && chmod -R +r,u+w /docker_host/temp_stage_dir/ \
+        "
+    ls -l "${temp_stage_dir}"
+
+    delete_dir_contents "${PWD}/vendor"
+
+    log "Moving contents of ${temp_stage_dir} to ${PWD}/vendor ..."
+    mv "${temp_stage_dir}/"* "${PWD}/vendor/"
 }
 
 main "$@"

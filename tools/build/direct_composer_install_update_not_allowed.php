@@ -28,10 +28,6 @@ use ElasticOTelTools\ToolsLog;
 
 require __DIR__ . '/../bootstrap_tools.php';
 
-if (ComposerUtil::shouldAllowDirectCommand()) {
-    exit();
-}
-
 /** @var list<string> $argv */
 global $argv;
 

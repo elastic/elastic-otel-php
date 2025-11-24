@@ -35,12 +35,12 @@ export elastic_otel_php_otel_proto_version="${otel_proto_version:?}"
 export elastic_otel_php_native_otlp_exporters_based_on_php_impl_version="${native_otlp_exporters_based_on_php_impl_version:?}"
 
 # Make sure the following value is in sync with the rest of locations where it's defined:
-#   - tools/build/InstallPhpDeps.php
+#   - tools/build/GenerateComposerFiles.php
 export elastic_otel_php_generated_composer_lock_files_dir_name="generated_composer_lock_files"
 
 # Make sure the following value is in sync with the rest of locations where it's defined:
-#   - tools/build/InstallPhpDeps.php
-export elastic_otel_php_generated_files_copy_of_composer_json_file_name="copy_of_composer.json"
+#   - tools/build/GenerateComposerFiles.php
+export elastic_otel_php_generated_composer_files_base_file_name="base"
 
 # Make sure the following value is in sync with the rest of locations where it's defined:
 #   - tools/build/AdaptPhpDepsTo81.php
@@ -244,10 +244,17 @@ function end_github_workflow_log_group() {
     echo "::endgroup::${group_name}"
 }
 
-function build_generated_composer_lock_file_name() {
-    local PHP_version_no_dot="${1:?}"
+function build_generated_composer_json_file_name() {
+    local deps_group="${1:?}"
 
-    echo "composer_${PHP_version_no_dot}.lock"
+    echo "${deps_group}.json"
+}
+
+function build_generated_composer_lock_file_name() {
+    local file_name_prefix="${1:?}"
+    local PHP_version_no_dot="${2:?}"
+
+    echo "${file_name_prefix}_${PHP_version_no_dot}.lock"
 }
 
 function build_light_PHP_docker_image_name_for_version_no_dot() {

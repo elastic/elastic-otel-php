@@ -2,12 +2,32 @@
 set -e -u -o pipefail
 #set -x
 
+function on_script_exit() {
+    local exit_code=$?
+
+    if [ -n "${repo_temp_copy_dir+x}" ] && [ -d "${repo_temp_copy_dir}" ]; then
+        delete_temp_dir "${repo_temp_copy_dir}"
+    fi
+
+    cd "${current_dir_to_restore}/"
+
+    exit ${exit_code}
+}
+
 function main() {
+    current_dir_to_restore="${PWD}"
+    work_repo_root_dir="$(realpath "${PWD}")"
     this_script_dir="$(dirname "${BASH_SOURCE[0]}")"
     this_script_dir="$(realpath "${this_script_dir}")"
     src_repo_root_dir="$(realpath "${this_script_dir}/../..")"
 
     source "${src_repo_root_dir}/tools/shared.sh"
+
+    trap on_script_exit EXIT
+
+    repo_temp_copy_dir="$(mktemp -d)"
+    "${src_repo_root_dir}/tools/copy_repo_exclude_generated.sh" "${work_repo_root_dir}" "${repo_temp_copy_dir}"
+    cd "${repo_temp_copy_dir}"
 
     # The script below must be called before any .php scripts in ./tools/build/
     # because .php scripts in ./tools/build/ depend on some of .php source files
@@ -16,7 +36,7 @@ function main() {
 
     php "${src_repo_root_dir}/tools/build/verify_generated_composer_lock_files.php"
 
-    php "${src_repo_root_dir}/tools/test/static_check_prod.php"
+    php "${src_repo_root_dir}/tools/test/static_check_prod_on_repo_temp_copy.php"
 }
 
 main "$@"

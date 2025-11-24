@@ -23,6 +23,8 @@ declare(strict_types=1);
 
 namespace ElasticOTelTools\build;
 
+use ElasticOTelTools\ToolsUtil;
+
 require __DIR__ . '/../bootstrap_tools.php';
 
-InstallPhpDeps::verifyGeneratedComposerLockFiles(basename(__FILE__));
+GenerateComposerFiles::verifyGeneratedFiles(basename(__FILE__, ToolsUtil::getCurrentDirectory()));

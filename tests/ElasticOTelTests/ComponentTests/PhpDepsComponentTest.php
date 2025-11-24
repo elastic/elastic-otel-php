@@ -41,7 +41,7 @@ use ElasticOTelTests\Util\JsonUtil;
 use ElasticOTelTests\Util\TimeUtil;
 use ElasticOTelTests\Util\VendorDir;
 use ElasticOTelTools\build\InstallPhpDeps;
-use ElasticOTelTools\build\PhpDepsEnvKind;
+use ElasticOTelTools\build\PhpDepsGroup;
 use Override;
 use PhpParser\Error as PhpParserError;
 use PhpParser\Node as PhpParserNode;
@@ -307,13 +307,8 @@ final class PhpDepsComponentTest extends ComponentTestCaseBase
 
     private static function verifyVendorDevAndProdOnlyPackages(string $prodVendorDir): void
     {
-        foreach (PhpDepsEnvKind::cases() as $envKind) {
-            $vendorDir = match ($envKind) {
-                PhpDepsEnvKind::dev => VendorDir::getFullPath(),
-                PhpDepsEnvKind::prod => $prodVendorDir,
-            };
-            InstallPhpDeps::verifyDevProdOnlyPackages($envKind, $vendorDir);
-        }
+        InstallPhpDeps::verifyDevProdOnlyPackages(PhpDepsGroup::dev, VendorDir::getFullPath());
+        InstallPhpDeps::verifyDevProdOnlyPackages(PhpDepsGroup::prod, $prodVendorDir);
     }
 
     public static function appCodeForTestPackagesHaveCorrectPhpVersion(): void

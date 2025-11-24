@@ -19,6 +19,8 @@
  * under the License.
  */
 
+/** @noinspection PhpIllegalPsrClassPathInspection */
+
 declare(strict_types=1);
 
 namespace Elastic\OTel\Util;
@@ -84,5 +86,25 @@ final class ArrayUtil
         $valueOut = $array[$key];
         unset($array[$key]);
         return true;
+    }
+
+    /**
+     * @param array<array-key, mixed> $array
+     */
+    public static function isEmpty(array $array): bool
+    {
+        return count($array) === 0;
+    }
+
+    /**
+     * @template TKey of array-key
+     * @template TValue
+     *
+     * @param array<TKey, TValue> $from
+     * @param array<TKey, TValue> $to
+     */
+    public static function prepend(array $from, /* in,out */ array &$to): void
+    {
+        $to = $from + $to;
     }
 }

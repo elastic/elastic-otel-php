@@ -103,6 +103,16 @@ trait ToolsAssertTrait
     }
 
     /**
+     * @param mixed $expected
+     * @param mixed $actual
+     * @param ?array<string, mixed> $dbgCtx
+     */
+    public static function assertNotEqual(mixed $expected, mixed $actual, ?array $dbgCtx = null): void
+    {
+        self::assert($expected != $actual, '$expected != $actual' . self::convertAssertDbgCtxToStringToAppend(compact('expected', 'actual'), $dbgCtx));
+    }
+
+    /**
      * @param ?array<string, mixed> $dbgCtx
      *
      * @phpstan-assert array<array-key, mixed> $actual
@@ -191,6 +201,18 @@ trait ToolsAssertTrait
     }
 
     /**
+     * @template T of int|float
+     *
+     * @param T $expected
+     * @param T $actual
+     * @param ?array<string, mixed> $dbgCtx
+     */
+    public static function assertGreaterThan(mixed $expected, mixed $actual, ?array $dbgCtx = null): void
+    {
+        self::assert($expected < $actual, "\$expected ($expected) < \$actual ($actual) ; " . self::convertAssertDbgCtxToStringToAppend($dbgCtx));
+    }
+
+    /**
      * @param ?array<string, mixed> $dbgCtx
      *
      * @phpstan-assert string $actual
@@ -216,6 +238,21 @@ trait ToolsAssertTrait
         $dbgName = $dbgCtx === null ? 'actual' : array_key_first($dbgCtx);
         self::assert($actual !== '', "$dbgName !== ''" . self::convertAssertDbgCtxToStringToAppend($dbgCtx));
         return $actual;
+    }
+
+    /**
+     * @template TKey of array-key
+     * @template TValue
+     *
+     * @param array<TKey, TValue> $actual
+     * @param ?array<string, mixed> $dbgCtx
+     *
+     * @noinspection PhpUnused
+     */
+    public static function assertArrayIsEmpty(array $actual, ?array $dbgCtx = null): void
+    {
+        $dbgName = $dbgCtx === null ? 'actual' : array_key_first($dbgCtx);
+        self::assert(count($actual) === 0, "count($dbgName) === 0" . self::convertAssertDbgCtxToStringToAppend($dbgCtx));
     }
 
     /**

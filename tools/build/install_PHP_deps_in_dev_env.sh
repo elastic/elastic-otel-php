@@ -20,8 +20,9 @@ function main() {
     php "${src_repo_root_dir}/tools/build/select_composer_lock_and_install.php" dev
     php "${src_repo_root_dir}/tools/build/select_composer_lock_and_install.php" prod
 
-    local dst_vendor_prod_dir="${work_repo_root_dir}/${elastic_otel_php_vendor_prod_dir_name:?}"
-    "${src_repo_root_dir}/tools/build/scope_PHP_deps.sh" --input_dir "${dst_vendor_prod_dir}" --output_dir "${dst_vendor_prod_dir}"
+    # TODO: Sergey Kleyman: UNCOMMENT: scope_PHP_deps.sh
+#    local dst_vendor_prod_dir="${work_repo_root_dir}/${elastic_otel_php_vendor_prod_dir_name:?}"
+#    "${src_repo_root_dir}/tools/build/scope_PHP_deps.sh" --input_dir "${dst_vendor_prod_dir}" --output_dir "${dst_vendor_prod_dir}_scoped"
 }
 
 main "$@"

@@ -21,17 +21,12 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTools\build;
-
-use Elastic\OTel\Util\EnumUtilTrait;
-
-/**
- * Make sure this enum values are in sync with the rest of locations where it's defined (see elastic_otel_php_deps_env_kinds in <repo root>/tools/shared.sh)
- */
-enum PhpDepsEnvKind
-{
-    use EnumUtilTrait;
-
-    case dev;
-    case prod;
+/** @var list<string> $argv */
+global $argv;
+if (count($argv) < 2) {
+    echo 'Missing expected command line argument; ' . json_encode(compact('argv')) . PHP_EOL;
+    exit(1);
 }
+$optionName = $argv[1];
+
+echo(ini_get($optionName));
