@@ -19,11 +19,9 @@
  * under the License.
  */
 
-/** @noinspection PhpIllegalPsrClassPathInspection */
-
 declare(strict_types=1);
 
-namespace ElasticOTelTools\Build;
+namespace ElasticOTelTools;
 
 use Elastic\OTel\BootstrapStageStdErrWriter;
 use Elastic\OTel\Log\LogFeature;
@@ -33,9 +31,9 @@ use ReflectionClass;
 /**
  * @phpstan-type Context array<string, mixed>
  */
-final class BuildToolsLog
+final class ToolsLog
 {
-    use BuildToolsAssertTrait;
+    use ToolsAssertTrait;
 
     public const DEFAULT_LEVEL = LogLevel::info;
 
@@ -151,7 +149,7 @@ final class BuildToolsLog
     public static function writeAsProdSink(int $levelIntVal, int $feature, string $file, int $line, string $func, string $text): void
     {
         $foundLevel = LogLevel::tryFrom($levelIntVal);
-        $levelToUse = $foundLevel === null ? BuildToolsLog::DEFAULT_LEVEL : $foundLevel;
+        $levelToUse = $foundLevel === null ? ToolsLog::DEFAULT_LEVEL : $foundLevel;
         $levelNameToUse = $foundLevel === null ? "LEVEL $levelIntVal" : $foundLevel->name;
         self::withLevelAndFeature($levelToUse, $levelNameToUse, $feature, $file, $line, $func, $text);
     }

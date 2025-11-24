@@ -82,7 +82,7 @@ final class DebugContextSingleton implements LoggableInterface
 
     public function assertValid(): void
     {
-        Assert::assertSame($this->syncedWithCallStack === null, ArrayUtilForTests::isEmpty($this->addedContextScopesStack));
+        Assert::assertSame($this->syncedWithCallStack === null, ArrayUtil::isEmpty($this->addedContextScopesStack));
 
         if ($this->syncedWithCallStack !== null) {
             /** @var ?non-negative-int $prevCallStackFrameIndex */
@@ -226,7 +226,7 @@ final class DebugContextSingleton implements LoggableInterface
                 );
             }
 
-            if ($trimVendorFrames && !ArrayUtilForTests::isEmpty($scopesNameContextStackTopLast)) {
+            if ($trimVendorFrames && !ArrayUtil::isEmpty($scopesNameContextStackTopLast)) {
                 Assert::assertNotNull($lastNonVendorFrameIndex);
                 AssertEx::countAtLeast($lastNonVendorFrameIndex + 1, $scopesNameContextStackTopLast);
             } else {
@@ -394,7 +394,7 @@ final class DebugContextSingleton implements LoggableInterface
             }
         }
 
-        if ($newScopeAboutToBePushed || !ArrayUtilForTests::isEmpty($this->addedContextScopesStack)) {
+        if ($newScopeAboutToBePushed || !ArrayUtil::isEmpty($this->addedContextScopesStack)) {
             $this->syncedWithCallStack = AssertEx::arrayIsNotEmptyList($newCallStack);
         }
     }
@@ -440,7 +440,7 @@ final class DebugContextSingleton implements LoggableInterface
      */
     private static function buildFuncArgsNamesToValues(ClassicFormatStackTraceFrame $stackTraceFrame): array
     {
-        if ($stackTraceFrame->args === null || ArrayUtilForTests::isEmpty($stackTraceFrame->args)) {
+        if ($stackTraceFrame->args === null || ArrayUtil::isEmpty($stackTraceFrame->args)) {
             return [];
         }
 
@@ -522,7 +522,7 @@ final class DebugContextSingleton implements LoggableInterface
                 $uniqueStrToCtxValue[$uniqueStr] = $ctxValue;
                 $ctxWithValuesReplaced[$ctxKey] = $uniqueStr;
             }
-            $outerStruct[$desc] = ArrayUtilForTests::isEmpty($ctxWithValuesReplaced) ? $emptyStdClassInstance : $ctxWithValuesReplaced;
+            $outerStruct[$desc] = ArrayUtil::isEmpty($ctxWithValuesReplaced) ? $emptyStdClassInstance : $ctxWithValuesReplaced;
         }
 
         $exceptionBeingConstructedAsJson = JsonUtil::encode(['exception being constructed class' => get_class($exceptionBeingConstructed)]);
@@ -578,7 +578,7 @@ final class DebugContextSingleton implements LoggableInterface
             return null;
         }
 
-        $decodedContextsStack = JsonUtil::decode($addedText, asAssocArray: true);
+        $decodedContextsStack = JsonUtil::decode($addedText);
         return AssertEx::isArray($decodedContextsStack); // @phpstan-ignore return.type
     }
 

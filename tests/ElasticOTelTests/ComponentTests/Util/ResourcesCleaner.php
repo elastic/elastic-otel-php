@@ -207,7 +207,7 @@ final class ResourcesCleaner extends TestInfraHttpServerProcessBase
     {
         $dbgProcessName = self::getRequiredRequestHeader($request, self::DBG_PROCESS_NAME_HEADER_NAME);
         $pid = AssertEx::stringIsInt(self::getRequiredRequestHeader($request, self::PID_HEADER_NAME));
-        $isTestScoped = AssertEx::isBool(JsonUtil::decode(self::getRequiredRequestHeader($request, self::IS_TEST_SCOPED_HEADER_NAME), asAssocArray: true));
+        $isTestScoped = AssertEx::isBool(JsonUtil::decode(self::getRequiredRequestHeader($request, self::IS_TEST_SCOPED_HEADER_NAME)));
         $processesToTerminateIds = $isTestScoped ? $this->testScopedProcessesToTerminate : $this->globalProcessesToTerminate;
         $processesToTerminateIds->add([$dbgProcessName, $pid]);
         $processesToTerminateIdsCount = $processesToTerminateIds->count();
@@ -219,7 +219,7 @@ final class ResourcesCleaner extends TestInfraHttpServerProcessBase
     {
         $path = self::getRequiredRequestHeader($request, self::PATH_HEADER_NAME);
         $isTestScopedAsString = self::getRequiredRequestHeader($request, self::IS_TEST_SCOPED_HEADER_NAME);
-        $isTestScoped = JsonUtil::decode($isTestScopedAsString, asAssocArray: true);
+        $isTestScoped = JsonUtil::decode($isTestScopedAsString);
         $filesToDeletePaths = $isTestScoped ? $this->testScopedFilesToDeletePaths : $this->globalFilesToDeletePaths;
         $filesToDeletePaths->add($path);
         $filesToDeletePathsCount = $filesToDeletePaths->count();

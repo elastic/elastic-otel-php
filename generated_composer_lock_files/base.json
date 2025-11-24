@@ -10,6 +10,7 @@
     ],
     "require": {
         "php": "8.1.*||8.2.*||8.3.*||8.4.*",
+        "nyholm/psr7-server": "^1.1",
         "open-telemetry/exporter-otlp": "1.2.1",
         "open-telemetry/opentelemetry-auto-curl": "0.0.3",
         "open-telemetry/opentelemetry-auto-http-async": "1.1.0",
@@ -20,18 +21,30 @@
         "open-telemetry/opentelemetry-auto-slim": "1.1.0",
         "open-telemetry/sdk": "1.9.0",
         "open-telemetry/sem-conv": "1.32.0",
-        "php-http/guzzle7-adapter": "^1.0",
-        "nyholm/psr7-server": "^1.1"
+        "php-http/guzzle7-adapter": "^1.0"
     },
     "provide": {
         "laravel/framework": "*",
         "slim/slim": "*"
     },
     "require-dev": {
+        "composer/composer": "^2.0",
+        "dealerdirect/phpcodesniffer-composer-installer": "1.0.0",
+        "ext-ctype": "*",
+        "ext-curl": "*",
+        "ext-mysqli": "*",
+        "ext-pgsql": "*",
+        "ext-pdo": "*",
+        "ext-zlib": "*",
+        "guzzlehttp/guzzle": "^7.9.3",
+        "nikic/php-parser": "^5.5.0",
+        "php-ds/php-ds": "^1.7.0",
         "php-parallel-lint/php-console-highlighter": "^1.0",
         "php-parallel-lint/php-parallel-lint": "1.4.0",
         "phpstan/phpstan": "2.1.31",
         "phpstan/phpstan-phpunit": "2.0.7",
+        "phpunit/phpunit": "^10.5.47",
+        "react/http": "^1.11",
         "slevomat/coding-standard": "8.19.1",
         "squizlabs/php_codesniffer": "3.13.2"
     },
@@ -39,7 +52,7 @@
         "psr-4": {
             "Elastic\\OTel\\": "./prod/php/ElasticOTel/",
             "ElasticOTelTests\\": "./tests/ElasticOTelTests/",
-            "ElasticOTelTools\\Build\\": "./tools/build/"
+            "ElasticOTelTools\\": "./tools/"
         }
     },
     "config": {
@@ -53,14 +66,10 @@
     },
     "scripts": {
         "pre-install-cmd": [
-            "php tools/build/direct_composer_install_update_not_allowed.php install"
+            "php ./tools/build/direct_composer_install_update_not_allowed.php install"
         ],
         "pre-update-cmd": [
-            "php tools/build/direct_composer_install_update_not_allowed.php update"
-        ],
-        "generate_lock_use_current_json": [
-            "@putenv ELASTIC_OTEL_PHP_TOOLS_ALLOW_DIRECT_COMPOSER_COMMAND=true",
-            "composer --ignore-platform-req=ext-mysqli --ignore-platform-req=ext-pgsql --ignore-platform-req=ext-opentelemetry --no-interaction --no-plugins --no-scripts --no-install update"
+            "php ./tools/build/direct_composer_install_update_not_allowed.php update"
         ],
         "parallel-lint": [
             "@putenv ELASTIC_OTEL_ENABLED=false",

@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-set -e -o pipefail
+set -e -u -o pipefail
 #set -x
 
 function main() {
     this_script_dir="$(dirname "${BASH_SOURCE[0]}")"
     this_script_dir="$(realpath "${this_script_dir}")"
+    src_repo_root_dir="$(realpath "${this_script_dir}/../../..")"
 
-    repo_root_dir="$(realpath "${this_script_dir}/../../..")"
-    source "${repo_root_dir}/tools/shared.sh"
+    source "${src_repo_root_dir}/tools/shared.sh"
 
     source "${this_script_dir}/external_services_env_vars.sh"
 

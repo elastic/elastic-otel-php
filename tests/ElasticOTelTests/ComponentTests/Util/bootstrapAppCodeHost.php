@@ -21,8 +21,8 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTools\Build;
+use ElasticOTelTests\BootstrapTestsSharedUtil;
 
-require __DIR__ . DIRECTORY_SEPARATOR . 'bootstrap_build_tools.php';
+require __DIR__ . '/../../BootstrapTestsSharedUtil.php';
 
-InstallPhpDeps::selectJsonLockAndInstall(BuildToolsUtil::getCommandLineArgs());
+BootstrapTestsSharedUtil::bootstrapTestsContext(autoloadProd: false);

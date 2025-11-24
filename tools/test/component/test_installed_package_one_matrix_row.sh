@@ -1,15 +1,19 @@
 #!/usr/bin/env bash
-set -e -o pipefail
+set -e -u -o pipefail
 #set -x
 
 function main() {
-    source "./tools/shared.sh"
+    this_script_dir="$(dirname "${BASH_SOURCE[0]}")"
+    this_script_dir="$(realpath "${this_script_dir}")"
+    src_repo_root_dir="$(realpath "${this_script_dir}/../../..")"
+
+    source "${src_repo_root_dir}/tools/shared.sh"
 
     if [ -z "${composer_run_component_tests_log_file}" ]; then
         composer_run_component_tests_log_file=/elastic_otel_php_tests/logs/composer_-_run_component_tests.log
     fi
 
-    source "./tools/test/component/unpack_matrix_row.sh" "${ELASTIC_OTEL_PHP_TESTS_MATRIX_ROW:?}"
+    source "${src_repo_root_dir}/tools/test/component/unpack_matrix_row.sh" "${ELASTIC_OTEL_PHP_TESTS_MATRIX_ROW:?}"
     env | grep ELASTIC_OTEL_PHP_TESTS_ | sort
 
     composer_command=(composer run-script -- run_component_tests)

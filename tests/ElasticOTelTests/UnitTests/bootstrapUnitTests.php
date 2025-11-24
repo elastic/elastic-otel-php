@@ -23,8 +23,13 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests;
 
-use ElasticOTelTests\BootstrapTests;
+use ElasticOTelTests\BootstrapTestsUtil;
+use ElasticOTelTests\Util\ExceptionUtil;
 
-require __DIR__ . '/../../bootstrap.php';
+require __DIR__ . '/../bootstrap_tests_shared.php';
 
-BootstrapTests::bootstrapUnitTests();
+ExceptionUtil::runCatchLogRethrow(
+    function (): void {
+        BootstrapTestsUtil::bootstrapShared(dbgProcessName: 'Unit tests');
+    }
+);

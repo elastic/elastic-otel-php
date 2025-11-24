@@ -10,6 +10,7 @@ RUN apt-get -qq update \
         libzip-dev \
         logrotate \
         procps \
+        rsync \
         rsyslog
 
 RUN docker-php-ext-install \
@@ -22,4 +23,4 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /
 
-ENTRYPOINT exec /read_only_repo_root/tools/test/component/docker_entrypoint.sh
+ENTRYPOINT exec /docker_host_repo_root/tools/test/component/docker_entrypoint.sh

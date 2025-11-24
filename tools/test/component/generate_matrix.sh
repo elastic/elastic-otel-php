@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e -o pipefail
+set -e -u -o pipefail
 #set -x
 
 #
@@ -63,9 +63,9 @@ function generate_rows_to_test_all_php_versions_with_one_package_type () {
 function main () {
     this_script_dir="$( dirname "${BASH_SOURCE[0]}" )"
     this_script_dir="$( realpath "${this_script_dir}" )"
+    src_repo_root_dir="$(realpath "${this_script_dir}/../../..")"
 
-    repo_root_dir="$( realpath "${this_script_dir}/../../.." )"
-    source "${repo_root_dir}/tools/shared.sh"
+    source "${src_repo_root_dir}/tools/shared.sh"
 
     generate_rows_to_test_all_php_versions_with_one_package_type
     generate_rows_to_test_highest_supported_php_version_with_other_package_types

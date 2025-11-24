@@ -19,8 +19,6 @@
  * under the License.
  */
 
-/** @noinspection PhpUnused */
-
 declare(strict_types=1);
 
 namespace ElasticOTelTests;
@@ -29,21 +27,17 @@ use Elastic\OTel\PhpPartFacade;
 use Elastic\OTel\Util\StaticClassTrait;
 use ElasticOTelTests\Util\AmbientContextForTests;
 use ElasticOTelTests\Util\DebugContext;
-use ElasticOTelTests\Util\ExceptionUtil;
 use ElasticOTelTests\Util\Log\LoggableToJsonEncodable;
 use ElasticOTelTests\Util\Log\LoggingSubsystem;
 use PHPUnit\Framework\Assert;
 
-final class BootstrapTests
+final class BootstrapTestsUtil
 {
     use StaticClassTrait;
 
-    public const UNIT_TESTS_DBG_PROCESS_NAME = 'Unit tests';
-    public const COMPONENT_TESTS_DBG_PROCESS_NAME = 'Component tests';
-
     public const LOG_COMPOSITE_DATA_MAX_DEPTH_IN_TEST_MODE = 15;
 
-    private static function bootstrapShared(string $dbgProcessName): void
+    public static function bootstrapShared(string $dbgProcessName): void
     {
         AmbientContextForTests::init($dbgProcessName);
 
@@ -54,33 +48,5 @@ final class BootstrapTests
 
         // PHP part of EDOT should not be loaded in the tests context
         Assert::assertFalse(PhpPartFacade::$wasBootstrapCalled);
-    }
-
-    public static function bootstrapTool(string $dbgProcessName): void
-    {
-        ExceptionUtil::runCatchLogRethrow(
-            function () use ($dbgProcessName): void {
-                self::bootstrapShared($dbgProcessName);
-            }
-        );
-    }
-
-    public static function bootstrapUnitTests(): void
-    {
-        ExceptionUtil::runCatchLogRethrow(
-            function (): void {
-                self::bootstrapShared(self::UNIT_TESTS_DBG_PROCESS_NAME);
-            }
-        );
-    }
-
-    public static function bootstrapComponentTests(): void
-    {
-        ExceptionUtil::runCatchLogRethrow(
-            function (): void {
-                self::bootstrapShared(self::COMPONENT_TESTS_DBG_PROCESS_NAME);
-                AmbientContextForTests::testConfig()->validateForComponentTests();
-            }
-        );
     }
 }

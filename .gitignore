@@ -18,6 +18,7 @@ prod/php/ElasticOTel/Log/LogFeature.php
 composer.lock
 composer.phar
 vendor/
+vendor_prod/
 prod/php/vendor_*/
 
 # PHP_CodeSniffer

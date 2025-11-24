@@ -23,8 +23,8 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
+use Elastic\OTel\Util\ArrayUtil;
 use ElasticOTelTests\Util\AmbientContextForTests;
-use ElasticOTelTests\Util\ArrayUtilForTests;
 use ElasticOTelTests\Util\Config\OptionForTestsName;
 use ElasticOTelTests\Util\ExceptionUtil;
 use ElasticOTelTests\Util\HttpStatusCodes;
@@ -268,7 +268,7 @@ abstract class TestInfraHttpServerProcessBase extends SpawnedProcessBase
     protected static function getRequestHeader(ServerRequestInterface $request, string $headerName): ?string
     {
         $headerValues = $request->getHeader($headerName);
-        if (ArrayUtilForTests::isEmpty($headerValues)) {
+        if (ArrayUtil::isEmpty($headerValues)) {
             return null;
         }
         if (count($headerValues) !== 1) {

@@ -30,10 +30,9 @@ use JsonException;
 
 final class JsonUtilTest extends TestCaseBase
 {
-    /** @noinspection PhpSameParameterValueInspection */
-    private static function decode(string $encodedData, bool $asAssocArray): mixed
+    private static function decode(string $encodedData): mixed
     {
-        $decodedData = json_decode($encodedData, /* associative: */ $asAssocArray);
+        $decodedData = json_decode($encodedData, /* associative: */ true);
         if ($decodedData === null && ($encodedData !== 'null')) {
             throw new JsonException(
                 'json_decode() failed.'
@@ -49,7 +48,7 @@ final class JsonUtilTest extends TestCaseBase
         $original = ['0' => 0];
         $serialized = JsonUtil::encode((object)$original);
         self::assertSame(1, preg_match('/^\s*{\s*"0"\s*:\s*0\s*}\s*$/', $serialized));
-        $decodedJson = self::decode($serialized, asAssocArray: true);
+        $decodedJson = self::decode($serialized);
         self::assertIsArray($decodedJson);
         AssertEx::equalMaps($original, $decodedJson);
     }

@@ -23,6 +23,6 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
-require __DIR__ . '/../../../bootstrap.php';
+require __DIR__ . '/bootstrapAppCodeHost.php';
 
 BuiltinHttpServerAppCodeHost::run();
