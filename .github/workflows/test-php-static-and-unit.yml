@@ -27,7 +27,7 @@ jobs:
     env:
       PHP_VERSION: ${{ matrix.php-version }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Invoke test_php_static_and_unit.sh
         run: ./tools/test/test_php_static_and_unit.sh --php_versions "${PHP_VERSION}" --logs_dir "${PWD}/${{ env.UNIT_TESTS_LOGS_SUB_DIR }}"
       - uses: actions/upload-artifact@v5

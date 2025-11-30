@@ -16,6 +16,6 @@ jobs:
     strategy:
       fail-fast: false
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Verification whether the source files contain a header with the license
         run: ./tools/build/test_sources_license.sh

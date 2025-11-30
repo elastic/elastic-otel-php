@@ -21,7 +21,7 @@ jobs:
     outputs:
       php-versions: ${{ steps.generate.outputs.php-versions }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - id: generate
         run: |
           source ./tools/read_properties.sh
