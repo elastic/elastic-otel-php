@@ -26,7 +26,7 @@ jobs:
     env:
       PHP_VERSION: ${{ matrix.php-version }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Download package artifacts for Debian AMD64
         uses: actions/download-artifact@v6
         with:
