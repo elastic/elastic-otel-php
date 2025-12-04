@@ -32,7 +32,7 @@ using namespace std::literals;
 
 namespace opentelemetry::php::transport {
 
-void OpAmp::init() {
+void OpAmp::startCommunication() {
     if (config_->get().opamp_endpoint.empty()) {
         ELOG_DEBUG(log_, OPAMP, "disabled");
         return;

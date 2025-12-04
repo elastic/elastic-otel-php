@@ -70,7 +70,7 @@ public:
         pauseCondition_.notify_all();
     }
 
-    void init();
+    void startCommunication();
 
     configFiles_t getConfiguration() {
         std::lock_guard<std::mutex> lock(configAccessMutex_);
