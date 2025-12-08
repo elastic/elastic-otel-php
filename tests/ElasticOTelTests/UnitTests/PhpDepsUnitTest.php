@@ -23,7 +23,7 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\UnitTests;
 
-use ElasticOTelTests\Util\FileUtil;
+use Composer\Semver\Semver;
 use ElasticOTelTests\Util\RepoRootDir;
 use ElasticOTelTests\Util\TestCaseBase;
 use ElasticOTelTools\build\ComposerUtil;
@@ -31,9 +31,51 @@ use ElasticOTelTools\build\GenerateComposerFiles;
 use ElasticOTelTools\build\InstallPhpDeps;
 use ElasticOTelTools\build\PhpDepsGroup;
 use ElasticOTelTools\ToolsUtil;
+use Throwable;
 
 final class PhpDepsUnitTest extends TestCaseBase
 {
+    public function testSemverConstraint(): void
+    {
+        $assertSatisfies = function (string $version, string $constraint): void {
+            self::assertTrue(Semver::satisfies($version, $constraint));
+        };
+
+        $assertNotSatisfies = function (string $version, string $constraint): void {
+            self::assertNotTrue(Semver::satisfies($version, $constraint));
+        };
+
+        $assertThrows = function (string $version, string $constraint): void {
+            $thrown = null;
+            try {
+                Semver::satisfies($version, $constraint);
+            } catch (Throwable $throwable) {
+                $thrown = $throwable;
+            }
+            self::assertNotNull($thrown);
+        };
+
+        $assertSatisfies('8.1', '^8.0');
+        $assertSatisfies('8.1', '^8.1');
+        $assertNotSatisfies('8.1', '^8.2');
+        $assertNotSatisfies('8.1', '^8.3');
+        $assertNotSatisfies('8.1', '^9.1');
+
+        $assertSatisfies('8.1', '>=7.0');
+        $assertSatisfies('8.1', '>=8.0');
+        $assertSatisfies('8.1', '>=8.1');
+        $assertNotSatisfies('8.1', '>=8.2');
+        $assertNotSatisfies('8.1', '>=9.1');
+
+        $assertSatisfies('8.1', '^5.3 || ^7.0 || ^8.0');
+        $assertNotSatisfies('4.1', '^5.3 || ^7.0 || ^8.0');
+
+        $assertSatisfies('8.1.2.3', '^8.1');
+        $assertNotSatisfies('8.1.2.3', '^8.2');
+
+        $assertThrows('8.1.2.3-extra', '^8.1');
+    }
+
     public function testExtractPhpVersionPartFromLockFileName(): void
     {
         $test = function (string $fileName, PhpDepsGroup $depsGroup, ?string $expectedPhpVersionNoDot): void {

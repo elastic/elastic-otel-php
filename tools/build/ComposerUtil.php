@@ -35,6 +35,7 @@ use ElasticOTelTools\ToolsUtil;
  * @phpstan-import-type EnvVars from ToolsUtil
  *
  * @phpstan-type PackageNameToVersionMap array<string, string>
+ * @phpstan-type ProdAndDevPackageNameToVersionMap array{'prod': PackageNameToVersionMap, 'dev': PackageNameToVersionMap}
  */
 final class ComposerUtil
 {
@@ -67,6 +68,11 @@ final class ComposerUtil
     public const JSON_PHP_KEY = 'php';
     public const REQUIRE_KEY = 'require';
     public const REQUIRE_DEV_KEY = 'require-dev';
+
+    private const PACKAGES_KEY = 'packages';
+    private const PACKAGES_DEV_KEY = 'packages-dev';
+    private const NAME_KEY = 'name';
+    private const VERSION_KEY = 'version';
 
     public const HOME_ENV_VAR_NAME = 'COMPOSER_HOME';
     public const HOME_CONFIG_JSON_FILE_NAME = 'config.json';
@@ -233,24 +239,24 @@ final class ComposerUtil
         return $result;
     }
 
+    private const JSON_SECTION_NAME_TO_PACKAGES_SECTION = [
+        ComposerUtil::REQUIRE_KEY => ComposerPackagesSection::prod,
+        ComposerUtil::REQUIRE_DEV_KEY => ComposerPackagesSection::dev,
+    ];
+
     /**
-     * @phpstan-return array{'require': PackageNameToVersionMap, 'require-dev': PackageNameToVersionMap}
+     * @phpstan-return ProdAndDevPackageNameToVersionMap
      */
     public static function readPackagesVersionsFromJson(string $filePath): array
     {
         $decodedJson = ToolsUtil::decodeJson(ToolsUtil::getFileContents($filePath));
 
         $result = [];
-        foreach ([ComposerUtil::REQUIRE_KEY, ComposerUtil::REQUIRE_DEV_KEY] as $sectionName) {
-            $result[$sectionName] = self::readPackagesVersionsFromJsonSection(self::assertIsArray(self::assertArrayHasKey($sectionName, $decodedJson)));
+        foreach (self::JSON_SECTION_NAME_TO_PACKAGES_SECTION as $sectionName => $packagesSection) {
+            $result[$packagesSection->name] = self::readPackagesVersionsFromJsonSection(self::assertIsArray(self::assertArrayHasKey($sectionName, $decodedJson)));
         }
         return $result;
     }
-
-    private const PACKAGES_KEY = 'packages';
-    private const PACKAGES_DEV_KEY = 'packages-dev';
-    private const NAME_KEY = 'name';
-    private const VERSION_KEY = 'version';
 
     /**
      * @phpstan-param array<array-key, mixed> $section
@@ -273,16 +279,21 @@ final class ComposerUtil
         return $result;
     }
 
+    private const LOCK_SECTION_NAME_TO_PACKAGES_SECTION = [
+        ComposerUtil::PACKAGES_KEY => ComposerPackagesSection::prod,
+        ComposerUtil::PACKAGES_DEV_KEY => ComposerPackagesSection::dev,
+    ];
+
     /**
-     * @phpstan-return array{'packages': PackageNameToVersionMap, 'packages-dev': PackageNameToVersionMap}
+     * @phpstan-return ProdAndDevPackageNameToVersionMap
      */
     public static function readPackagesVersionsFromLock(string $filePath): array
     {
         $decodedJson = ToolsUtil::decodeJson(ToolsUtil::getFileContents($filePath));
 
         $result = [];
-        foreach ([ComposerUtil::PACKAGES_KEY, ComposerUtil::PACKAGES_DEV_KEY] as $sectionName) {
-            $result[$sectionName] = self::readPackagesVersionsFromLockSection(self::assertIsArray(self::assertArrayHasKey($sectionName, $decodedJson)));
+        foreach (self::LOCK_SECTION_NAME_TO_PACKAGES_SECTION as $sectionName => $packagesSection) {
+            $result[$packagesSection->name] = self::readPackagesVersionsFromLockSection(self::assertIsArray(self::assertArrayHasKey($sectionName, $decodedJson)));
         }
         return $result;
     }

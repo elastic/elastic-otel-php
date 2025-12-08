@@ -52,7 +52,6 @@ use PhpParser\NodeTraverser as PhpParserNodeTraverser;
 use PhpParser\NodeVisitorAbstract as PhpParserNodeVisitorAbstract;
 use PhpParser\ParserFactory;
 use SplFileInfo;
-use Throwable;
 
 /**
  * @group does_not_require_external_services
@@ -65,47 +64,6 @@ final class PhpDepsComponentTest extends ComponentTestCaseBase
     public const SCOPE_NAMESPACE = 'ScopedByElasticOTel';
 
     private const PROD_VENDOR_DIR_KEY = 'prod_vendor_dir';
-
-    public function testSemverConstraint(): void
-    {
-        $assertSatisfies = function (string $version, string $constraint): void {
-            self::assertTrue(Semver::satisfies($version, $constraint));
-        };
-
-        $assertNotSatisfies = function (string $version, string $constraint): void {
-            self::assertNotTrue(Semver::satisfies($version, $constraint));
-        };
-
-        $assertThrows = function (string $version, string $constraint): void {
-            $thrown = null;
-            try {
-                Semver::satisfies($version, $constraint);
-            } catch (Throwable $throwable) {
-                $thrown = $throwable;
-            }
-            self::assertNotNull($thrown);
-        };
-
-        $assertSatisfies('8.1', '^8.0');
-        $assertSatisfies('8.1', '^8.1');
-        $assertNotSatisfies('8.1', '^8.2');
-        $assertNotSatisfies('8.1', '^8.3');
-        $assertNotSatisfies('8.1', '^9.1');
-
-        $assertSatisfies('8.1', '>=7.0');
-        $assertSatisfies('8.1', '>=8.0');
-        $assertSatisfies('8.1', '>=8.1');
-        $assertNotSatisfies('8.1', '>=8.2');
-        $assertNotSatisfies('8.1', '>=9.1');
-
-        $assertSatisfies('8.1', '^5.3 || ^7.0 || ^8.0');
-        $assertNotSatisfies('4.1', '^5.3 || ^7.0 || ^8.0');
-
-        $assertSatisfies('8.1.2.3', '^8.1');
-        $assertNotSatisfies('8.1.2.3', '^8.2');
-
-        $assertThrows('8.1.2.3-extra', '^8.1');
-    }
 
     private static function getCurrentPhpVersion(): string
     {

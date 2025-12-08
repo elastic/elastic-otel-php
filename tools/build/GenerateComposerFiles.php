@@ -33,6 +33,7 @@ use ElasticOTelTools\ToolsUtil;
 
 /**
  * @phpstan-import-type PackageNameToVersionMap from ComposerUtil
+ * @phpstan-import-type ProdAndDevPackageNameToVersionMap from ComposerUtil
  */
 final class GenerateComposerFiles
 {
@@ -99,7 +100,10 @@ final class GenerateComposerFiles
         } else {
             ComposerUtil::generateLock();
         }
-        ToolsUtil::copyFile($rootLockFile, self::buildFullPath($repoRootDir, self::buildLockFileNameForCurrentPhpVersion(self::BASE_FILE_NAME_NO_EXT)));
+        $baseLockDstFile = self::buildFullPath($repoRootDir, self::buildLockFileNameForCurrentPhpVersion(self::BASE_FILE_NAME_NO_EXT));
+        ToolsUtil::copyFile($rootLockFile, $baseLockDstFile);
+
+        self::verifyBaseComposerLock($baseLockDstFile);
     }
 
     private static function generateDerivedFromBase(string $repoRootDir): void
@@ -120,20 +124,21 @@ final class GenerateComposerFiles
                         PhpDepsGroup::prod => self::removeDevPackagesFromComposerJsonAndLock($tempRepoDir, shouldRemove: fn($fqPackageName) => true),
                     };
 
-                    $derivedJson = self::buildFullPath($repoRootDir, self::buildJsonFileName($depsGroup->name));
-                    ToolsUtil::moveFile(ToolsUtil::partsToPath($tempRepoDir, ComposerUtil::JSON_FILE_NAME), $derivedJson);
-                    $derivedLock = self::buildFullPath($repoRootDir, self::buildLockFileNameForCurrentPhpVersion($depsGroup->name));
-                    ToolsUtil::moveFile(ToolsUtil::partsToPath($tempRepoDir, ComposerUtil::LOCK_FILE_NAME), $derivedLock);
+                    $derivedJsonFile = self::buildFullPath($repoRootDir, self::buildJsonFileName($depsGroup->name));
+                    ToolsUtil::moveFile(ToolsUtil::partsToPath($tempRepoDir, ComposerUtil::JSON_FILE_NAME), $derivedJsonFile);
+                    $derivedLockFile = self::buildFullPath($repoRootDir, self::buildLockFileNameForCurrentPhpVersion($depsGroup->name));
+                    ToolsUtil::moveFile(ToolsUtil::partsToPath($tempRepoDir, ComposerUtil::LOCK_FILE_NAME), $derivedLockFile);
 
                     $logLevelToShowDiff = LogLevel::debug;
                     if (ToolsLog::isLevelEnabled($logLevelToShowDiff)) {
-                        $baseJson = self::buildFullPath($tempRepoDir, self::buildJsonFileName(self::BASE_FILE_NAME_NO_EXT));
-                        $baseLock = self::buildFullPath($tempRepoDir, self::buildLockFileNameForCurrentPhpVersion(self::BASE_FILE_NAME_NO_EXT));
-                        self::assertNotEqual(0, ToolsUtil::execShellCommand("diff \"$baseJson\" \"$derivedJson\"", assertSuccessExitCode: false));
-                        self::assertNotEqual(0, ToolsUtil::execShellCommand("diff \"$baseLock\" \"$derivedLock\"", assertSuccessExitCode: false));
+                        $baseJsonFile = self::buildFullPath($tempRepoDir, self::buildJsonFileName(self::BASE_FILE_NAME_NO_EXT));
+                        $baseLockFile = self::buildFullPath($tempRepoDir, self::buildLockFileNameForCurrentPhpVersion(self::BASE_FILE_NAME_NO_EXT));
+                        self::assertNotEqual(0, ToolsUtil::execShellCommand("diff \"$baseJsonFile\" \"$derivedJsonFile\"", assertSuccessExitCode: false));
+                        self::assertNotEqual(0, ToolsUtil::execShellCommand("diff \"$baseLockFile\" \"$derivedLockFile\"", assertSuccessExitCode: false));
                     }
 
-                    self::verifyDerivedComposerJson($depsGroup, $derivedJson);
+                    self::verifyDerivedComposerJson($depsGroup, $baseJsonFile, $derivedJsonFile);
+                    self::verifyDerivedComposerLock($depsGroup, $baseLockFile, $derivedLockFile);
                 }
             }
         );
@@ -268,6 +273,58 @@ final class GenerateComposerFiles
         ],
     ];
 
+    /**
+     * @phpstan-param array<string> $actualPackageNames
+     */
+    private static function verifyShouldOrNotIncludePackages(bool $shouldInclude, PhpDepsGroup $depsGroup, string $dbgActualPackageNamesSourceDesc, array $actualPackageNames): void
+    {
+        /** @var ?array<string, array{'shouldInclude': list<string>, 'shouldNotInclude': list<string>}> $depsGroupNameToShouldInclude */
+        static $depsGroupNameToShouldOrNotInclude = null;
+        if ($depsGroupNameToShouldOrNotInclude === null) {
+            $depsGroupNameToShouldOrNotInclude = [];
+            foreach (self::DEPS_GROUP_TO_PACKAGES as $depsGroupAndShouldIncludePair) {
+                /** @var array{PhpDepsGroup, array{'shouldInclude': list<string>, 'shouldNotInclude': list<string>}} $depsGroupAndShouldIncludePair */
+                $depsGroupNameToShouldOrNotInclude[$depsGroupAndShouldIncludePair[0]->name] = $depsGroupAndShouldIncludePair[1];
+            }
+        }
+        /** @var array<string, array{'shouldInclude': list<string>, 'shouldNotInclude': list<string>}> $depsGroupNameToShouldInclude */
+
+        $dbgCtx = [];
+        ArrayUtil::prepend(compact('shouldInclude', 'depsGroup', 'dbgActualPackageNamesSourceDesc', 'actualPackageNames'), /* ref */ $dbgCtx);
+
+        /** @var array{'shouldInclude': list<string>, 'shouldNotInclude': list<string>} $shouldOrNotInclude */
+        $shouldOrNotIncludePair = self::assertArrayHasKey($depsGroup->name, $depsGroupNameToShouldOrNotInclude);
+        $shouldOrNotIncludePackageNames = $shouldOrNotIncludePair[$shouldInclude ? 'shouldInclude' : 'shouldNotInclude'];
+        ArrayUtil::prepend(compact('shouldOrNotIncludePackageNames'), /* ref */ $dbgCtx);
+        foreach ($shouldOrNotIncludePackageNames as $shouldOrNotPackageName) {
+            ArrayUtil::prepend(compact('shouldOrNotPackageName'), /* ref */ $dbgCtx);
+            $isInArray = in_array($shouldOrNotPackageName, $actualPackageNames);
+            ArrayUtil::prepend(compact('isInArray'), /* ref */ $dbgCtx);
+            self::assert($shouldInclude ? $isInArray : !$isInArray, ' ; ' . json_encode($dbgCtx));
+        }
+    }
+
+    private const BASE_DEPS_GROUP_PACKAGES_SECTION = [
+        [PhpDepsGroup::prod, ComposerPackagesSection::prod],
+        [PhpDepsGroup::dev, ComposerPackagesSection::dev],
+    ];
+
+    /**
+     * @param ProdAndDevPackageNameToVersionMap $prodAndDevPackageNameToVersionMap
+     */
+    private static function verifyBaseComposerFile(string $dbgFilePath, array $prodAndDevPackageNameToVersionMap): void
+    {
+        foreach (self::BASE_DEPS_GROUP_PACKAGES_SECTION as [$depsGroup, $packagesSection]) {
+            $packagesNamesToVersions = self::assertArrayHasKey($packagesSection->name, $prodAndDevPackageNameToVersionMap);
+            self::verifyShouldOrNotIncludePackages(/* shouldInclude */ true, $depsGroup, $dbgFilePath, array_keys($packagesNamesToVersions));
+        }
+    }
+
+    private static function verifyBaseComposerJson(string $filePath): void
+    {
+        self::verifyBaseComposerFile($filePath, ComposerUtil::readPackagesVersionsFromJson($filePath));
+    }
+
     private static function verifyDerivedIsSubsetOfBase(string $repoRootDir): void
     {
         foreach (PhpDepsGroup::cases() as $depsGroup) {
@@ -326,80 +383,55 @@ final class GenerateComposerFiles
         $dbgCtxPackageIt = [];
     }
 
+    private static function verifyBaseComposerLock(string $filePath): void
+    {
+        self::verifyBaseComposerFile($filePath, ComposerUtil::readPackagesVersionsFromLock($filePath));
+    }
+
     /**
-     * @phpstan-param  PackageNameToVersionMap $actual
+     * @param ProdAndDevPackageNameToVersionMap $prodAndDevPackageNameToVersionMap
      */
-    private static function verifyShouldOrNotIncludePackages(bool $shouldInclude, PhpDepsGroup $depsGroup, string $dbgDescActualPackages, array $actualPackages): void
-    {
-        /** @var ?array<string, array{'shouldInclude': list<string>, 'shouldNotInclude': list<string>}> $depsGroupNameToShouldInclude */
-        static $depsGroupNameToShouldOrNotInclude = null;
-        if ($depsGroupNameToShouldOrNotInclude === null) {
-            $depsGroupNameToShouldOrNotInclude = [];
-            foreach (self::DEPS_GROUP_TO_PACKAGES as $depsGroupAndShouldIncludePair) {
-                /** @var array{PhpDepsGroup, array{'shouldInclude': list<string>, 'shouldNotInclude': list<string>}} $depsGroupAndShouldIncludePair */
-                $depsGroupNameToShouldOrNotInclude[$depsGroupAndShouldIncludePair[0]->name] = $depsGroupAndShouldIncludePair[1];
-            }
-        }
-        /** @var array<string, array{'shouldInclude': list<string>, 'shouldNotInclude': list<string>}> $depsGroupNameToShouldInclude */
-
+    private static function verifyDerivedComposerFile(
+        PhpDepsGroup $depsGroup,
+        string $dbgBaseFilePath,
+        array $baseProdAndDevPackageNameToVersionMap,
+        string $dbgDerivedFilePath,
+        array $derivedProdAndDevPackageNameToVersionMap,
+    ): void {
         $dbgCtx = [];
-        ArrayUtil::prepend(compact('shouldInclude', 'depsGroup', 'dbgDescActualPackages', 'actualPackages'), /* ref */ $dbgCtx);
+        ArrayUtil::prepend(compact('depsGroup', 'dbgFilePath'), /* ref */ $dbgCtx);
+        $isDevToPackagesSectionId = fn (bool $isDev) => $isDev ? ComposerPackagesSection::dev : ComposerPackagesSection::prod;
 
-        /** @var array{'shouldInclude': list<string>, 'shouldNotInclude': list<string>} $shouldOrNotInclude */
-        $shouldOrNotIncludePair = self::assertArrayHasKey($depsGroup->name, $depsGroupNameToShouldOrNotInclude);
-        $shouldOrNotIncludePackageNames = $shouldOrNotIncludePair[$shouldInclude ? 'shouldInclude' : 'shouldNotInclude'];
-        ArrayUtil::prepend(compact('shouldOrNotIncludePackageNames'), /* ref */ $dbgCtx);
-        foreach ($shouldOrNotIncludePackageNames as $shouldOrNotPackageName) {
-            ArrayUtil::prepend(compact('shouldOrNotPackageName'), /* ref */ $dbgCtx);
-            $isInArray = in_array($shouldOrNotPackageName, $actualPackages);
-            ArrayUtil::prepend(compact('isInArray'), /* ref */ $dbgCtx);
-            self::assert($shouldInclude ? $isInArray : !$isInArray, ' ; ' . json_encode($dbgCtx));
-        }
-    }
+        $packagesSectionIdThatShouldBeEmpty = $isDevToPackagesSectionId(!InstallPhpDeps::mapDepsGroupToIsDev($depsGroup))->name;
+        ArrayUtil::prepend(compact('packagesSectionIdThatShouldBeEmpty'), /* ref */ $dbgCtx);
+        $sectionThatShouldBeEmpty  = self::assertArrayHasKey($packagesSectionIdThatShouldBeEmpty, $prodAndDevPackageNameToVersionMap);
+        ArrayUtil::prepend(compact('sectionThatShouldBeEmpty'), /* ref */ $dbgCtx);
+        self::assertArrayIsEmpty($sectionThatShouldBeEmpty, $dbgCtx);
 
-    public static function verifyBaseComposerJson(string $filePath): void
-    {
-        $sectionNameToPackagesNamesToVersions = ComposerUtil::readPackagesVersionsFromJson($filePath);
-        foreach ([[PhpDepsGroup::prod, self::PROD_PACKAGES], [PhpDepsGroup::dev, self::ALL_DEV_PACKAGES]] as [$depsGroup, $sectionName]) {
-            $packagesNamesToVersions = self::assertArrayHasKey($sectionName, $sectionNameToPackagesNamesToVersions);
-            self::verifyShouldOrNotIncludePackages(/* shouldInclude */ true, $depsGroup, $filePath, $packagesNamesToVersions);
-        }
-    }
-
-    public static function verifyDerivedComposerJson(PhpDepsGroup $depsGroup, string $filePath): void
-    {
-        $dbgCtx = [];
-        ArrayUtil::prepend(compact('depsGroup', 'filePath'), /* ref */ $dbgCtx);
-        $sectionNameToPackagesNamesToVersions = ComposerUtil::readPackagesVersionsFromJson($filePath);
-        $isDevToSectionName = fn (bool $isDev) => $isDev ? ComposerUtil::REQUIRE_DEV_KEY : ComposerUtil::REQUIRE_KEY;
-
-        $shouldBeEmptySectionName = $isDevToSectionName(!InstallPhpDeps::mapDepsGroupToIsDev($depsGroup));
-        $jsonRequireSectionThatShouldBeEmpty  = self::assertArrayHasKey($shouldBeEmptySectionName, $sectionNameToPackagesNamesToVersions);
-        ArrayUtil::prepend(compact('jsonRequireSectionThatShouldBeEmpty'), /* ref */ $dbgCtx);
-        self::assertArrayIsEmpty($jsonRequireSectionThatShouldBeEmpty, $dbgCtx);
-
-        $sectionName = $isDevToSectionName(InstallPhpDeps::mapDepsGroupToIsDev($depsGroup));
-        $jsonPackageNames = array_keys(self::assertIsArray(self::assertArrayHasKey($sectionName, $sectionNameToPackagesNamesToVersions)));
-        ArrayUtil::prepend(compact('jsonPackageNames'), /* ref */ $dbgCtx);
+        $packagesSectionIdThatShouldNotBeEmpty = $isDevToPackagesSectionId(InstallPhpDeps::mapDepsGroupToIsDev($depsGroup))->name;
+        $packageNames = array_keys(self::assertIsArray(self::assertArrayHasKey($packagesSectionIdThatShouldNotBeEmpty, $prodAndDevPackageNameToVersionMap)));
+        ArrayUtil::prepend(compact('packageNames'), /* ref */ $dbgCtx);
 
         foreach ([true, false] as $shouldInclude) {
-            self::verifyShouldOrNotIncludePackages($shouldInclude, $depsGroup, $filePath, $jsonPackageNames);
+            self::verifyShouldOrNotIncludePackages($shouldInclude, $depsGroup, $dbgFilePath, $packageNames);
         }
     }
 
-    public static function verifyComposerLock(PhpDepsGroup $depsGroup, string $vendorDir): void
+    private static function verifyDerivedComposerJson(PhpDepsGroup $depsGroup, string $baseJsonFile, string $derivedJsonFile): void
     {
-        foreach ($depsGroupToOnlyPackages as $currentDepsGroup => $onlyPackages) {
-            foreach ($onlyPackages as $fqPackageName) {
-                $packageDir = ToolsUtil::partsToPath($vendorDir, ToolsUtil::adaptUnixDirectorySeparators($fqPackageName));
-                $dbgCtx = compact('packageDir', 'vendorDir', 'fqPackageName', 'currentDepsGroup');
-                if ($depsGroup->name === $currentDepsGroup) {
-                    self::assertDirectoryExists($packageDir, $dbgCtx);
-                } else {
-                    self::assertDirectoryDoesNotExist($packageDir, $dbgCtx);
-                }
-            }
-        }
+        self::verifyDerivedComposerFile(
+            $depsGroup,
+            $baseJsonFile,
+            ComposerUtil::readPackagesVersionsFromJson($baseJsonFile),
+            $derivedJsonFile,
+            ComposerUtil::readPackagesVersionsFromJson($derivedJsonFile)
+        );
+    }
+
+    private static function verifyDerivedComposerLock(PhpDepsGroup $depsGroup, string $filePath): void
+    {
+        self::verifyDerivedComposerFile($depsGroup, $filePath, ComposerUtil::readPackagesVersionsFromLock($filePath));
+
     }
 
     /**
