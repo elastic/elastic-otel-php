@@ -30,6 +30,7 @@ use ElasticOTelTests\Util\TestCaseBase;
 use OpenTelemetry\API\Behavior\Internal\Logging as OTelInternalLogging;
 use OpenTelemetry\SDK\Common\Configuration\Variables as OTelSdkConfigVariables;
 use OpenTelemetry\SDK\Common\Configuration\KnownValues as OTelSdkConfigKnownValues;
+use OpenTelemetry\SDK\Sdk as OTelSdk;
 use ReflectionClass;
 
 final class EdotDependenciesOnOTelSdkTest extends TestCaseBase
@@ -37,7 +38,7 @@ final class EdotDependenciesOnOTelSdkTest extends TestCaseBase
     /**
      * @param class-string<object> $classFqName
      *
-     * @noinspection PhpDocMissingThrowsInspection, PhpSameParameterValueInspection
+     * @noinspection PhpDocMissingThrowsInspection
      */
     private static function getPrivateConstValue(string $classFqName, string $constName): mixed
     {
@@ -70,5 +71,10 @@ final class EdotDependenciesOnOTelSdkTest extends TestCaseBase
     public function testDeactivateInstrumentationsRelatedNames(): void
     {
         self::assertSame(OTelSdkConfigVariables::OTEL_PHP_DISABLED_INSTRUMENTATIONS, RemoteConfigHandler::OTEL_PHP_DISABLED_INSTRUMENTATIONS); // @phpstan-ignore staticMethod.alreadyNarrowedType
+    }
+
+    public function testDeactivateAllInstrumentationsRelatedNames(): void
+    {
+        self::assertSame(self::getPrivateConstValue(OTelSdk::class, 'OTEL_PHP_DISABLED_INSTRUMENTATIONS_ALL'), RemoteConfigHandler::OTEL_PHP_DISABLED_INSTRUMENTATIONS_ALL);
     }
 }
