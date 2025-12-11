@@ -27,11 +27,6 @@ namespace Elastic\OTel\Log;
 
 use Elastic\OTel\Util\EnumUtilTrait;
 
-/**
- * Code in this file is part of implementation internals and thus it is not covered by the backward compatibility.
- *
- * @internal
- */
 enum LogLevel: int
 {
     use EnumUtilTrait;

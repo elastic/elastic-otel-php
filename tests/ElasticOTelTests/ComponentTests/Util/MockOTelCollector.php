@@ -29,7 +29,7 @@ use Elastic\OTel\Util\TextUtil;
 use ElasticOTelTests\Util\AmbientContextForTests;
 use ElasticOTelTests\Util\ArrayUtilForTests;
 use ElasticOTelTests\Util\AssertEx;
-use ElasticOTelTests\Util\BoolUtil;
+use ElasticOTelTests\Util\BoolUtilForTests;
 use ElasticOTelTests\Util\Clock;
 use ElasticOTelTests\Util\ExceptionUtil;
 use ElasticOTelTests\Util\HttpContentTypes;
@@ -235,7 +235,7 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
     private function getAgentBackendCommEvents(ServerRequestInterface $request): Promise|ResponseInterface
     {
         $fromIndex = intval(self::getRequiredRequestHeader($request, self::FROM_INDEX_HEADER_NAME));
-        $shouldWait = BoolUtil::fromString(self::getRequiredRequestHeader($request, self::SHOULD_WAIT_HEADER_NAME));
+        $shouldWait = BoolUtilForTests::fromString(self::getRequiredRequestHeader($request, self::SHOULD_WAIT_HEADER_NAME));
         if (!NumericUtil::isInClosedInterval(0, $fromIndex, count($this->agentBackendCommEvents))) {
             return $this->buildErrorResponse(
                 HttpStatusCodes::BAD_REQUEST /* status */,

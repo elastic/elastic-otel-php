@@ -41,17 +41,17 @@ public:
     HttpEndpoints(std::shared_ptr<LoggerInterface> log) : log_(log) {
     }
 
-    bool add(std::string endpointUrl, size_t endpointHash, bool verifyServerCertificate, std::string contentType, HttpEndpoint::enpointHeaders_t const &endpointHeaders, std::chrono::milliseconds timeout, std::size_t maxRetries, std::chrono::milliseconds retryDelay) {
+    bool add(std::string endpointUrl, endpointUrlHash_t endpointHash, std::string contentType, HttpEndpoint::enpointHeaders_t const &endpointHeaders, std::chrono::milliseconds timeout, std::size_t maxRetries, std::chrono::milliseconds retryDelay, HttpEndpointSSLOptions sslOptions) {
         std::lock_guard<std::mutex> lock(mutex_);
         auto result = endpoints_.try_emplace(endpointHash, std::move(endpointUrl), std::move(contentType), endpointHeaders, maxRetries, retryDelay);
-        if (connections_.try_emplace(result.first->second.getConnectionId(), log_, timeout, verifyServerCertificate).second) { // CurlSender
-            ELOGF_DEBUG(log_, TRANSPORT, "HttpEndpoints::add endpointUrl '%s' enpointHash: %X initialize new connectionId: %X", result.first->second.getEndpoint().c_str(), endpointHash, result.first->second.getConnectionId());
+        if (connections_.try_emplace(result.first->second.getConnectionId(), log_, timeout, sslOptions).second) { // CurlSender
+            ELOG_DEBUG(log_, TRANSPORT, "HttpEndpoints::add endpointUrl '{}' endpointHash: {:X} initialize new connectionId: {:X}", result.first->second.getEndpoint(), endpointHash, result.first->second.getConnectionId());
             return true;
         }
         return false;
     }
 
-    std::tuple<std::string, curl_slist *, HttpEndpoint::connectionId_t, CurlSender &, std::size_t, std::chrono::milliseconds> getConnection(size_t endpointHash) {
+    std::tuple<std::string, curl_slist *, HttpEndpoint::connectionId_t, CurlSender &, std::size_t, std::chrono::milliseconds> getConnection(endpointUrlHash_t endpointHash) {
         std::lock_guard<std::mutex> lock(mutex_);
         auto const &endpoint = endpoints_.find(endpointHash);
         if (endpoint == std::end(endpoints_)) {

@@ -25,11 +25,6 @@ declare(strict_types=1);
 
 namespace Elastic\OTel\Util;
 
-/**
- * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
- *
- * @internal
- */
 trait EnumUtilTrait
 {
     public static function tryToFindByName(string $enumName): ?self
@@ -44,6 +39,9 @@ trait EnumUtilTrait
             }
         }
 
-        return ArrayUtil::getValueIfKeyExistsElse($enumName, $mapByName, fallbackValue: null);
+        if (!array_key_exists($enumName, $mapByName)) {
+            return null;
+        }
+        return $mapByName[$enumName];
     }
 }

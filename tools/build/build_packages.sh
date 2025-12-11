@@ -1,4 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -e -u -o pipefail
+#set -x
 
 this_script_dir="$( dirname "${BASH_SOURCE[0]}" )"
 this_script_dir="$( realpath "${this_script_dir}" )"
@@ -31,7 +33,7 @@ parse_args() {
                 shift
                 ;;
             --build_architecture)
-                BUILD_ARCHITECUTRE="$2"
+                BUILD_ARCHITECTURE="$2"
                 shift
                 ;;
             --package_goarchitecture)
@@ -62,7 +64,7 @@ parse_args() {
 
 parse_args "$@"
 
-if [[ -z "$PACKAGE_VERSION" ]] || [[ -z "$BUILD_ARCHITECUTRE" ]] || [[ -z "$PACKAGE_GOARCHITECTURE" ]] || [[ -z "$PACKAGE_TYPES" ]]; then
+if [[ -z "${PACKAGE_VERSION+x}" ]] || [[ -z "${BUILD_ARCHITECTURE+x}" ]] || [[ -z "${PACKAGE_GOARCHITECTURE+x}" ]] || [[ -z "${PACKAGE_TYPES+x}" ]]; then
     echo "Error: Missing required arguments."
     show_help
     exit 1
@@ -135,18 +137,18 @@ if [ "${PACKAGE_SHA}" == "unknown" ]; then
 fi
 
 echo "PACKAGE_VERSION: $PACKAGE_VERSION"
-echo "BUILD_ARCHITECUTRE: $BUILD_ARCHITECUTRE"
+echo "BUILD_ARCHITECTURE: $BUILD_ARCHITECTURE"
 echo "PACKAGE_GOARCHITECTURE: $PACKAGE_GOARCHITECTURE"
 echo "PACKAGE_SHA: $PACKAGE_SHA"
 echo "PACKAGE_TYPES: $PACKAGE_TYPES"
 
 export PACKAGE_VERSION="${PACKAGE_VERSION}"
-export BUILD_ARCHITECUTRE="${BUILD_ARCHITECUTRE}"
+export BUILD_ARCHITECTURE="${BUILD_ARCHITECTURE}"
 export PACKAGE_GOARCHITECTURE="${PACKAGE_GOARCHITECTURE}"
 export PACKAGE_SHA="${PACKAGE_SHA}"
 
 DOCKER_PLATFORM="linux/x86_64"
-if [[ "${BUILD_ARCHITECTURE}" =~ arm64$ ]]; then
+if [[ -n "${BUILD_ARCHITECTURE}" ]] && [[ "${BUILD_ARCHITECTURE}" =~ arm64$ ]]; then
      DOCKER_PLATFORM="linux/arm64"
 fi
 echo "Running on platform ${DOCKER_PLATFORM}";
@@ -154,18 +156,18 @@ echo "Running on platform ${DOCKER_PLATFORM}";
 mkdir -p "${PWD}/build/packages"
 envsubst <packaging/nfpm.yaml >${PWD}/build/packages/nfpm.yaml
 
-for pkg in "${PACKAGE_TYPES[@]}"
+for pkg_type in "${PACKAGE_TYPES[@]}"
 do
-    echo "Building package type: ${PKG}"
+    echo "Building package type: ${pkg_type}"
 
     docker run --rm \
         --platform ${DOCKER_PLATFORM} \
         -e PACKAGE_VERSION="${PACKAGE_VERSION}" \
-        -e BUILD_ARCHITECUTRE="${BUILD_ARCHITECUTRE}" \
+        -e BUILD_ARCHITECTURE="${BUILD_ARCHITECTURE}" \
         -e PACKAGE_GOARCHITECTURE="${PACKAGE_GOARCHITECTURE}" \
         -e PACKAGE_SHA="${PACKAGE_SHA}" \
         -v ${PWD}:/source \
-        -w /source/packaging goreleaser/nfpm package -f /source/build/packages/nfpm.yaml -t "/source/build/packages" -p ${pkg} | tee /tmp/nfpm_output.txt
+        -w /source/packaging goreleaser/nfpm package -f /source/build/packages/nfpm.yaml -t "/source/build/packages" -p ${pkg_type} | tee /tmp/nfpm_output.txt
 
     PKG_FILENAME=$(grep "created package: " /tmp/nfpm_output.txt | sed 's/^.*: \/source\/build\/packages\///')
 
@@ -179,15 +181,15 @@ do
     md5sum "${PKG_FILENAME}" >"${PKG_FILENAME}".sha512
     popd
 
-    test_package ${pkg} "${PKG_FILENAME}" "${DOCKER_PLATFORM}"
+    test_package ${pkg_type} "${PKG_FILENAME}" "${DOCKER_PLATFORM}"
 
 done
 
 rm ${PWD}/build/packages/nfpm.yaml
 
 echo "Creating debug symbols artifacts"
-DBGSYM="${PWD}/build/packages/elastic-otel-php-debugsymbols-${BUILD_ARCHITECUTRE}.tar.gz"
-pushd prod/native/_build/${BUILD_ARCHITECUTRE}-release
+DBGSYM="${PWD}/build/packages/elastic-otel-php-debugsymbols-${BUILD_ARCHITECTURE}.tar.gz"
+pushd prod/native/_build/${BUILD_ARCHITECTURE}-release
 tar --transform 's/.*\///g' -zcvf ${DBGSYM} extension/code/*.debug loader/code/*.debug
 popd
 

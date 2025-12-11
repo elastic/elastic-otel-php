@@ -25,14 +25,13 @@ declare(strict_types=1);
 
 namespace Elastic\OTel;
 
+use Closure;
 use Throwable;
 
 use function elastic_otel_log_feature;
 
 /**
- * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
- *
- * @internal
+ * @phpstan-type WriteToSink Closure(int $level, int $feature, string $file, int $line, string $func, string $message): void
  */
 final class BootstrapStageLogger
 {
@@ -56,54 +55,22 @@ final class BootstrapStageLogger
 
     private static int $maxEnabledLevel = self::LEVEL_OFF;
 
+    private static ?Closure $writeToSink = null;
+
     private static string $phpSrcCodePathPrefixToRemove;
     private static string $classNamePrefixToRemove;
 
     private static ?int $pid = null;
 
-    private static ?bool $isStderrDefined = null;
-
-    private static function levelToString(int $level): string
-    {
-        if (array_key_exists($level, self::LEVEL_AS_STRING)) {
-            return self::LEVEL_AS_STRING[$level];
-        }
-
-        return "LEVEL ($level)";
-    }
-
-    private static function ensureStdErrIsDefined(): bool
-    {
-        if (self::$isStderrDefined === null) {
-            if (defined('STDERR')) {
-                self::$isStderrDefined = true;
-            } else {
-                define('STDERR', fopen('php://stderr', 'w'));
-                self::$isStderrDefined = defined('STDERR');
-            }
-        }
-
-        return self::$isStderrDefined;
-    }
-
-    /** @noinspection PhpUnused */
-    public static function writeLineToStdErr(string $text): void
-    {
-        if (self::ensureStdErrIsDefined()) {
-            fwrite(STDERR, $text . PHP_EOL);
-        }
-    }
-
-    public static function nullableToLog(null|int|string $str): string
-    {
-        return $str === null ? 'null' : strval($str);
-    }
-
-    public static function configure(int $maxEnabledLevel, string $phpSrcCodeRootDir, string $rootNamespace): void
+    /**
+     * @phpstan-param ?WriteToSink $writeToSink
+     */
+    public static function configure(int $maxEnabledLevel, string $phpSrcCodeRootDir, string $rootNamespace, ?Closure $writeToSink = null): void
     {
         require __DIR__ . DIRECTORY_SEPARATOR . 'Log' . DIRECTORY_SEPARATOR . 'LogFeature.php';
 
         self::$maxEnabledLevel = $maxEnabledLevel;
+        self::$writeToSink = $writeToSink;
         if (is_int($pid = getmypid())) {
             self::$pid = $pid;
         }
@@ -122,6 +89,20 @@ final class BootstrapStageLogger
             __CLASS__,
             __FUNCTION__
         );
+    }
+
+    private static function levelToString(int $level): string
+    {
+        if (array_key_exists($level, self::LEVEL_AS_STRING)) {
+            return self::LEVEL_AS_STRING[$level];
+        }
+
+        return "LEVEL ($level)";
+    }
+
+    public static function nullableToLog(null|int|string $str): string
+    {
+        return $str === null ? 'null' : strval($str);
     }
 
     /**
@@ -241,15 +222,26 @@ final class BootstrapStageLogger
             return;
         }
 
-        elastic_otel_log_feature(
-            0 /* $isForced */,
-            $statementLevel,
-            $feature,
-            self::processSourceCodeFilePathForLog($file),
-            $line,
-            self::processClassFunctionNameForLog($class, $func),
-            $message
-        );
+        if (self::$writeToSink === null) {
+            elastic_otel_log_feature(
+                0 /* $isForced */,
+                $statementLevel,
+                $feature,
+                self::processSourceCodeFilePathForLog($file),
+                $line,
+                self::processClassFunctionNameForLog($class, $func),
+                $message
+            );
+        } else {
+            (self::$writeToSink)(
+                $statementLevel,
+                $feature,
+                self::processSourceCodeFilePathForLog($file),
+                $line,
+                self::processClassFunctionNameForLog($class, $func),
+                $message
+            );
+        }
     }
 
     /**

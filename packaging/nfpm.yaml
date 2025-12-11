@@ -30,10 +30,10 @@ homepage: "https://github.com/elastic/elastic-otel-php"
 license: "ASL 2.0"
 #changelog: "changelog.yaml"
 contents:
-- src: /source/prod/native/_build/${BUILD_ARCHITECUTRE}-release/loader/code/elastic_otel_php_loader.so
+- src: /source/prod/native/_build/${BUILD_ARCHITECTURE}-release/loader/code/elastic_otel_php_loader.so
   dst: /opt/elastic/elastic-otel-php/
   expand: true
-- src: /source/prod/native/_build/${BUILD_ARCHITECUTRE}-release/extension/code/elastic_otel_php_*.so
+- src: /source/prod/native/_build/${BUILD_ARCHITECTURE}-release/extension/code/elastic_otel_php_*.so
   dst: /opt/elastic/elastic-otel-php/
   expand: true
 - src: /source/prod/php

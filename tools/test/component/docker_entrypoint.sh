@@ -85,7 +85,7 @@ function start_syslog () {
 function start_syslog_and_set_related_config () {
     local start_syslog_started
     start_syslog_started=$(start_syslog)
-    if [ "${start_syslog_started}" != "true" ]; then
+    if [[ "${start_syslog_started}" != "true" ]]; then
         # By default tests log level escalation mechanism uses log_level_syslog production option
         # If there is not syslog running then let's use log_level_stderr
         export ELASTIC_OTEL_PHP_TESTS_ESCALATED_RERUNS_PROD_CODE_LOG_LEVEL_OPTION_NAME=log_level_stderr
@@ -194,17 +194,17 @@ function main() {
     current_github_workflow_log_group_name="Setting the environment for ${BASH_SOURCE[0]}"
     echo "::group::${current_github_workflow_log_group_name}"
 
-    this_script_full_path="${BASH_SOURCE[0]}"
-    this_script_dir="$( dirname "${this_script_full_path}" )"
-    this_script_dir="$( realpath "${this_script_dir}" )"
-
-    repo_root_dir="$( realpath "${this_script_dir}/../../.." )"
-    source "${repo_root_dir}/tools/shared.sh"
+    mkdir -p /tmp/repo
+    export repo_root_dir="/tmp/repo"
+    cp -r /read_only_repo_root/* "${repo_root_dir}/"
+    cd "${repo_root_dir}/"
+    rm -rf composer.json composer.lock ./vendor/ ./prod/php/vendor_*
+    source "./tools/shared.sh"
 
     echo 'Before setting PHP_INI_SCAN_DIR'
     print_info_about_environment
 
-    if [[ -z "${PHP_INI_SCAN_DIR}" ]]; then
+    if [[ -z "${PHP_INI_SCAN_DIR+x}" ]]; then
         # If you include an empty path segment (i.e., with a leading colon),
         # PHP will also scan the directory specified during compilation (via the --with-config-file-scan-dir option).
         # :/some_dir scans the compile-time directory and then /some_dir
@@ -217,9 +217,6 @@ function main() {
 
     echo 'After setting PHP_INI_SCAN_DIR'
     print_info_about_environment
-
-    repo_root_dir="$( realpath "${this_script_dir}/../../.." )"
-    source "${repo_root_dir}/tools/shared.sh"
 
     start_syslog_and_set_related_config
 
@@ -242,25 +239,21 @@ function main() {
     current_github_workflow_log_group_name="Installing PHP dependencies using composer"
     start_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
-    cp -f /composer_to_use.json ./composer.json
-    cp -f /composer_to_use.lock ./composer.lock
-    rm -rf ./vendor/ ./prod/php/vendor_*/
-    composer --check-lock --no-check-all validate
-    ELASTIC_OTEL_TOOLS_ALLOW_DIRECT_COMPOSER_COMMAND=true composer --no-interaction install
+    php ./tools/build/select_json_lock_and_install_PHP_deps.php test
 
     end_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
     current_github_workflow_log_group_name="Running component tests for app_host_kind: ${ELASTIC_OTEL_PHP_TESTS_APP_CODE_HOST_KIND}"
-    if [[ -n "${ELASTIC_OTEL_PHP_TESTS_GROUP}" ]]; then # -n is true if string is not empty
+    if [[ -n "${ELASTIC_OTEL_PHP_TESTS_GROUP+x}" ]]; then # -n is true if string is not empty
         current_github_workflow_log_group_name="${current_github_workflow_log_group_name}, test_group: ${ELASTIC_OTEL_PHP_TESTS_GROUP}"
     fi
-    if [[ -n "${ELASTIC_OTEL_PHP_TESTS_FILTER}" ]]; then # -n is true if string is not empty
+    if [[ -n "${ELASTIC_OTEL_PHP_TESTS_FILTER+x}" ]]; then # -n is true if string is not empty
         current_github_workflow_log_group_name="${current_github_workflow_log_group_name}, filter: ${ELASTIC_OTEL_PHP_TESTS_FILTER}"
     fi
     start_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
     export ELASTIC_OTEL_PHP_TESTS_LOGS_DIRECTORY="/elastic_otel_php_tests/logs"
-    /repo_root/tools/test/component/test_installed_package_one_matrix_row.sh
+    ./tools/test/component/test_installed_package_one_matrix_row.sh
 }
 
 main "$@"

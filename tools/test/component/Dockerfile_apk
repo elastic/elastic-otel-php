@@ -16,12 +16,12 @@ RUN apk update \
 
 RUN docker-php-ext-install \
         mysqli \
+        opcache \
         pgsql \
         zip
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-ADD . /repo_root
-WORKDIR /repo_root
+WORKDIR /
 
-ENTRYPOINT exec /repo_root/tools/test/component/docker_entrypoint.sh
+ENTRYPOINT exec /read_only_repo_root/tools/test/component/docker_entrypoint.sh

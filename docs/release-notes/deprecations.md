@@ -1,5 +1,5 @@
 ---
-navigation_title: Deprecations 
+navigation_title: Deprecations
 description: Deprecations for Elastic Distribution of OpenTelemetry PHP.
 applies_to:
   stack:

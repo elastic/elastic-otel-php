@@ -64,24 +64,25 @@ public:
         CurlCleanup();
     }
 
-    void initializeConnection(std::string endpointUrl, size_t endpointHash, std::string contentType, HttpEndpoint::enpointHeaders_t const &endpointHeaders, std::chrono::milliseconds timeout, std::size_t maxRetries, std::chrono::milliseconds retryDelay) override {
-        ELOGF_DEBUG(log_, TRANSPORT, "HttpTransportAsync::initializeConnection endpointUrl '%s' enpointHash: %X timeout: %zums retries: %zu retry delay: %zums", endpointUrl.c_str(), endpointHash, timeout.count(), maxRetries, retryDelay.count());
+    void initializeConnection(std::string endpointUrl, endpointUrlHash_t endpointHash, std::string contentType, HttpEndpoint::enpointHeaders_t const &endpointHeaders, std::chrono::milliseconds timeout, std::size_t maxRetries, std::chrono::milliseconds retryDelay, HttpEndpointSSLOptions sslOptions) override {
+        ELOG_DEBUG(log_, TRANSPORT, "HttpTransportAsync::initializeConnection endpointUrl '{}' enpointHash: {:X} timeout: {}ms retries: {} retry delay: {}ms", endpointUrl, endpointHash, timeout.count(), maxRetries, retryDelay.count());
+        ELOG_TRACE(log_, TRANSPORT, "HttpTransportAsync::initializeConnection enpointHash '{:X}', SSL options: insecureSkipVerify: {}, caInfo: '{}', cert: '{}', certKey: '{}', certKeyPassword: '{}'", endpointHash, sslOptions.insecureSkipVerify, sslOptions.caInfo, sslOptions.cert, sslOptions.certKey, !sslOptions.certKeyPassword.empty() ? "<redacted>"sv : "");
 
         try {
-            endpoints_.add(std::move(endpointUrl), endpointHash, config_->get().verify_server_cert, std::move(contentType), endpointHeaders, timeout, maxRetries, retryDelay);
+            endpoints_.add(std::move(endpointUrl), endpointHash, std::move(contentType), endpointHeaders, timeout, maxRetries, retryDelay, std::move(sslOptions));
             startThread();
         } catch (std::exception const &error) {
-            ELOGF_ERROR(log_, TRANSPORT, "HttpTransportAsync::initializeConnection exception '%s'", error.what());
+            ELOG_ERROR(log_, TRANSPORT, "HttpTransportAsync::initializeConnection exception '{}'", error.what());
         }
     }
 
-    void enqueue(size_t endpointHash, std::span<std::byte> payload, responseCallback_t callback = {}) override {
+    void enqueue(endpointUrlHash_t endpointHash, std::span<std::byte> payload, responseCallback_t callback = {}) override {
         {
             std::lock_guard<std::mutex> lock(mutex_);
-            ELOGF_TRACE(log_, TRANSPORT, "HttpTransportAsync::enqueue enpointHash: %X payload size: %zu, current queue size %zu usage %zu bytes", endpointHash, payload.size(), payloadsToSend_.size(), payloadsByteUsage_);
+            ELOG_TRACE(log_, TRANSPORT, "HttpTransportAsync::enqueue enpointHash: {:X} payload size: {}, current queue size {} usage {} bytes", endpointHash, payload.size(), payloadsToSend_.size(), payloadsByteUsage_);
 
             if (payloadsByteUsage_ + payload.size() > config_->get().max_send_queue_size) {
-                ELOGF_DEBUG(log_, TRANSPORT, "HttpTransportAsync::enqueue payloadsByteUsageLimit %zu reached. Payload will be dropped. enpointHash: %X payload size: %zu, current queue size %zu usage %zu bytes", config_->get().max_send_queue_size, endpointHash, payload.size(), payloadsToSend_.size(), payloadsByteUsage_);
+                ELOG_DEBUG(log_, TRANSPORT, "HttpTransportAsync::enqueue payloadsByteUsageLimit {} reached. Payload will be dropped. enpointHash: {:X} payload size: {}, current queue size {} usage {} bytes", config_->get().max_send_queue_size, endpointHash, payload.size(), payloadsToSend_.size(), payloadsByteUsage_);
                 return;
             }
 
@@ -94,7 +95,7 @@ public:
     void prefork() final {
         shutdownThread();
 
-        ELOGF_DEBUG(log_, TRANSPORT, "HttpTransportAsync::prefork payloads queue size %zu", payloadsToSend_.size());
+        ELOG_DEBUG(log_, TRANSPORT, "HttpTransportAsync::prefork payloads queue size {}", payloadsToSend_.size());
         CurlCleanup();
     }
 
@@ -102,7 +103,7 @@ public:
         CurlInit();
 
         if (child && !payloadsToSend_.empty()) {
-            ELOGF_DEBUG(log_, TRANSPORT, "HttpTransportAsync::postfork child emptying payloads queue. %zu will be sent from parent", payloadsToSend_.size());
+            ELOG_DEBUG(log_, TRANSPORT, "HttpTransportAsync::postfork child emptying payloads queue. {} will be sent from parent", payloadsToSend_.size());
             decltype(payloadsToSend_) q;
             payloadsToSend_.swap(q);
         }
@@ -111,11 +112,11 @@ public:
         pauseCondition_.notify_all();
     }
 
-    void updateRetryDelay(size_t endpointHash, std::chrono::milliseconds retryDelay) {
+    void updateRetryDelay(endpointUrlHash_t endpointHash, std::chrono::milliseconds retryDelay) {
         try {
             endpoints_.updateRetryDelay(endpointHash, retryDelay);
         } catch (std::runtime_error const &error) {
-            ELOGF_WARNING(log_, TRANSPORT, "HttpTransportAsync::updateRetryDelay unable to update retry delay %s", error.what());
+            ELOG_WARNING(log_, TRANSPORT, "HttpTransportAsync::updateRetryDelay unable to update retry delay: '{}'", error.what());
         }
     }
 
@@ -123,7 +124,7 @@ protected:
     void startThread() {
         std::lock_guard<std::mutex> lock(mutex_);
         if (!thread_) {
-            ELOGF_DEBUG(log_, TRANSPORT, "HttpTransportAsync startThread");
+            ELOG_DEBUG(log_, TRANSPORT, "HttpTransportAsync startThread");
             thread_ = std::make_unique<std::thread>([this]() { asyncSender(); });
         }
     }
@@ -132,7 +133,7 @@ protected:
         {
             std::lock_guard<std::mutex> lock(mutex_);
             if (thread_) {
-                ELOGF_DEBUG(log_, TRANSPORT, "HttpTransportAsync shutdownThread");
+                ELOG_DEBUG(log_, TRANSPORT, "HttpTransportAsync shutdownThread");
             }
 
             working_ = false;
@@ -146,7 +147,7 @@ protected:
     }
 
     void asyncSender() {
-        ELOGF_DEBUG(log_, TRANSPORT, "HttpTransportAsync::asyncSender blocking signals and starting work");
+        ELOG_DEBUG(log_, TRANSPORT, "HttpTransportAsync::asyncSender blocking signals and starting work");
 
         elasticapm::utils::blockApacheAndPHPSignals();
 
@@ -168,7 +169,7 @@ protected:
             payloadsToSend_.pop();
             payloadsByteUsage_ -= payload.size();
 
-            ELOGF_TRACE(log_, TRANSPORT, "HttpTransportAsync::send enpointHash: %X payload size: %zu", endpointHash, payload.size());
+            ELOG_TRACE(log_, TRANSPORT, "HttpTransportAsync::send enpointHash: {:X} payload size: {}", endpointHash, payload.size());
 
             lockedPayloadsMutex.unlock();
 
@@ -195,7 +196,7 @@ protected:
 
                         auto responseCode = conn.sendPayload(endpointUrl, headers, payload, callback ? headerCallback : std::function<void(std::string_view)>{}, callback ? &responseBuffer : nullptr);
 
-                        ELOGF_TRACE(log_, TRANSPORT, "HttpTransportAsync::send enpointHash: %X connectionId: %X payload size: %zu responseCode %d", endpointHash, connId, payload.size(), static_cast<int>(responseCode));
+                        ELOG_TRACE(log_, TRANSPORT, "HttpTransportAsync::send enpointHash: {:X} connectionId: {:X} payload size: {} responseCode {}", endpointHash, connId, payload.size(), static_cast<int>(responseCode));
 
                         if (responseCode >= 200 && responseCode < 300) {
                             if (callback) {
@@ -214,22 +215,22 @@ protected:
                         }
 
                         retry++;
-                        ELOGF_DEBUG(log_, TRANSPORT, "HttpTransportAsync::send enpointHash: %X connectionId: %X payload size: %zu retry %zu/%zu delay: %zu responseCode %d ", endpointHash, connId, payload.size(), retry, maxRetries, retryDelay.count(), static_cast<int>(responseCode));
+                        ELOG_DEBUG(log_, TRANSPORT, "HttpTransportAsync::send enpointHash: {:X} connectionId: {:X} payload size: {} retry {}/{} delay: {} responseCode {}", endpointHash, connId, payload.size(), retry, maxRetries, retryDelay.count(), static_cast<int>(responseCode));
                         std::this_thread::sleep_for(retryDelay);
                     }
-                    ELOGF_DEBUG(log_, TRANSPORT, "HttpTransportAsync::send enpointHash: %X connectionId: %X payload size: %zu", endpointHash, connId, payload.size());
+                    ELOG_DEBUG(log_, TRANSPORT, "HttpTransportAsync::send enpointHash: {:X} connectionId: {:X} payload size: {}", endpointHash, connId, payload.size());
                 } catch (std::runtime_error const &e) {
-                    ELOGF_WARNING(log_, TRANSPORT, "HttpTransportAsync::send exception '%s'. enpointHash: %X connectionId: %X payload size: %zu", e.what(), endpointHash, connId, payload.size());
+                    ELOG_WARNING(log_, TRANSPORT, "HttpTransportAsync::send exception '{}'. enpointHash: {:X} connectionId: {:X} payload size: {}", e.what(), endpointHash, connId, payload.size());
                 }
             } catch (std::runtime_error const &error) {
-                ELOGF_WARNING(log_, TRANSPORT, "HttpTransportAsync::send %s", error.what());
+                ELOG_WARNING(log_, TRANSPORT, "HttpTransportAsync::send {}", error.what());
             }
 
             lockedPayloadsMutex.lock();
 
             // it will break sending and emit log if class destructor was triggered, payloads queue is not empty and timeout was set and reached
             if (forceFlushOnDestruction_ && !payloadsToSend_.empty() && config_->get().async_transport_shutdown_timeout.count() > 0 && ((std::chrono::steady_clock::now() - shutdownStart_) >= config_->get().async_transport_shutdown_timeout)) {
-                ELOGF_WARNING(log_, TRANSPORT, "Dropping %zu payloads because ELASTIC_OTEL_ASYNC_TRANSPORT_SHUTDOWN_TIMEOUT (%zums) was reached", payloadsToSend_.size(), config_->get().async_transport_shutdown_timeout.count());
+                ELOG_WARNING(log_, TRANSPORT, "Dropping {} payloads because ELASTIC_OTEL_ASYNC_TRANSPORT_SHUTDOWN_TIMEOUT ({}ms) was reached", payloadsToSend_.size(), config_->get().async_transport_shutdown_timeout.count());
                 break;
             }
         }
@@ -238,7 +239,7 @@ protected:
     void CurlInit() {
         auto curlInitResult = curl_global_init(CURL_GLOBAL_ALL);
         if (curlInitResult != CURLE_OK) {
-            ELOGF_ERROR(log_, TRANSPORT, "HttpTransportAsync curl_global_init failed: %s (%d)", curl_easy_strerror(curlInitResult), (int)curlInitResult);
+            ELOG_ERROR(log_, TRANSPORT, "HttpTransportAsync curl_global_init failed: {} ({})", curl_easy_strerror(curlInitResult), (int)curlInitResult);
         }
     }
     void CurlCleanup() {

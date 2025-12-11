@@ -25,33 +25,31 @@ declare(strict_types=1);
 
 namespace Elastic\OTel;
 
-/**
- * Code in this file is part of implementation internals and thus it is not covered by the backward compatibility.
- *
- * @internal
- */
 final class AutoloaderElasticOTelClasses
 {
-    private const AUTOLOAD_FQ_CLASS_NAME_PREFIX = 'Elastic\\OTel\\';
+    private readonly string $autoloadFqClassNamePrefix;
+    private readonly int $autoloadFqClassNamePrefixLength;
+    private readonly string $srcFilePathPrefix;
 
-    private static int $autoloadFqClassNamePrefixLength;
-    private static string $srcRootDir;
-
-    public static function register(string $rootDir): void
+    private function __construct(string $rootNamespace, string $rootNamespaceDir)
     {
-        self::$srcRootDir = $rootDir . DIRECTORY_SEPARATOR;
-        self::$autoloadFqClassNamePrefixLength = strlen(self::AUTOLOAD_FQ_CLASS_NAME_PREFIX);
-
-        spl_autoload_register([__CLASS__, 'autoloadCodeForClass']);
+        $this->autoloadFqClassNamePrefix = $rootNamespace . '\\';
+        $this->autoloadFqClassNamePrefixLength = strlen($this->autoloadFqClassNamePrefix);
+        $this->srcFilePathPrefix = $rootNamespaceDir . DIRECTORY_SEPARATOR;
     }
 
-    private static function shouldAutoloadCodeForClass(string $fqClassName): bool
+    public static function register(string $rootNamespace, string $rootNamespaceDir): void
+    {
+        spl_autoload_register((new self($rootNamespace, $rootNamespaceDir))->autoloadCodeForClass(...));
+    }
+
+    private function shouldAutoloadCodeForClass(string $fqClassName): bool
     {
         // does the class use the namespace prefix?
-        return strncmp(self::AUTOLOAD_FQ_CLASS_NAME_PREFIX, $fqClassName, self::$autoloadFqClassNamePrefixLength) == 0;
+        return strncmp($this->autoloadFqClassNamePrefix, $fqClassName, $this->autoloadFqClassNamePrefixLength) == 0;
     }
 
-    public static function autoloadCodeForClass(string $fqClassName): void
+    public function autoloadCodeForClass(string $fqClassName): void
     {
         // Example of $fqClassName: Elastic\OTel\Autoloader
 
@@ -59,7 +57,7 @@ final class AutoloaderElasticOTelClasses
 
         if (!self::shouldAutoloadCodeForClass($fqClassName)) {
             BootstrapStageLogger::logTrace(
-                "shouldAutoloadCodeForClass returned false. fqClassName: {$fqClassName}",
+                "shouldAutoloadCodeForClass returned false. fqClassName: $fqClassName",
                 __FILE__,
                 __LINE__,
                 __CLASS__,
@@ -69,11 +67,11 @@ final class AutoloaderElasticOTelClasses
         }
 
         // get the relative class name
-        $relativeClass = substr($fqClassName, self::$autoloadFqClassNamePrefixLength);
+        $relativeClass = substr($fqClassName, $this->autoloadFqClassNamePrefixLength);
         $classSrcFileRelative = ((DIRECTORY_SEPARATOR === '\\')
             ? $relativeClass
             : str_replace('\\', DIRECTORY_SEPARATOR, $relativeClass)) . '.php';
-        $classSrcFileAbsolute = self::$srcRootDir . DIRECTORY_SEPARATOR . $classSrcFileRelative;
+        $classSrcFileAbsolute = $this->srcFilePathPrefix . $classSrcFileRelative;
 
         if (file_exists($classSrcFileAbsolute)) {
             BootstrapStageLogger::logTrace(

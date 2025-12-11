@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include "LoggerInterface.h"
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -37,6 +39,9 @@ public:
     using configFiles_t = std::unordered_map<std::string, std::string>; // filename->content
     using optionsMap_t = std::unordered_map<std::string, std::string>;  // optname->value
 
+    ElasticDynamicConfigurationAdapter(std::shared_ptr<elasticapm::php::LoggerInterface> logger) : logger_(std::move(logger)) {
+    }
+
     void update(configFiles_t const &files);
 
     std::optional<std::string> getOption(std::string const &optionName) const {
@@ -53,6 +58,7 @@ protected:
 
 private:
     optionsMap_t options_;
+    std::shared_ptr<elasticapm::php::LoggerInterface> logger_;
 };
 
 } // namespace opentelemetry::php::config

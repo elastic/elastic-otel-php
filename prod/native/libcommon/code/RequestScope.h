@@ -39,8 +39,9 @@ class RequestScope {
 public:
     using clearHooks_t = std::function<void()>;
     using getPeriodicTaskExecutor_t = std::function<std::shared_ptr<PeriodicTaskExecutor>()>;
+    using triggerRemoteConfigUpdates_t = std::function<bool()>;
 
-    RequestScope(std::shared_ptr<LoggerInterface> log, std::shared_ptr<PhpBridgeInterface> bridge, std::shared_ptr<PhpSapi> sapi, std::shared_ptr<SharedMemoryState> sharedMemory, std::shared_ptr<DependencyAutoLoaderGuard> dependencyGuard, std::shared_ptr<InferredSpans> inferredSpans, std::shared_ptr<ConfigurationStorage> config, clearHooks_t clearHooks, getPeriodicTaskExecutor_t getPeriodicTaskExecutor) : log_(log), bridge_(std::move(bridge)), sapi_(std::move(sapi)), sharedMemory_(sharedMemory), dependencyGuard_(dependencyGuard), inferredSpans_(std::move(inferredSpans)), config_(config), clearHooks_(std::move(clearHooks)), getPeriodicTaskExecutor_(std::move(getPeriodicTaskExecutor)) {
+    RequestScope(std::shared_ptr<LoggerInterface> log, std::shared_ptr<PhpBridgeInterface> bridge, std::shared_ptr<PhpSapi> sapi, std::shared_ptr<SharedMemoryState> sharedMemory, std::shared_ptr<DependencyAutoLoaderGuard> dependencyGuard, std::shared_ptr<InferredSpans> inferredSpans, std::shared_ptr<ConfigurationStorage> config, clearHooks_t clearHooks, getPeriodicTaskExecutor_t getPeriodicTaskExecutor, triggerRemoteConfigUpdates_t triggerRemoteConfigUpdates) : log_(log), bridge_(std::move(bridge)), sapi_(std::move(sapi)), sharedMemory_(sharedMemory), dependencyGuard_(dependencyGuard), inferredSpans_(std::move(inferredSpans)), config_(config), clearHooks_(std::move(clearHooks)), getPeriodicTaskExecutor_(std::move(getPeriodicTaskExecutor)), triggerRemoteConfigUpdates_(std::move(triggerRemoteConfigUpdates)) {
     }
 
     void onRequestInit() {
@@ -53,6 +54,7 @@ public:
             return;
         }
 
+        triggerRemoteConfigUpdates_();
         config_->update();
 
         if (!(*config_)->enabled) {
@@ -60,7 +62,7 @@ public:
             return;
         }
 
-        ELOG_DEBUG(log_, REQUEST, "onRequestInit Config revision: {}", (*config_)->revision);
+        ELOG_DEBUG(log_, REQUEST, "onRequestInit Worker config snapshot revision: {}", (*config_)->revision);
 
         requestCounter_++;
 
@@ -195,6 +197,7 @@ private:
     std::shared_ptr<ConfigurationStorage> config_;
     clearHooks_t clearHooks_;
     getPeriodicTaskExecutor_t getPeriodicTaskExecutor_;
+    triggerRemoteConfigUpdates_t triggerRemoteConfigUpdates_;
     size_t requestCounter_ = 0;
     bool bootstrapSuccessfull_ = false;
     bool preloadDetected_ = false;

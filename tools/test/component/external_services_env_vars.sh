@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-set -e -o pipefail
+set -e -u -o pipefail
 #set -x
 
-if [ -z "${ELASTIC_OTEL_PHP_TESTS_EXTERNAL_SERVICES_ENV_VARS_ARE_SET}" ] || [ "${ELASTIC_OTEL_PHP_TESTS_EXTERNAL_SERVICES_ENV_VARS_ARE_SET}" != "true" ] ; then
+if [ -z "${ELASTIC_OTEL_PHP_TESTS_EXTERNAL_SERVICES_ENV_VARS_ARE_SET+x}" ] || [ "${ELASTIC_OTEL_PHP_TESTS_EXTERNAL_SERVICES_ENV_VARS_ARE_SET}" != "true" ] ; then
     export ELASTIC_OTEL_PHP_TESTS_DOCKER_NETWORK=elastic-otel-php-tests-component-network
 
     export ELASTIC_OTEL_PHP_TESTS_MYSQL_HOST=elastic-otel-php-tests-component-mysql

@@ -19,24 +19,16 @@
  * under the License.
  */
 
-/** @noinspection PhpIllegalPsrClassPathInspection */
-
 declare(strict_types=1);
 
-namespace Elastic\OTel\Util;
-
-use OpenTelemetry\SDK\Common\Configuration\Configuration as OTelSdkConfiguration;
-use OpenTelemetry\SDK\Common\Configuration\Variables as OTelSdkConfigurationVariables;
-
-final class ElasticOTelSdkConfigUtil
-{
-    use StaticClassTrait;
-
-    public const OPT_NAME_EXPERIMENTAL_CONFIG_FILE = 'OTEL_EXPERIMENTAL_CONFIG_FILE';
-
-    public static function has(string $optName): bool
-    {
-        // TODO: Sergey Kleyman: Remove use of OTelSdkConfiguration in prod code: instead duplicate and test
-        return OTelSdkConfiguration::has(OTelSdkConfigurationVariables::OTEL_EXPERIMENTAL_CONFIG_FILE);
-    }
+// Ensure that composer has installed all dependencies
+if (!file_exists($vendorAutoload = (__DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.php'))) {
+    die("Error: $vendorAutoload is missing - dependencies must be installed using composer" . PHP_EOL);
 }
+
+// Disable deprecation notices starting from PHP 8.4
+// Deprecated: funcAbc(): Implicitly marking parameter $xyz as nullable is deprecated, the explicit nullable type must be used instead
+error_reporting(PHP_VERSION_ID < 80400 ? E_ALL : (E_ALL & ~E_DEPRECATED));
+
+require $vendorAutoload;
+require __DIR__ . '/elastic_otel_extension_stubs/load.php';

@@ -134,7 +134,7 @@ class TestCaseBase extends TestCase
      */
     public static function dataProviderOneBoolArg(): iterable
     {
-        foreach (BoolUtil::ALL_VALUES as $value) {
+        foreach (BoolUtilForTests::ALL_VALUES as $value) {
             $dataSet = [$value];
             yield LoggableToString::convert($value) => $dataSet;
         }
@@ -145,8 +145,8 @@ class TestCaseBase extends TestCase
      */
     public static function dataProviderTwoBoolArgs(): iterable
     {
-        foreach (BoolUtil::ALL_VALUES as $value1) {
-            foreach (BoolUtil::ALL_VALUES as $value2) {
+        foreach (BoolUtilForTests::ALL_VALUES as $value1) {
+            foreach (BoolUtilForTests::ALL_VALUES as $value2) {
                 $dataSet = [$value1, $value2];
                 yield LoggableToString::convert($dataSet) => $dataSet;
             }

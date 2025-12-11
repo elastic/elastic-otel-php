@@ -66,7 +66,7 @@ final class ComponentTestsEnvVarsForAppCodeTest extends TestCaseBase
 
             yield 'All options for tests' => array_map(fn($optName) => $optName->name, OptionForTestsName::cases());
 
-            yield 'DEV_INTERNAL_MODE_IS_DEV' => [PhpPartFacade::CONFIG_ENV_VAR_NAME_DEV_INTERNAL_MODE_IS_DEV];
+            yield 'DEV_INTERNAL_MODE_IS_DEV' => [PhpPartFacade::MODE_IS_DEV_ENV_VAR_NAME];
         };
 
         $allProdOptionNames = OptionForProdName::cases();

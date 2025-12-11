@@ -44,7 +44,7 @@ public:
     HttpEndpointsMock(std::shared_ptr<LoggerInterface> logger) {
     }
 
-    MOCK_METHOD(bool, add, (std::string endpointUrl, size_t endpointHash, bool verifyServerCertificate, std::string contentType, HttpEndpoint::enpointHeaders_t const &endpointHeaders, std::chrono::milliseconds timeout, std::size_t maxRetries, std::chrono::milliseconds retryDelay));
+    MOCK_METHOD(bool, add, (std::string endpointUrl, endpointUrlHash_t endpointHash, std::string contentType, HttpEndpoint::enpointHeaders_t const &endpointHeaders, std::chrono::milliseconds timeout, std::size_t maxRetries, std::chrono::milliseconds retryDelay, HttpEndpointSSLOptions sslOptions));
     MOCK_METHOD((std::tuple<std::string, curl_slist *, HttpEndpoint::connectionId_t, CurlSenderMock &, std::size_t, std::chrono::milliseconds>), getConnection, (std::size_t endpointHash));
     MOCK_METHOD(void, updateRetryDelay, (size_t endpointHash, std::chrono::milliseconds retryDelay));
 };
@@ -267,12 +267,14 @@ TEST_F(HttpTransportAsyncTest, destructorSendTimeout) {
     {
         TestableHttpTransportAsync transport{log_, config_};
 
-        EXPECT_CALL(transport.endpoints_, add("http://local/traces", 1234, true, "some-type", headers, 100ms, 3, 100ms)).Times(1).WillRepeatedly(::testing::Return(true));
-        transport.initializeConnection("http://local/traces", 1234, "some-type", headers, 100ms, 3, 100ms);
+        HttpEndpointSSLOptions sslOptions;
+
+        EXPECT_CALL(transport.endpoints_, add("http://local/traces", 1234u, "some-type", headers, 100ms, 3, 100ms, ::testing::_)).Times(1).WillRepeatedly(::testing::Return(true));
+        transport.initializeConnection("http://local/traces", 1234u, "some-type", headers, 100ms, 3, 100ms, sslOptions);
 
         std::this_thread::sleep_for(5ms); // give thread a bit of time to go into sleep condition
 
-        EXPECT_CALL(transport.endpoints_, getConnection(1234)).WillRepeatedly(::testing::Return(::testing::ByMove(std::make_tuple("http://local/traces"s, static_cast<curl_slist *>(nullptr), HttpEndpoint::connectionId_t(900), std::ref(sender), static_cast<std::size_t>(3), 100ms))));
+        EXPECT_CALL(transport.endpoints_, getConnection(1234u)).WillRepeatedly(::testing::Return(::testing::ByMove(std::make_tuple("http://local/traces"s, static_cast<curl_slist *>(nullptr), HttpEndpoint::connectionId_t(900), std::ref(sender), static_cast<std::size_t>(3), 100ms))));
 
         EXPECT_CALL(sender, sendPayload("http://local/traces", ::testing::_, ::testing::_, ::testing::_, ::testing::_)).Times(::testing::Exactly(1)).WillRepeatedly(::testing::DoAll(::testing::Invoke([]() { std::this_thread::sleep_for(10ms); }), ::testing::Return(200)));
 

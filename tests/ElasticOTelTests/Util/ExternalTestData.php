@@ -30,23 +30,15 @@ final class ExternalTestData
 {
     use StaticClassTrait;
 
-    /**
-     * @param string[] $relativePathToSubDir
-     * @param string   $relativePathToFile
-     *
-     * @return string
-     */
-    private static function fullPathForFileInSubDir(array $relativePathToSubDir, string $relativePathToFile): string
-    {
-        $fullPathAsList = [TestsRootDir::getFullPath()];
-        ArrayUtilForTests::append($relativePathToSubDir, /* in,out */ $fullPathAsList);
-        ArrayUtilForTests::append([$relativePathToFile], /* in,out */ $fullPathAsList);
-        return FileUtil::normalizePath(FileUtil::listToPath($fullPathAsList));
-    }
-
     public static function readJsonSpecsFile(string $relativePathToFile): mixed
     {
-        $filePath = self::fullPathForFileInSubDir(['external_test_data', 'APM_Agents_shared', 'json-specs'], $relativePathToFile);
+        /** @var ?string $relPathFromTestsToJsonSpecs */
+        static $relPathFromTestsToJsonSpecs = null;
+        if ($relPathFromTestsToJsonSpecs === null) {
+            $relPathFromTestsToJsonSpecs = FileUtil::adaptUnixDirectorySeparators('external_test_data/APM_Agents_shared/json-specs');
+        }
+        /** @var string $relPathFromTestsToJsonSpecs */
+        $filePath = FileUtil::normalizePath(FileUtil::partsToPath(TestsRootDir::getFullPath(), $relPathFromTestsToJsonSpecs, $relativePathToFile));
 
         $fileContent = '';
         FileUtil::readLines(

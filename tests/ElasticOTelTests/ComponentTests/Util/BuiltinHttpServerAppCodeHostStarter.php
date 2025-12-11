@@ -53,7 +53,7 @@ final class BuiltinHttpServerAppCodeHostStarter extends HttpServerStarter
     protected function buildCommandLine(array $ports): string
     {
         Assert::assertCount(1, $ports);
-        $routerScriptNameFullPath = FileUtil::listToPath([__DIR__, self::APP_CODE_HOST_ROUTER_SCRIPT]);
+        $routerScriptNameFullPath = FileUtil::partsToPath(__DIR__, self::APP_CODE_HOST_ROUTER_SCRIPT);
         if (!file_exists($routerScriptNameFullPath)) {
             throw new ConfigException(ExceptionUtil::buildMessage('Router script does not exist', compact('routerScriptNameFullPath')));
         }
