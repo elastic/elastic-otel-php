@@ -28,7 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Download package artifacts for Debian AMD64
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           pattern: packages-linux-x86-64
           path: ${{ env.BUILD_PACKAGES }}
@@ -43,7 +43,7 @@ jobs:
         if: always()
         run: ./tools/build/junit_summary.py --path-to-test-results "build/otel_unit_results/**/*.xml" --header "Test summary for PHP ${PHP_VERSION}" >>$GITHUB_STEP_SUMMARY
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         if: always()
         continue-on-error: true
         with:

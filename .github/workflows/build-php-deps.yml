@@ -26,7 +26,7 @@ jobs:
           read_properties elastic-otel-php.properties PROJECT_PROPERTIES
           PHP_VERSIONS=${PROJECT_PROPERTIES_SUPPORTED_PHP_VERSIONS//[()]/}
           ./tools/build/build_php_deps.sh --php_versions "${PHP_VERSIONS}"
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           name: php-dependencies
           path: |

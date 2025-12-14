@@ -41,7 +41,7 @@ jobs:
       BUILD_ARCHITECTURE: ${{ matrix.arch }}
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/download-artifact@v6
+      - uses: actions/download-artifact@v7
         with:
           name: build-native-${{ matrix.arch }}
           path: prod/native/_build/${{ matrix.arch }}-release/
@@ -57,7 +57,7 @@ jobs:
           read_properties elastic-otel-php.properties PROJECT_PROPERTIES
           PHP_VERSIONS=${PROJECT_PROPERTIES_SUPPORTED_PHP_VERSIONS//[()]/}
           ./tools/build/test_phpt.sh --build_architecture ${BUILD_ARCHITECTURE} --results_path ${PWD}/build/test_phpt_results --php_versions "${PHP_VERSIONS}"
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         if: failure()
         with:
           name: test-phpt-failures-${{ matrix.arch }}
