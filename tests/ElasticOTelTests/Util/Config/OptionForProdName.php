@@ -46,6 +46,7 @@ enum OptionForProdName
     case inferred_spans_sampling_interval;
     case inferred_spans_stacktrace_enabled;
     case log_file;
+    case log_level;
     case log_level_file;
     case log_level_stderr;
     case log_level_syslog;
@@ -57,7 +58,7 @@ enum OptionForProdName
     private const OTEL_PHP_ENV_VAR_NAME_PREFIX = 'OTEL_PHP_';
     private const ELASTIC_OTEL_ENV_VAR_NAME_PREFIX = 'ELASTIC_OTEL_';
 
-    private const LOG_LEVEL_RELATED = [self::log_level_file, self::log_level_stderr, self::log_level_syslog];
+    private const LOG_LEVEL_RELATED = [self::log_level, self::log_level_file, self::log_level_stderr, self::log_level_syslog];
     private const LOG_RELATED = [...self::LOG_LEVEL_RELATED, self::log_file];
 
     /**
@@ -77,6 +78,7 @@ enum OptionForProdName
             self::inferred_spans_sampling_interval->name  => self::ELASTIC_OTEL_ENV_VAR_NAME_PREFIX,
             self::inferred_spans_stacktrace_enabled->name => self::ELASTIC_OTEL_ENV_VAR_NAME_PREFIX,
             self::log_file->name                          => self::ELASTIC_OTEL_ENV_VAR_NAME_PREFIX,
+            self::log_level->name                         => self::OTEL_ENV_VAR_NAME_PREFIX,
             self::log_level_file->name                    => self::ELASTIC_OTEL_ENV_VAR_NAME_PREFIX,
             self::log_level_stderr->name                  => self::ELASTIC_OTEL_ENV_VAR_NAME_PREFIX,
             self::log_level_syslog->name                  => self::ELASTIC_OTEL_ENV_VAR_NAME_PREFIX,

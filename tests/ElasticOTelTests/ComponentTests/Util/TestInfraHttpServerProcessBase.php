@@ -86,19 +86,19 @@ abstract class TestInfraHttpServerProcessBase extends SpawnedProcessBase
         parent::processConfig();
 
         Assert::assertCount(
-            $this->expectedPortsCount(),
+            $this->maxPortsCount(),
             AmbientContextForTests::testConfig()->dataPerProcess()->thisServerPorts,
             LoggableToString::convert(AmbientContextForTests::testConfig())
         );
 
-        // At this point request is not parsed and applied to config yet
+        // At this point data per request is not parsed and not applied to config yet
         TestCase::assertNull(AmbientContextForTests::testConfig()->getOptionValueByName(OptionForTestsName::data_per_request));
     }
 
     /**
-     * @return int
+     * @return positive-int
      */
-    protected function expectedPortsCount(): int
+    public static function maxPortsCount(): int
     {
         return 1;
     }

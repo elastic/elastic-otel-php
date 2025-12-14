@@ -25,6 +25,7 @@ namespace ElasticOTelTests\ComponentTests;
 
 use ElasticOTelTests\BootstrapTests;
 
+require __DIR__ . '/../../../tools/build/bootstrap_build_tools.php';
 require __DIR__ . '/../../bootstrap.php';
 
 BootstrapTests::bootstrapUnitTests();

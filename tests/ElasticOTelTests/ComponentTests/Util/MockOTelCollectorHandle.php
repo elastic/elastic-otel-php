@@ -27,6 +27,8 @@ use Elastic\OTel\Util\BoolUtil;
 use ElasticOTelTests\Util\AmbientContextForTests;
 use ElasticOTelTests\Util\ArrayUtilForTests;
 use ElasticOTelTests\Util\ClassNameUtil;
+use ElasticOTelTests\Util\HttpContentTypes;
+use ElasticOTelTests\Util\HttpHeaderNames;
 use ElasticOTelTests\Util\HttpMethods;
 use ElasticOTelTests\Util\HttpStatusCodes;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
@@ -82,6 +84,27 @@ final class MockOTelCollectorHandle extends HttpServerHandle
             $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Fetched new data from agent receiver events', ['count(newEvents)' => count($newEvents)]);
         }
         return $newEvents;
+    }
+
+    /**
+     * @see MockOTelCollector::setRemoteConfigFileNameToContent
+     *
+     * TODO: Sergey Kleyman: REMOVE: PhpUnused
+     * @noinspection PhpUnused
+     */
+    public function setRemoteConfigFileNameToContent(mixed $remoteConfigFileNameToContent): void
+    {
+        $loggerProxyDebug = $this->logger->ifDebugLevelEnabledNoLine(__FUNCTION__);
+        $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Starting...');
+
+        $response = $this->sendRequest(
+            httpMethod: HttpMethods::POST,
+            path: MockOTelCollector::MOCK_API_URI_PREFIX . MockOTelCollector::SET_REMOTE_CONFIG_FILE_NAME_TO_CONTENT,
+            headers: [HttpHeaderNames::CONTENT_TYPE => HttpContentTypes::PHP_SERIALIZED],
+            body: PhpSerializationUtil::serializeToString($remoteConfigFileNameToContent),
+        );
+
+        Assert::assertSame(HttpStatusCodes::OK, $response->getStatusCode());
     }
 
     public function cleanTestScoped(): void

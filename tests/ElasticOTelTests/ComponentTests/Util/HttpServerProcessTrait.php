@@ -24,6 +24,8 @@ declare(strict_types=1);
 namespace ElasticOTelTests\ComponentTests\Util;
 
 use ElasticOTelTests\Util\AmbientContextForTests;
+use ElasticOTelTests\Util\HttpContentTypes;
+use ElasticOTelTests\Util\HttpHeaderNames;
 use ElasticOTelTests\Util\HttpStatusCodes;
 use ElasticOTelTests\Util\JsonUtil;
 use Psr\Http\Message\ResponseInterface;
@@ -50,13 +52,9 @@ trait HttpServerProcessTrait
     protected static function buildErrorResponse(int $status, string $message): ResponseInterface
     {
         return new Response(
-            $status,
-            // headers:
-            [
-                'Content-Type' => 'application/json',
-            ],
-            // body:
-            JsonUtil::encode(['message' => $message], /* prettyPrint: */ true)
+            status:  $status,
+            headers: [HttpHeaderNames::CONTENT_TYPE => HttpContentTypes::JSON],
+            body:    JsonUtil::encode(['message' => $message], prettyPrint: true)
         );
     }
 

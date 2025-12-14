@@ -51,7 +51,8 @@
         "psr-4": {
             "Elastic\\OTel\\": "./prod/php/ElasticOTel/",
             "ElasticOTelTests\\": "./tests/ElasticOTelTests/",
-            "ElasticOTelTools\\Build\\": "./tools/build/"
+            "ElasticOTelTools\\Build\\": "./tools/build/",
+            "ElasticOTelTests\\Generated\\": "./tests/GENERATED_source_code/"
         }
     },
     "config": {
@@ -78,7 +79,7 @@
             "@putenv ELASTIC_OTEL_ENABLED=false",
             "@putenv OTEL_PHP_DISABLED_INSTRUMENTATIONS=all",
             "@putenv OTEL_PHP_AUTOLOAD_ENABLED=false",
-            "parallel-lint ./prod/php/ ./tests/ ./tools/ --exclude ./tests/polyfills/"
+            "parallel-lint ./prod/php/ ./tests/ ./tools/ --exclude ./tests/polyfills/ --exclude ./tests/GENERATED_source_code/"
         ],
         "php_codesniffer_check": [
             "@putenv ELASTIC_OTEL_ENABLED=false",

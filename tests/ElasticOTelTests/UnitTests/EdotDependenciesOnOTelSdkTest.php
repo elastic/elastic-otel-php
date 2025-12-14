@@ -26,6 +26,7 @@ declare(strict_types=1);
 namespace ElasticOTelTests\UnitTests;
 
 use Elastic\OTel\RemoteConfigHandler;
+use ElasticOTelTests\Util\Config\OptionForProdName;
 use ElasticOTelTests\Util\TestCaseBase;
 use OpenTelemetry\API\Behavior\Internal\Logging as OTelInternalLogging;
 use OpenTelemetry\SDK\Common\Configuration\Variables as OTelSdkConfigVariables;
@@ -49,10 +50,11 @@ final class EdotDependenciesOnOTelSdkTest extends TestCaseBase
     public function testConstNamesInSync(): void
     {
         self::assertSame(OTelSdkConfigVariables::OTEL_EXPERIMENTAL_CONFIG_FILE, RemoteConfigHandler::OTEL_EXPERIMENTAL_CONFIG_FILE); // @phpstan-ignore staticMethod.alreadyNarrowedType
-        self::assertSame(OTelSdkConfigVariables::OTEL_LOG_LEVEL, RemoteConfigHandler::LOG_LEVEL_OTEL_OPTION_NAME); // @phpstan-ignore staticMethod.alreadyNarrowedType
+        self::assertSame(OTelSdkConfigVariables::OTEL_LOG_LEVEL, RemoteConfigHandler::OTEL_LOG_LEVEL_OPTION_NAME); // @phpstan-ignore staticMethod.alreadyNarrowedType
 
-        self::assertSame(self::getPrivateConstValue(OTelInternalLogging::class, 'OTEL_LOG_LEVEL'), RemoteConfigHandler::LOG_LEVEL_OTEL_OPTION_NAME);
+        self::assertSame(self::getPrivateConstValue(OTelInternalLogging::class, 'OTEL_LOG_LEVEL'), RemoteConfigHandler::OTEL_LOG_LEVEL_OPTION_NAME);
         self::assertSame(self::getPrivateConstValue(OTelInternalLogging::class, 'NONE'), RemoteConfigHandler::OTEL_LOG_LEVEL_NONE);
+        self::assertSame(RemoteConfigHandler::OTEL_LOG_LEVEL_OPTION_NAME, OptionForProdName::log_level->toEnvVarName());
 
         self::assertSame(OTelSdkConfigVariables::OTEL_TRACES_SAMPLER, RemoteConfigHandler::OTEL_TRACES_SAMPLER); // @phpstan-ignore staticMethod.alreadyNarrowedType
         self::assertSame(OTelSdkConfigVariables::OTEL_TRACES_SAMPLER_ARG, RemoteConfigHandler::OTEL_TRACES_SAMPLER_ARG); // @phpstan-ignore staticMethod.alreadyNarrowedType

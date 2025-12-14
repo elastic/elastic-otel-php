@@ -224,4 +224,9 @@ final class TestCaseHandle implements LoggableInterface
     {
         return $this->resourcesCleaner->getClient();
     }
+
+    public function getMockOTelCollector(): MockOTelCollectorHandle
+    {
+        return $this->mockOTelCollector;
+    }
 }

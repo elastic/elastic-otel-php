@@ -24,6 +24,7 @@ declare(strict_types=1);
 namespace ElasticOTelTests\ComponentTests\Util;
 
 use Elastic\OTel\Log\LogLevel;
+use Elastic\OTel\RemoteConfigHandler;
 use ElasticOTelTests\ComponentTests\Util\OtlpData\Span;
 use ElasticOTelTests\Util\AmbientContextForTests;
 use ElasticOTelTests\Util\ArrayUtilForTests;
@@ -508,5 +509,15 @@ class ComponentTestCaseBase extends TestCaseBase
     {
         $appCodeParams->setProdOption(OptionForProdName::transaction_span_enabled, true);
         $appCodeParams->setProdOption(OptionForProdName::transaction_span_enabled_cli, true);
+    }
+
+    /**
+     * @param array<string, mixed> $optNameToVal
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    protected static function buildRemoteConfigFileNameToContent(array $optNameToVal): array
+    {
+        return [RemoteConfigHandler::REMOTE_CONFIG_FILE_NAME => $optNameToVal];
     }
 }

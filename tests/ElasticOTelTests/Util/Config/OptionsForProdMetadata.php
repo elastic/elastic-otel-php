@@ -66,6 +66,7 @@ final class OptionsForProdMetadata
             [OptionForProdName::inferred_spans_sampling_interval, $inferredSpansSamplingInterval],
             [OptionForProdName::inferred_spans_stacktrace_enabled, new BoolOptionMetadata(true)],
             [OptionForProdName::log_file, new NullableStringOptionMetadata()],
+            [OptionForProdName::log_level, new NullablePsrLogLevelOptionMetadata()],
             [OptionForProdName::log_level_file, new LogLevelOptionMetadata(OptionsForProdDefaultValues::LOG_LEVEL_FILE)],
             [OptionForProdName::log_level_stderr, new LogLevelOptionMetadata(OptionsForProdDefaultValues::LOG_LEVEL_STDERR)],
             [OptionForProdName::log_level_syslog, new LogLevelOptionMetadata(OptionsForProdDefaultValues::LOG_LEVEL_SYSLOG)],

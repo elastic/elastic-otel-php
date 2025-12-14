@@ -11,3 +11,4 @@ parameters:
 
     excludePaths:
         - ./tests/substitutes/*/original/*
+        - ./tests/GENERATED_source_code/*

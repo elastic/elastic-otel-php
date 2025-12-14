@@ -183,7 +183,6 @@ final class ResourcesCleaner extends TestInfraHttpServerProcessBase
         $filesToDeletePaths->clear();
     }
 
-    /** @inheritDoc */
     #[Override]
     protected function processRequest(ServerRequestInterface $request): ?ResponseInterface
     {

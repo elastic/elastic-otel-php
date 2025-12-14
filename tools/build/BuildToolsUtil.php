@@ -30,6 +30,7 @@ use Elastic\OTel\Log\LogLevel;
 use Elastic\OTel\PhpPartFacade;
 use JsonException;
 use RuntimeException;
+use SplFileInfo;
 use Throwable;
 
 /**
@@ -337,11 +338,25 @@ final class BuildToolsUtil
     public static function copyDirectoryContents(string $fromDirPath, string $toDirPath): void
     {
         self::logInfo(__LINE__, __METHOD__, "Copying directory contents from $fromDirPath to $toDirPath");
-        self::execShellCommand(
-            self::isCurrentOsWindows()
-                ? "xcopy /y /s /e \"$fromDirPath\\*\" \"$toDirPath\\\""
-                : "cp -r \"$fromDirPath/\"* \"$toDirPath/\"",
-        );
+
+        foreach (self::iterateOverDirectoryContents($fromDirPath) as $fileInfo) {
+            $dirEntry = $fileInfo->getRealPath();
+            self::execShellCommand(
+                self::isCurrentOsWindows()
+                    ? "xcopy /y /s /e \"$dirEntry\" \"$toDirPath\\\""
+                    : "cp -r \"$dirEntry\" \"$toDirPath/\"",
+            );
+        }
+    }
+
+    /** @noinspection PhpUnused */
+    public static function moveDirectoryContents(string $fromDirPath, string $toDirPath): void
+    {
+        self::logInfo(__LINE__, __METHOD__, "Moving directory contents from $fromDirPath to $toDirPath");
+
+        foreach (self::iterateOverDirectoryContents($fromDirPath) as $fileInfo) {
+            rename($fileInfo->getRealPath(), self::partsToPath($toDirPath, $fileInfo->getBasename()));
+        }
     }
 
     /** @noinspection PhpUnused */
@@ -397,6 +412,20 @@ final class BuildToolsUtil
         self::assertNotFalse($chdirRetVal, compact('chdirRetVal'));
     }
 
+    /**
+     * @return iterable<SplFileInfo>
+     */
+    public static function iterateOverDirectoryContents(string $dirPath): iterable
+    {
+        foreach (new DirectoryIterator($dirPath) as $fileInfo) {
+            if ($fileInfo->getFilename() === '.' || $fileInfo->getFilename() === '..') {
+                continue;
+            }
+
+            yield $fileInfo;
+        }
+    }
+
     public static function listDirectoryContents(string $dirPath, int $recursiveDepth = 0): void
     {
         self::logInfo(__LINE__, __METHOD__, "Contents  of directory $dirPath:");
@@ -410,11 +439,7 @@ final class BuildToolsUtil
             return;
         }
 
-        foreach (new DirectoryIterator($dirPath) as $fileInfo) {
-            if ($fileInfo->getFilename() === '.' || $fileInfo->getFilename() === '..') {
-                continue;
-            }
-
+        foreach (self::iterateOverDirectoryContents($dirPath) as $fileInfo) {
             self::listDirectoryContents($fileInfo->getRealPath(), $recursiveDepth - 1);
         }
     }

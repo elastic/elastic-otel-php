@@ -57,6 +57,12 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
     public const FROM_INDEX_HEADER_NAME = RequestHeadersRawSnapshotSource::HEADER_NAMES_PREFIX . 'FROM_INDEX';
     public const SHOULD_WAIT_HEADER_NAME = RequestHeadersRawSnapshotSource::HEADER_NAMES_PREFIX . 'SHOULD_WAIT';
 
+// TODO: Sergey Kleyman: UNCOMMENT
+//    private const START_OPAMP_SERVER_BY_DEFAULT = false;
+//    private const OPAMP_API_URI = '/';
+
+    public const SET_REMOTE_CONFIG_FILE_NAME_TO_CONTENT = 'set_remote_config_file_name_to_content';
+
     /** @var list<AgentBackendCommEvent> */
     private array $agentBackendCommEvents = [];
     public int $pendingDataRequestNextId;
@@ -64,6 +70,11 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
     private array $pendingDataRequests = [];
     private readonly Logger $logger;
     private Clock $clock;
+    /**
+     * TODO: Sergey Kleyman: REMOVE: PhpPropertyOnlyWrittenInspection $remoteConfigFileNameToContent
+     * @noinspection PhpPropertyOnlyWrittenInspection
+     */
+    private mixed $remoteConfigFileNameToContent; // @phpstan-ignore property.onlyWritten
 
     public function __construct()
     {
@@ -76,9 +87,10 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
         $this->logger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__)->addAllContext(compact('this'));
     }
 
-    protected function expectedPortsCount(): int
+    #[Override]
+    public static function maxPortsCount(): int
     {
-        return 2;
+        return 3;
     }
 
     #[Override]
@@ -111,9 +123,8 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
         $this->pendingDataRequests = [];
     }
 
-    /** @inheritDoc */
     #[Override]
-    protected function processRequest(ServerRequestInterface $request): null|ResponseInterface|Promise
+    protected function processRequest(ServerRequestInterface $request): ResponseInterface|Promise
     {
         if ($request->getUri()->getPath() === self::INTAKE_TRACE_DATA_URI_PATH) {
             return $this->processIntakeDataRequest($request, OTelSignalType::trace);
@@ -125,10 +136,14 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
 
         if ($request->getUri()->getPath() === TestInfraHttpServerProcessBase::CLEAN_TEST_SCOPED_URI_PATH) {
             $this->cleanTestScoped();
-            return new Response(/* status: */ 200);
+            return new Response(/* status: */ HttpStatusCodes::OK);
         }
 
-        return null;
+        return new Response(
+            status: HttpStatusCodes::NOT_FOUND,
+            headers: [HttpHeaderNames::CONTENT_TYPE => HttpContentTypes::TEXT],
+            body: 'Path `' . $request->getUri()->getPath() . '\' is not supported'
+        );
     }
 
     #[Override]
@@ -193,8 +208,9 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
     private function processMockApiRequest(ServerRequestInterface $request): Promise|ResponseInterface
     {
         return match ($command = substr($request->getUri()->getPath(), strlen(self::MOCK_API_URI_PREFIX))) {
+            self::SET_REMOTE_CONFIG_FILE_NAME_TO_CONTENT => $this->setRemoteConfigFileNameToContent($request),
             self::GET_AGENT_BACKEND_COMM_EVENTS_URI_SUBPATH => $this->getAgentBackendCommEvents($request),
-            default => $this->buildErrorResponse(HttpStatusCodes::BAD_REQUEST, 'Unknown Mock API command `' . $command . '\''),
+            default => $this->buildErrorResponse(HttpStatusCodes::NOT_FOUND, 'Unknown Mock API command `' . $command . '\''),
         };
     }
 
@@ -255,6 +271,8 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
     /**
      * @param list<AgentBackendCommEvent> $events
      *
+     * @see self::decodeGetEventsResponse
+     *
      * @noinspection PhpDocMissingThrowsInspection
      */
     private static function encodeGetAgentBackendCommEvents(array $events): ResponseInterface
@@ -268,6 +286,8 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
 
     /**
      * @return list<AgentBackendCommEvent>
+     *
+     * @see self::encodeGetEventsResponse
      *
      * @noinspection PhpDocMissingThrowsInspection
      */
@@ -309,6 +329,20 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
     protected function buildIntakeDataErrorResponse(int $status, string $message): ResponseInterface
     {
         return new Response(status: $status, headers: [HttpHeaderNames::CONTENT_TYPE => HttpContentTypes::TEXT], body: $message);
+    }
+
+    /**
+     * @see MockOTelCollectorHandle::setRemoteConfigFileNameToContent
+     */
+    private function setRemoteConfigFileNameToContent(ServerRequestInterface $request): ResponseInterface
+    {
+        $requestBody = $request->getBody()->getContents();
+        $contentType = HttpClientUtilForTests::getSingleHeaderValue(HttpHeaderNames::CONTENT_TYPE, $request->getHeaders()); // @phpstan-ignore argument.type
+        $dbgCtx = ['expected content type' => HttpContentTypes::JSON];
+        ArrayUtilForTests::append(compact('contentType', 'requestBody'), to: $dbgCtx);
+        Assert::assertSame(HttpContentTypes::PHP_SERIALIZED, $contentType);
+        $this->remoteConfigFileNameToContent = PhpSerializationUtil::unserializeFromString($requestBody);
+        return new Response(HttpStatusCodes::OK);
     }
 
     /**
