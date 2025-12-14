@@ -48,9 +48,8 @@ trait BuildToolsAssertTrait
         if (class_exists('PHPUnit\Framework\Assert')) {
             /** @noinspection PhpFullyQualifiedNameUsageInspection */
             \PHPUnit\Framework\Assert::fail($msgCombined);
-        } else {
-            throw new RuntimeException($msgCombined);
         }
+        throw new RuntimeException($msgCombined);
     }
 
     /**
