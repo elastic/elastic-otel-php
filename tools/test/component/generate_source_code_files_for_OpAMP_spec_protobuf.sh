@@ -34,7 +34,7 @@ function parse_args() {
             exit 0
             ;;
         *)
-            echo "Unknown parameter passed: $1"
+            edot_log "Unknown parameter passed: $1"
             show_help
             exit 1
             ;;
@@ -68,8 +68,8 @@ function adapt_dot_proto_files () {
     OPTIONS_TO_APPEND=${OPTIONS_TO_APPEND//\"/\\\"}
 
     for DOT_PROTO_FILE in "${DOT_PROTO_FILES_DIR}/"*.proto; do
-        echo "Before adapting file: ${DOT_PROTO_FILE}"
-        grep -E -A1 '^package [a-zA-Z0-9.]+;$' "${DOT_PROTO_FILE}"
+        edot_log "Before adapting file: ${DOT_PROTO_FILE}"
+        grep -E -A1 '^package [a-zA-Z0-9.]+;$' "${DOT_PROTO_FILE}" 1>&2
 
         # sed '/[pattern]/a [new line of text]' filename
         # This command finds lines containing [pattern] and appends [new line of text] on a new line immediately following the match
@@ -80,8 +80,8 @@ function adapt_dot_proto_files () {
 
         sed -i "/package opamp.proto;/a ${OPTIONS_TO_APPEND}" "${DOT_PROTO_FILE}"
 
-        echo "After adapting file: ${DOT_PROTO_FILE}"
-        grep -E -A1 '^package [a-zA-Z0-9.]+;$' "${DOT_PROTO_FILE}"
+        edot_log "After adapting file: ${DOT_PROTO_FILE}"
+        grep -E -A1 '^package [a-zA-Z0-9.]+;$' "${DOT_PROTO_FILE}" 1>&2
     done
 }
 
@@ -139,7 +139,7 @@ function main () {
 
     # TEMP_STAGE_DIR is not local because it's referenced in on_script_exit and we cannot pass it as parameter
     TEMP_STAGE_DIR="$(mktemp -d)"
-    echo "TEMP_STAGE_DIR: ${TEMP_STAGE_DIR}"
+    edot_log "TEMP_STAGE_DIR: ${TEMP_STAGE_DIR}"
 
     trap on_script_exit EXIT
 
