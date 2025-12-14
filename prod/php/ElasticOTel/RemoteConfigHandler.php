@@ -38,7 +38,7 @@ final class RemoteConfigHandler
 {
     use StaticClassTrait;
 
-    private const REMOTE_CONFIG_FILE_NAME = 'elastic';
+    public const REMOTE_CONFIG_FILE_NAME = 'elastic';
 
     public const OTEL_EXPERIMENTAL_CONFIG_FILE = 'OTEL_EXPERIMENTAL_CONFIG_FILE';
 
@@ -47,7 +47,41 @@ final class RemoteConfigHandler
      * @see https://github.com/elastic/kibana/blob/v9.1.0/x-pack/solutions/observability/plugins/apm/common/agent_configuration/setting_definitions/edot_sdk_settings.ts#L48
      */
     public const LOGGING_LEVEL_REMOTE_CONFIG_OPTION_NAME = 'logging_level';
-    public const LOG_LEVEL_OTEL_OPTION_NAME = 'OTEL_LOG_LEVEL';
+
+    /**
+     * Values used by Remote/Central Configuration:
+     * @see https://github.com/elastic/kibana/blob/v9.1.0/x-pack/solutions/observability/plugins/apm/common/agent_configuration/setting_definitions/edot_sdk_settings.ts#L59
+     */
+    public const LOGGING_LEVEL_TRACE = 'trace';
+    public const LOGGING_LEVEL_DEBUG = 'debug';
+    public const LOGGING_LEVEL_INFO = 'info';
+    public const LOGGING_LEVEL_WARN = 'warn';
+    public const LOGGING_LEVEL_ERROR = 'error';
+    public const LOGGING_LEVEL_FATAL = 'fatal';
+    public const LOGGING_LEVEL_OFF = 'off';
+    /**
+     * Values used by OTel SDK:
+     * @see https://github.com/open-telemetry/opentelemetry-php/blob/73ff5adcb8f1db348bedb422de760e475df16841/src/API/Behavior/Internal/Logging.php#L21
+     * @see https://github.com/php-fig/log/blob/1.1.0/Psr/Log/LogLevel.php
+     * @see https://github.com/php-fig/log/blob/3.0.2/src/LogLevel.php
+     */
+    public const LOGGING_LEVEL_TO_OTEL = [
+        self::LOGGING_LEVEL_TRACE => PsrLogLevel::DEBUG,
+        self::LOGGING_LEVEL_DEBUG => PsrLogLevel::DEBUG,
+        self::LOGGING_LEVEL_INFO => PsrLogLevel::INFO,
+        self::LOGGING_LEVEL_WARN => PsrLogLevel::WARNING,
+        self::LOGGING_LEVEL_ERROR => PsrLogLevel::ERROR,
+        self::LOGGING_LEVEL_FATAL => PsrLogLevel::CRITICAL,
+        self::LOGGING_LEVEL_OFF => self::OTEL_LOG_LEVEL_NONE,
+    ];
+
+    /**
+     * @see \OpenTelemetry\API\Behavior\Internal\Logging::OTEL_LOG_LEVEL
+     */
+    public const OTEL_LOG_LEVEL_OPTION_NAME = 'OTEL_LOG_LEVEL';
+    /**
+     * @see \OpenTelemetry\API\Behavior\Internal\Logging::NONE
+     */
     public const OTEL_LOG_LEVEL_NONE = 'none';
 
     /**
@@ -121,28 +155,6 @@ final class RemoteConfigHandler
         return self::verifyValueType($remoteOptName, $remoteOptVal, 'float', is_numeric(...));
     }
 
-    private static function convertRemoteLoggingLevelToOTel(string $remoteLoggingLevel): ?string
-    {
-        /**
-         * Values used by Remote/Central Configuration:
-         * @see https://github.com/elastic/kibana/blob/v9.1.0/x-pack/solutions/observability/plugins/apm/common/agent_configuration/setting_definitions/edot_sdk_settings.ts#L59
-         *
-         * Values used by OTel SDK:
-         * @see https://github.com/open-telemetry/opentelemetry-php/blob/73ff5adcb8f1db348bedb422de760e475df16841/src/API/Behavior/Internal/Logging.php#L21
-         * @see https://github.com/php-fig/log/blob/1.1.0/Psr/Log/LogLevel.php
-         * @see https://github.com/php-fig/log/blob/3.0.2/src/LogLevel.php
-         */
-        return match ($remoteLoggingLevel) {
-            'trace', 'debug' => PsrLogLevel::DEBUG,
-            'info' => PsrLogLevel::INFO,
-            'warn' => PsrLogLevel::WARNING,
-            'error' => PsrLogLevel::ERROR,
-            'fatal' => PsrLogLevel::CRITICAL,
-            'off' => self::OTEL_LOG_LEVEL_NONE,
-            default => null
-        };
-    }
-
     /**
      * @see https://github.com/elastic/kibana/blob/v9.1.0/x-pack/solutions/observability/plugins/apm/common/agent_configuration/setting_definitions/edot_sdk_settings.ts#L59
      */
@@ -153,7 +165,7 @@ final class RemoteConfigHandler
         }
         /** @var string $remoteOptVal */
 
-        $otelLogLevel = self::convertRemoteLoggingLevelToOTel($remoteOptVal);
+        $otelLogLevel = ArrayUtil::getValueIfKeyExistsElse($remoteOptVal, self::LOGGING_LEVEL_TO_OTEL, null);
         if ($otelLogLevel === null) {
             self::logError(
                 'Option ' . self::LOGGING_LEVEL_REMOTE_CONFIG_OPTION_NAME . " value is not in the set of the expected values: $remoteOptVal",
@@ -167,7 +179,7 @@ final class RemoteConfigHandler
          * OTel SDK reads log level config directly from $_SERVER
          * @see https://github.com/open-telemetry/opentelemetry-php/blob/73ff5adcb8f1db348bedb422de760e475df16841/src/API/Behavior/Internal/Logging.php#L72
          */
-        $_SERVER[self::LOG_LEVEL_OTEL_OPTION_NAME] = $otelLogLevel;
+        $_SERVER[self::OTEL_LOG_LEVEL_OPTION_NAME] = $otelLogLevel;
         self::logDebug('Set OTel SDK log level to ' . $otelLogLevel, __LINE__, __FUNCTION__);
     }
 

@@ -27,7 +27,6 @@ use Elastic\OTel\Util\BoolUtil;
 use Elastic\OTel\Util\StaticClassTrait;
 use ElasticOTelTests\Util\AmbientContextForTests;
 use ElasticOTelTests\Util\ArrayUtilForTests;
-use ElasticOTelTests\Util\BoolUtil;
 use ElasticOTelTests\Util\Config\IniRawSnapshotSource;
 use ElasticOTelTests\Util\Config\OptionForProdName;
 use ElasticOTelTests\Util\Config\OptionForTestsName;

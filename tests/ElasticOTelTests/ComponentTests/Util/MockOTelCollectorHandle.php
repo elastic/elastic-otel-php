@@ -31,14 +31,10 @@ use ElasticOTelTests\Util\HttpContentTypes;
 use ElasticOTelTests\Util\HttpHeaderNames;
 use ElasticOTelTests\Util\HttpMethods;
 use ElasticOTelTests\Util\HttpStatusCodes;
-use ElasticOTelTests\Util\JsonUtil;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
 use ElasticOTelTests\Util\Log\Logger;
 use PHPUnit\Framework\Assert;
 
-/**
- * @phpstan-import-type RemoteConfig from MockOTelCollector
- */
 final class MockOTelCollectorHandle extends HttpServerHandle
 {
     private readonly Logger $logger;
@@ -91,41 +87,24 @@ final class MockOTelCollectorHandle extends HttpServerHandle
     }
 
     /**
-     * @see MockOTelCollector::processCommand
+     * @see MockOTelCollector::setRemoteConfigFileNameToContent
+     *
+     * TODO: Sergey Kleyman: REMOVE: PhpUnused
+     * @noinspection PhpUnused
      */
-    private function sendCommand(MockOTelCollectorCommandInterface $cmd): void
+    public function setRemoteConfigFileNameToContent(mixed $remoteConfigFileNameToContent): void
     {
         $loggerProxyDebug = $this->logger->ifDebugLevelEnabledNoLine(__FUNCTION__);
         $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Starting...');
 
         $response = $this->sendRequest(
             httpMethod: HttpMethods::POST,
-            path:       MockOTelCollector::MOCK_API_URI_PREFIX . MockOTelCollector::APPLY_COMMAND_URI_SUBPATH,
-            headers:    [HttpHeaderNames::CONTENT_TYPE => HttpContentTypes::JSON],
-            body:       JsonUtil::encode([MockOTelCollectorCommandInterface::class => PhpSerializationUtil::serializeToString($cmd)]),
+            path: MockOTelCollector::MOCK_API_URI_PREFIX . MockOTelCollector::SET_REMOTE_CONFIG_FILE_NAME_TO_CONTENT,
+            headers: [HttpHeaderNames::CONTENT_TYPE => HttpContentTypes::PHP_SERIALIZED],
+            body: PhpSerializationUtil::serializeToString($remoteConfigFileNameToContent),
         );
 
         Assert::assertSame(HttpStatusCodes::OK, $response->getStatusCode());
-    }
-
-    /**
-     * @param RemoteConfig $remoteConfig
-     */
-    public function setRemoteConfig(array $remoteConfig): void
-    {
-        $this->sendCommand(
-            new class($remoteConfig) implements MockOTelCollectorCommandInterface {
-                public function __construct(
-                    private readonly array $remoteConfig
-                ) {
-                }
-
-                function applyTo(MockOTelCollector $mockOTelCollector): void
-                {
-                    $mockOTelCollector->setRemoteConfig($this->remoteConfig);
-                }
-            }
-        );
     }
 
     public function cleanTestScoped(): void

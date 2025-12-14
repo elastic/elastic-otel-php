@@ -100,6 +100,7 @@ main() {
             "${docker_run_env_vars_cmd_line_args[@]}" \
             -v "${PWD}/:/repo_root/:ro" \
             -v "${logs_dir}:/elastic_otel_php_tests/logs" \
+            -v "/var/run/docker.sock:/var/run/docker.sock" \
             -w "/repo_root" \
             "${PHP_docker_image}" \
             sh -c "\

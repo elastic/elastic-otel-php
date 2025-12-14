@@ -19,27 +19,10 @@
  * under the License.
  */
 
-/** @noinspection PhpIllegalPsrClassPathInspection */
-
 declare(strict_types=1);
 
 namespace Elastic\OTel\Util;
 
-<<<<<<<< HEAD:prod/php/ElasticOTel/Util/ElasticOTelSdkConfigUtil.php
-use OpenTelemetry\SDK\Common\Configuration\Configuration as OTelSdkConfiguration;
-use OpenTelemetry\SDK\Common\Configuration\Variables as OTelSdkConfigurationVariables;
-
-final class ElasticOTelSdkConfigUtil
-{
-    use StaticClassTrait;
-
-    public const OPT_NAME_EXPERIMENTAL_CONFIG_FILE = 'OTEL_EXPERIMENTAL_CONFIG_FILE';
-
-    public static function has(string $optName): bool
-    {
-        // TODO: Sergey Kleyman: Remove use of OTelSdkConfiguration in prod code: instead duplicate and test
-        return OTelSdkConfiguration::has(OTelSdkConfigurationVariables::OTEL_EXPERIMENTAL_CONFIG_FILE);
-========
 final class BoolUtil
 {
     use StaticClassTrait;
@@ -63,6 +46,5 @@ final class BoolUtil
         }
 
         return null;
->>>>>>>> main:prod/php/ElasticOTel/Util/BoolUtil.php
     }
 }

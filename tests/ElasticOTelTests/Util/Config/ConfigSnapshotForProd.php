@@ -27,6 +27,7 @@ use Elastic\OTel\Log\LogLevel;
 use Elastic\OTel\Util\WildcardListMatcher;
 use ElasticOTelTests\Util\Duration;
 use ElasticOTelTests\Util\Log\LoggableInterface;
+use Elastic\OTel\Log\PsrLogLevel;
 
 /**
  * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
@@ -48,6 +49,7 @@ final class ConfigSnapshotForProd implements LoggableInterface
     private readonly Duration $inferredSpansSamplingInterval; // @phpstan-ignore property.uninitializedReadonly
     private readonly bool $inferredSpansStacktraceEnabled; // @phpstan-ignore property.uninitializedReadonly
     private readonly ?string $logFile; // @phpstan-ignore property.uninitializedReadonly
+    private readonly ?PsrLogLevel $logLevel; // @phpstan-ignore property.uninitializedReadonly
     private readonly LogLevel $logLevelFile; // @phpstan-ignore property.uninitializedReadonly
     private readonly LogLevel $logLevelStderr; // @phpstan-ignore property.uninitializedReadonly
     private readonly LogLevel $logLevelSyslog; // @phpstan-ignore property.uninitializedReadonly
@@ -73,6 +75,9 @@ final class ConfigSnapshotForProd implements LoggableInterface
             }
         };
 
+        if ($this->logLevel !== null) {
+            $keepMaxLevel(LogLevel::fromPsrLevel($this->logLevel));
+        }
         $keepMaxLevel($this->logLevelStderr);
         $keepMaxLevel($this->logLevelSyslog);
         if ($this->logFile !== null) {

@@ -26,7 +26,7 @@ function parse_args() {
             exit 0
             ;;
         *)
-            echo "Unknown parameter passed: $1"
+            edot_log "Unknown parameter passed: $1"
             show_help
             exit 1
             ;;
@@ -89,7 +89,7 @@ function build_list_of_dev_deps_to_remove_for_prod_static_check() {
     done
 
     if [ ${#deps_to_remove[@]} -eq 0 ]; then
-        echo "There should be at least one package to remove to generate composer json derived for test env"
+        edot_log "There should be at least one package to remove to generate composer json derived for test env"
         exit 1
     fi
 
@@ -148,7 +148,7 @@ function build_list_of_not_dev_deps_to_remove_for_test() {
     done
 
     if [ ${#deps_to_remove[@]} -eq 0 ]; then
-        echo "There should be at least one package to remove to generate composer json derived for test env"
+        edot_log "There should be at least one package to remove to generate composer json derived for test env"
         exit 1
     fi
 
@@ -182,7 +182,7 @@ function derive_composer_json_for_env_kind() {
     local base_composer_json_full_path
     base_composer_json_full_path="$(build_generated_composer_json_full_path "dev")"
 
-    echo "Deriving composer json for ${env_kind} from ${base_composer_json_full_path} ..."
+    edot_log "Deriving composer json for ${env_kind} from ${base_composer_json_full_path} ..."
 
     local derived_composer_json_full_path
     derived_composer_json_full_path="$(build_generated_composer_json_full_path "${env_kind}")"
@@ -199,7 +199,7 @@ function derive_composer_json_for_env_kind() {
             command_to_derive=$(build_command_to_derive_for_test "${base_composer_json_full_path}")
             ;;
         *)
-            echo "There is no way to generate derived composer json for environment kind ${env_kind}"
+            edot_log "There is no way to generate derived composer json for environment kind ${env_kind}"
             exit 1
             ;;
     esac
@@ -227,11 +227,11 @@ function derive_composer_json_for_env_kind() {
             && chmod +r,u+w composer.json \
         "
 
-    echo "Diff between ${base_composer_json_full_path} and ${derived_composer_json_full_path}"
+    edot_log "Diff between ${base_composer_json_full_path} and ${derived_composer_json_full_path}"
     local has_compared_the_same="true"
-    diff "${base_composer_json_full_path}" "${derived_composer_json_full_path}" || has_compared_the_same="false"
+    diff "${base_composer_json_full_path}" "${derived_composer_json_full_path}" || has_compared_the_same="false" 1>&2
     if [ "${has_compared_the_same}" == "true" ]; then
-        echo "${base_composer_json_full_path} and ${derived_composer_json_full_path} should be different"
+        edot_log "${base_composer_json_full_path} and ${derived_composer_json_full_path} should be different"
         exit 1
     fi
 }
@@ -246,13 +246,13 @@ function generate_composer_lock_for_PHP_version() {
     local composer_lock_file_name
     composer_lock_file_name="$(build_generated_composer_lock_file_name "${env_kind}" "${PHP_version_no_dot}")"
 
-    echo "Generating ${composer_lock_file_name} from ${composer_json_full_path} ..."
+    edot_log "Generating ${composer_lock_file_name} from ${composer_json_full_path} ..."
 
     local PHP_docker_image
     PHP_docker_image=$(build_light_PHP_docker_image_name_for_version_no_dot "${PHP_version_no_dot}")
 
-    echo "composer_json_full_path: ${composer_json_full_path} ..."
-    echo "composer_lock_file_name: ${composer_lock_file_name} ..."
+    edot_log "composer_json_full_path: ${composer_json_full_path} ..."
+    edot_log "composer_lock_file_name: ${composer_lock_file_name} ..."
 
     local docker_args_for_PHP_81=()
     local docker_cmds_for_PHP_81=()
@@ -303,7 +303,7 @@ function main() {
     trap on_script_exit EXIT
 
     repo_temp_copy_dir="$(mktemp -d)"
-    echo "repo_temp_copy_dir: ${repo_temp_copy_dir}"
+    edot_log "repo_temp_copy_dir: ${repo_temp_copy_dir}"
     
     copy_file "${repo_root_dir}/composer.json" "${repo_temp_copy_dir}/"
 
@@ -324,10 +324,10 @@ function main() {
     dev_composer_json_full_path="$(build_generated_composer_json_full_path "dev")"
     copy_file "${repo_root_dir}/composer.json" "${dev_composer_json_full_path}"
 
-    echo "ls -al ${repo_temp_copy_dir}"
-    ls -al "${repo_temp_copy_dir}"
-    echo "ls -al ${generated_composer_lock_files_stage_dir}"
-    ls -al "${generated_composer_lock_files_stage_dir}"
+    edot_log "ls -al ${repo_temp_copy_dir}"
+    ls -al "${repo_temp_copy_dir}" 1>&2
+    edot_log "ls -al ${generated_composer_lock_files_stage_dir}"
+    ls -al "${generated_composer_lock_files_stage_dir}" 1>&2
 
     for env_kind in "prod" "prod_static_check" "test"; do
         derive_composer_json_for_env_kind "${env_kind}"

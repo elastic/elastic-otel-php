@@ -134,18 +134,35 @@ final class FileUtil
     }
 
     /**
-     * @param string $dirFullPath
+     * @param string $dirPath
      *
      * @return iterable<SplFileInfo>
      */
-    public static function iterateOverFilesInDirectoryRecursively(string $dirFullPath): iterable
+    public static function iterateOverFilesInDirectoryRecursively(string $dirPath): iterable
     {
-        $dirIter = new RecursiveDirectoryIterator($dirFullPath);
+        $dirIter = new RecursiveDirectoryIterator($dirPath);
         foreach (new RecursiveIteratorIterator($dirIter) as $fileInfo) {
             Assert::assertInstanceOf(SplFileInfo::class, $fileInfo);
             if ($fileInfo->isFile()) {
                 yield $fileInfo;
             }
+        }
+    }
+
+    /**
+     * @param string $dirPath
+     *
+     * @return iterable<SplFileInfo>
+     */
+    public static function iterateOverDirectoryContentsRecursively(string $dirPath): iterable
+    {
+        $dirIter = new RecursiveDirectoryIterator($dirPath);
+        foreach (new RecursiveIteratorIterator($dirIter) as $fileInfo) {
+            Assert::assertInstanceOf(SplFileInfo::class, $fileInfo);
+            if ($fileInfo->getFilename() === '.' || $fileInfo->getFilename() === '..') {
+                continue;
+            }
+            yield $fileInfo;
         }
     }
 
@@ -166,5 +183,16 @@ final class FileUtil
             throw new RuntimeException("Failed to put file contents; file path: `$filePath'; contents length: " . strlen($contents));
         }
         return $result;
+    }
+
+    public static function relativePathFromTo(string $from, string $to): string
+    {
+        $fromNorm = self::normalizePath($from);
+        $toNorm = self::normalizePath($to);
+        Assert::assertStringStartsWith(AssertEx::isNonEmptyString($fromNorm), $toNorm);
+        Assert::assertNotEquals($fromNorm, $toNorm);
+        $suffix = substr($toNorm, strlen($fromNorm));
+        Assert::assertSame(DIRECTORY_SEPARATOR, $suffix[0]);
+        return substr($suffix, 1);
     }
 }
