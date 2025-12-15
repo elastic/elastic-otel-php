@@ -131,7 +131,7 @@ function on_script_exit() {
 }
 
 function main () {
-    # "${repo_root_dir}/tools/shared.sh" expects repo_root_dir to be defined
+    # tools/shared.sh" expects repo_root_dir to be defined
     repo_root_dir="$(realpath "${PWD}")"
     source "${repo_root_dir}/tools/shared.sh"
 
@@ -149,7 +149,7 @@ function main () {
 
     adapt_dot_proto_files "${DOT_PROTO_FILES_DIR}"
 
-    local GENERATED_SOURCE_CODE_FILES_TEMP_STAGE_DIR_BEFORE_ADAPT="${TEMP_STAGE_DIR}/generated_source_code_before_adapt"
+    local GENERATED_SOURCE_CODE_FILES_TEMP_STAGE_DIR_BEFORE_ADAPT="${TEMP_STAGE_DIR}/${elastic_otel_php_tests_generated_source_code_dir_rel_path:?}_before_adapt"
     mkdir -p "${GENERATED_SOURCE_CODE_FILES_TEMP_STAGE_DIR_BEFORE_ADAPT}"
     generate_PHP_source_code_files_from_dot_proto "${DOT_PROTO_FILES_DIR}" "${GENERATED_SOURCE_CODE_FILES_TEMP_STAGE_DIR_BEFORE_ADAPT}"
 

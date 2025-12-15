@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e -o pipefail
+set -e -u -o pipefail
 #set -x
 
 show_help() {
@@ -100,16 +100,15 @@ main() {
             "${docker_run_env_vars_cmd_line_args[@]}" \
             -v "${PWD}/:/repo_root/:ro" \
             -v "${logs_dir}:/elastic_otel_php_tests/logs" \
-            -v "/var/run/docker.sock:/var/run/docker.sock" \
             -w "/repo_root" \
             "${PHP_docker_image}" \
             sh -c "\
-                apk update && apk add bash git \
+                apk update && apk add bash git rsync \
                 && curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
+                \
                 && echo 'Running static check on prod (without dev only dependencies); PHP_version_no_dot:' ${PHP_version_no_dot} \
                 && mkdir -p /tmp/repo \
-                && cp -r /repo_root/* /tmp/repo/ \
-                && rm -rf /tmp/repo/composer.json /tmp/repo/composer.lock /tmp/repo/vendor/ /tmp/repo/prod/php/vendor_* \
+                && /repo_root/tools/copy_repo_exclude_generated.sh /repo_root /tmp/repo \
                 && mv /tmp/repo/tests /tmp/repo/tests_original \
                 && mkdir /tmp/repo/tests \
                 && mv /tmp/repo/tests_original/elastic_otel_extension_stubs /tmp/repo/tests/elastic_otel_extension_stubs \
@@ -117,16 +116,19 @@ main() {
                 && rm -rf /tmp/repo/tests_original/ \
                 && ${replace_PhpStan_neon_bootstrapFiles_for_prod} /tmp/repo/phpstan.dist.neon \
                 && cd /tmp/repo/ \
+                && rm -f ./composer.json \
                 && php ./tools/build/select_json_lock_and_install_PHP_deps.php prod_static_check \
                 && composer run-script -- static_check \
+                \
                 && echo 'Running static check and unit tests; PHP_version_no_dot:' ${PHP_version_no_dot} \
                 && cd / && rm -rf /tmp/repo/ \
                 && mkdir -p /tmp/repo \
-                && cp -r /repo_root/* /tmp/repo/ \
-                && rm -rf /tmp/repo/composer.json /tmp/repo/composer.lock /tmp/repo/vendor/ /tmp/repo/prod/php/vendor_* \
+                && /repo_root/tools/copy_repo_exclude_generated.sh /repo_root /tmp/repo \
                 && cd /tmp/repo/ \
+                && rm -f ./composer.json \
                 && php ./tools/build/select_json_lock_and_install_PHP_deps.php test \
-                && composer run-script -- static_check_and_run_unit_tests \
+                && composer run-script -- static_check \
+                && tools/test/run_php_unit_tests.sh \
             "
     done
 

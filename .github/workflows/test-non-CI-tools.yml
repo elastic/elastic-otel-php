@@ -1,0 +1,21 @@
+---
+name: test-non-CI-tools
+
+on:
+  workflow_call: ~
+  workflow_dispatch: ~
+
+permissions:
+  contents: read
+
+jobs:
+  test-non-CI-tools:
+    name: test-non-CI-tools
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v6
+      - name: Test tools that are not by CI but instead these tools are used manually (for example the tool that is used to generate composer .lock files)
+        run: ./tools/test/test_non-CI_tools.sh

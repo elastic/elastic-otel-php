@@ -346,6 +346,7 @@ function main() {
     mkdir -p "${elastic_otel_php_build_tools_composer_lock_files_dir:?}"
     delete_dir_contents "${elastic_otel_php_build_tools_composer_lock_files_dir:?}"
     cp "${generated_composer_lock_files_stage_dir}/"* "${elastic_otel_php_build_tools_composer_lock_files_dir:?}/"
+
     # No need for delete_temp_dir "${repo_temp_copy_dir}" - ${repo_temp_copy_dir} is deleted in on_script_exit()
 }
 

@@ -33,7 +33,12 @@ export elastic_otel_php_composer_home_for_packages_adapted_to_PHP_81_rel_path="b
 export elastic_otel_php_tests_generated_source_code_dir_rel_path="tests/GENERATED_source_code"
 
 function edot_log() {
-    echo "$@" 1>&2
+    local NUMBER_CALL_STACK_FRAMES=${#FUNCNAME[@]}
+    local CALLER_FRAME_INDEX=$((NUMBER_CALL_STACK_FRAMES-2))
+    local CALLER_FRAME_FILE="${BASH_SOURCE[${CALLER_FRAME_INDEX}]}"
+    local CALLER_FRAME_LINE="${BASH_LINENO[$((CALLER_FRAME_INDEX-1))]}" # BASH_LINENO is off by one index
+
+    echo "${CALLER_FRAME_FILE}:${CALLER_FRAME_LINE}: $*" 1>&2
 }
 
 function get_supported_php_versions_as_string() {
@@ -432,4 +437,22 @@ function generate_PHP_source_code_files_from_dot_proto () {
     done
 
     change_dir_permissions_to_current_user "${GENERATED_SOURCE_CODE_FILES_DST_DIR}"
+}
+
+log_caller_stack_trace() {
+    local NUMBER_CALL_STACK_FRAMES=${#FUNCNAME[@]}
+    edot_log "Call stack (${NUMBER_CALL_STACK_FRAMES} frames):"
+
+    local i
+    # Stop at 1 to skip the this function itself
+    # SC2004: $/${} is unnecessary on arithmetic variables.
+    # shellcheck disable=SC2004
+    for (( i=${NUMBER_CALL_STACK_FRAMES}-1; i>=1; i-- )); do
+        local CURRENT_FRAME_FUNC="${FUNCNAME[$i]}"
+        local CURRENT_FRAME_FILE="${BASH_SOURCE[$i]}"
+        local CURRENT_FRAME_LINE="${BASH_LINENO[$((i-1))]}" # BASH_LINENO is off by one index
+        edot_log "    ${CURRENT_FRAME_FILE}:${CURRENT_FRAME_LINE} ${CURRENT_FRAME_FUNC}()"
+    done
+    # Add the main script entry point
+    edot_log "    ${BASH_SOURCE[0]}:${BASH_LINENO[0]} main"
 }
