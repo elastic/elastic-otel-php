@@ -206,11 +206,6 @@ function derive_composer_json_for_env_kind() {
 
     cp -f "${base_composer_json_full_path}" "${derived_composer_json_full_path}"
 
-    local current_user_id
-    current_user_id="$(id -u)"
-    local current_user_group_id
-    current_user_group_id="$(id -g)"
-
     local lowest_supported_php_version_no_dot
     lowest_supported_php_version_no_dot=$(get_lowest_supported_php_version)
     local PHP_docker_image
@@ -281,6 +276,15 @@ function generate_composer_lock_for_PHP_version() {
         "
 }
 
+function move_generated_files_from_stage_to_final_dest_dir() {
+    local SRC_DIR="${1:?}"
+    local DST_DIR="${2:?}"
+
+    mkdir -p "${DST_DIR}"
+    delete_dir_contents "${DST_DIR}"
+    move_dir_contents "${SRC_DIR}" "${DST_DIR}"
+}
+
 function on_script_exit() {
     if [ -n "${repo_temp_copy_dir+x}" ] && [ -d "${repo_temp_copy_dir}" ]; then
         delete_temp_dir "${repo_temp_copy_dir}"
@@ -297,6 +301,8 @@ function main() {
     # Parse arguments
     parse_args "$@"
 
+    ./tools/build/configure_php_templates_if_not_done_yet.sh
+
     current_user_id="$(id -u)"
     current_user_group_id="$(id -g)"
 
@@ -307,15 +313,28 @@ function main() {
     
     copy_file "${repo_root_dir}/composer.json" "${repo_temp_copy_dir}/"
 
-    pushd "${repo_temp_copy_dir}" || exit 1
-        # composer run-script -- download_and_adapt_packages_to_PHP_81 "${repo_temp_copy_dir}"
-        #   expects
-        #       - "./composer.json"
-        #   creates
-        #       - "./${elastic_otel_php_packages_adapted_to_PHP_81_rel_path:?}/"
-        #       - "./${elastic_otel_php_composer_home_for_packages_adapted_to_PHP_81_rel_path:?}/config.json"
-        php "${this_script_dir}/download_adapt_packages_to_PHP_81_and_gen_config.php"
-    popd || exit 1
+    local lowest_supported_php_version_no_dot
+    lowest_supported_php_version_no_dot=$(get_lowest_supported_php_version)
+    local PHP_docker_image
+    PHP_docker_image=$(build_light_PHP_docker_image_name_for_version_no_dot "${lowest_supported_php_version_no_dot}")
+
+    # download_adapt_packages_to_PHP_81_and_gen_config "${repo_temp_copy_dir}"
+    #   expects
+    #       - "./composer.json"
+    #   creates
+    #       - "./${elastic_otel_php_packages_adapted_to_PHP_81_rel_path:?}/"
+    #       - "./${elastic_otel_php_composer_home_for_packages_adapted_to_PHP_81_rel_path:?}/config.json"
+    docker run --rm \
+        -v "${repo_root_dir}:/repo_root:ro" \
+        -v "${repo_temp_copy_dir}:/repo_temp_copy" \
+        -w "/repo_temp_copy" \
+        "${PHP_docker_image}" \
+        sh -c "\
+            curl -sS https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/local/bin \
+            && php /repo_root/tools/build/download_adapt_packages_to_PHP_81_and_gen_config.php \
+            && chown -R ${current_user_id}:${current_user_group_id} . \
+            && chmod -R +r,u+w . \
+        "
 
     generated_composer_lock_files_stage_dir="${repo_temp_copy_dir}/${elastic_otel_php_build_tools_composer_lock_files_dir_name:?}"
     mkdir -p "${generated_composer_lock_files_stage_dir}"
@@ -339,13 +358,16 @@ function main() {
         done
     done
 
-    pushd "${repo_temp_copy_dir}" || exit 1
-        php "${repo_root_dir}/tools/build/verify_generated_composer_lock_files.php"
-    popd || exit 1
+    docker run --rm \
+        -v "${repo_root_dir}:/repo_root:ro" \
+        -v "${repo_temp_copy_dir}:/repo_temp_copy:ro" \
+        -w "/repo_temp_copy" \
+        "${PHP_docker_image}" \
+        sh -c "\
+            php /repo_root/tools/build/verify_generated_composer_lock_files.php
+        "
 
-    mkdir -p "${elastic_otel_php_build_tools_composer_lock_files_dir:?}"
-    delete_dir_contents "${elastic_otel_php_build_tools_composer_lock_files_dir:?}"
-    cp "${generated_composer_lock_files_stage_dir}/"* "${elastic_otel_php_build_tools_composer_lock_files_dir:?}/"
+    move_generated_files_from_stage_to_final_dest_dir "${generated_composer_lock_files_stage_dir}" "${elastic_otel_php_build_tools_composer_lock_files_dir:?}"
 
     # No need for delete_temp_dir "${repo_temp_copy_dir}" - ${repo_temp_copy_dir} is deleted in on_script_exit()
 }

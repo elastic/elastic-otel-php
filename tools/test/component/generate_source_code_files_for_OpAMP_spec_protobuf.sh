@@ -116,8 +116,8 @@ EOL_marker_f6f9d3ac391044db93f271e9a459a9aa
 }
 
 function move_generated_files_from_stage_to_final_dest_dir() {
-    local SRC_DIR="$1"
-    local DST_DIR="$2"
+    local SRC_DIR="${1:?}"
+    local DST_DIR="${2:?}"
 
     mkdir -p "${DST_DIR}"
     delete_dir_contents "${DST_DIR}"
