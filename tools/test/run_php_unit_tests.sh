@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 set -e -u -o pipefail
 #set -x
-#########################################
-# TODO: Sergey Kleyman: BEGIN: REMOVE:
-###################
-set -x
-###################
-# END: REMOVE
-#########################################
 
 function main() {
-    env | grep ELASTIC_OTEL_PHP_TESTS_ | sort
+    this_script_dir="$(dirname "${BASH_SOURCE[0]}")"
+    this_script_dir="$(realpath "${this_script_dir}")"
+
+    repo_root_dir="$(realpath "${PWD}")"
+    source "${repo_root_dir}/tools/shared.sh"
+
+    edot_log "Environment variables matching ELASTIC_OTEL_PHP_TESTS_:"
+    (env | grep ELASTIC_OTEL_PHP_TESTS_ | sort) || true
 
     local composer_command=(composer run-script -- run_unit_tests)
 

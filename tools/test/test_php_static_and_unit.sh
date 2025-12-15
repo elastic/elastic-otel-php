@@ -1,13 +1,6 @@
 #!/usr/bin/env bash
 set -e -u -o pipefail
 #set -x
-#########################################
-# TODO: Sergey Kleyman: BEGIN: REMOVE:
-###################
-set -x
-###################
-# END: REMOVE
-#########################################
 
 show_help() {
     echo "Usage: $0 --php_versions <versions>"
