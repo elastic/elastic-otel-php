@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 set -e -u -o pipefail
 #set -x
+#########################################
+# TODO: Sergey Kleyman: BEGIN: REMOVE:
+###################
+set -x
+###################
+# END: REMOVE
+#########################################
 
 function main() {
     env | grep ELASTIC_OTEL_PHP_TESTS_ | sort
