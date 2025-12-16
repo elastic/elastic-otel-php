@@ -6,7 +6,7 @@ set -e -u -o pipefail
 OPAMP_SPEC_RELEASE_VERSION=0.14.0
 OPAMP_SPEC_RELEASE_TAG="v${OPAMP_SPEC_RELEASE_VERSION}"
 
-GENERATED_SOURCE_CODE_FILES_PHP_NAMESPACE='ElasticOTelTests\Generated\OpampProto'
+GENERATED_SOURCE_CODE_FILES_PHP_NAMESPACE='GeneratedForElasticOTelTests\OpampProto'
 
 function show_help() {
     echo "Usage: $0 [optional arguments]"

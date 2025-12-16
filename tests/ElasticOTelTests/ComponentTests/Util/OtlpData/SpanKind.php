@@ -27,7 +27,7 @@ use Elastic\OTel\Util\ArrayUtil;
 use ElasticOTelTests\Util\EnumUtilForTestsTrait;
 use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LogStreamInterface;
-use Opentelemetry\Proto\Trace\V1\Span\SpanKind as OTelProtoSpanKind;
+use Opentelemetry\Proto\Trace\V1\Span\SpanKind as ProtoSpanKind;
 use PHPUnit\Framework\Assert;
 
 enum SpanKind implements LoggableInterface
@@ -42,15 +42,15 @@ enum SpanKind implements LoggableInterface
     case consumer;
 
     private const FROM_OTEL_PROTO_SPAN_KIND = [
-        OTelProtoSpanKind::SPAN_KIND_UNSPECIFIED => self::unspecified,
-        OTelProtoSpanKind::SPAN_KIND_INTERNAL => self::internal,
-        OTelProtoSpanKind::SPAN_KIND_CLIENT => self::client,
-        OTelProtoSpanKind::SPAN_KIND_SERVER => self::server,
-        OTelProtoSpanKind::SPAN_KIND_PRODUCER => self::producer,
-        OTelProtoSpanKind::SPAN_KIND_CONSUMER => self::consumer,
+        ProtoSpanKind::SPAN_KIND_UNSPECIFIED => self::unspecified,
+        ProtoSpanKind::SPAN_KIND_INTERNAL => self::internal,
+        ProtoSpanKind::SPAN_KIND_CLIENT => self::client,
+        ProtoSpanKind::SPAN_KIND_SERVER => self::server,
+        ProtoSpanKind::SPAN_KIND_PRODUCER => self::producer,
+        ProtoSpanKind::SPAN_KIND_CONSUMER => self::consumer,
     ];
 
-    public static function fromOTelProtoSpanKind(int $otelProtoSpanKind): self
+    public static function fromProto(int $otelProtoSpanKind): self
     {
         if (ArrayUtil::getValueIfKeyExists($otelProtoSpanKind, self::FROM_OTEL_PROTO_SPAN_KIND, /* out */ $result)) {
             return $result;

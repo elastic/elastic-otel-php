@@ -19,6 +19,8 @@
  * under the License.
  */
 
+/** @noinspection PhpInternalEntityUsedInspection */
+
 declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
@@ -26,6 +28,7 @@ namespace ElasticOTelTests\ComponentTests\Util;
 use Elastic\OTel\Util\ArrayUtil;
 use Elastic\OTel\Util\NumericUtil;
 use Elastic\OTel\Util\TextUtil;
+use ElasticOTelTests\ComponentTests\Util\OpampData\AgentToServer as OpampDataAgentToServer;
 use ElasticOTelTests\Util\AmbientContextForTests;
 use ElasticOTelTests\Util\ArrayUtilForTests;
 use ElasticOTelTests\Util\AssertEx;
@@ -34,6 +37,7 @@ use ElasticOTelTests\Util\Clock;
 use ElasticOTelTests\Util\ExceptionUtil;
 use ElasticOTelTests\Util\HttpContentTypes;
 use ElasticOTelTests\Util\HttpHeaderNames;
+use ElasticOTelTests\Util\HttpMethods;
 use ElasticOTelTests\Util\HttpStatusCodes;
 use ElasticOTelTests\Util\JsonUtil;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
@@ -51,15 +55,17 @@ use React\Socket\ConnectionInterface;
  */
 final class MockOTelCollector extends TestInfraHttpServerProcessBase
 {
+    public const TESTS_INFRA_PORT_INDEX = 0;
+    public const OTLP_ENDPOINT_PORT_INDEX = 1;
+    public const OPAMP_ENDPOINT_PORT_INDEX = 2;
+
     public const MOCK_API_URI_PREFIX = '/mock_OTel_Collector_API/';
     private const INTAKE_TRACE_DATA_URI_PATH = '/v1/traces';
     public const GET_AGENT_BACKEND_COMM_EVENTS_URI_SUBPATH = 'get_Agent_Backend_comm_events';
     public const FROM_INDEX_HEADER_NAME = RequestHeadersRawSnapshotSource::HEADER_NAMES_PREFIX . 'FROM_INDEX';
     public const SHOULD_WAIT_HEADER_NAME = RequestHeadersRawSnapshotSource::HEADER_NAMES_PREFIX . 'SHOULD_WAIT';
 
-// TODO: Sergey Kleyman: UNCOMMENT
-//    private const START_OPAMP_SERVER_BY_DEFAULT = false;
-//    private const OPAMP_API_URI = '/';
+    private const OPAMP_API_URI = '/v1/opamp';
 
     public const SET_REMOTE_CONFIG_FILE_NAME_TO_CONTENT = 'set_remote_config_file_name_to_content';
 
@@ -88,46 +94,68 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
     }
 
     #[Override]
-    public static function maxPortsCount(): int
+    public static function portsCount(): int
     {
         return 3;
     }
 
     #[Override]
-    protected function onNewConnection(int $socketIndex, ConnectionInterface $connection): void
+    protected function onNewConnection(int $portIndex, ConnectionInterface $connection): void
     {
-        parent::onNewConnection($socketIndex, $connection);
-        Assert::assertCount(2, $this->serverSockets);
-        Assert::assertLessThan(count($this->serverSockets), $socketIndex);
+        parent::onNewConnection($portIndex, $connection);
+        Assert::assertCount(self::portsCount(), $this->serverSockets);
+        Assert::assertLessThan(count($this->serverSockets), $portIndex);
 
-        // $socketIndex 0 is used for test infrastructure communication
-        // $socketIndex 1 is used for APM Agent <-> Server communication
-        if ($socketIndex == 1) {
-            $newEvent = new AgentBackendConnectionStarted(
-                $this->clock->getMonotonicClockCurrentTime(),
-                $this->clock->getSystemClockCurrentTime(),
-            );
-            $this->addAgentBackendCommEvent($newEvent);
+        if ($portIndex !== self::TESTS_INFRA_PORT_INDEX) {
+            $port = self::getPortByIndex($portIndex);
+            $this->addAgentBackendCommEvent(new AgentBackendConnectionStarted($port, $this->clock->getMonotonicClockCurrentTime(), $this->clock->getSystemClockCurrentTime()));
         }
     }
 
     private function addAgentBackendCommEvent(AgentBackendCommEvent $event): void
     {
-        Assert::assertNotNull($this->reactLoop);
         $this->agentBackendCommEvents[] = $event;
 
         foreach ($this->pendingDataRequests as $pendingDataRequest) {
-            $this->reactLoop->cancelTimer($pendingDataRequest->timer);
+            AssertEx::notNull($this->reactLoop)->cancelTimer($pendingDataRequest->timer);
             ($pendingDataRequest->callToSendResponse)($this->fulfillGetAgentBackendCommEvents($pendingDataRequest->fromIndex));
         }
         $this->pendingDataRequests = [];
     }
 
-    #[Override]
-    protected function processRequest(ServerRequestInterface $request): ResponseInterface|Promise
+    private static function verifyPort(int $expectedPortIndex, int $actualPortIndex, ServerRequestInterface $request): ?ResponseInterface
     {
+        if ($expectedPortIndex === $actualPortIndex) {
+            return null;
+        }
+
+        return self::buildErrorResponse(
+            HttpStatusCodes::NOT_FOUND,
+            'Path ' . $request->getUri()->getPath() . ' is supported but it has been sent to a wrong port'
+            . '; expected port: ' . self::getPortByIndex($expectedPortIndex)
+            . '; actual port: ' . self::getPortByIndex($actualPortIndex),
+        );
+    }
+
+    #[Override]
+    protected function processRequest(int $portIndex, ServerRequestInterface $request): ResponseInterface|Promise
+    {
+        if ($request->getUri()->getPath() === self::OPAMP_API_URI) {
+            if (($response = self::verifyPort(self::OPAMP_ENDPOINT_PORT_INDEX, $portIndex, $request)) !== null) {
+                return $response;
+            }
+            return $this->processOpampRequest($request);
+        }
+
         if ($request->getUri()->getPath() === self::INTAKE_TRACE_DATA_URI_PATH) {
+            if (($response = self::verifyPort(self::OTLP_ENDPOINT_PORT_INDEX, $portIndex, $request)) !== null) {
+                return $response;
+            }
             return $this->processIntakeDataRequest($request, OTelSignalType::trace);
+        }
+
+        if (($response = self::verifyPort(self::TESTS_INFRA_PORT_INDEX, $portIndex, $request)) !== null) {
+            return $response;
         }
 
         if (TextUtil::isPrefixOf(self::MOCK_API_URI_PREFIX, $request->getUri()->getPath())) {
@@ -139,11 +167,7 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
             return new Response(/* status: */ HttpStatusCodes::OK);
         }
 
-        return new Response(
-            status: HttpStatusCodes::NOT_FOUND,
-            headers: [HttpHeaderNames::CONTENT_TYPE => HttpContentTypes::TEXT],
-            body: 'Path `' . $request->getUri()->getPath() . '\' is not supported'
-        );
+        return self::buildErrorResponse(HttpStatusCodes::NOT_FOUND, 'Path ' . $request->getUri()->getPath() . ' is not supported');
     }
 
     #[Override]
@@ -152,37 +176,50 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
         return $request->getUri()->getPath() !== self::INTAKE_TRACE_DATA_URI_PATH;
     }
 
-    /**
-     * @param HttpHeaders $httpHeaders
-     */
-    private static function verifyIntakeDataRequest(array $httpHeaders, int $bodySize): void
+    private static function verifyPostProtoBufRequest(ServerRequestInterface $request, int $bodySize): ?ResponseInterface
     {
-        $contentLength = HttpClientUtilForTests::getSingleHeaderValue(HttpHeaderNames::CONTENT_LENGTH, $httpHeaders);
-        AssertEx::stringSameAsInt($bodySize, $contentLength);
+        if ($request->getMethod() !== HttpMethods::POST) {
+            return self::buildErrorResponse(HttpStatusCodes::METHOD_NOT_ALLOWED, 'Method ' . $request->getMethod() . ' is not supported');
+        }
 
-        $contentType = HttpClientUtilForTests::getSingleHeaderValue(HttpHeaderNames::CONTENT_TYPE, $httpHeaders);
-        Assert::assertSame(HttpContentTypes::PROTOBUF, $contentType);
+        /** @var array<string, array<string>> $httpHeaders */
+        $httpHeaders = $request->getHeaders();
+        if (($contentLength = AssertEx::stringIsInt(HttpClientUtilForTests::getSingleHeaderValue(HttpHeaderNames::CONTENT_LENGTH, $httpHeaders))) !== $bodySize) {
+            return self::buildErrorResponse(
+                HttpStatusCodes::BAD_REQUEST,
+                'Value in ' . HttpHeaderNames::CONTENT_LENGTH . ' header does not match request body size'
+                . '; ' . HttpHeaderNames::CONTENT_LENGTH . ': ' . $contentLength
+                . "; request body size: $bodySize"
+            );
+        }
+
+        if (($contentType = HttpClientUtilForTests::getSingleHeaderValue(HttpHeaderNames::CONTENT_TYPE, $httpHeaders)) !== HttpContentTypes::PROTOBUF) {
+            return self::buildErrorResponse(HttpStatusCodes::BAD_REQUEST, 'Unexpected ' . HttpHeaderNames::CONTENT_TYPE . ': ' . $contentType);
+        }
+
+        return null;
     }
 
     /** @noinspection PhpSameParameterValueInspection */
     private function processIntakeDataRequest(ServerRequestInterface $request, OTelSignalType $signalType): ResponseInterface
     {
-        Assert::assertNotNull($this->reactLoop);
-
         $body = $request->getBody()->getContents();
         $bodySize = strlen($body);
         $logger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__)->addAllContext(compact('bodySize'));
-        $loggerProxyDebug = $logger->ifDebugLevelEnabledNoLine(__FUNCTION__);
-        $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Deserializing intake trace data request');
+        $logDebug = $logger->ifDebugLevelEnabledNoLine(__FUNCTION__);
+        $logDebug?->log(__LINE__, 'Deserializing intake trace data request');
         Assert::assertSame($bodySize, $request->getBody()->getSize());
 
         if ($bodySize === 0) {
-            return $this->buildIntakeDataErrorResponse(/* status */ HttpStatusCodes::BAD_REQUEST, 'Intake API request should not have empty body');
+            return $this->buildErrorResponse(HttpStatusCodes::BAD_REQUEST, 'Intake API request should not have empty body');
         }
 
-        self::verifyIntakeDataRequest($request->getHeaders(), $bodySize); // @phpstan-ignore argument.type
+        if (($response = self::verifyPostProtoBufRequest($request, $bodySize)) !== null) {
+            return $response;
+        }
 
         $intakeDataRequestRaw = new IntakeDataRequestRaw(
+            self::getPortByIndex(self::OTLP_ENDPOINT_PORT_INDEX),
             AmbientContextForTests::clock()->getMonotonicClockCurrentTime(),
             AmbientContextForTests::clock()->getSystemClockCurrentTime(),
             $signalType,
@@ -191,15 +228,15 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
         );
 
         $deserializedRequest = AgentBackendCommsAccumulator::deserializeIntakeDataRequestBody($intakeDataRequestRaw);
-        $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Deserialized intake data request', compact('deserializedRequest'));
+        $logDebug && $logDebug->log(__LINE__, 'Deserialized intake data request', compact('deserializedRequest'));
 
         if ($deserializedRequest->isEmptyAfterDeserialization()) {
-            $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'All data has been discarded by deserialization');
+            $logDebug && $logDebug->log(__LINE__, 'All data has been discarded by deserialization');
         }
 
         $this->addAgentBackendCommEvent($intakeDataRequestRaw);
 
-        return new Response(/* status: */ 202);
+        return new Response(HttpStatusCodes::ACCEPTED);
     }
 
     /**
@@ -214,6 +251,30 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
         };
     }
 
+    private function processOpampRequest(ServerRequestInterface $request): ResponseInterface
+    {
+        $body = $request->getBody()->getContents();
+        $bodySize = strlen($body);
+        $logger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__)->addAllContext(compact('bodySize'));
+        $logDebug = $logger->ifDebugLevelEnabledNoLine(__FUNCTION__);
+        $logDebug?->log(__LINE__, 'Deserializing OpAPM agent request');
+        Assert::assertSame($bodySize, $request->getBody()->getSize());
+
+        if ($bodySize === 0) {
+            return $this->buildErrorResponse(HttpStatusCodes::BAD_REQUEST, 'Intake API request should not have empty body');
+        }
+
+        if (($response = self::verifyPostProtoBufRequest($request, $bodySize)) !== null) {
+            return $response;
+        }
+
+        $agentToServer = OpampDataAgentToServer::deserialize($body);
+        $logDebug?->log(__LINE__, 'Deserialized OpAPM AgentToServer', compact('agentToServer'));
+
+        // TODO: Sergey Kleyman: Implement: MockOTelCollector::processOpampRequest
+        return new Response(HttpStatusCodes::OK);
+    }
+
     /**
      * @return ResponseInterface|Promise<ResponseInterface>
      */
@@ -223,7 +284,7 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
         $shouldWait = BoolUtilForTests::fromString(self::getRequiredRequestHeader($request, self::SHOULD_WAIT_HEADER_NAME));
         if (!NumericUtil::isInClosedInterval(0, $fromIndex, count($this->agentBackendCommEvents))) {
             return $this->buildErrorResponse(
-                HttpStatusCodes::BAD_REQUEST /* status */,
+                HttpStatusCodes::BAD_REQUEST,
                 'Invalid `' . self::FROM_INDEX_HEADER_NAME . '\' HTTP request header value: ' . $fromIndex
                 . ' (should be in range[0, ' . count($this->agentBackendCommEvents) . '])'
             );
@@ -240,8 +301,7 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
              */
             function (callable $callToSendResponse) use ($fromIndex): void {
                 $pendingDataRequestId = $this->pendingDataRequestNextId++;
-                Assert::assertNotNull($this->reactLoop);
-                $timer = $this->reactLoop->addTimer(
+                $timer = AssertEx::notNull($this->reactLoop)->addTimer(
                     HttpClientUtilForTests::MAX_WAIT_TIME_SECONDS,
                     function () use ($pendingDataRequestId) {
                         $this->fulfillTimedOutPendingDataRequest($pendingDataRequestId);
@@ -326,11 +386,6 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
         ($pendingDataRequest->callToSendResponse)($this->fulfillGetAgentBackendCommEvents($pendingDataRequest->fromIndex));
     }
 
-    protected function buildIntakeDataErrorResponse(int $status, string $message): ResponseInterface
-    {
-        return new Response(status: $status, headers: [HttpHeaderNames::CONTENT_TYPE => HttpContentTypes::TEXT], body: $message);
-    }
-
     /**
      * @see MockOTelCollectorHandle::setRemoteConfigFileNameToContent
      */
@@ -370,10 +425,8 @@ final class MockOTelCollector extends TestInfraHttpServerProcessBase
     #[Override]
     protected function exit(): void
     {
-        Assert::assertNotNull($this->reactLoop);
-
         foreach ($this->pendingDataRequests as $pendingDataRequest) {
-            $this->reactLoop->cancelTimer($pendingDataRequest->timer);
+            AssertEx::notNull($this->reactLoop)->cancelTimer($pendingDataRequest->timer);
         }
 
         parent::exit();

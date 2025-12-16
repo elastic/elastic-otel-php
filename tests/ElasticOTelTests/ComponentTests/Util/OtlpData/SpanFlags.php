@@ -21,10 +21,19 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTests\ComponentTests;
+namespace ElasticOTelTests\ComponentTests\Util\OtlpData;
 
-use ElasticOTelTests\BootstrapTests;
+use Opentelemetry\Proto\Trace\V1\SpanFlags as ProtoSpanFlags;
+use Override;
 
-require __DIR__ . '/../../bootstrap.php';
-
-BootstrapTests::bootstrapUnitTests();
+final class SpanFlags extends FlagsBase
+{
+    #[Override]
+    public function maskToName(): array
+    {
+        return [
+            ProtoSpanFlags::SPAN_FLAGS_CONTEXT_HAS_IS_REMOTE_MASK => 'HAS_IS_REMOTE',
+            ProtoSpanFlags::SPAN_FLAGS_CONTEXT_IS_REMOTE_MASK => 'IS_REMOTE',
+        ];
+    }
+}

@@ -24,7 +24,7 @@ declare(strict_types=1);
 namespace ElasticOTelTests\ComponentTests\Util\OtlpData;
 
 use ElasticOTelTests\Util\IterableUtil;
-use Opentelemetry\Proto\Collector\Trace\V1\ExportTraceServiceRequest as OTelProtoExportTraceServiceRequest;
+use Opentelemetry\Proto\Collector\Trace\V1\ExportTraceServiceRequest as ProtoExportTraceServiceRequest;
 
 /**
  * @see https://github.com/open-telemetry/opentelemetry-proto/blob/v1.8.0/opentelemetry/proto/collector/trace/v1/trace_service.proto#L34
@@ -39,10 +39,10 @@ class ExportTraceServiceRequest
     ) {
     }
 
-    public static function deserializeFromOTelProto(OTelProtoExportTraceServiceRequest $source): self
+    public static function fromProto(ProtoExportTraceServiceRequest $proto): self
     {
         return new self(
-            resourceSpans: DeserializationUtil::deserializeArrayFromOTelProto($source->getResourceSpans(), ResourceSpans::deserializeFromOTelProto(...)),
+            resourceSpans: FromProtoUtil::arrayFromProto($proto->getResourceSpans(), ResourceSpans::fromProto(...)),
         );
     }
 

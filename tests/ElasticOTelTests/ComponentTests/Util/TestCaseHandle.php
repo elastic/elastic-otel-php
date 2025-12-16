@@ -139,7 +139,7 @@ final class TestCaseHandle implements LoggableInterface
             $params->setProdOption(AmbientContextForTests::testConfig()->escalatedRerunsProdCodeLogLevelOptionName() ?? OptionForProdName::log_level_syslog, $escalatedLogLevelForProdCodeAsString);
         }
         /** @noinspection HttpUrlsUsage */
-        $params->setProdOption(OptionForProdName::exporter_otlp_endpoint, 'http://' . HttpServerHandle::CLIENT_LOCALHOST_ADDRESS . ':' . $this->mockOTelCollector->getPortForAgent());
+        $params->setProdOption(OptionForProdName::exporter_otlp_endpoint, 'http://' . HttpServerHandle::CLIENT_LOCALHOST_ADDRESS . ':' . $this->mockOTelCollector->getPortForOtlpEndpoint());
     }
 
     public function addAppCodeInvocation(AppCodeInvocation $appCodeInvocation): void

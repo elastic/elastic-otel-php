@@ -30,7 +30,7 @@ use ElasticOTelTests\ComponentTests\Util\OtlpData\OTelResource;
 use ElasticOTelTests\ComponentTests\Util\OtlpData\Span;
 use ElasticOTelTests\Util\Log\LoggableTrait;
 use OpenTelemetry\Contrib\Otlp\ProtobufSerializer;
-use Opentelemetry\Proto\Collector\Trace\V1\ExportTraceServiceRequest as OTelProtoExportTraceServiceRequest;
+use Opentelemetry\Proto\Collector\Trace\V1\ExportTraceServiceRequest as ProtoExportTraceServiceRequest;
 use Override;
 
 final class IntakeTraceDataRequest extends IntakeDataRequestDeserialized
@@ -47,10 +47,10 @@ final class IntakeTraceDataRequest extends IntakeDataRequestDeserialized
     public static function deserializeFromRaw(IntakeDataRequestRaw $raw): self
     {
         $serializer = ProtobufSerializer::getDefault();
-        $otelProtoRequest = new OTelProtoExportTraceServiceRequest();
+        $otelProtoRequest = new ProtoExportTraceServiceRequest();
         $serializer->hydrate($otelProtoRequest, $raw->body);
 
-        return new self($raw, ExportTraceServiceRequest::deserializeFromOTelProto($otelProtoRequest));
+        return new self($raw, ExportTraceServiceRequest::fromProto($otelProtoRequest));
     }
 
     #[Override]

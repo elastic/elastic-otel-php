@@ -53,7 +53,7 @@
             "Elastic\\OTel\\": "./prod/php/ElasticOTel/",
             "ElasticOTelTests\\": "./tests/ElasticOTelTests/",
             "ElasticOTelTools\\Build\\": "./tools/build/",
-            "ElasticOTelTests\\Generated\\": "./tests/GENERATED_source_code/"
+            "GeneratedForElasticOTelTests\\": "./tests/GENERATED_source_code/"
         }
     },
     "config": {

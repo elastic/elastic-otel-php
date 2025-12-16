@@ -27,8 +27,10 @@ use Fig\Http\Message\StatusCodeInterface;
 
 final class HttpStatusCodes
 {
+    public const ACCEPTED = StatusCodeInterface::STATUS_ACCEPTED;
     public const BAD_REQUEST = StatusCodeInterface::STATUS_BAD_REQUEST;
     public const INTERNAL_SERVER_ERROR = StatusCodeInterface::STATUS_INTERNAL_SERVER_ERROR;
+    public const METHOD_NOT_ALLOWED = StatusCodeInterface::STATUS_METHOD_NOT_ALLOWED;
     public const NOT_FOUND = StatusCodeInterface::STATUS_NOT_FOUND;
     public const OK = StatusCodeInterface::STATUS_OK;
 }

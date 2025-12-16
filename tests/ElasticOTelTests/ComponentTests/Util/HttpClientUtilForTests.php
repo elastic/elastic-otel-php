@@ -35,7 +35,6 @@ use ElasticOTelTests\Util\Log\Logger;
 use GuzzleHttp\Client;
 use GuzzleHttp\RequestOptions;
 use PHPUnit\Framework\Assert;
-use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 
 final class HttpClientUtilForTests
@@ -72,7 +71,7 @@ final class HttpClientUtilForTests
         $dbgCtx->add(compact('actualResponseStatusCode'));
 
         if ($requestParams->expectedHttpResponseStatusCode !== null) {
-            TestCase::assertSame($requestParams->expectedHttpResponseStatusCode, $actualResponseStatusCode);
+            Assert::assertSame($requestParams->expectedHttpResponseStatusCode, $actualResponseStatusCode);
         }
 
         $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Successfully sent HTTP request to app code');

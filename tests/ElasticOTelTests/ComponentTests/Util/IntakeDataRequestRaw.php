@@ -36,16 +36,19 @@ final class IntakeDataRequestRaw extends AgentBackendCommEvent
     use LoggableTrait;
 
     /**
+     * @inheritDoc
+     *
      * @param HttpHeaders $httpHeaders
      */
     public function __construct(
+        int $port,
         MonotonicTime $monotonicTime,
         SystemTime $systemTime,
         public readonly OTelSignalType $signalType,
         public readonly array $httpHeaders,
         public readonly string $body,
     ) {
-        parent::__construct($monotonicTime, $systemTime);
+        parent::__construct($port, $monotonicTime, $systemTime);
     }
 
     /**

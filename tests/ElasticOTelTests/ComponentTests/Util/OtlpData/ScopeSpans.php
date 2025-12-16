@@ -26,8 +26,8 @@ namespace ElasticOTelTests\ComponentTests\Util\OtlpData;
 use ElasticOTelTests\Util\AmbientContextForTests;
 use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
-use Opentelemetry\Proto\Trace\V1\ScopeSpans as OTelProtoScopeSpans;
-use Opentelemetry\Proto\Trace\V1\Span as OTelProtoSpan;
+use Opentelemetry\Proto\Trace\V1\ScopeSpans as ProtoScopeSpans;
+use Opentelemetry\Proto\Trace\V1\Span as ProtoSpan;
 
 /**
  * @see https://github.com/open-telemetry/opentelemetry-proto/blob/v1.8.0/opentelemetry/proto/trace/v1/trace.proto#L68
@@ -44,24 +44,24 @@ class ScopeSpans
     ) {
     }
 
-    public static function deserializeFromOTelProto(OTelProtoScopeSpans $source): self
+    public static function fromProto(ProtoScopeSpans $proto): self
     {
         return new self(
-            scope: DeserializationUtil::deserializeNullableFromOTelProto($source->getScope(), InstrumentationScope::deserializeFromOTelProto(...)),
-            spans: DeserializationUtil::deserializeArrayFromOTelProto($source->getSpans(), self::deserializeSpanFromOTelProto(...)),
-            schemaUrl: $source->getSchemaUrl(),
+            scope: FromProtoUtil::nullableFromProto($proto->getScope(), InstrumentationScope::fromProto(...)),
+            spans: FromProtoUtil::arrayFromProto($proto->getSpans(), self::spanFromProtoDiscardUnwanted(...)),
+            schemaUrl: $proto->getSchemaUrl(),
         );
     }
 
-    private static function deserializeSpanFromOTelProto(OTelProtoSpan $source): ?Span
+    private static function spanFromProtoDiscardUnwanted(ProtoSpan $proto): ?Span
     {
-        $logger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__)->addAllContext(compact('source'));
+        $logger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__)->addAllContext(compact('proto'));
         $loggerProxyDebug = $logger->ifDebugLevelEnabledNoLine(__FUNCTION__);
 
         DebugContext::getCurrentScope(/* out */ $dbgCtx);
-        $dbgCtx->add(compact('source'));
+        $dbgCtx->add(compact('proto'));
 
-        $span = Span::deserializeFromOTelProto($source);
+        $span = Span::fromProto($proto);
         if (($reason = Span::reasonToDiscard($span)) !== null) {
             $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Span discarded', compact('reason', 'span'));
             return null;

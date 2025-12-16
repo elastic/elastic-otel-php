@@ -38,8 +38,8 @@ use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LoggableToString;
 use ElasticOTelTests\Util\Log\LogStreamInterface;
 use ElasticOTelTests\Util\TextUtilForTests;
-use Google\Protobuf\RepeatedField as ProtobufRepeatedField;
-use Opentelemetry\Proto\Common\V1\KeyValue as OTelProtoKeyValue;
+use Google\Protobuf\RepeatedField as ProtoRepeatedField;
+use Opentelemetry\Proto\Common\V1\KeyValue as ProtoKeyValue;
 use Override;
 use PHPUnit\Framework\Assert;
 
@@ -59,16 +59,16 @@ final class Attributes implements ArrayReadInterface, Countable, LoggableInterfa
     }
 
     /**
-     * @param ProtobufRepeatedField<OTelProtoKeyValue> $source
+     * @param ProtoRepeatedField<ProtoKeyValue> $source
      */
-    public static function deserializeFromOTelProto(ProtobufRepeatedField $source): self
+    public static function fromProto(ProtoRepeatedField $source): self
     {
         DebugContext::getCurrentScope(/* out */ $dbgCtx);
 
         $keyToValueMap = [];
         foreach ($source as $keyValue) {
             $dbgCtx->add(compact('keyValue'));
-            Assert::assertInstanceOf(OTelProtoKeyValue::class, $keyValue); // @phpstan-ignore staticMethod.alreadyNarrowedType
+            Assert::assertInstanceOf(ProtoKeyValue::class, $keyValue); // @phpstan-ignore staticMethod.alreadyNarrowedType
             Assert::assertArrayNotHasKey($keyValue->getKey(), $keyToValueMap);
             $keyToValueMap[$keyValue->getKey()] = self::extractValue($keyValue);
         }
@@ -79,7 +79,7 @@ final class Attributes implements ArrayReadInterface, Countable, LoggableInterfa
     /**
      * @return AttributeValue
      */
-    private static function extractValue(OTelProtoKeyValue $keyValue): array|bool|float|int|null|string
+    private static function extractValue(ProtoKeyValue $keyValue): array|bool|float|int|null|string
     {
         if (!$keyValue->hasValue()) {
             return null;

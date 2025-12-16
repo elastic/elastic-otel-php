@@ -30,7 +30,6 @@ use ElasticOTelTests\Util\JsonUtil;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
 use ElasticOTelTests\Util\Log\Logger;
 use Override;
-use PHPUnit\Framework\Assert;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use React\EventLoop\TimerInterface;
@@ -85,8 +84,7 @@ final class ResourcesCleaner extends TestInfraHttpServerProcessBase
     {
         parent::beforeLoopRun();
 
-        Assert::assertNotNull($this->reactLoop);
-        $this->parentProcessTrackingTimer = $this->reactLoop->addPeriodicTimer(
+        $this->parentProcessTrackingTimer = AssertEx::notNull($this->reactLoop)->addPeriodicTimer(
             1 /* interval in seconds */,
             function () {
                 $rootProcessId = AmbientContextForTests::testConfig()->dataPerProcess()->rootProcessId;
@@ -105,9 +103,7 @@ final class ResourcesCleaner extends TestInfraHttpServerProcessBase
         $this->cleanSpawnedProcesses(isTestScopedOnly: false);
         $this->cleanFiles(isTestScopedOnly: false);
 
-        Assert::assertNotNull($this->reactLoop);
-        Assert::assertNotNull($this->parentProcessTrackingTimer);
-        $this->reactLoop->cancelTimer($this->parentProcessTrackingTimer);
+        AssertEx::notNull($this->reactLoop)->cancelTimer(AssertEx::notNull($this->parentProcessTrackingTimer));
 
         parent::exit();
     }
@@ -184,7 +180,7 @@ final class ResourcesCleaner extends TestInfraHttpServerProcessBase
     }
 
     #[Override]
-    protected function processRequest(ServerRequestInterface $request): ?ResponseInterface
+    protected function processRequest(int $portIndex, ServerRequestInterface $request): ?ResponseInterface
     {
         switch ($request->getUri()->getPath()) {
             case self::REGISTER_PROCESS_TO_TERMINATE_URI_PATH:

@@ -93,7 +93,7 @@ final class GlobalTestInfra
             dbgProcessNamePrefix: ClassNameUtil::fqToShort(ResourcesCleaner::class),
             runScriptName: 'runResourcesCleaner.php',
             portsInUse: $this->portsInUse,
-            portsToAllocateCount: ResourcesCleaner::maxPortsCount(),
+            portsToAllocateCount: ResourcesCleaner::portsCount(),
             resourcesCleaner: null,
         );
         $this->addPortsInUse($httpServerHandle->ports);
@@ -106,7 +106,7 @@ final class GlobalTestInfra
             dbgProcessNamePrefix: ClassNameUtil::fqToShort(MockOTelCollector::class),
             runScriptName: 'runMockOTelCollector.php',
             portsInUse: $this->portsInUse,
-            portsToAllocateCount: MockOTelCollector::maxPortsCount(),
+            portsToAllocateCount: MockOTelCollector::portsCount(),
             resourcesCleaner: $resourcesCleaner,
         );
         $this->addPortsInUse($httpServerHandle->ports);

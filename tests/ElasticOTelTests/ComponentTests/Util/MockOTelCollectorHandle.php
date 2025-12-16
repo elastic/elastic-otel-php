@@ -52,9 +52,9 @@ final class MockOTelCollectorHandle extends HttpServerHandle
         $this->logger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__)->addAllContext(compact('this'));
     }
 
-    public function getPortForAgent(): int
+    public function getPortForOtlpEndpoint(): int
     {
-        Assert::assertCount(2, $this->ports);
+        Assert::assertCount(MockOTelCollector::portsCount(), $this->ports);
         return $this->ports[1];
     }
 

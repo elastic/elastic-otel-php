@@ -19,12 +19,29 @@
  * under the License.
  */
 
+/** @noinspection PhpInternalEntityUsedInspection */
+
 declare(strict_types=1);
 
-namespace ElasticOTelTests\ComponentTests;
+namespace ElasticOTelTests\ComponentTests\Util\OpampData;
 
-use ElasticOTelTests\BootstrapTests;
+use ElasticOTelTests\ComponentTests\Util\OtlpData\Attributes;
+use GeneratedForElasticOTelTests\OpampProto\AgentDescription as ProtoAgentDescription;
 
-require __DIR__ . '/../../bootstrap.php';
+/**
+ * @see https://github.com/open-telemetry/opamp-spec/blob/v0.14.0/proto/opamp.proto#L689
+ */
+class AgentDescription
+{
+    public function __construct(
+        public readonly Attributes $identifyingAttributes,
+    ) {
+    }
 
-BootstrapTests::bootstrapUnitTests();
+    public static function deserializeFromProto(ProtoAgentDescription $proto): self
+    {
+        return new self(
+            Attributes::fromProto($proto->getIdentifyingAttributes()),
+        );
+    }
+}

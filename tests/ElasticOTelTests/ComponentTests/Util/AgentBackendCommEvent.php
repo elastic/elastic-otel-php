@@ -33,6 +33,7 @@ abstract class AgentBackendCommEvent implements LoggableInterface
     use LoggableTrait;
 
     public function __construct(
+        public readonly int $port,
         public readonly MonotonicTime $monotonicTime,
         public readonly SystemTime $systemTime,
     ) {

@@ -24,7 +24,7 @@ declare(strict_types=1);
 namespace ElasticOTelTests\ComponentTests\Util\OtlpData;
 
 use ElasticOTelTests\Util\AssertEx;
-use Opentelemetry\Proto\Common\V1\InstrumentationScope as OTelProtoInstrumentationScope;
+use Opentelemetry\Proto\Common\V1\InstrumentationScope as ProtoInstrumentationScope;
 
 /**
  * @see https://github.com/open-telemetry/opentelemetry-proto/blob/v1.8.0/opentelemetry/proto/common/v1/common.proto#L71
@@ -44,13 +44,13 @@ class InstrumentationScope
     ) {
     }
 
-    public static function deserializeFromOTelProto(OTelProtoInstrumentationScope $source): self
+    public static function fromProto(ProtoInstrumentationScope $proto): self
     {
         return new self(
-            name: $source->getName(),
-            version: $source->getVersion(),
-            attributes: Attributes::deserializeFromOTelProto($source->getAttributes()),
-            droppedAttributesCount: AssertEx::isNonNegativeInt($source->getDroppedAttributesCount()),
+            name: $proto->getName(),
+            version: $proto->getVersion(),
+            attributes: Attributes::fromProto($proto->getAttributes()),
+            droppedAttributesCount: AssertEx::isNonNegativeInt($proto->getDroppedAttributesCount()),
         );
     }
 }

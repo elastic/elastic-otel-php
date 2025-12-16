@@ -64,11 +64,10 @@ final class AssertEx
         return $actual;
     }
 
+    /** @noinspection PhpUnused */
     public static function stringSameAsInt(int $expected, string $actual, string $message = ''): void
     {
-        Assert::assertNotFalse(filter_var($actual, FILTER_VALIDATE_INT), $message);
-        $actualAsInt = intval($actual);
-        Assert::assertSame($expected, $actualAsInt, $message);
+        Assert::assertSame($expected, self::stringIsInt($actual, $message), $message);
     }
 
     /** @noinspection PhpUnused */
@@ -295,6 +294,19 @@ final class AssertEx
     {
         Assert::assertNull($actual, $message);
         return null;
+    }
+
+    /**
+     * @template T of object
+     *
+     * @param class-string<T> $classString
+     *
+     * @return T
+     */
+    public static function isInstanceOf(mixed $actual, string $classString, string $message = ''): object
+    {
+        Assert::assertInstanceOf($classString, $actual, $message);
+        return $actual;
     }
 
     /**

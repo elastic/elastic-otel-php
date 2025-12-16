@@ -1,0 +1,58 @@
+<?php
+
+/*
+ * Copyright Elasticsearch B.V. and/or licensed to Elasticsearch B.V. under one
+ * or more contributor license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch B.V. licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+/** @noinspection PhpInternalEntityUsedInspection */
+
+declare(strict_types=1);
+
+namespace ElasticOTelTests\ComponentTests\Util\OpampData;
+
+use ElasticOTelTests\ComponentTests\Util\OtlpData\FromProtoUtil;
+use GeneratedForElasticOTelTests\OpampProto\AgentToServer as ProtoAgentToServer;
+use OpenTelemetry\Contrib\Otlp\ProtobufSerializer;
+
+/**
+ * @see https://github.com/open-telemetry/opamp-spec/blob/v0.14.0/proto/opamp.proto#L25
+ */
+class AgentToServer
+{
+    public function __construct(
+        public readonly string $sequenceNum,
+        public readonly string $instanceUid,
+        public readonly ?AgentDescription $agentDescription,
+        public readonly AgentCapabilities $agentCapabilities,
+    ) {
+    }
+
+    public static function deserialize(string $serialized): self
+    {
+        $serializer = ProtobufSerializer::getDefault();
+        $proto = new ProtoAgentToServer();
+        $serializer->hydrate($proto, $serialized);
+
+        return new self(
+            sequenceNum: strval($proto->getSequenceNum()),
+            instanceUid: $proto->getInstanceUid(),
+            agentDescription: FromProtoUtil::nullableFromProto($proto->getAgentDescription(), AgentDescription::deserializeFromProto(...)),
+            agentCapabilities: new AgentCapabilities(strval($proto->getCapabilities()))
+        );
+    }
+}

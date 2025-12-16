@@ -19,32 +19,26 @@
  * under the License.
  */
 
+/** @noinspection PhpUnitMisorderedAssertEqualsArgumentsInspection */
+
 declare(strict_types=1);
 
-namespace ElasticOTelTests\ComponentTests\Util\OtlpData;
+namespace ElasticOTelTests\UnitTests\UtilTests;
 
-use ElasticOTelTests\Util\AssertEx;
-use Opentelemetry\Proto\Resource\V1\Resource as ProtoResource;
+use ElasticOTelTests\ComponentTests\Util\OtlpData\SpanFlags;
+use ElasticOTelTests\Util\TestCaseBase;
+use Opentelemetry\Proto\Trace\V1\SpanFlags as ProtoSpanFlags;
 
-/**
- * @see https://github.com/open-telemetry/opentelemetry-proto/blob/v1.8.0/opentelemetry/proto/resource/v1/resource.proto#L28
- */
-class OTelResource
+final class SpanFlagsTest extends TestCaseBase
 {
-    /**
-     * @param non-negative-int $droppedAttributesCount
-     */
-    public function __construct(
-        public readonly Attributes $attributes,
-        public readonly int $droppedAttributesCount,
-    ) {
-    }
-
-    public static function fromProto(ProtoResource $proto): self
+    public function testToString(): void
     {
-        return new self(
-            attributes: Attributes::fromProto($proto->getAttributes()),
-            droppedAttributesCount: AssertEx::isNonNegativeInt($proto->getDroppedAttributesCount()),
-        );
+        $impl = function (int $flags, string $expectedNames): void {
+            self::assertStringEndsWith(" ($expectedNames)", (new SpanFlags($flags))->__toString());
+        };
+
+        $impl(ProtoSpanFlags::SPAN_FLAGS_CONTEXT_HAS_IS_REMOTE_MASK, 'HAS_IS_REMOTE_MASK');
+        $impl(ProtoSpanFlags::SPAN_FLAGS_CONTEXT_IS_REMOTE_MASK, 'IS_REMOTE');
+        $impl(ProtoSpanFlags::SPAN_FLAGS_CONTEXT_HAS_IS_REMOTE_MASK | ProtoSpanFlags::SPAN_FLAGS_CONTEXT_IS_REMOTE_MASK, 'HAS_IS_REMOTE_MASK | IS_REMOTE');
     }
 }
