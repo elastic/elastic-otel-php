@@ -40,15 +40,7 @@ class ElasticLogWriter implements LogWriterInterface
 
     private static function levelToEdot(mixed $level): ?LogLevel
     {
-        if (!is_string($level)) {
-            return null;
-        }
-
-        if (($psrLevel = PsrLogLevel::tryFindByString($level)) === null) {
-            return null;
-        }
-
-        return LogLevel::fromPsrLevel($psrLevel);
+        return is_string($level) ? PsrLogLevel::tryToFindByName($level)?->toElasticLogLevel() : null;
     }
 
     /**

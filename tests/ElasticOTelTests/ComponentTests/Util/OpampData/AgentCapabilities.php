@@ -24,7 +24,6 @@ declare(strict_types=1);
 namespace ElasticOTelTests\ComponentTests\Util\OpampData;
 
 use ElasticOTelTests\ComponentTests\Util\OtlpData\FlagsBase;
-use ElasticOTelTests\Util\AssertEx;
 use GeneratedForElasticOTelTests\OpampProto\AgentCapabilities as ProtoAgentCapabilities;
 use Override;
 use ReflectionClass;
@@ -48,12 +47,20 @@ final class AgentCapabilities extends FlagsBase
                 if (!str_starts_with($constName, $constNamePrefix)) {
                     continue;
                 }
+                if (!is_int($constVal)) {
+                    continue;
+                }
                 if ($constVal === 0) {
                     continue;
                 }
-                $result[AssertEx::isInt($constVal)] = substr($constName, strlen($constNamePrefix));
+                $result[$constVal] = substr($constName, strlen($constNamePrefix));
             }
         }
         return $result;
+    }
+
+    public function acceptsRemoteConfig(): bool
+    {
+        return $this->isOn(ProtoAgentCapabilities::AgentCapabilities_AcceptsRemoteConfig);
     }
 }

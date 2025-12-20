@@ -184,15 +184,4 @@ final class FileUtil
         }
         return $result;
     }
-
-    public static function relativePathFromTo(string $from, string $to): string
-    {
-        $fromNorm = self::normalizePath($from);
-        $toNorm = self::normalizePath($to);
-        Assert::assertStringStartsWith(AssertEx::isNonEmptyString($fromNorm), $toNorm);
-        Assert::assertNotEquals($fromNorm, $toNorm);
-        $suffix = substr($toNorm, strlen($fromNorm));
-        Assert::assertSame(DIRECTORY_SEPARATOR, $suffix[0]);
-        return substr($suffix, 1);
-    }
 }

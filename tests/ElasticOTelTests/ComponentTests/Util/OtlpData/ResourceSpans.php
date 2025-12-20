@@ -28,7 +28,7 @@ use Opentelemetry\Proto\Trace\V1\ResourceSpans as ProtoResourceSpans;
 /**
  * @see https://github.com/open-telemetry/opentelemetry-proto/blob/v1.8.0/opentelemetry/proto/trace/v1/trace.proto#L48
  */
-class ResourceSpans
+final class ResourceSpans
 {
     /**
      * @param ScopeSpans[] $scopeSpans

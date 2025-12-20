@@ -26,7 +26,7 @@ declare(strict_types=1);
 namespace ElasticOTelTests\UnitTests\UtilTests;
 
 use ElasticOTelTests\ComponentTests\Util\OpampData\AgentCapabilities;
-use ElasticOTelTests\Generated\OpampProto\AgentCapabilities as ProtoAgentCapabilities;
+use GeneratedForElasticOTelTests\OpampProto\AgentCapabilities as ProtoAgentCapabilities;
 use ElasticOTelTests\Util\TestCaseBase;
 
 final class OpampAgentCapabilitiesTest extends TestCaseBase

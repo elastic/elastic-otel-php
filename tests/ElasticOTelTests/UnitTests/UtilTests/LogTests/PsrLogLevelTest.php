@@ -45,23 +45,25 @@ class PsrLogLevelTest extends TestCaseBase
             $dbgCtx->resetTopSubScope(compact('constName'));
             $constValue = AssertEx::isString(constant(PsrLogLogLevelConsts::class . '::' . $constName));
             self::assertSame($constName, strtoupper($constValue));
-            self::assertNotNull(PsrLogLevel::tryFindByString($constValue));
+            self::assertNotNull(PsrLogLevel::tryToFindByName($constValue));
             $constValues[] = $constValue;
         }
         $dbgCtx->popSubScope();
 
-        AssertEx::equalAsSets($constValues, array_map(fn($psrLogLevel) => $psrLogLevel->name, PsrLogLevel::cases()));
+        AssertEx::equalAsSets($constValues, PsrLogLevel::casesNames());
     }
 
-    public function testTryFindByString(): void
+    public function testTryFindByName(): void
     {
         foreach (PsrLogLevel::cases() as $psrLogLevel) {
-            self::assertSame($psrLogLevel, PsrLogLevel::tryFindByString($psrLogLevel->name));
-            self::assertSame($psrLogLevel, PsrLogLevel::tryFindByString(strtoupper($psrLogLevel->name)));
-            self::assertSame($psrLogLevel, PsrLogLevel::tryFindByString(strtolower($psrLogLevel->name)));
+            self::assertSame($psrLogLevel, PsrLogLevel::tryToFindByName($psrLogLevel->name));
+            self::assertSame($psrLogLevel, PsrLogLevel::tryToFindByName($psrLogLevel->name, isCaseSensitive: true));
+            self::assertSame($psrLogLevel, PsrLogLevel::tryToFindByName(strtolower($psrLogLevel->name), isCaseSensitive: true));
+            self::assertSame($psrLogLevel, PsrLogLevel::tryToFindByName(strtoupper($psrLogLevel->name)));
+            self::assertNull(PsrLogLevel::tryToFindByName(strtoupper($psrLogLevel->name), isCaseSensitive: true));
         }
 
-        self::assertNull(PsrLogLevel::tryFindByString('dummy'));
-        self::assertNull(PsrLogLevel::tryFindByString(''));
+        self::assertNull(PsrLogLevel::tryToFindByName('dummy'));
+        self::assertNull(PsrLogLevel::tryToFindByName(''));
     }
 }

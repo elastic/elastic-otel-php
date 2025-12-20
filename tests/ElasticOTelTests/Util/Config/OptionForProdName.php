@@ -51,6 +51,7 @@ enum OptionForProdName
     case log_level_stderr;
     case log_level_syslog;
     case opamp_endpoint;
+    case opamp_heartbeat_interval;
     case resource_attributes;
     case transaction_span_enabled;
     case transaction_span_enabled_cli;
@@ -84,6 +85,7 @@ enum OptionForProdName
             self::log_level_stderr->name                  => self::ELASTIC_OTEL_ENV_VAR_NAME_PREFIX,
             self::log_level_syslog->name                  => self::ELASTIC_OTEL_ENV_VAR_NAME_PREFIX,
             self::opamp_endpoint->name                    => self::ELASTIC_OTEL_ENV_VAR_NAME_PREFIX,
+            self::opamp_heartbeat_interval->name          => self::ELASTIC_OTEL_ENV_VAR_NAME_PREFIX,
             self::resource_attributes->name               => self::OTEL_ENV_VAR_NAME_PREFIX,
             self::transaction_span_enabled->name          => self::ELASTIC_OTEL_ENV_VAR_NAME_PREFIX,
             self::transaction_span_enabled_cli->name      => self::ELASTIC_OTEL_ENV_VAR_NAME_PREFIX,

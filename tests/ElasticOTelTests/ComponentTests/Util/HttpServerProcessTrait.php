@@ -24,18 +24,41 @@ declare(strict_types=1);
 namespace ElasticOTelTests\ComponentTests\Util;
 
 use ElasticOTelTests\Util\AmbientContextForTests;
+use ElasticOTelTests\Util\ArrayUtilForTests;
+use ElasticOTelTests\Util\ExceptionUtil;
 use ElasticOTelTests\Util\HttpContentTypes;
 use ElasticOTelTests\Util\HttpHeaderNames;
 use ElasticOTelTests\Util\HttpStatusCodes;
 use ElasticOTelTests\Util\JsonUtil;
 use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use React\Http\Message\Response;
 
 trait HttpServerProcessTrait
 {
-    protected static function verifySpawnedProcessInternalId(
-        string $receivedSpawnedProcessInternalId
-    ): ?ResponseInterface {
+    protected static function getRequestHeader(ServerRequestInterface $request, string $headerName): ?string
+    {
+        $headerValues = $request->getHeader($headerName);
+        if (ArrayUtilForTests::isEmpty($headerValues)) {
+            return null;
+        }
+        if (count($headerValues) !== 1) {
+            throw new ComponentTestsInfraException(ExceptionUtil::buildMessage('The header should not have more than one value', compact('headerName', 'headerValues')));
+        }
+        return $headerValues[0];
+    }
+
+    protected static function getRequiredRequestHeader(ServerRequestInterface $request, string $headerName): string
+    {
+        $headerValue = self::getRequestHeader($request, $headerName);
+        if ($headerValue === null) {
+            throw new ComponentTestsInfraException(ExceptionUtil::buildMessage('Missing required HTTP request header', compact('headerName')));
+        }
+        return $headerValue;
+    }
+
+    protected static function verifySpawnedProcessInternalId(string $receivedSpawnedProcessInternalId): ?ResponseInterface
+    {
         $expectedSpawnedProcessInternalId = AmbientContextForTests::testConfig()->dataPerProcess()->thisSpawnedProcessInternalId;
         if ($expectedSpawnedProcessInternalId !== $receivedSpawnedProcessInternalId) {
             return self::buildErrorResponse(
@@ -52,15 +75,29 @@ trait HttpServerProcessTrait
     protected static function buildErrorResponse(int $status, string $message): ResponseInterface
     {
         return new Response(
-            status:  $status,
+            status: $status,
             headers: [HttpHeaderNames::CONTENT_TYPE => HttpContentTypes::JSON],
-            body:    JsonUtil::encode(['message' => $message], prettyPrint: true)
+            body: JsonUtil::encode(['message' => $message], prettyPrint: true),
         );
     }
 
-    protected static function buildDefaultResponse(): ResponseInterface
+    protected function buildErrorPathNotFoundResponse(string $requestUrlPath): ResponseInterface
     {
-        return new Response();
+        return self::buildErrorResponse(HttpStatusCodes::NOT_FOUND, 'Path ' . $requestUrlPath . ' is not supported');
+    }
+
+    protected static function buildOkResponse(): ResponseInterface
+    {
+        return new Response(status: HttpStatusCodes::OK);
+    }
+
+    protected static function buildProtobufResponse(int $status, string $serializedProto): ResponseInterface
+    {
+        return new Response(
+            status: $status,
+            headers: [HttpHeaderNames::CONTENT_TYPE => HttpContentTypes::PROTOBUF],
+            body: $serializedProto,
+        );
     }
 
     protected static function buildResponseWithPid(): ResponseInterface

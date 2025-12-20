@@ -29,7 +29,7 @@ use Opentelemetry\Proto\Collector\Trace\V1\ExportTraceServiceRequest as ProtoExp
 /**
  * @see https://github.com/open-telemetry/opentelemetry-proto/blob/v1.8.0/opentelemetry/proto/collector/trace/v1/trace_service.proto#L34
  */
-class ExportTraceServiceRequest
+final class ExportTraceServiceRequest
 {
     /**
      * @param ResourceSpans[] $resourceSpans

@@ -31,7 +31,7 @@ use Opentelemetry\Proto\Common\V1\InstrumentationScope as ProtoInstrumentationSc
  *
  * @param non-negative-int $droppedAttributesCount
  */
-class InstrumentationScope
+final class InstrumentationScope
 {
     /**
      * @param non-negative-int $droppedAttributesCount

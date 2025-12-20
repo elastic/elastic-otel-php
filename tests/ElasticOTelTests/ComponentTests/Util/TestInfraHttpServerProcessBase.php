@@ -24,12 +24,10 @@ declare(strict_types=1);
 namespace ElasticOTelTests\ComponentTests\Util;
 
 use ElasticOTelTests\Util\AmbientContextForTests;
-use ElasticOTelTests\Util\ArrayUtilForTests;
 use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\Config\OptionForTestsName;
 use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\ExceptionUtil;
-use ElasticOTelTests\Util\HttpStatusCodes;
 use ElasticOTelTests\Util\IterableUtil;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
 use ElasticOTelTests\Util\Log\Logger;
@@ -74,7 +72,7 @@ abstract class TestInfraHttpServerProcessBase extends SpawnedProcessBase
             }
         );
 
-        $this->logger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__)->addAllContext(compact('this'));
+        $this->logger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__);
 
         parent::__construct();
 
@@ -90,7 +88,7 @@ abstract class TestInfraHttpServerProcessBase extends SpawnedProcessBase
         $testConfig = AmbientContextForTests::testConfig();
         $dbgCtx->add(compact('testConfig'));
 
-        Assert::assertCount($this->portsCount(), $testConfig->dataPerProcess()->thisServerPorts);
+        Assert::assertCount(static::portsCount(), $testConfig->dataPerProcess()->thisServerPorts);
 
         // At this point data per request is not parsed and not applied to config yet
         Assert::assertNull($testConfig->getOptionValueByName(OptionForTestsName::data_per_request));
@@ -104,9 +102,9 @@ abstract class TestInfraHttpServerProcessBase extends SpawnedProcessBase
         return 1;
     }
 
-    protected static function getPortByIndex(int $portIndex): int
+    protected static function dbgPortDesc(int $portIndex): string
     {
-        return AmbientContextForTests::testConfig()->dataPerProcess()->thisServerPorts[$portIndex];
+        return '';
     }
 
     protected function onNewConnection(int $portIndex, ConnectionInterface $connection): void
@@ -115,14 +113,16 @@ abstract class TestInfraHttpServerProcessBase extends SpawnedProcessBase
         $logDebug?->log(
             __LINE__,
             'New connection',
+            (static::portsCount() > 1 ? ['port' => static::dbgPortDesc($portIndex)] : []) +
             [
-                'portIndex' => $portIndex,
                 'connection addresses' => [
                     'remote' => $connection->getRemoteAddress(),
                     'local'  => $connection->getLocalAddress(),
                 ]
             ]
         );
+
+        Assert::assertLessThan(static::portsCount(), $portIndex);
     }
 
     /**
@@ -134,14 +134,9 @@ abstract class TestInfraHttpServerProcessBase extends SpawnedProcessBase
     {
         self::runSkeleton(
             function (SpawnedProcessBase $thisObj): void {
-                AssertEx::isInstanceOf($thisObj, self::class)->runImpl();
+                AssertEx::isInstanceOf($thisObj, self::class)->runHttpService();
             }
         );
-    }
-
-    public function runImpl(): void
-    {
-        $this->runHttpService();
     }
 
     private function runHttpService(): void
@@ -149,7 +144,8 @@ abstract class TestInfraHttpServerProcessBase extends SpawnedProcessBase
         $loggerProxyDebug = $this->logger->ifDebugLevelEnabledNoLine(__FUNCTION__);
 
         $ports = AmbientContextForTests::testConfig()->dataPerProcess()->thisServerPorts;
-        $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Running HTTP service...', compact('ports'));
+        $loggerProxyDebug?->log(__LINE__, 'Running HTTP service...', compact('ports'));
+        Assert::assertCount(static::portsCount(), $ports);
 
         $this->reactLoop = Loop::get();
         Assert::assertNotEmpty($ports);
@@ -171,10 +167,10 @@ abstract class TestInfraHttpServerProcessBase extends SpawnedProcessBase
                     return $this->processRequestWrapper($portIndex, $request);
                 }
             );
-            $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Listening for incoming requests...', ['serverSocket address' => $serverSocket->getAddress()]);
+            $loggerProxyDebug?->log(__LINE__, 'Listening for incoming requests...', ['serverSocket address' => $serverSocket->getAddress()]);
             $httpServer->listen($serverSocket);
         }
-        Assert::assertSame(count($this->serverSockets), self::portsCount());
+        Assert::assertCount(static::portsCount(), $this->serverSockets);
 
         $this->beforeLoopRun();
 
@@ -185,7 +181,7 @@ abstract class TestInfraHttpServerProcessBase extends SpawnedProcessBase
     {
     }
 
-    protected function shouldRequestHaveSpawnedProcessInternalId(ServerRequestInterface $request): bool
+    protected function isTestsInfraRequest(int $portIndex): bool
     {
         return true;
     }
@@ -196,7 +192,11 @@ abstract class TestInfraHttpServerProcessBase extends SpawnedProcessBase
     private function processRequestWrapper(int $portIndex, ServerRequestInterface $request): Promise|ResponseInterface
     {
         $logDebug = $this->logger->ifDebugLevelEnabledNoLine(__FUNCTION__);
-        $logDebug?->log(__LINE__, 'Received request', ['portIndex' => $portIndex, 'URI' => $request->getUri(), 'method' => $request->getMethod(), 'target' => $request->getRequestTarget()]);
+        $logDebug?->log(
+            __LINE__,
+            'Received request ; ' . (static::portsCount() > 1 ? ('port for ' . static::dbgPortDesc($portIndex)) : ''),
+            ['URI' => $request->getUri(), 'method' => $request->getMethod(), 'target' => $request->getRequestTarget()],
+        );
 
         try {
             $response = $this->processRequestWrapperImpl($portIndex, $request);
@@ -224,7 +224,7 @@ abstract class TestInfraHttpServerProcessBase extends SpawnedProcessBase
      */
     private function processRequestWrapperImpl(int $portIndex, ServerRequestInterface $request): Promise|ResponseInterface
     {
-        if ($this->shouldRequestHaveSpawnedProcessInternalId($request)) {
+        if ($this->isTestsInfraRequest($portIndex)) {
             $testConfigForRequest = ConfigUtilForTests::read(
                 new RequestHeadersRawSnapshotSource(
                     function (string $headerName) use ($request): ?string {
@@ -234,26 +234,19 @@ abstract class TestInfraHttpServerProcessBase extends SpawnedProcessBase
                 AmbientContextForTests::loggerFactory()
             );
 
-            $verifySpawnedProcessInternalIdResponse = self::verifySpawnedProcessInternalId(
-                $testConfigForRequest->dataPerRequest()->spawnedProcessInternalId
-            );
-            if ($verifySpawnedProcessInternalIdResponse !== null) {
+            if (($verifySpawnedProcessInternalIdResponse = self::verifySpawnedProcessInternalId($testConfigForRequest->dataPerRequest()->spawnedProcessInternalId)) !== null) {
                 return $verifySpawnedProcessInternalIdResponse;
+            }
+
+            if ($request->getUri()->getPath() === HttpServerHandle::STATUS_CHECK_URI_PATH) {
+                return self::buildResponseWithPid();
+            } elseif ($request->getUri()->getPath() === self::EXIT_URI_PATH) {
+                $this->exit();
+                return self::buildOkResponse();
             }
         }
 
-        if ($request->getUri()->getPath() === HttpServerHandle::STATUS_CHECK_URI_PATH) {
-            return self::buildResponseWithPid();
-        } elseif ($request->getUri()->getPath() === self::EXIT_URI_PATH) {
-            $this->exit();
-            return self::buildDefaultResponse();
-        }
-
-        if (($response = $this->processRequest($portIndex, $request)) !== null) {
-            return $response;
-        }
-
-        return self::buildErrorResponse(HttpStatusCodes::BAD_REQUEST, 'Unknown URI path: `' . $request->getRequestTarget() . '\'');
+        return $this->processRequest($portIndex, $request) ?? self::buildErrorPathNotFoundResponse($request->getUri()->getPath());
     }
 
     protected function exit(): void
@@ -264,26 +257,5 @@ abstract class TestInfraHttpServerProcessBase extends SpawnedProcessBase
 
         ($loggerProxy = $this->logger->ifDebugLevelEnabled(__LINE__, __FUNCTION__))
         && $loggerProxy->log('Exiting...');
-    }
-
-    protected static function getRequestHeader(ServerRequestInterface $request, string $headerName): ?string
-    {
-        $headerValues = $request->getHeader($headerName);
-        if (ArrayUtilForTests::isEmpty($headerValues)) {
-            return null;
-        }
-        if (count($headerValues) !== 1) {
-            throw new ComponentTestsInfraException(ExceptionUtil::buildMessage('The header should not have more than one value', compact('headerName', 'headerValues')));
-        }
-        return $headerValues[0];
-    }
-
-    protected static function getRequiredRequestHeader(ServerRequestInterface $request, string $headerName): string
-    {
-        $headerValue = self::getRequestHeader($request, $headerName);
-        if ($headerValue === null) {
-            throw new ComponentTestsInfraException(ExceptionUtil::buildMessage('Missing required HTTP request header', compact('headerName')));
-        }
-        return $headerValue;
     }
 }

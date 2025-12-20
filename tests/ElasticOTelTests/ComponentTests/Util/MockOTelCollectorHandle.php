@@ -24,6 +24,7 @@ declare(strict_types=1);
 namespace ElasticOTelTests\ComponentTests\Util;
 
 use Elastic\OTel\Util\BoolUtil;
+use ElasticOTelTests\ComponentTests\Util\OpampData\AgentRemoteConfig;
 use ElasticOTelTests\Util\AmbientContextForTests;
 use ElasticOTelTests\Util\ArrayUtilForTests;
 use ElasticOTelTests\Util\ClassNameUtil;
@@ -52,10 +53,21 @@ final class MockOTelCollectorHandle extends HttpServerHandle
         $this->logger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__)->addAllContext(compact('this'));
     }
 
-    public function getPortForOtlpEndpoint(): int
+    private function getPortByIndex(int $portIndex): int
     {
         Assert::assertCount(MockOTelCollector::portsCount(), $this->ports);
-        return $this->ports[1];
+        Assert::assertArrayHasKey($portIndex, $this->ports);
+        return $this->ports[$portIndex];
+    }
+
+    public function getPortForOtlpEndpoint(): int
+    {
+        return $this->getPortByIndex(MockOTelCollector::SIGNAL_INTAKE_PORT_INDEX);
+    }
+
+    public function getPortForOpampEndpoint(): int
+    {
+        return $this->getPortByIndex(MockOTelCollector::OPAMP_PORT_INDEX);
     }
 
     /**
@@ -68,14 +80,14 @@ final class MockOTelCollectorHandle extends HttpServerHandle
 
         $response = $this->sendRequest(
             HttpMethods::GET,
-            MockOTelCollector::MOCK_API_URI_PREFIX . MockOTelCollector::GET_AGENT_BACKEND_COMM_EVENTS_URI_SUBPATH,
+            MockOTelCollectorTestsInfra::MOCK_API_URI_PREFIX . MockOTelCollectorTestsInfra::GET_AGENT_BACKEND_COMM_EVENTS_URI_SUFFIX,
             [
-                MockOTelCollector::FROM_INDEX_HEADER_NAME => strval($this->nextIntakeDataRequestIndexToFetch),
-                MockOTelCollector::SHOULD_WAIT_HEADER_NAME => BoolUtil::toString($shouldWait),
+                MockOTelCollectorTestsInfra::FROM_INDEX_HEADER_NAME => strval($this->nextIntakeDataRequestIndexToFetch),
+                MockOTelCollectorTestsInfra::SHOULD_WAIT_HEADER_NAME => BoolUtil::toString($shouldWait),
             ]
         );
 
-        $newEvents = MockOTelCollector::decodeGetAgentBackendCommEvents($response);
+        $newEvents = MockOTelCollectorTestsInfra::decodeGetAgentBackendCommEvents($response);
 
         if (ArrayUtilForTests::isEmpty($newEvents)) {
             $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Fetched NO new data from agent receiver events');
@@ -86,22 +98,25 @@ final class MockOTelCollectorHandle extends HttpServerHandle
         return $newEvents;
     }
 
+    public function buildOpampEndpointOptionValue(): string
+    {
+        /** @noinspection HttpUrlsUsage */
+        return 'http://' . HttpServerHandle::CLIENT_LOCALHOST_ADDRESS . ':' . $this->getPortForOpampEndpoint();
+    }
+
     /**
-     * @see MockOTelCollector::setRemoteConfigFileNameToContent
-     *
-     * TODO: Sergey Kleyman: REMOVE: PhpUnused
-     * @noinspection PhpUnused
+     * @see MockOTelCollectorOpAMP::setAgentRemoteConfig
      */
-    public function setRemoteConfigFileNameToContent(mixed $remoteConfigFileNameToContent): void
+    public function setAgentRemoteConfig(AgentRemoteConfig $agentRemoteConfig): void
     {
         $loggerProxyDebug = $this->logger->ifDebugLevelEnabledNoLine(__FUNCTION__);
-        $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Starting...');
+        $loggerProxyDebug?->log(__LINE__, 'Entered', compact('agentRemoteConfig'));
 
         $response = $this->sendRequest(
             httpMethod: HttpMethods::POST,
-            path: MockOTelCollector::MOCK_API_URI_PREFIX . MockOTelCollector::SET_REMOTE_CONFIG_FILE_NAME_TO_CONTENT,
+            path: MockOTelCollectorTestsInfra::MOCK_API_URI_PREFIX . MockOTelCollectorTestsInfra::SET_REMOTE_CONFIG_URI_SUFFIX,
             headers: [HttpHeaderNames::CONTENT_TYPE => HttpContentTypes::PHP_SERIALIZED],
-            body: PhpSerializationUtil::serializeToString($remoteConfigFileNameToContent),
+            body: PhpSerializationUtil::serializeToString($agentRemoteConfig),
         );
 
         Assert::assertSame(HttpStatusCodes::OK, $response->getStatusCode());

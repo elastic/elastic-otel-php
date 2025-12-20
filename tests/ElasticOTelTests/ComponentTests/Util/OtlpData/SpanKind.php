@@ -28,6 +28,7 @@ use ElasticOTelTests\Util\EnumUtilForTestsTrait;
 use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LogStreamInterface;
 use Opentelemetry\Proto\Trace\V1\Span\SpanKind as ProtoSpanKind;
+use Override;
 use PHPUnit\Framework\Assert;
 
 enum SpanKind implements LoggableInterface
@@ -58,6 +59,7 @@ enum SpanKind implements LoggableInterface
         Assert::fail('Unexpected span kind: ' . $otelProtoSpanKind);
     }
 
+    #[Override]
     public function toLog(LogStreamInterface $stream): void
     {
         $stream->toLogAs($this->name);

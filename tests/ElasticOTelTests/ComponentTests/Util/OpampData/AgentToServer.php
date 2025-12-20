@@ -32,13 +32,14 @@ use OpenTelemetry\Contrib\Otlp\ProtobufSerializer;
 /**
  * @see https://github.com/open-telemetry/opamp-spec/blob/v0.14.0/proto/opamp.proto#L25
  */
-class AgentToServer
+final class AgentToServer
 {
     public function __construct(
         public readonly string $sequenceNum,
         public readonly string $instanceUid,
         public readonly ?AgentDescription $agentDescription,
         public readonly AgentCapabilities $agentCapabilities,
+        public readonly ?RemoteConfigStatus $remoteConfigStatus,
     ) {
     }
 
@@ -52,7 +53,8 @@ class AgentToServer
             sequenceNum: strval($proto->getSequenceNum()),
             instanceUid: $proto->getInstanceUid(),
             agentDescription: FromProtoUtil::nullableFromProto($proto->getAgentDescription(), AgentDescription::deserializeFromProto(...)),
-            agentCapabilities: new AgentCapabilities(strval($proto->getCapabilities()))
+            agentCapabilities: new AgentCapabilities(strval($proto->getCapabilities())),
+            remoteConfigStatus: FromProtoUtil::nullableFromProto($proto->getRemoteConfigStatus(), RemoteConfigStatus::deserializeFromProto(...)),
         );
     }
 }

@@ -23,21 +23,17 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
-use ElasticOTelTests\Util\Log\LoggableTrait;
 use ElasticOTelTests\Util\Log\LogStreamInterface;
 use ElasticOTelTests\Util\MonotonicTime;
 use ElasticOTelTests\Util\SystemTime;
+use Override;
 
 /**
  * @phpstan-type HttpHeaders array<string, string[]>
  */
 final class IntakeDataRequestRaw extends AgentBackendCommEvent
 {
-    use LoggableTrait;
-
     /**
-     * @inheritDoc
-     *
      * @param HttpHeaders $httpHeaders
      */
     public function __construct(
@@ -59,6 +55,7 @@ final class IntakeDataRequestRaw extends AgentBackendCommEvent
         return ['body'];
     }
 
+    #[Override]
     public function toLog(LogStreamInterface $stream): void
     {
         $customToLog = ['strlen(body)' => strlen($this->body)];

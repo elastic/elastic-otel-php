@@ -25,11 +25,17 @@ declare(strict_types=1);
 
 namespace Elastic\OTel\Log;
 
-use Elastic\OTel\Util\ArrayUtil;
+use Elastic\OTel\Util\EnumUtilTrait;
 
+/**
+ * @see \Psr\Log\LogLevel
+ */
 enum PsrLogLevel
 {
+    use EnumUtilTrait;
+
     // const can be used as value for enum case only from PHP 8.2
+    // so const from Psr\Log\LogLevel cannot be used directly until we drop PHP 8.1 support
     // so match between cases names below and Psr\Log\LogLevel::* const's are asserted by tests
 
     case emergency;
@@ -41,17 +47,14 @@ enum PsrLogLevel
     case info;
     case debug;
 
-    public static function tryFindByString(string $strVal): ?self
+    public function toElasticLogLevel(): LogLevel
     {
-        /** @var ?array<string, self> $nameToCaseMap */
-        static $nameToCaseMap = null;
-        if ($nameToCaseMap === null) {
-            $nameToCaseMap = [];
-            foreach (self::cases() as $case) {
-                $nameToCaseMap[$case->name] = $case;
-            }
-        }
-
-        return ArrayUtil::getValueIfKeyExistsElse(strtolower($strVal), $nameToCaseMap, null);
+        return match ($this) {
+            self::emergency, self::alert, self::critical => LogLevel::critical,
+            self::error => LogLevel::error,
+            self::warning => LogLevel::warning,
+            self::notice, self::info => LogLevel::info,
+            self::debug => LogLevel::debug,
+        };
     }
 }

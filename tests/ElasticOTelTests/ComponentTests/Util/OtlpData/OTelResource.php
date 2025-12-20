@@ -29,7 +29,7 @@ use Opentelemetry\Proto\Resource\V1\Resource as ProtoResource;
 /**
  * @see https://github.com/open-telemetry/opentelemetry-proto/blob/v1.8.0/opentelemetry/proto/resource/v1/resource.proto#L28
  */
-class OTelResource
+final class OTelResource
 {
     /**
      * @param non-negative-int $droppedAttributesCount

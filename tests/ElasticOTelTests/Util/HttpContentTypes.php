@@ -36,6 +36,7 @@ final class HttpContentTypes
 
     public const PROTOBUF = 'application/x-protobuf';
     public const JSON = 'application/json';
+    /** @noinspection PhpUnused */
     public const TEXT = 'text/plain';
     public const PHP_SERIALIZED = 'edot-php/php-serialized';
 }

@@ -40,18 +40,16 @@ final class TestCaseHandle implements LoggableInterface
 {
     use LoggableTrait;
 
-    public const MAX_WAIT_TIME_DATA_FROM_AGENT_SECONDS = 3 * HttpClientUtilForTests::MAX_WAIT_TIME_SECONDS;
-
-    private ResourcesCleanerHandle $resourcesCleaner;
-
-    private MockOTelCollectorHandle $mockOTelCollector;
+    public const MAX_WAIT_TIME_DATA_FROM_AGENT_SECONDS = 30;
+    public const MAX_WAIT_TIME_FOR_AGENT_TO_APPLY_REMOTE_CONFIG_SECONDS = 30;
 
     /** @var AppCodeInvocation[] */
     public array $appCodeInvocations = [];
 
-    protected ?AppCodeHostHandle $mainAppCodeHost = null;
+    private ?AppCodeHostHandle $mainAppCodeHost = null;
+    private ?HttpAppCodeHostHandle $additionalHttpAppCodeHost = null;
 
-    protected ?HttpAppCodeHostHandle $additionalHttpAppCodeHost = null;
+    private AgentBackendCommsAccumulator $agentBackendCommsAccumulator;
 
     private readonly Logger $logger;
 
@@ -65,9 +63,8 @@ final class TestCaseHandle implements LoggableInterface
 
         $globalTestInfra = ComponentTestsPHPUnitExtension::getGlobalTestInfra();
         $globalTestInfra->onTestStart();
-        $this->resourcesCleaner = $globalTestInfra->getResourcesCleaner();
-        $this->mockOTelCollector = $globalTestInfra->getMockOTelCollector();
         $this->portsInUse = $globalTestInfra->getPortsInUse();
+        $this->agentBackendCommsAccumulator = new AgentBackendCommsAccumulator();
     }
 
     /**
@@ -110,26 +107,33 @@ final class TestCaseHandle implements LoggableInterface
         return $this->additionalHttpAppCodeHost;
     }
 
-    public function waitForEnoughAgentBackendComms(IsEnoughAgentBackendCommsInterface $expectedIsEnough): AgentBackendComms
-    {
+    public function waitForEnoughAgentBackendComms(
+        IsEnoughAgentBackendCommsInterface $isEnough,
+        int $maxWaitSeconds = self::MAX_WAIT_TIME_DATA_FROM_AGENT_SECONDS,
+        ?string $callerFunc = null
+    ): AgentBackendComms {
         Assert::assertNotEmpty($this->appCodeInvocations);
-        $accumulator = new AgentBackendCommsAccumulator();
-        $hasPassed = (new PollingCheck(__FUNCTION__ . ' passes', intval(TimeUtil::secondsToMicroseconds(self::MAX_WAIT_TIME_DATA_FROM_AGENT_SECONDS))))->run(
-            function () use ($expectedIsEnough, $accumulator) {
-                $accumulator->addEvents($this->mockOTelCollector->fetchNewAgentBackendCommEvents(shouldWait: true));
-                return $accumulator->isEnough($expectedIsEnough);
+        $hasPassed = (new PollingCheck($callerFunc ?? __FUNCTION__ . ' passes', intval(TimeUtil::secondsToMicroseconds($maxWaitSeconds))))->run(
+            function () use ($isEnough) {
+                $this->agentBackendCommsAccumulator->addEvents($this->getMockOTelCollector()->fetchNewAgentBackendCommEvents(shouldWait: true));
+                return $this->agentBackendCommsAccumulator->isEnough($isEnough);
             }
         );
 
-        $accumulatedData = $accumulator->getResult();
+        $accumulatedData = $this->agentBackendCommsAccumulator->getResult();
         if (!$hasPassed) {
             DebugContext::getCurrentScope(/* out */ $dbgCtx);
             $accumulatedDataSummary = $accumulatedData->dbgGetSummary();
-            $dbgCtx->add(compact('expectedIsEnough', 'accumulatedDataSummary', 'accumulatedData', 'accumulator'));
-            Assert::fail('The expected exported data has not arrived; ' . LoggableToString::convert(compact('expectedIsEnough', 'accumulatedDataSummary')));
+            $dbgCtx->add(compact('isEnough', 'accumulatedDataSummary', 'accumulatedData'));
+            Assert::fail('The expected exported data has not arrived; ' . LoggableToString::convert(compact('isEnough', 'accumulatedDataSummary')));
         }
 
         return $accumulatedData;
+    }
+
+    public function waitForAgentToApplyRemoteConfig(string $remoteConfigHash): void
+    {
+        $this->waitForEnoughAgentBackendComms(new WaitForAgentToApplyRemoteConfig($remoteConfigHash), self::MAX_WAIT_TIME_FOR_AGENT_TO_APPLY_REMOTE_CONFIG_SECONDS, __FUNCTION__);
     }
 
     private function autoSetProdOptions(AppCodeHostParams $params): void
@@ -139,7 +143,7 @@ final class TestCaseHandle implements LoggableInterface
             $params->setProdOption(AmbientContextForTests::testConfig()->escalatedRerunsProdCodeLogLevelOptionName() ?? OptionForProdName::log_level_syslog, $escalatedLogLevelForProdCodeAsString);
         }
         /** @noinspection HttpUrlsUsage */
-        $params->setProdOption(OptionForProdName::exporter_otlp_endpoint, 'http://' . HttpServerHandle::CLIENT_LOCALHOST_ADDRESS . ':' . $this->mockOTelCollector->getPortForOtlpEndpoint());
+        $params->setProdOption(OptionForProdName::exporter_otlp_endpoint, 'http://' . HttpServerHandle::CLIENT_LOCALHOST_ADDRESS . ':' . $this->getMockOTelCollector()->getPortForOtlpEndpoint());
     }
 
     public function addAppCodeInvocation(AppCodeInvocation $appCodeInvocation): void
@@ -174,6 +178,8 @@ final class TestCaseHandle implements LoggableInterface
         ($loggerProxy = $this->logger->ifDebugLevelEnabled(__LINE__, __FUNCTION__))
         && $loggerProxy->log('Tearing down...');
 
+        $this->agentBackendCommsAccumulator = new AgentBackendCommsAccumulator();
+
         ComponentTestsPHPUnitExtension::getGlobalTestInfra()->onTestEnd();
     }
 
@@ -195,7 +201,7 @@ final class TestCaseHandle implements LoggableInterface
         ($loggerProxy = $this->logger->ifDebugLevelEnabled(__LINE__, __FUNCTION__))
         && $loggerProxy->log('Starting built-in HTTP server to host app code ...', compact('dbgInstanceName'));
 
-        $result = new BuiltinHttpServerAppCodeHostHandle($this, $setParamsFunc, $this->resourcesCleaner, $this->portsInUse, $dbgInstanceName);
+        $result = new BuiltinHttpServerAppCodeHostHandle($this, $setParamsFunc, $this->getResourcesCleaner(), $this->portsInUse, $dbgInstanceName);
         $this->addPortsInUse($result->httpServerHandle->ports);
 
         ($loggerProxy = $this->logger->ifDebugLevelEnabled(__LINE__, __FUNCTION__))
@@ -210,23 +216,23 @@ final class TestCaseHandle implements LoggableInterface
     private function startAppCodeHost(Closure $setParamsFunc, string $dbgInstanceName): AppCodeHostHandle
     {
         return match (AmbientContextForTests::testConfig()->appCodeHostKind()) {
-            AppCodeHostKind::cliScript => new CliScriptAppCodeHostHandle($this, $setParamsFunc, $this->resourcesCleaner, $dbgInstanceName),
+            AppCodeHostKind::cliScript => new CliScriptAppCodeHostHandle($this, $setParamsFunc, $this->getResourcesCleaner(), $dbgInstanceName),
             AppCodeHostKind::builtinHttpServer => $this->startBuiltinHttpServerAppCodeHost($setParamsFunc, $dbgInstanceName),
         };
     }
 
     public function getResourcesCleaner(): ResourcesCleanerHandle
     {
-        return $this->resourcesCleaner;
+        return ComponentTestsPHPUnitExtension::getGlobalTestInfra()->getResourcesCleaner();
     }
 
     public function getResourcesClient(): ResourcesClient
     {
-        return $this->resourcesCleaner->getClient();
+        return $this->getResourcesCleaner()->getClient();
     }
 
     public function getMockOTelCollector(): MockOTelCollectorHandle
     {
-        return $this->mockOTelCollector;
+        return ComponentTestsPHPUnitExtension::getGlobalTestInfra()->getMockOTelCollector();
     }
 }

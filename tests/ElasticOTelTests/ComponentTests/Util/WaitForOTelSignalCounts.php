@@ -36,13 +36,12 @@ final class WaitForOTelSignalCounts implements IsEnoughAgentBackendCommsInterfac
 {
     use LoggableTrait;
 
-    private int $minSpanCount = 0;
-    private int $maxSpanCount = 0;
-
     private readonly Logger $logger;
 
-    private function __construct()
-    {
+    private function __construct(
+        private readonly int $minSpanCount = 0,
+        private readonly int $maxSpanCount = 0,
+    ) {
         $this->logger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__)->addAllContext(compact('this'));
     }
 
@@ -57,11 +56,7 @@ final class WaitForOTelSignalCounts implements IsEnoughAgentBackendCommsInterfac
             Assert::assertGreaterThanOrEqual($min, $max);
         }
 
-        $result = new WaitForOTelSignalCounts();
-        $result->minSpanCount = $min;
-        $result->maxSpanCount = $max ?? $min;
-
-        return $result;
+        return new WaitForOTelSignalCounts($min, $max ?? $min);
     }
 
     /**

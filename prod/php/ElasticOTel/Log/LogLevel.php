@@ -38,15 +38,4 @@ enum LogLevel: int
     case info     = 4;
     case debug    = 5;
     case trace    = 6;
-
-    public static function fromPsrLevel(PsrLogLevel $psrLevel): self
-    {
-        return match ($psrLevel) {
-            PsrLogLevel::emergency, PsrLogLevel::alert, PsrLogLevel::critical => self::critical,
-            PsrLogLevel::error => self::error,
-            PsrLogLevel::warning => self::warning,
-            PsrLogLevel::notice, PsrLogLevel::info => self::info,
-            PsrLogLevel::debug => self::debug,
-        };
-    }
 }

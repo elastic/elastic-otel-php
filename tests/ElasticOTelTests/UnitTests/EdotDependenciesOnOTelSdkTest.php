@@ -26,39 +26,38 @@ declare(strict_types=1);
 namespace ElasticOTelTests\UnitTests;
 
 use Elastic\OTel\RemoteConfigHandler;
+use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\Config\OptionForProdName;
+use ElasticOTelTests\Util\Config\OptionsForProdDefaultValues;
+use ElasticOTelTests\Util\ReflectionUtil;
 use ElasticOTelTests\Util\TestCaseBase;
 use OpenTelemetry\API\Behavior\Internal\Logging as OTelInternalLogging;
 use OpenTelemetry\SDK\Common\Configuration\Variables as OTelSdkConfigVariables;
 use OpenTelemetry\SDK\Common\Configuration\KnownValues as OTelSdkConfigKnownValues;
-use ReflectionClass;
 
 final class EdotDependenciesOnOTelSdkTest extends TestCaseBase
 {
-    /**
-     * @param class-string<object> $classFqName
-     *
-     * @noinspection PhpDocMissingThrowsInspection, PhpSameParameterValueInspection
-     */
-    private static function getPrivateConstValue(string $classFqName, string $constName): mixed
-    {
-        $reflClass = new ReflectionClass($classFqName);
-        self::assertTrue($reflClass->hasConstant($constName));
-        return $reflClass->getConstant($constName);
-    }
-
     public function testConstNamesInSync(): void
     {
-        self::assertSame(OTelSdkConfigVariables::OTEL_EXPERIMENTAL_CONFIG_FILE, RemoteConfigHandler::OTEL_EXPERIMENTAL_CONFIG_FILE); // @phpstan-ignore staticMethod.alreadyNarrowedType
-        self::assertSame(OTelSdkConfigVariables::OTEL_LOG_LEVEL, RemoteConfigHandler::OTEL_LOG_LEVEL_OPTION_NAME); // @phpstan-ignore staticMethod.alreadyNarrowedType
+        AssertEx::sameConstValues(OTelSdkConfigVariables::OTEL_EXPERIMENTAL_CONFIG_FILE, RemoteConfigHandler::OTEL_EXPERIMENTAL_CONFIG_FILE);
+        AssertEx::sameConstValues(OTelSdkConfigVariables::OTEL_LOG_LEVEL, RemoteConfigHandler::OTEL_LOG_LEVEL_OPTION_NAME);
 
-        self::assertSame(self::getPrivateConstValue(OTelInternalLogging::class, 'OTEL_LOG_LEVEL'), RemoteConfigHandler::OTEL_LOG_LEVEL_OPTION_NAME);
-        self::assertSame(self::getPrivateConstValue(OTelInternalLogging::class, 'NONE'), RemoteConfigHandler::OTEL_LOG_LEVEL_NONE);
-        self::assertSame(RemoteConfigHandler::OTEL_LOG_LEVEL_OPTION_NAME, OptionForProdName::log_level->toEnvVarName());
-
-        self::assertSame(OTelSdkConfigVariables::OTEL_TRACES_SAMPLER, RemoteConfigHandler::OTEL_TRACES_SAMPLER); // @phpstan-ignore staticMethod.alreadyNarrowedType
-        self::assertSame(OTelSdkConfigVariables::OTEL_TRACES_SAMPLER_ARG, RemoteConfigHandler::OTEL_TRACES_SAMPLER_ARG); // @phpstan-ignore staticMethod.alreadyNarrowedType
+        AssertEx::sameConstValues(OTelSdkConfigVariables::OTEL_TRACES_SAMPLER, RemoteConfigHandler::OTEL_TRACES_SAMPLER);
+        AssertEx::sameConstValues(OTelSdkConfigVariables::OTEL_TRACES_SAMPLER_ARG, RemoteConfigHandler::OTEL_TRACES_SAMPLER_ARG);
         $expected = OTelSdkConfigKnownValues::VALUE_PARENT_BASED_TRACE_ID_RATIO;
-        self::assertSame($expected, RemoteConfigHandler::OTEL_TRACES_SAMPLER_VALUE_PARENT_BASED_TRACE_ID_RATIO); // @phpstan-ignore staticMethod.alreadyNarrowedType
+        AssertEx::sameConstValues($expected, RemoteConfigHandler::OTEL_TRACES_SAMPLER_VALUE_PARENT_BASED_TRACE_ID_RATIO);
+    }
+
+    public function testOTelLogLevelOptionNameInSync(): void
+    {
+        self::assertSame(ReflectionUtil::getConstValue(OTelInternalLogging::class, 'OTEL_LOG_LEVEL'), RemoteConfigHandler::OTEL_LOG_LEVEL_OPTION_NAME);
+        self::assertSame(OptionForProdName::log_level->toEnvVarName(), RemoteConfigHandler::OTEL_LOG_LEVEL_OPTION_NAME);
+
+        self::assertSame(ReflectionUtil::getConstValue(OTelInternalLogging::class, 'DEFAULT_LEVEL'), OptionsForProdDefaultValues::LOG_LEVEL->name);
+
+        /**
+         * Also regarding verification of OTel log level values being in sync
+         * @see \ElasticOTelTests\UnitTests\UtilTests\LogTests\OTelInternalLogLevelTest
+         */
     }
 }

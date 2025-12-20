@@ -27,6 +27,7 @@ use Brick\Math\BigInteger;
 use Brick\Math\BigNumber;
 use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LogStreamInterface;
+use Override;
 use Stringable;
 
 /**
@@ -90,6 +91,7 @@ class FlagsBase implements LoggableInterface, Stringable
         return self::toBinaryWithPrefix($this->value) . ' (' . implode(' | ', $foundNames) . ')';
     }
 
+    #[Override]
     public function toLog(LogStreamInterface $stream): void
     {
         $stream->toLogAs($this->__toString());

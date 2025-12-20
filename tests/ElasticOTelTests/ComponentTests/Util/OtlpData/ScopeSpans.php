@@ -32,7 +32,7 @@ use Opentelemetry\Proto\Trace\V1\Span as ProtoSpan;
 /**
  * @see https://github.com/open-telemetry/opentelemetry-proto/blob/v1.8.0/opentelemetry/proto/trace/v1/trace.proto#L68
  */
-class ScopeSpans
+final class ScopeSpans
 {
     /**
      * @param Span[] $spans

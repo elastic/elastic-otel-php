@@ -31,7 +31,7 @@ use GeneratedForElasticOTelTests\OpampProto\AgentDescription as ProtoAgentDescri
 /**
  * @see https://github.com/open-telemetry/opamp-spec/blob/v0.14.0/proto/opamp.proto#L689
  */
-class AgentDescription
+final class AgentDescription
 {
     public function __construct(
         public readonly Attributes $identifyingAttributes,
@@ -41,7 +41,7 @@ class AgentDescription
     public static function deserializeFromProto(ProtoAgentDescription $proto): self
     {
         return new self(
-            Attributes::fromProto($proto->getIdentifyingAttributes()),
+            identifyingAttributes: Attributes::fromProto($proto->getIdentifyingAttributes()),
         );
     }
 }

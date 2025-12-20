@@ -25,6 +25,9 @@ namespace ElasticOTelTests\ComponentTests\Util;
 
 use Elastic\OTel\Log\LogLevel;
 use Elastic\OTel\RemoteConfigHandler;
+use ElasticOTelTests\ComponentTests\Util\OpampData\AgentConfigFile;
+use ElasticOTelTests\ComponentTests\Util\OpampData\AgentConfigMap;
+use ElasticOTelTests\ComponentTests\Util\OpampData\AgentRemoteConfig;
 use ElasticOTelTests\ComponentTests\Util\OtlpData\Span;
 use ElasticOTelTests\Util\AmbientContextForTests;
 use ElasticOTelTests\Util\ArrayUtilForTests;
@@ -36,7 +39,9 @@ use ElasticOTelTests\Util\Config\OptionForProdName;
 use ElasticOTelTests\Util\Config\OptionsForProdMetadata;
 use ElasticOTelTests\Util\Config\Parser as ConfigParser;
 use ElasticOTelTests\Util\DataProviderForTestBuilder;
+use ElasticOTelTests\Util\HttpContentTypes;
 use ElasticOTelTests\Util\IterableUtil;
+use ElasticOTelTests\Util\JsonUtil;
 use ElasticOTelTests\Util\Log\LoggableToString;
 use ElasticOTelTests\Util\Log\LogLevelUtil;
 use ElasticOTelTests\Util\MixedMap;
@@ -99,7 +104,7 @@ class ComponentTestCaseBase extends TestCaseBase
     }
 
     /**
-     * @param callable(): void $appCodeImpl
+     * @param null|callable(): void $appCodeImpl
      *
      * @noinspection PhpDocMissingThrowsInspection
      */
@@ -514,10 +519,20 @@ class ComponentTestCaseBase extends TestCaseBase
     /**
      * @param array<string, mixed> $optNameToVal
      *
-     * @return array<string, array<string, mixed>>
+     * @noinspection PhpDocMissingThrowsInspection
      */
-    protected static function buildRemoteConfigFileNameToContent(array $optNameToVal): array
+    protected static function buildAgentRemoteConfig(array $optNameToVal): AgentRemoteConfig
     {
-        return [RemoteConfigHandler::REMOTE_CONFIG_FILE_NAME => $optNameToVal];
+        return new AgentRemoteConfig(
+            config: new AgentConfigMap(
+                configMap: [
+                    RemoteConfigHandler::REMOTE_CONFIG_FILE_NAME => new AgentConfigFile(
+                        contentType: HttpContentTypes::JSON,
+                        body: JsonUtil::encode($optNameToVal),
+                    ),
+                ],
+            ),
+            configHash: IdGenerator::generateId(idLengthInBytes: 16),
+        );
     }
 }

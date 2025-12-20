@@ -54,6 +54,7 @@ final class ConfigSnapshotForProd implements LoggableInterface
     private readonly LogLevel $logLevelStderr; // @phpstan-ignore property.uninitializedReadonly
     private readonly LogLevel $logLevelSyslog; // @phpstan-ignore property.uninitializedReadonly
     private readonly ?string $opampEndpoint; // @phpstan-ignore property.uninitializedReadonly
+    private readonly Duration $opampHeartbeatInterval; // @phpstan-ignore property.uninitializedReadonly
     private readonly ?string $resourceAttributes; // @phpstan-ignore property.uninitializedReadonly
     private readonly bool $transactionSpanEnabled; // @phpstan-ignore property.uninitializedReadonly
     private readonly bool $transactionSpanEnabledCli; // @phpstan-ignore property.uninitializedReadonly
@@ -76,9 +77,6 @@ final class ConfigSnapshotForProd implements LoggableInterface
             }
         };
 
-        if ($this->logLevel !== null) {
-            $keepMaxLevel(LogLevel::fromPsrLevel($this->logLevel));
-        }
         $keepMaxLevel($this->logLevelStderr);
         $keepMaxLevel($this->logLevelSyslog);
         if ($this->logFile !== null) {

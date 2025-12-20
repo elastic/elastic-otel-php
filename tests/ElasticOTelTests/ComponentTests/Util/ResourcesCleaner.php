@@ -85,7 +85,7 @@ final class ResourcesCleaner extends TestInfraHttpServerProcessBase
         parent::beforeLoopRun();
 
         $this->parentProcessTrackingTimer = AssertEx::notNull($this->reactLoop)->addPeriodicTimer(
-            1 /* interval in seconds */,
+            1 /* <- interval in seconds */,
             function () {
                 $rootProcessId = AmbientContextForTests::testConfig()->dataPerProcess()->rootProcessId;
                 if (!ProcessUtil::doesProcessExist($rootProcessId)) {
@@ -195,7 +195,7 @@ final class ResourcesCleaner extends TestInfraHttpServerProcessBase
             default:
                 return null;
         }
-        return self::buildDefaultResponse();
+        return self::buildOkResponse();
     }
 
     protected function registerProcessToTerminate(ServerRequestInterface $request): void

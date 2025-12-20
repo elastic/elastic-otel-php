@@ -31,6 +31,7 @@ use ElasticOTelTests\Util\Log\LoggableToString;
 use ElasticOTelTests\Util\Log\LoggableTrait;
 use ElasticOTelTests\Util\Log\Logger;
 use ElasticOTelTests\Util\Log\LogStreamInterface;
+use Override;
 use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\AssertionFailedError;
 use ReflectionClass;
@@ -591,6 +592,7 @@ final class DebugContextSingleton implements LoggableInterface
         return $this->syncedWithCallStack;
     }
 
+    #[Override]
     public function toLog(LogStreamInterface $stream): void
     {
         $stream->toLogAs(

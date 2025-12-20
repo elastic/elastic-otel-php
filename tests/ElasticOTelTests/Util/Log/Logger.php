@@ -25,6 +25,7 @@ namespace ElasticOTelTests\Util\Log;
 
 use Elastic\OTel\Log\LogLevel;
 use ElasticOTelTests\Util\ArrayUtilForTests;
+use Override;
 
 /**
  * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
@@ -194,6 +195,7 @@ final class Logger implements LoggableInterface
         return 'REDACTED (POSSIBLY SECURITY SENSITIVE) DATA';
     }
 
+    #[Override]
     public function toLog(LogStreamInterface $stream): void
     {
         $stream->toLogAs($this->data);

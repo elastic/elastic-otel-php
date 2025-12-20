@@ -110,12 +110,17 @@ final class BuildToolsUtil
         return $cachedResult;
     }
 
-    public static function execShellCommand(string $shellCmd): void
+    public static function execShellCommand(string $cmd): void
     {
-        self::logInfo(__LINE__, __METHOD__, "Executing shell command: $shellCmd");
-        $retVal = system($shellCmd, /* out */ $exitCode);
-        self::assertNotFalse($retVal, compact('retVal'));
-        self::assert($exitCode === 0, '$exitCode === 0' . ' ; shellCmd: ' . $shellCmd . ' ; exitCode: ' . $exitCode . ' ; retVal: ' . $retVal);
+        self::logInfo(__LINE__, __METHOD__, "Executing shell command: [$cmd]");
+        $systemRetVal = system($cmd, /* out */ $exitCode);
+        self::assertNotFalse($systemRetVal, compact('systemRetVal'));
+        self::assert($exitCode === 0, '$exitCode === 0 ; ' . json_encode(compact('exitCode', 'cmd', 'systemRetVal')));
+    }
+
+    public static function quoteForShellCommand(string ...$parts): string
+    {
+        return array_reduce($parts, fn($carry, $part) => $carry . ($carry === '' ? '' : ' ') . " \"$part\"", '');
     }
 
     /**
@@ -265,12 +270,11 @@ final class BuildToolsUtil
     public static function copyFile(string $fromFilePath, string $toFilePath, bool $allowOverwrite = false): void
     {
         self::logInfo(__LINE__, __METHOD__, "Copying file $fromFilePath to $toFilePath");
-        $allowOverwriteOpt = ($allowOverwrite ? (self::isCurrentOsWindows() ? '/y' : '-f') : '');
-        self::execShellCommand(
-            self::isCurrentOsWindows()
-                ? "copy $allowOverwriteOpt \"$fromFilePath\" \"$toFilePath\""
-                : "cp $allowOverwriteOpt \"$fromFilePath\" \"$toFilePath\""
-        );
+        $cmdAndOpts = self::isCurrentOsWindows() ? 'copy' : 'cp';
+        if ($allowOverwrite) {
+            $cmdAndOpts .= ' ' . (self::isCurrentOsWindows() ? '/y' : '-f');
+        }
+        self::execShellCommand($cmdAndOpts . ' ' . self::quoteForShellCommand($fromFilePath, $toFilePath));
     }
 
     public static function getFileContents(string $filePath): string
@@ -339,13 +343,17 @@ final class BuildToolsUtil
     {
         self::logInfo(__LINE__, __METHOD__, "Copying directory contents from $fromDirPath to $toDirPath");
 
+        if (self::isCurrentOsWindows()) {
+            // Windows xcopy copies the contents of the source directory to the destination. It does not copy the top source directory itself.
+            self::execShellCommand('xcopy /y /s /e ' . self::quoteForShellCommand($fromDirPath, $toDirPath));
+            return;
+        }
+
+        // cp -r "$fromDirPath/"* "$toDirPath" is problematic because with many items in the source directory
+        // and wildcard expansion the command line might become too long
         foreach (self::iterateOverDirectoryContents($fromDirPath) as $fileInfo) {
-            $dirEntry = $fileInfo->getRealPath();
-            self::execShellCommand(
-                self::isCurrentOsWindows()
-                    ? "xcopy /y /s /e \"$dirEntry\" \"$toDirPath\\\""
-                    : "cp -r \"$dirEntry\" \"$toDirPath/\"",
-            );
+            // cp does copy the top source directory itself so destination should the root 'to' directory
+            self::execShellCommand('cp -r ' . self::quoteForShellCommand($fileInfo->getRealPath(), $toDirPath));
         }
     }
 
@@ -383,10 +391,11 @@ final class BuildToolsUtil
     public static function deleteDirectory(string $dirPath): void
     {
         self::logInfo(__LINE__, __METHOD__, "Deleting directory $dirPath");
+
         self::execShellCommand(
             self::isCurrentOsWindows()
-                ? "DEL /F /Q /S \"$dirPath\" && RD /S /Q \"$dirPath\""
-                : "rm -rf \"$dirPath\""
+                ? ('del /F /Q /S ' . self::quoteForShellCommand($dirPath) . ' && rd /S /Q ' . self::quoteForShellCommand($dirPath))
+                : ('rm -rf ' .  self::quoteForShellCommand($dirPath)),
         );
     }
 
@@ -429,11 +438,8 @@ final class BuildToolsUtil
     public static function listDirectoryContents(string $dirPath, int $recursiveDepth = 0): void
     {
         self::logInfo(__LINE__, __METHOD__, "Contents  of directory $dirPath:");
-        self::execShellCommand(
-            self::isCurrentOsWindows()
-                ? "dir \"$dirPath\""
-                : "ls -al \"$dirPath\""
-        );
+
+        self::execShellCommand((self::isCurrentOsWindows() ? 'dir' :  'ls -al') . ' ' . self::quoteForShellCommand($dirPath));
 
         if ($recursiveDepth === 0) {
             return;
@@ -447,11 +453,7 @@ final class BuildToolsUtil
     public static function listFileContents(string $filePath): void
     {
         self::logInfo(__LINE__, __METHOD__, "Contents of file $filePath:");
-        self::execShellCommand(
-            self::isCurrentOsWindows()
-                ? "type \"$filePath\""
-                : "cat \"$filePath\""
-        );
+        self::execShellCommand((self::isCurrentOsWindows() ? 'type' : 'cat') . ' ' . self::quoteForShellCommand($filePath));
     }
 
     public static function partsToPath(string ...$parts): string

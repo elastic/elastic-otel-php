@@ -50,7 +50,7 @@ final class GlobalTestInfra
         $this->cleanTestScoped();
     }
 
-    private function cleanTestScoped(): void
+    public function cleanTestScoped(): void
     {
         $this->mockOTelCollector->cleanTestScoped();
         $this->resourcesCleaner->cleanTestScoped();

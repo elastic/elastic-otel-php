@@ -39,9 +39,12 @@ use ElasticOTelTests\Util\Log\LoggableToString;
 use ElasticOTelTests\Util\Log\LogStreamInterface;
 use ElasticOTelTests\Util\TextUtilForTests;
 use Google\Protobuf\RepeatedField as ProtoRepeatedField;
-use Opentelemetry\Proto\Common\V1\KeyValue as ProtoKeyValue;
+use Opentelemetry\Proto\Common\V1\KeyValue as ProtoOTelKeyValue;
+use GeneratedForElasticOTelTests\OpampProto\KeyValue as ProtoOpapmKeyValue;
 use Override;
 use PHPUnit\Framework\Assert;
+use PHPUnit\Framework\Constraint\IsInstanceOf;
+use PHPUnit\Framework\Constraint\LogicalOr;
 
 /**
  * @phpstan-type AttributeValue array<int>|array<mixed>|bool|float|int|null|string
@@ -59,7 +62,7 @@ final class Attributes implements ArrayReadInterface, Countable, LoggableInterfa
     }
 
     /**
-     * @param ProtoRepeatedField<ProtoKeyValue> $source
+     * @param ProtoRepeatedField<ProtoOTelKeyValue|ProtoOpapmKeyValue> $source
      */
     public static function fromProto(ProtoRepeatedField $source): self
     {
@@ -68,7 +71,8 @@ final class Attributes implements ArrayReadInterface, Countable, LoggableInterfa
         $keyToValueMap = [];
         foreach ($source as $keyValue) {
             $dbgCtx->add(compact('keyValue'));
-            Assert::assertInstanceOf(ProtoKeyValue::class, $keyValue); // @phpstan-ignore staticMethod.alreadyNarrowedType
+            Assert::assertThat($keyValue, LogicalOr::fromConstraints(new IsInstanceOf(ProtoOTelKeyValue::class), new IsInstanceOf(ProtoOpapmKeyValue::class)));
+
             Assert::assertArrayNotHasKey($keyValue->getKey(), $keyToValueMap);
             $keyToValueMap[$keyValue->getKey()] = self::extractValue($keyValue);
         }
@@ -79,7 +83,7 @@ final class Attributes implements ArrayReadInterface, Countable, LoggableInterfa
     /**
      * @return AttributeValue
      */
-    private static function extractValue(ProtoKeyValue $keyValue): array|bool|float|int|null|string
+    private static function extractValue(ProtoOTelKeyValue|ProtoOpapmKeyValue $keyValue): array|bool|float|int|null|string
     {
         if (!$keyValue->hasValue()) {
             return null;
@@ -226,6 +230,7 @@ final class Attributes implements ArrayReadInterface, Countable, LoggableInterfa
         return AssertEx::notNull($this->tryToGetString($attributeName));
     }
 
+    #[Override]
     public function toLog(LogStreamInterface $stream): void
     {
         $stream->toLogAs($this->keyToValueMap);

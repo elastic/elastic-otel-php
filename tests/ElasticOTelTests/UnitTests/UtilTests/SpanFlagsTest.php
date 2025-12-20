@@ -37,8 +37,8 @@ final class SpanFlagsTest extends TestCaseBase
             self::assertStringEndsWith(" ($expectedNames)", (new SpanFlags($flags))->__toString());
         };
 
-        $impl(ProtoSpanFlags::SPAN_FLAGS_CONTEXT_HAS_IS_REMOTE_MASK, 'HAS_IS_REMOTE_MASK');
+        $impl(ProtoSpanFlags::SPAN_FLAGS_CONTEXT_HAS_IS_REMOTE_MASK, 'HAS_IS_REMOTE');
         $impl(ProtoSpanFlags::SPAN_FLAGS_CONTEXT_IS_REMOTE_MASK, 'IS_REMOTE');
-        $impl(ProtoSpanFlags::SPAN_FLAGS_CONTEXT_HAS_IS_REMOTE_MASK | ProtoSpanFlags::SPAN_FLAGS_CONTEXT_IS_REMOTE_MASK, 'HAS_IS_REMOTE_MASK | IS_REMOTE');
+        $impl(ProtoSpanFlags::SPAN_FLAGS_CONTEXT_HAS_IS_REMOTE_MASK | ProtoSpanFlags::SPAN_FLAGS_CONTEXT_IS_REMOTE_MASK, 'HAS_IS_REMOTE | IS_REMOTE');
     }
 }
