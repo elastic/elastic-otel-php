@@ -119,6 +119,9 @@ void elasticApmModuleInit(int moduleType, int moduleNumber) {
     if (std::getenv("ELASTIC_OTEL_VERIFY_SERVER_CERT") != nullptr) {
         ELOGF_WARNING(globals->logger_, MODULE, "The ELASTIC_OTEL_VERIFY_SERVER_CERT environment variable is deprecated. Please use OTEL_EXPORTER_OTLP_INSECURE instead. Read more details here https://www.elastic.co/docs/release-notes/edot/sdks/php/breaking-changes");
     }
+
+    // Registering fork handlers in module init to ensure that we will handle all forks properly - even those triggered before request start (e.g. in MINIT of other extensions) or when fpm/apache spawns worker processes. We cannot be sure that some of the classes implementing ForkableInterface will not start thread before request start.
+    registerCallbacksToHandleFork();
 }
 
 void elasticApmModuleShutdown( int moduleType, int moduleNumber ) {

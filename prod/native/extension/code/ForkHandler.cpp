@@ -28,6 +28,7 @@
 #include "ModuleGlobals.h"
 #include "PeriodicTaskExecutor.h"
 #include "transport/HttpTransportAsync.h"
+#include "transport/OpAmp.h"
 
 static void callbackToLogForkBeforeInParent() {
     ELOGF_NF_DEBUG(EAPM_GL(logger_), "Before process fork (i.e., in parent context); its parent (i.e., grandparent) PID: %d", static_cast<int>(elasticapm::osutils::getParentProcessId()));
@@ -38,6 +39,9 @@ static void callbackToLogForkBeforeInParent() {
     if (ELASTICAPM_G(globals) && ELASTICAPM_G(globals)->httpTransportAsync_) {
         ELASTICAPM_G(globals)->httpTransportAsync_->prefork();
     }
+    if (ELASTICAPM_G(globals) && ELASTICAPM_G(globals)->opAmp_) {
+        ELASTICAPM_G(globals)->opAmp_->prefork();
+    }
 }
 
 static void callbackToLogForkAfterInParent() {
@@ -47,6 +51,9 @@ static void callbackToLogForkAfterInParent() {
     }
     if (ELASTICAPM_G(globals) && ELASTICAPM_G(globals)->httpTransportAsync_) {
         ELASTICAPM_G(globals)->httpTransportAsync_->postfork(false);
+    }
+    if (ELASTICAPM_G(globals) && ELASTICAPM_G(globals)->opAmp_) {
+        ELASTICAPM_G(globals)->opAmp_->postfork(false);
     }
 }
 
@@ -60,7 +67,7 @@ static void callbackToLogForkAfterInChild() {
     }
 }
 
-void registerCallbacksToLogFork() {
+void registerCallbacksToHandleFork() {
     int retVal = pthread_atfork(callbackToLogForkBeforeInParent, callbackToLogForkAfterInParent, callbackToLogForkAfterInChild);
     if (retVal == 0) {
         ELOGF_NF_DEBUG(EAPM_GL(logger_), "Registered callbacks to log process fork");
@@ -70,6 +77,6 @@ void registerCallbacksToLogFork() {
 }
 
 #else
-void registerCallbacksToLogFork() {
+void registerCallbacksToHandleFork() {
 }
 #endif
