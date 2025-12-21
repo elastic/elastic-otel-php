@@ -216,7 +216,7 @@ abstract class HttpServerStarter
                 }
 
                 /** @var array<string, mixed> $decodedBody */
-                $decodedBody = JsonUtil::decode($response->getBody()->getContents(), asAssocArray: true);
+                $decodedBody = JsonUtil::decode($response->getBody()->getContents());
                 Assert::assertArrayHasKey(HttpServerHandle::PID_KEY, $decodedBody);
                 $receivedPid = $decodedBody[HttpServerHandle::PID_KEY];
                 Assert::assertIsInt($receivedPid, LoggableToString::convert(['$decodedBody' => $decodedBody]));

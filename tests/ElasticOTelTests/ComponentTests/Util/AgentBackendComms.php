@@ -189,12 +189,12 @@ final class AgentBackendComms
     }
 
     /**
-     * @param non-empty-string   $attributeName
+     * @param non-empty-string $attributeName
      * @phpstan-param AttributeValue $attributeValueToFind
      *
      * @return iterable<Span>
      */
-    public function findSpansWithAttributeValue(string $attributeName, array|bool|float|int|null|string $attributeValueToFind): iterable
+    public function findSpansWithAttributeValue(string $attributeName, array|bool|float|int|string $attributeValueToFind): iterable
     {
         foreach ($this->spans() as $span) {
             if ($span->attributes->tryToGetValue($attributeName, /* out */ $actualAttributeValue) && $actualAttributeValue === $attributeValueToFind) {

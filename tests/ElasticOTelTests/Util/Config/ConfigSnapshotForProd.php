@@ -24,10 +24,10 @@ declare(strict_types=1);
 namespace ElasticOTelTests\Util\Config;
 
 use Elastic\OTel\Log\LogLevel;
+use Elastic\OTel\Log\OTelInternalLogLevel;
 use Elastic\OTel\Util\WildcardListMatcher;
 use ElasticOTelTests\Util\Duration;
 use ElasticOTelTests\Util\Log\LoggableInterface;
-use Elastic\OTel\Log\PsrLogLevel;
 
 /**
  * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
@@ -42,6 +42,7 @@ final class ConfigSnapshotForProd implements LoggableInterface
     private readonly ?string $bootstrapPhpPartFile; // @phpstan-ignore property.uninitializedReadonly
     private readonly ?WildcardListMatcher $disabledInstrumentations; // @phpstan-ignore property.uninitializedReadonly
     private readonly bool $enabled; // @phpstan-ignore property.uninitializedReadonly
+    private readonly ?string $experimentalConfigFile; // @phpstan-ignore property.uninitializedReadonly
     private readonly ?string $exporterOtlpEndpoint; // @phpstan-ignore property.uninitializedReadonly
     private readonly bool $inferredSpansEnabled; // @phpstan-ignore property.uninitializedReadonly
     private readonly Duration $inferredSpansMinDuration; // @phpstan-ignore property.uninitializedReadonly
@@ -49,13 +50,15 @@ final class ConfigSnapshotForProd implements LoggableInterface
     private readonly Duration $inferredSpansSamplingInterval; // @phpstan-ignore property.uninitializedReadonly
     private readonly bool $inferredSpansStacktraceEnabled; // @phpstan-ignore property.uninitializedReadonly
     private readonly ?string $logFile; // @phpstan-ignore property.uninitializedReadonly
-    private readonly ?PsrLogLevel $logLevel; // @phpstan-ignore property.uninitializedReadonly
+    private readonly OTelInternalLogLevel $logLevel; // @phpstan-ignore property.uninitializedReadonly
     private readonly LogLevel $logLevelFile; // @phpstan-ignore property.uninitializedReadonly
     private readonly LogLevel $logLevelStderr; // @phpstan-ignore property.uninitializedReadonly
     private readonly LogLevel $logLevelSyslog; // @phpstan-ignore property.uninitializedReadonly
     private readonly ?string $opampEndpoint; // @phpstan-ignore property.uninitializedReadonly
     private readonly Duration $opampHeartbeatInterval; // @phpstan-ignore property.uninitializedReadonly
     private readonly ?string $resourceAttributes; // @phpstan-ignore property.uninitializedReadonly
+    private readonly string $sampler; // @phpstan-ignore property.uninitializedReadonly
+    private readonly ?string $samplerArg; // @phpstan-ignore property.uninitializedReadonly
     private readonly bool $transactionSpanEnabled; // @phpstan-ignore property.uninitializedReadonly
     private readonly bool $transactionSpanEnabledCli; // @phpstan-ignore property.uninitializedReadonly
 

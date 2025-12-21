@@ -74,6 +74,14 @@ final class AgentBackendCommsAccumulator implements LoggableInterface
         $openConnectionBuilder->addRequest($request);
     }
 
+    public static function deserializeIntakeDataRequestBodyToProto(IntakeDataRequestRaw $requestRaw): mixed
+    {
+        return match ($requestRaw->signalType) {
+            OTelSignalType::trace => IntakeTraceDataRequest::deserializeFromRawToProto($requestRaw),
+            default => throw new ComponentTestsInfraException('Unexpected OTel signal type: ' . $requestRaw->signalType->name),
+        };
+    }
+
     public static function deserializeIntakeDataRequestBody(IntakeDataRequestRaw $requestRaw): IntakeDataRequestDeserialized
     {
         return match ($requestRaw->signalType) {

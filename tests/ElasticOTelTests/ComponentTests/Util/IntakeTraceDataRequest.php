@@ -44,13 +44,18 @@ final class IntakeTraceDataRequest extends IntakeDataRequestDeserialized
         parent::__construct($raw);
     }
 
-    public static function deserializeFromRaw(IntakeDataRequestRaw $raw): self
+    public static function deserializeFromRawToProto(IntakeDataRequestRaw $raw): ProtoExportTraceServiceRequest
     {
         $serializer = ProtobufSerializer::getDefault();
         $otelProtoRequest = new ProtoExportTraceServiceRequest();
         $serializer->hydrate($otelProtoRequest, $raw->body);
 
-        return new self($raw, ExportTraceServiceRequest::fromProto($otelProtoRequest));
+        return $otelProtoRequest;
+    }
+
+    public static function deserializeFromRaw(IntakeDataRequestRaw $raw): self
+    {
+        return new self($raw, ExportTraceServiceRequest::fromProto(self::deserializeFromRawToProto($raw)));
     }
 
     #[Override]

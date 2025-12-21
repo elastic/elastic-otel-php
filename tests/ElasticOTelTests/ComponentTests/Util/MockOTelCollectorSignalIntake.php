@@ -67,15 +67,15 @@ final class MockOTelCollectorSignalIntake extends MockOTelCollectorModuleBase
 
     private function processIntakeDataRequest(ServerRequestInterface $request, OTelSignalType $signalType): ResponseInterface
     {
-        $body = $request->getBody()->getContents();
-        $bodySize = strlen($body);
-        Assert::assertSame($bodySize, $request->getBody()->getSize());
+        $requestBody = $request->getBody()->getContents();
+        $requestBodySize = strlen($requestBody);
+        Assert::assertSame($requestBodySize, $request->getBody()->getSize());
 
-        if ($bodySize === 0) {
+        if ($requestBodySize === 0) {
             return $this->buildErrorResponse(HttpStatusCodes::BAD_REQUEST, 'Intake API request should not have empty body');
         }
 
-        if (($response = self::verifyPostProtoBufRequest($request, $bodySize)) !== null) {
+        if (($response = self::verifyPostProtoBufRequest($request, $requestBodySize)) !== null) {
             return $response;
         }
 
@@ -85,14 +85,20 @@ final class MockOTelCollectorSignalIntake extends MockOTelCollectorModuleBase
             AmbientContextForTests::clock()->getSystemClockCurrentTime(),
             $signalType,
             $request->getHeaders(), // @phpstan-ignore argument.type
-            $body,
+            $requestBody,
         );
 
-        $deserializedRequest = AgentBackendCommsAccumulator::deserializeIntakeDataRequestBody($intakeDataRequestRaw);
+        $dbgDeserializedRequestToProto = AgentBackendCommsAccumulator::deserializeIntakeDataRequestBodyToProto($intakeDataRequestRaw);
+        $dbgDeserializedRequest = AgentBackendCommsAccumulator::deserializeIntakeDataRequestBody($intakeDataRequestRaw);
         $logDebug = $this->logger->ifDebugLevelEnabledNoLine(__FUNCTION__);
-        $logDebug?->log(__LINE__, 'Deserialized intake data request', compact('deserializedRequest'));
+        $logDebug?->log(
+            __LINE__,
+            'Deserialized intake data request',
+            ($dbgDeserializedRequest->isEmptyAfterDeserialization() ? ['EDOT data empty' => true] : [])
+            + ['to EDOT data' => $dbgDeserializedRequest, 'to proto' => $dbgDeserializedRequestToProto],
+        );
 
-        if ($deserializedRequest->isEmptyAfterDeserialization()) {
+        if ($dbgDeserializedRequest->isEmptyAfterDeserialization()) {
             $logDebug && $logDebug->log(__LINE__, 'All data has been discarded by deserialization');
         }
 

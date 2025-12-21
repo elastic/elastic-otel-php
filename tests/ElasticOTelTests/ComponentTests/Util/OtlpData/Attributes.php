@@ -47,7 +47,7 @@ use PHPUnit\Framework\Constraint\IsInstanceOf;
 use PHPUnit\Framework\Constraint\LogicalOr;
 
 /**
- * @phpstan-type AttributeScalarValue bool|float|int|null|string
+ * @phpstan-type AttributeScalarValue bool|float|int|string
  * @phpstan-type AttributeValue AttributeScalarValue|list<AttributeScalarValue>
  *
  * @implements ArrayReadInterface<string, AttributeValue>
@@ -84,22 +84,14 @@ final class Attributes implements ArrayReadInterface, Countable, LoggableInterfa
     /**
      * @return AttributeValue
      */
-    private static function extractValue(ProtoOTelKeyValue|ProtoOpapmKeyValue $keyValue): array|bool|float|int|null|string
+    private static function extractValue(ProtoOTelKeyValue|ProtoOpapmKeyValue $keyValue): array|bool|float|int|string
     {
-        if (!$keyValue->hasValue()) {
-            return null;
-        }
+        Assert::assertTrue($keyValue->hasValue());
 
-        $anyValue = $keyValue->getValue();
-        if ($anyValue === null) {
-            return null;
-        }
+        $anyValue = AssertEx::notNull($keyValue->getValue());
 
         if ($anyValue->hasArrayValue()) {
-            $arrayValue = $anyValue->getArrayValue();
-            if ($arrayValue === null) {
-                return null;
-            }
+            $arrayValue = AssertEx::notNull($anyValue->getArrayValue());
             $result = [];
             foreach ($arrayValue->getValues() as $repeatedFieldSubValue) {
                 $result[] = $repeatedFieldSubValue;
@@ -128,10 +120,7 @@ final class Attributes implements ArrayReadInterface, Countable, LoggableInterfa
         }
 
         if ($anyValue->hasKvlistValue()) {
-            $kvListValue = $anyValue->getKvlistValue();
-            if ($kvListValue === null) {
-                return null;
-            }
+            $kvListValue = AssertEx::notNull($anyValue->getKvlistValue());
             $result = [];
             foreach ($kvListValue->getValues() as $repeatedFieldSubKey => $repeatedFieldSubValue) {
                 Assert::assertTrue(is_int($repeatedFieldSubKey) || is_string($repeatedFieldSubKey));
@@ -169,13 +158,14 @@ final class Attributes implements ArrayReadInterface, Countable, LoggableInterfa
     }
 
     /**
-     * @param AttributeValue  &$attributeValueOut
+     * @param ?AttributeValue &$attributeValueOut
      *
-     * @param-out AttributeValue $attributeValueOut
+     * @param-out ?AttributeValue $attributeValueOut
+     * @phpstan-assert-if-true AttributeValue $attributeValueOut
      */
-    public function tryToGetValue(string $attributeName, array|bool|float|int|null|string &$attributeValueOut): bool
+    public function tryToGetValue(string $attributeName, null|array|bool|float|int|string &$attributeValueOut): bool
     {
-        return ArrayUtil::getValueIfKeyExists($attributeName, $this->keyToValueMap, /* out */ $attributeValueOut); // @phpstan-ignore staticMethod.alreadyNarrowedType
+        return ArrayUtil::getValueIfKeyExists($attributeName, $this->keyToValueMap, /* out */ $attributeValueOut);
     }
 
     public function tryToGetBool(string $attributeName): ?bool

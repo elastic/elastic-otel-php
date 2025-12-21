@@ -111,7 +111,7 @@ final class PackagesPhpRequirementTest extends ComponentTestCaseBase
             return null;
         }
         $jsonEncoded = FileUtil::getFileContents($packageComposerJsonFilePath);
-        $jsonDecoded = AssertEx::isArray(JsonUtil::decode($jsonEncoded, asAssocArray: true));
+        $jsonDecoded = AssertEx::isArray(JsonUtil::decode($jsonEncoded));
         $requireMap = AssertEx::isArray(AssertEx::arrayHasKey('require', $jsonDecoded));
         return AssertEx::isString(AssertEx::arrayHasKey('php', $requireMap));
     }
