@@ -39,6 +39,7 @@ enum OptionForProdName
     case bootstrap_php_part_file;
     case disabled_instrumentations;
     case enabled;
+    case experimental_config_file;
     case exporter_otlp_endpoint;
     case inferred_spans_enabled;
     case inferred_spans_min_duration;
@@ -53,6 +54,8 @@ enum OptionForProdName
     case opamp_endpoint;
     case opamp_heartbeat_interval;
     case resource_attributes;
+    case sampler;
+    case sampler_arg;
     case transaction_span_enabled;
     case transaction_span_enabled_cli;
 
@@ -73,6 +76,7 @@ enum OptionForProdName
             self::bootstrap_php_part_file->name           => self::ELASTIC_OTEL_ENV_VAR_NAME_PREFIX,
             self::disabled_instrumentations->name         => self::OTEL_PHP_ENV_VAR_NAME_PREFIX,
             self::enabled->name                           => self::ELASTIC_OTEL_ENV_VAR_NAME_PREFIX,
+            self::experimental_config_file->name          => self::OTEL_ENV_VAR_NAME_PREFIX,
             self::exporter_otlp_endpoint->name            => self::OTEL_ENV_VAR_NAME_PREFIX,
             self::inferred_spans_enabled->name            => self::ELASTIC_OTEL_ENV_VAR_NAME_PREFIX,
             self::inferred_spans_min_duration->name       => self::ELASTIC_OTEL_ENV_VAR_NAME_PREFIX,
@@ -87,6 +91,8 @@ enum OptionForProdName
             self::opamp_endpoint->name                    => self::ELASTIC_OTEL_ENV_VAR_NAME_PREFIX,
             self::opamp_heartbeat_interval->name          => self::ELASTIC_OTEL_ENV_VAR_NAME_PREFIX,
             self::resource_attributes->name               => self::OTEL_ENV_VAR_NAME_PREFIX,
+            self::sampler->name                           => self::OTEL_ENV_VAR_NAME_PREFIX,
+            self::sampler_arg->name                       => self::OTEL_ENV_VAR_NAME_PREFIX,
             self::transaction_span_enabled->name          => self::ELASTIC_OTEL_ENV_VAR_NAME_PREFIX,
             self::transaction_span_enabled_cli->name      => self::ELASTIC_OTEL_ENV_VAR_NAME_PREFIX,
         ];

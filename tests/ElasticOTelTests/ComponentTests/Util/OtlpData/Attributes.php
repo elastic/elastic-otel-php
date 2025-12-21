@@ -47,7 +47,8 @@ use PHPUnit\Framework\Constraint\IsInstanceOf;
 use PHPUnit\Framework\Constraint\LogicalOr;
 
 /**
- * @phpstan-type AttributeValue array<int>|array<mixed>|bool|float|int|null|string
+ * @phpstan-type AttributeScalarValue bool|float|int|null|string
+ * @phpstan-type AttributeValue AttributeScalarValue|list<AttributeScalarValue>
  *
  * @implements ArrayReadInterface<string, AttributeValue>
  */
@@ -103,7 +104,7 @@ final class Attributes implements ArrayReadInterface, Countable, LoggableInterfa
             foreach ($arrayValue->getValues() as $repeatedFieldSubValue) {
                 $result[] = $repeatedFieldSubValue;
             }
-            return $result;
+            return $result; // @phpstan-ignore return.type
         }
 
         if ($anyValue->hasBoolValue()) {
@@ -137,7 +138,7 @@ final class Attributes implements ArrayReadInterface, Countable, LoggableInterfa
                 Assert::assertArrayNotHasKey($repeatedFieldSubKey, $result);
                 $result[$repeatedFieldSubKey] = $repeatedFieldSubValue;
             }
-            return $result;
+            return $result; // @phpstan-ignore return.type
         }
 
         if ($anyValue->hasStringValue()) {

@@ -42,6 +42,8 @@ final class OptionsForProdDefaultValues
     public const LOG_LEVEL_STDERR = LogLevel::off;
     public const LOG_LEVEL_SYSLOG = LogLevel::info;
 
+    public const SAMPLER = 'parentbased_traceidratio';
+
     public const TRANSACTION_SPAN_ENABLED = true;
     public const TRANSACTION_SPAN_ENABLED_CLI = true;
 }

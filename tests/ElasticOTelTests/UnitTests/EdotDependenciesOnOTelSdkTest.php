@@ -26,28 +26,14 @@ declare(strict_types=1);
 namespace ElasticOTelTests\UnitTests;
 
 use Elastic\OTel\RemoteConfigHandler;
-use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\Config\OptionForProdName;
 use ElasticOTelTests\Util\Config\OptionsForProdDefaultValues;
 use ElasticOTelTests\Util\ReflectionUtil;
 use ElasticOTelTests\Util\TestCaseBase;
 use OpenTelemetry\API\Behavior\Internal\Logging as OTelInternalLogging;
-use OpenTelemetry\SDK\Common\Configuration\Variables as OTelSdkConfigVariables;
-use OpenTelemetry\SDK\Common\Configuration\KnownValues as OTelSdkConfigKnownValues;
 
 final class EdotDependenciesOnOTelSdkTest extends TestCaseBase
 {
-    public function testConstNamesInSync(): void
-    {
-        AssertEx::sameConstValues(OTelSdkConfigVariables::OTEL_EXPERIMENTAL_CONFIG_FILE, RemoteConfigHandler::OTEL_EXPERIMENTAL_CONFIG_FILE);
-        AssertEx::sameConstValues(OTelSdkConfigVariables::OTEL_LOG_LEVEL, RemoteConfigHandler::OTEL_LOG_LEVEL_OPTION_NAME);
-
-        AssertEx::sameConstValues(OTelSdkConfigVariables::OTEL_TRACES_SAMPLER, RemoteConfigHandler::OTEL_TRACES_SAMPLER);
-        AssertEx::sameConstValues(OTelSdkConfigVariables::OTEL_TRACES_SAMPLER_ARG, RemoteConfigHandler::OTEL_TRACES_SAMPLER_ARG);
-        $expected = OTelSdkConfigKnownValues::VALUE_PARENT_BASED_TRACE_ID_RATIO;
-        AssertEx::sameConstValues($expected, RemoteConfigHandler::OTEL_TRACES_SAMPLER_VALUE_PARENT_BASED_TRACE_ID_RATIO);
-    }
-
     public function testOTelLogLevelOptionNameInSync(): void
     {
         self::assertSame(ReflectionUtil::getConstValue(OTelInternalLogging::class, 'OTEL_LOG_LEVEL'), RemoteConfigHandler::OTEL_LOG_LEVEL_OPTION_NAME);

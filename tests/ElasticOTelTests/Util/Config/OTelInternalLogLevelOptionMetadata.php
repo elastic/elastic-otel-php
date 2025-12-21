@@ -23,19 +23,28 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\Util\Config;
 
-use Elastic\OTel\Log\PsrLogLevel;
+use Elastic\OTel\Log\OTelInternalLogLevel;
 
 /**
- * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
- *
- * @internal
- *
- * @extends NullableOptionMetadata<PsrLogLevel>
+ * @extends OptionWithDefaultValueMetadata<OTelInternalLogLevel>
  */
-final class NullablePsrLogLevelOptionMetadata extends NullableOptionMetadata
+final class OTelInternalLogLevelOptionMetadata extends OptionWithDefaultValueMetadata
 {
-    public function __construct()
+    public function __construct(OTelInternalLogLevel $defaultValue)
     {
-        parent::__construct(PsrLogLevelOptionMetadata::parserSingleton());
+        parent::__construct(self::parserSingleton(), $defaultValue);
+    }
+
+    /**
+     * @return EnumOptionParser<OTelInternalLogLevel>
+     */
+    public static function parserSingleton(): EnumOptionParser
+    {
+        /** @var ?EnumOptionParser<OTelInternalLogLevel> $result */
+        static $result = null;
+        if ($result === null) {
+            $result = EnumOptionParser::useEnumCasesNames(OTelInternalLogLevel::class, isCaseSensitive: false, isUnambiguousPrefixAllowed: true);
+        }
+        return $result;
     }
 }

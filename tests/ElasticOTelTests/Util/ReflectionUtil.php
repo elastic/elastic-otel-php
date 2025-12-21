@@ -44,4 +44,11 @@ final class ReflectionUtil
         Assert::assertTrue($reflClass->hasConstant($constName));
         return $reflClass->getConstant($constName);
     }
+
+    public static function getPropertyValue(object $obj, string $propertyName): mixed
+    {
+        $reflClass = new ReflectionClass($obj);
+        Assert::assertTrue($reflClass->hasProperty($propertyName));
+        return $reflClass->getProperty($propertyName)->getValue($obj);
+    }
 }

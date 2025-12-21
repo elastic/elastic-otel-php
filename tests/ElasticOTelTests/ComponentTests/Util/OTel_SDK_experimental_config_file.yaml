@@ -1,0 +1,10 @@
+# Based on the example at https://opentelemetry.io/docs/languages/sdk-configuration/declarative-configuration/#getting-started
+
+file_format: '1.0-rc.1'
+
+tracer_provider:
+  processors:
+    - batch:
+        exporter:
+          otlp_http:
+            endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}

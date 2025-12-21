@@ -524,14 +524,7 @@ class ComponentTestCaseBase extends TestCaseBase
     protected static function buildAgentRemoteConfig(array $optNameToVal): AgentRemoteConfig
     {
         return new AgentRemoteConfig(
-            config: new AgentConfigMap(
-                configMap: [
-                    RemoteConfigHandler::REMOTE_CONFIG_FILE_NAME => new AgentConfigFile(
-                        contentType: HttpContentTypes::JSON,
-                        body: JsonUtil::encode($optNameToVal),
-                    ),
-                ],
-            ),
+            config: new AgentConfigMap(configMap: [RemoteConfigHandler::ELASTIC_FILE_NAME => new AgentConfigFile(contentType: HttpContentTypes::JSON, body: JsonUtil::encode($optNameToVal))]),
             configHash: IdGenerator::generateId(idLengthInBytes: 16),
         );
     }
