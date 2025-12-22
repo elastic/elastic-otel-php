@@ -27,6 +27,12 @@ To check for security updates, go to [Security announcements for the Elastic sta
 % ### Fixes [edot-php-X.X.X-fixes]
 % *
 
+## 1.3.1 [edot-php-1.3.1-release-notes]
+
+### Fixes [edot-php-1.3.1-fixes]
+
+ - Fixes handling of remote configuration when the file format is unrecognized and post-fork handler is missing for OpAmp (PR [#347](https://github.com/elastic/elastic-otel-php/pull/347))
+
 ## 1.3.0 [edot-php-1.3.0-release-notes]
 
 ### Features and enhancements [edot-php-1.3.0-features-enhancements]
