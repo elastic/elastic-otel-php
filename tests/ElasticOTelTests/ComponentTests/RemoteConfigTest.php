@@ -182,23 +182,13 @@ final class RemoteConfigTest extends ComponentTestCaseBase
             $emptyMapJsonEncoded = "{}";
             $nonEmptyMapJsonEncoded = JsonUtil::encode(['opt_1_name' => 'opt_1_val', 'opt_2_name' => 'opt_2_val']);
             $elasticFileNameSandwiched = ['_' . $elasticFileName, $elasticFileName, $elasticFileName . '_'];
-            // TODO: Sergey Kleyman: UNCOMMENT to test without Elastic file name
-            // $fileNameWithoutElastic = ['_' . $elasticFileName, $elasticFileName . '_'];
+            $fileNameWithoutElastic = ['_' . $elasticFileName, $elasticFileName . '_'];
             $fileWithNonEmptyMapJsonEncoded = new AgentConfigFile(HttpContentTypes::JSON, $nonEmptyMapJsonEncoded);
-            // TODO: Sergey Kleyman: UNCOMMENT to test invalid JSON file body
-            // $invalidJsonEncoded = 'invalid JSON';
-            // TODO: Sergey Kleyman: UNCOMMENT to test without Elastic file name
-            // foreach ([[$elasticFileName], $elasticFileNameSandwiched, $fileNameWithoutElastic] as $fileNames) {
-            foreach ([[$elasticFileName], $elasticFileNameSandwiched] as $fileNames) {
-            // TODO: Sergey Kleyman: UNCOMMENT to test non-JSON content type
-            // foreach ([HttpContentTypes::JSON, 'dummy-content-type'] as $fileContentType) {
-            $fileContentType = HttpContentTypes::JSON;
-                // TODO: Sergey Kleyman: UNCOMMENT to test invalid JSON file body
-                // foreach ([$emptyMapJsonEncoded, $nonEmptyMapJsonEncoded, $invalidJsonEncoded] as $fileContent) {
+            foreach ([[$elasticFileName], $elasticFileNameSandwiched, $fileNameWithoutElastic] as $fileNames) {
                 foreach ([$nonEmptyMapJsonEncoded, $emptyMapJsonEncoded] as $fileContent) {
                     $fileNameToVal = [];
                     foreach ($fileNames as $fileName) {
-                        $fileNameToVal[$fileName] = $fileName === $elasticFileName ? new AgentConfigFile($fileContentType, $fileContent) : $fileWithNonEmptyMapJsonEncoded;
+                        $fileNameToVal[$fileName] = $fileName === $elasticFileName ? new AgentConfigFile(HttpContentTypes::JSON, $fileContent) : $fileWithNonEmptyMapJsonEncoded;
                     }
                     yield new AgentConfigMap($fileNameToVal);
                 }
@@ -209,9 +199,9 @@ final class RemoteConfigTest extends ComponentTestCaseBase
             (new DataProviderForTestBuilder())
                 ->addBoolKeyedDimensionOnlyFirstValueCombinable(self::SET_MOCK_AGENT_REMOTE_CONFIG_KEY)
                 ->addBoolKeyedDimensionOnlyFirstValueCombinable(self::SET_OPAMP_ENDPOINT_KEY)
-                // TODO: Sergey Kleyman: UNCOMMENT to test non-null OTEL_EXPERIMENTAL_CONFIG_FILE
-                // ->addKeyedDimensionOnlyFirstValueCombinable(OTelSdkConfigVariables::OTEL_EXPERIMENTAL_CONFIG_FILE, [null, __DIR__ . '/Util/OTel_SDK_experimental_config_file.yaml'])
-                ->addKeyedDimensionOnlyFirstValueCombinable(OTelSdkConfigVariables::OTEL_EXPERIMENTAL_CONFIG_FILE, [null])
+                // TODO: Sergey Kleyman: REMOVE: // TODO: Sergey Kleyman: UNCOMMENT to test non-null OTEL_EXPERIMENTAL_CONFIG_FILE
+                ->addKeyedDimensionOnlyFirstValueCombinable(OTelSdkConfigVariables::OTEL_EXPERIMENTAL_CONFIG_FILE, [null, __DIR__ . '/Util/OTel_SDK_experimental_config_file.yaml'])
+                // TODO: Sergey Kleyman: REMOVE: // ->addKeyedDimensionOnlyFirstValueCombinable(OTelSdkConfigVariables::OTEL_EXPERIMENTAL_CONFIG_FILE, [null])
                 ->addKeyedDimensionOnlyFirstValueCombinable(self::REMOTE_CONFIG_MAP_KEY, $generateRemoteConfigMap),
         );
     }
@@ -234,6 +224,23 @@ final class RemoteConfigTest extends ComponentTestCaseBase
 
     public static function appForTestHandlingRemoteConfig(): void
     {
+        ///////////////////////////////////////////////////////////////////////////
+        // TODO: Sergey Kleyman: BEGIN: REMOVE: ::
+        ///////////////////////////////////////
+        $log = self::getLoggerStatic(__NAMESPACE__, __CLASS__, __FILE__)->ifErrorLevelEnabledNoLine(__FUNCTION__);
+        $log?->log(__LINE__, 'Entered');
+
+        $tracer = OTelUtil::getTracer();
+        $log?->log(__LINE__, 'tracer type: ' . get_debug_type($tracer));
+//        self::assertInstanceOf(OTelTracer::class, $tracer);
+//        $tracerSharedState = ReflectionUtil::getPropertyValue($tracer, 'tracerSharedState');
+//        self::assertInstanceOf(OTelTracerSharedState::class, $tracerSharedState);
+//        $spanProcessor = ReflectionUtil::getPropertyValue($tracerSharedState, 'spanProcessor');
+//        $log?->log(__LINE__, 'spanProcessor type: ' . get_debug_type($spanProcessor));
+
+        ///////////////////////////////////////
+        // END: REMOVE
+        ////////////////////////////////////////////////////////////////////////////
         OTelUtil::addActiveSpanAttributes(
             [
                 // get_remote_configuration() is implemented by the extension
@@ -276,10 +283,9 @@ final class RemoteConfigTest extends ComponentTestCaseBase
             appCodeClassMethod: [__CLASS__, 'appForTestHandlingRemoteConfig'],
             assertResults: function (Span $lastSpan) use ($testArgs, $agentRemoteConfig, $declConfigFilePath): void {
                 $elasticConfigFile = ArrayUtil::getValueIfKeyExistsElse(RemoteConfigHandler::ELASTIC_FILE_NAME, $agentRemoteConfig->config->configMap, null);
-                /** @var ?AgentConfigFile $elasticConfigFile */
-                $decodeElasticConfigFile = $elasticConfigFile === null ? null : self::decodeElasticConfigFileFromMap($elasticConfigFile);
                 $isRemoteConfigExpectedToBeAppliedByNativePart = self::isRemoteConfigExpectedToBeAppliedByNativePart($testArgs, $agentRemoteConfig);
-                $isRemoteCfgExpectedToBeAppliedByPhpPart = $isRemoteConfigExpectedToBeAppliedByNativePart && ($declConfigFilePath === null);
+                $decodeElasticConfigFile = ($isRemoteConfigExpectedToBeAppliedByNativePart && $declConfigFilePath === null && $elasticConfigFile !== null)
+                    ? self::decodeElasticConfigFileFromMap($elasticConfigFile) : null;
 
                 AssertEx::equalMaps(
                     $isRemoteConfigExpectedToBeAppliedByNativePart ? array_map(fn($file) => $file->body, $agentRemoteConfig->config->configMap) : [],
@@ -289,10 +295,10 @@ final class RemoteConfigTest extends ComponentTestCaseBase
                     $isRemoteConfigExpectedToBeAppliedByNativePart ? $elasticConfigFile?->body : null,
                     AssertEx::isNullableString(JsonUtil::decode($lastSpan->attributes->getString(self::GET_REMOTE_CONFIGURATION_ELASTIC_RESULT_KEY)))
                 );
-                if ($isRemoteCfgExpectedToBeAppliedByPhpPart) {
-                    AssertEx::equalMaps(AssertEx::isArray($decodeElasticConfigFile), AssertEx::isArray(JsonUtil::decode($lastSpan->attributes->getString(self::LAST_APPLIED_ELASTIC_FILE_KEY))));
-                } else {
+                if ($decodeElasticConfigFile === null) {
                     self::assertNull(JsonUtil::decode($lastSpan->attributes->getString(self::LAST_APPLIED_ELASTIC_FILE_KEY)));
+                } else {
+                    AssertEx::equalMaps($decodeElasticConfigFile, AssertEx::isArray(JsonUtil::decode($lastSpan->attributes->getString(self::LAST_APPLIED_ELASTIC_FILE_KEY))));
                 }
             }
         );

@@ -101,7 +101,7 @@ final class RemoteConfigHandler
             if (!is_scalar($dbgCfgFileOptVal)) {
                 $dbgCfgFileOptVal = self::valueToDbgString($dbgCfgFileOptVal);
             }
-            self::logError(
+            self::logWarning(
                 'Local config has ' . OTelSdkConfigVariables::OTEL_EXPERIMENTAL_CONFIG_FILE . ' option set - remote config feature is not compatible with this option'
                 . '; ' . OTelSdkConfigVariables::OTEL_EXPERIMENTAL_CONFIG_FILE . ' option value: ' . $dbgCfgFileOptVal,
                 __LINE__,
@@ -271,6 +271,11 @@ final class RemoteConfigHandler
     private static function logDebug(string $message, int $lineNumber, string $func): void
     {
         self::logWithLevel(BootstrapStageLogger::LEVEL_DEBUG, $message, $lineNumber, $func);
+    }
+
+    private static function logWarning(string $message, int $lineNumber, string $func): void
+    {
+        self::logWithLevel(BootstrapStageLogger::LEVEL_WARNING, $message, $lineNumber, $func);
     }
 
     private static function logError(string $message, int $lineNumber, string $func): void

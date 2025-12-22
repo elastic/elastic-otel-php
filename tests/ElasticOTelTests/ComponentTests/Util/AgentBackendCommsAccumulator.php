@@ -24,9 +24,13 @@ declare(strict_types=1);
 namespace ElasticOTelTests\ComponentTests\Util;
 
 use Elastic\OTel\Util\ArrayUtil;
+use ElasticOTelTests\Util\AmbientContextForTests;
+use ElasticOTelTests\Util\ClassNameUtil;
+use ElasticOTelTests\Util\Log\LogCategoryForTests;
 use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LoggableToString;
 use ElasticOTelTests\Util\Log\LoggableTrait;
+use ElasticOTelTests\Util\Log\Logger;
 use PHPUnit\Framework\Assert;
 
 final class AgentBackendCommsAccumulator implements LoggableInterface
@@ -41,6 +45,15 @@ final class AgentBackendCommsAccumulator implements LoggableInterface
 
     private ?AgentBackendComms $cachedResult = null;
 
+    private string $dbgName; // @phpstan-ignore property.onlyWritten
+    private readonly Logger $logger;
+
+    public function __construct()
+    {
+        $this->dbgName = DbgProcessNameGenerator::generate(ClassNameUtil::fqToShort(__CLASS__));
+        $this->logger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__)->addAllContext(compact('this'));
+    }
+
     /**
      * @param iterable<AgentBackendCommEvent> $events
      */
@@ -49,6 +62,7 @@ final class AgentBackendCommsAccumulator implements LoggableInterface
         $this->cachedResult = null;
 
         foreach ($events as $event) {
+            $this->logger->ifTraceLevelEnabled(__LINE__, __FUNCTION__)?->log('Adding ...', compact('event'));
             match (true) {
                 $event instanceof AgentBackendConnectionStarted => $this->onConnectionStarted($event),
                 $event instanceof IntakeDataRequestRaw => $this->addRequest($event->port, self::deserializeIntakeDataRequestBody($event)),
@@ -74,6 +88,7 @@ final class AgentBackendCommsAccumulator implements LoggableInterface
         $openConnectionBuilder->addRequest($request);
     }
 
+    /** @noinspection PhpMixedReturnTypeCanBeReducedInspection */
     public static function deserializeIntakeDataRequestBodyToProto(IntakeDataRequestRaw $requestRaw): mixed
     {
         return match ($requestRaw->signalType) {

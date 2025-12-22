@@ -125,7 +125,7 @@ final class TestCaseHandle implements LoggableInterface
             DebugContext::getCurrentScope(/* out */ $dbgCtx);
             $accumulatedDataSummary = $accumulatedData->dbgGetSummary();
             $dbgCtx->add(compact('isEnough', 'accumulatedDataSummary', 'accumulatedData'));
-            Assert::fail('The expected exported data has not arrived; ' . LoggableToString::convert(compact('isEnough', 'accumulatedDataSummary')));
+            Assert::fail('The expected exported data has NOT arrived; ' . LoggableToString::convert(compact('isEnough', 'accumulatedDataSummary')));
         }
 
         return $accumulatedData;

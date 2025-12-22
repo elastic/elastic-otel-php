@@ -72,9 +72,11 @@ final class OverrideOTelSdkResourceAttributes implements ResourceDetectorInterfa
             return $elasticOTelNativePartVersion;
         }
 
-        $logMsg = 'Native part and PHP part versions do not match. native part version: ' . $elasticOTelNativePartVersion . '; PHP part version: ' . PhpPartVersion::VALUE;
+        $result = $elasticOTelNativePartVersion . '/' . PhpPartVersion::VALUE;
+        $logMsg = 'Native part and PHP part versions do not match - returning ' . $result
+            . ' ; native part version: ' . $elasticOTelNativePartVersion . '; PHP part version: ' . PhpPartVersion::VALUE;
         BootstrapStageLogger::logWarning($logMsg, __FILE__, __LINE__, __CLASS__, __FUNCTION__);
-        return $elasticOTelNativePartVersion . '/' . PhpPartVersion::VALUE;
+        return $result;
     }
 
     public static function getDistroVersion(): string
