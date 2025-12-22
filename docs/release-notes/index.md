@@ -31,7 +31,7 @@ To check for security updates, go to [Security announcements for the Elastic sta
 
 ### Fixes [edot-php-1.3.1-fixes]
 
- - Fixed handling remote config if file format is not recognized and missing post-fork handler for OpAmp (PR [#347](https://github.com/elastic/elastic-otel-php/pull/347))
+ - Fixes handling of remote configuration when the file format is unrecognized and post-fork handler is missing for OpAmp (PR [#347](https://github.com/elastic/elastic-otel-php/pull/347))
 
 ## 1.3.0 [edot-php-1.3.0-release-notes]
 
