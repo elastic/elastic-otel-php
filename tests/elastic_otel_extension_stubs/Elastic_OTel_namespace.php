@@ -25,12 +25,16 @@ declare(strict_types=1);
 
 namespace Elastic\OTel;
 
+use Elastic\OTel\Util\ArrayUtil;
+
 /**
  * This function is implemented by the extension
  *
- * @return ?array<array-key, mixed>
+ * @return null|string|array<array-key, mixed>
  */
-function get_remote_configuration(): ?array // @phpstan-ignore return.unusedType
+function get_remote_configuration(?string $fileName = null): null|string|array
 {
-    return ['dummy file name' => 'dummy file content (JSON)'];
+    $dummyFileContent = 'dummy file content (JSON)';
+    $dummyFileNameToContent = ['dummy file name' => $dummyFileContent];
+    return $fileName === null ? $dummyFileNameToContent : ArrayUtil::getValueIfKeyExistsElse($fileName, $dummyFileNameToContent, null);
 }

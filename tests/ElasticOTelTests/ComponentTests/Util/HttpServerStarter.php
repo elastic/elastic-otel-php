@@ -37,7 +37,6 @@ use ElasticOTelTests\Util\Log\Logger;
 use ElasticOTelTests\Util\RandomUtil;
 use ElasticOTelTests\Util\RangeUtil;
 use PHPUnit\Framework\Assert;
-use PHPUnit\Framework\TestCase;
 use Throwable;
 
 /**
@@ -170,7 +169,7 @@ abstract class HttpServerStarter
             }
             $candidate = $calcNextInCircularPortRange($candidate);
             if ($candidate === $portToStartSearchFrom) {
-                TestCase::fail(
+                Assert::fail(
                     'Could not find a free port'
                     . LoggableToString::convert(
                         [
@@ -217,10 +216,10 @@ abstract class HttpServerStarter
                 }
 
                 /** @var array<string, mixed> $decodedBody */
-                $decodedBody = JsonUtil::decode($response->getBody()->getContents(), asAssocArray: true);
-                TestCase::assertArrayHasKey(HttpServerHandle::PID_KEY, $decodedBody);
+                $decodedBody = JsonUtil::decode($response->getBody()->getContents());
+                Assert::assertArrayHasKey(HttpServerHandle::PID_KEY, $decodedBody);
                 $receivedPid = $decodedBody[HttpServerHandle::PID_KEY];
-                TestCase::assertIsInt($receivedPid, LoggableToString::convert(['$decodedBody' => $decodedBody]));
+                Assert::assertIsInt($receivedPid, LoggableToString::convert(['$decodedBody' => $decodedBody]));
                 $pid = $receivedPid;
 
                 ($loggerProxy = $logger->ifDebugLevelEnabled(__LINE__, __FUNCTION__))

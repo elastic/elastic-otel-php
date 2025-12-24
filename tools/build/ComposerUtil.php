@@ -52,7 +52,7 @@ final class ComposerUtil
     /**
      * @see elastic_otel_php_build_tools_composer_lock_files_dir in tool/shared.sh
      */
-    private const GENERATED_FILES_DIR_NAME = 'generated_composer_lock_files';
+    public const GENERATED_FILES_DIR_NAME = 'generated_composer_lock_files';
 
     public static function shouldAllowDirectCommand(): bool
     {

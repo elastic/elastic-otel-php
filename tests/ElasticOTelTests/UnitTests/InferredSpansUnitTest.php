@@ -25,12 +25,13 @@ namespace ElasticOTelTests\UnitTests;
 
 use Elastic\OTel\InferredSpans\InferredSpans;
 use ElasticOTelTests\ComponentTests\Util\InferredSpanExpectationsBuilder;
+use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\TestCaseBase;
 
 final class InferredSpansUnitTest extends TestCaseBase
 {
     public function testInferredAttributeName(): void
     {
-        self::assertSame(InferredSpans::IS_INFERRED_ATTRIBUTE_NAME, InferredSpanExpectationsBuilder::IS_INFERRED_ATTRIBUTE_NAME); // @phpstan-ignore staticMethod.alreadyNarrowedType
+        AssertEx::sameConstValues(InferredSpans::IS_INFERRED_ATTRIBUTE_NAME, InferredSpanExpectationsBuilder::IS_INFERRED_ATTRIBUTE_NAME);
     }
 }

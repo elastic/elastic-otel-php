@@ -26,6 +26,7 @@ namespace ElasticOTelTests\Util\Log;
 use Elastic\OTel\Log\LogLevel;
 use ElasticOTelTests\Util\ArrayUtilForTests;
 use ElasticOTelTests\Util\ClassNameUtil;
+use Override;
 
 /**
  * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
@@ -130,6 +131,7 @@ final class Backend implements LoggableInterface
         return $this->logSink;
     }
 
+    #[Override]
     public function toLog(LogStreamInterface $stream): void
     {
         $stream->toLogAs(['maxEnabledLevel' => $this->maxEnabledLevel, 'logSink' => get_debug_type($this->logSink)]);

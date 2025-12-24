@@ -38,7 +38,7 @@ use ElasticOTelTests\Util\Log\LoggableToString;
 use ElasticOTelTests\Util\Log\LoggableTrait;
 use ElasticOTelTests\Util\Log\Logger;
 use ElasticOTelTests\Util\Log\LoggingSubsystem;
-use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Assert;
 use Throwable;
 
 /**
@@ -71,11 +71,11 @@ abstract class SpawnedProcessBase implements LoggableInterface
         AmbientContextForTests::testConfig()->validateForSpawnedProcess();
 
         if ($this->shouldRegisterThisProcessWithResourcesCleaner()) {
-            TestCase::assertNotNull(
+            Assert::assertNotNull(
                 AmbientContextForTests::testConfig()->dataPerProcess()->resourcesCleanerSpawnedProcessInternalId,
                 LoggableToString::convert(AmbientContextForTests::testConfig())
             );
-            TestCase::assertNotNull(
+            Assert::assertNotNull(
                 AmbientContextForTests::testConfig()->dataPerProcess()->resourcesCleanerPort,
                 LoggableToString::convert(AmbientContextForTests::testConfig())
             );
@@ -93,7 +93,7 @@ abstract class SpawnedProcessBase implements LoggableInterface
 
         try {
             $dbgProcessName = EnvVarUtilForTests::get(self::DBG_PROCESS_NAME_ENV_VAR_NAME);
-            TestCase::assertIsString($dbgProcessName);
+            Assert::assertIsString($dbgProcessName);
 
             AmbientContextForTests::init($dbgProcessName);
 
@@ -151,9 +151,9 @@ abstract class SpawnedProcessBase implements LoggableInterface
         $loggerProxyDebug = $this->logger->ifDebugLevelEnabledNoLine(__FUNCTION__);
         $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Registering with ' . ClassNameUtil::fqToShort(ResourcesCleaner::class) . '...');
 
-        TestCase::assertNotNull(AmbientContextForTests::testConfig()->dataPerProcess()->resourcesCleanerPort);
+        Assert::assertNotNull(AmbientContextForTests::testConfig()->dataPerProcess()->resourcesCleanerPort);
         $resCleanerId = AmbientContextForTests::testConfig()->dataPerProcess()->resourcesCleanerSpawnedProcessInternalId;
-        TestCase::assertNotNull($resCleanerId);
+        Assert::assertNotNull($resCleanerId);
         $response = HttpClientUtilForTests::sendRequest(
             HttpMethods::POST,
             new UrlParts(port: AmbientContextForTests::testConfig()->dataPerProcess()->resourcesCleanerPort, path: ResourcesCleaner::REGISTER_PROCESS_TO_TERMINATE_URI_PATH),

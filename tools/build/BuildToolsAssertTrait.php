@@ -44,7 +44,12 @@ trait BuildToolsAssertTrait
 
     public static function assertFail(string $message): never
     {
-        throw new RuntimeException('Assertion failed: ' . $message);
+        $msgCombined = 'Assertion failed: ' . $message;
+        if (class_exists('PHPUnit\Framework\Assert')) {
+            /** @noinspection PhpFullyQualifiedNameUsageInspection */
+            \PHPUnit\Framework\Assert::fail($msgCombined);
+        }
+        throw new RuntimeException($msgCombined);
     }
 
     /**

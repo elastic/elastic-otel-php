@@ -110,7 +110,7 @@ final class TransactionSpanTest extends ComponentTestCaseBase
             }
         );
         $appCodeHost->execAppCode(
-            AppCodeTarget::asRouted([__CLASS__, 'appCodeForTestFeatureWithVariousEnabledConfigCombos']),
+            AppCodeTarget::asRouted([__CLASS__, 'appCodeEmpty']),
             function (AppCodeRequestParams $appCodeRequestParams) use ($testArgs): void {
                 $appCodeRequestParams->setAppCodeArgs($testArgs);
             }

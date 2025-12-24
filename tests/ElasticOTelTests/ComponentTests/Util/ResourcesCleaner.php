@@ -30,7 +30,6 @@ use ElasticOTelTests\Util\JsonUtil;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
 use ElasticOTelTests\Util\Log\Logger;
 use Override;
-use PHPUnit\Framework\Assert;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use React\EventLoop\TimerInterface;
@@ -85,9 +84,8 @@ final class ResourcesCleaner extends TestInfraHttpServerProcessBase
     {
         parent::beforeLoopRun();
 
-        Assert::assertNotNull($this->reactLoop);
-        $this->parentProcessTrackingTimer = $this->reactLoop->addPeriodicTimer(
-            1 /* interval in seconds */,
+        $this->parentProcessTrackingTimer = AssertEx::notNull($this->reactLoop)->addPeriodicTimer(
+            1 /* <- interval in seconds */,
             function () {
                 $rootProcessId = AmbientContextForTests::testConfig()->dataPerProcess()->rootProcessId;
                 if (!ProcessUtil::doesProcessExist($rootProcessId)) {
@@ -105,9 +103,7 @@ final class ResourcesCleaner extends TestInfraHttpServerProcessBase
         $this->cleanSpawnedProcesses(isTestScopedOnly: false);
         $this->cleanFiles(isTestScopedOnly: false);
 
-        Assert::assertNotNull($this->reactLoop);
-        Assert::assertNotNull($this->parentProcessTrackingTimer);
-        $this->reactLoop->cancelTimer($this->parentProcessTrackingTimer);
+        AssertEx::notNull($this->reactLoop)->cancelTimer(AssertEx::notNull($this->parentProcessTrackingTimer));
 
         parent::exit();
     }
@@ -183,9 +179,8 @@ final class ResourcesCleaner extends TestInfraHttpServerProcessBase
         $filesToDeletePaths->clear();
     }
 
-    /** @inheritDoc */
     #[Override]
-    protected function processRequest(ServerRequestInterface $request): ?ResponseInterface
+    protected function processRequest(int $portIndex, ServerRequestInterface $request): ?ResponseInterface
     {
         switch ($request->getUri()->getPath()) {
             case self::REGISTER_PROCESS_TO_TERMINATE_URI_PATH:
@@ -200,14 +195,14 @@ final class ResourcesCleaner extends TestInfraHttpServerProcessBase
             default:
                 return null;
         }
-        return self::buildDefaultResponse();
+        return self::buildOkResponse();
     }
 
     protected function registerProcessToTerminate(ServerRequestInterface $request): void
     {
         $dbgProcessName = self::getRequiredRequestHeader($request, self::DBG_PROCESS_NAME_HEADER_NAME);
         $pid = AssertEx::stringIsInt(self::getRequiredRequestHeader($request, self::PID_HEADER_NAME));
-        $isTestScoped = AssertEx::isBool(JsonUtil::decode(self::getRequiredRequestHeader($request, self::IS_TEST_SCOPED_HEADER_NAME), asAssocArray: true));
+        $isTestScoped = AssertEx::isBool(JsonUtil::decode(self::getRequiredRequestHeader($request, self::IS_TEST_SCOPED_HEADER_NAME)));
         $processesToTerminateIds = $isTestScoped ? $this->testScopedProcessesToTerminate : $this->globalProcessesToTerminate;
         $processesToTerminateIds->add([$dbgProcessName, $pid]);
         $processesToTerminateIdsCount = $processesToTerminateIds->count();
@@ -219,7 +214,7 @@ final class ResourcesCleaner extends TestInfraHttpServerProcessBase
     {
         $path = self::getRequiredRequestHeader($request, self::PATH_HEADER_NAME);
         $isTestScopedAsString = self::getRequiredRequestHeader($request, self::IS_TEST_SCOPED_HEADER_NAME);
-        $isTestScoped = JsonUtil::decode($isTestScopedAsString, asAssocArray: true);
+        $isTestScoped = JsonUtil::decode($isTestScopedAsString);
         $filesToDeletePaths = $isTestScoped ? $this->testScopedFilesToDeletePaths : $this->globalFilesToDeletePaths;
         $filesToDeletePaths->add($path);
         $filesToDeletePathsCount = $filesToDeletePaths->count();

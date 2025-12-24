@@ -64,11 +64,10 @@ final class AssertEx
         return $actual;
     }
 
+    /** @noinspection PhpUnused */
     public static function stringSameAsInt(int $expected, string $actual, string $message = ''): void
     {
-        Assert::assertNotFalse(filter_var($actual, FILTER_VALIDATE_INT), $message);
-        $actualAsInt = intval($actual);
-        Assert::assertSame($expected, $actualAsInt, $message);
+        Assert::assertSame($expected, self::stringIsInt($actual, $message), $message);
     }
 
     /** @noinspection PhpUnused */
@@ -298,6 +297,19 @@ final class AssertEx
     }
 
     /**
+     * @template T of object
+     *
+     * @param class-string<T> $classString
+     *
+     * @return T
+     */
+    public static function isInstanceOf(mixed $actual, string $classString, string $message = ''): object
+    {
+        Assert::assertInstanceOf($classString, $actual, $message);
+        return $actual;
+    }
+
+    /**
      * @template TKey of array-key
      * @template TValue
      *
@@ -368,15 +380,13 @@ final class AssertEx
     }
 
     /**
-     * @template TValue
+     * @param mixed $actual
      *
-     * @param array<TValue> $actual
+     * @phpstan-assert list<mixed> $actual
      *
-     * @phpstan-assert list<TValue> $actual
-     *
-     * @return list<TValue>
+     * @return list<mixed>
      */
-    public static function arrayIsList(array $actual): array
+    public static function isList(mixed $actual): array
     {
         Assert::assertIsList($actual);
         return $actual;
@@ -393,7 +403,7 @@ final class AssertEx
      */
     public static function arrayIsNotEmptyList(array $actual): array
     {
-        return self::notEmptyList(self::arrayIsList($actual));
+        return self::notEmptyList(self::isList($actual));
     }
 
     public static function sameEx(mixed $expected, mixed $actual, string $message = ''): void
@@ -452,6 +462,8 @@ final class AssertEx
     public static function equalLists(array $expected, array $actual): void
     {
         DebugContext::getCurrentScope(/* out */ $dbgCtx);
+        Assert::assertIsList($expected);
+        Assert::assertIsList($actual);
         Assert::assertSame(count($expected), count($actual));
         foreach (RangeUtil::generateUpTo(count($expected)) as $i) {
             $dbgCtx->add(compact('i'));

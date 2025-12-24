@@ -87,7 +87,7 @@ ElasticDynamicConfigurationAdapter::optionsMap_t ElasticDynamicConfigurationAdap
             } else if (opt.second == "fatal"s) {
                 loglevel = "critical"s;
             } else {
-                loglevel = opt.second; // log level parser with emit warning
+                loglevel = opt.second; // log level parser will emit warning
             }
 
             result[EL_STRINGIFY(ELASTIC_OTEL_LOG_LEVEL)] = loglevel;

@@ -264,6 +264,9 @@ composer outdated
 instead of the usual `composer update`
 3) Commit the changes to the composer's lock files
 
+## To update generated source code files in `<repo root>/tests/GENERATED_source_code/OpAMP_spec_protobuf` 
+See `README.md` in `<repo root>/tests/GENERATED_source_code/OpAMP_spec_protobuf`
+
 # Documentation
 
 The official documentation is available at:

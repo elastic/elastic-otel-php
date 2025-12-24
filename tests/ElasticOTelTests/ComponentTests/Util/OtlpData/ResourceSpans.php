@@ -23,12 +23,12 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util\OtlpData;
 
-use Opentelemetry\Proto\Trace\V1\ResourceSpans as OTelProtoResourceSpans;
+use Opentelemetry\Proto\Trace\V1\ResourceSpans as ProtoResourceSpans;
 
 /**
  * @see https://github.com/open-telemetry/opentelemetry-proto/blob/v1.8.0/opentelemetry/proto/trace/v1/trace.proto#L48
  */
-class ResourceSpans
+final class ResourceSpans
 {
     /**
      * @param ScopeSpans[] $scopeSpans
@@ -43,12 +43,12 @@ class ResourceSpans
     ) {
     }
 
-    public static function deserializeFromOTelProto(OTelProtoResourceSpans $source): self
+    public static function fromProto(ProtoResourceSpans $proto): self
     {
         return new self(
-            resource: DeserializationUtil::deserializeNullableFromOTelProto($source->getResource(), OTelResource::deserializeFromOTelProto(...)),
-            scopeSpans: DeserializationUtil::deserializeArrayFromOTelProto($source->getScopeSpans(), ScopeSpans::deserializeFromOTelProto(...)),
-            schemaUrl: $source->getSchemaUrl(),
+            resource: FromProtoUtil::nullableFromProto($proto->getResource(), OTelResource::fromProto(...)),
+            scopeSpans: FromProtoUtil::arrayFromProto($proto->getScopeSpans(), ScopeSpans::fromProto(...)),
+            schemaUrl: $proto->getSchemaUrl(),
         );
     }
 

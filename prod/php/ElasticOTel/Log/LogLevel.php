@@ -38,16 +38,4 @@ enum LogLevel: int
     case info     = 4;
     case debug    = 5;
     case trace    = 6;
-
-    public static function fromPsrLevel(string $level): ?self
-    {
-        return match ($level) {
-            \Psr\Log\LogLevel::EMERGENCY, \Psr\Log\LogLevel::ALERT, \Psr\Log\LogLevel::CRITICAL => self::critical,
-            \Psr\Log\LogLevel::ERROR => self::error,
-            \Psr\Log\LogLevel::WARNING => self::warning,
-            \Psr\Log\LogLevel::NOTICE, \Psr\Log\LogLevel::INFO => self::info,
-            \Psr\Log\LogLevel::DEBUG => self::debug,
-            default => null,
-        };
-    }
 }

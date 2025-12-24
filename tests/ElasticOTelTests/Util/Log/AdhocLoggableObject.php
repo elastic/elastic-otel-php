@@ -23,6 +23,8 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\Util\Log;
 
+use Override;
+
 /**
  * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
  *
@@ -56,6 +58,7 @@ final class AdhocLoggableObject implements LoggableInterface
         return $this;
     }
 
+    #[Override]
     public function toLog(LogStreamInterface $stream): void
     {
         $stream->toLogAs($this->propertyNameToData);

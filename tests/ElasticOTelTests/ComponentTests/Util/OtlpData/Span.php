@@ -27,14 +27,11 @@ use Elastic\OTel\Util\TextUtil;
 use ElasticOTelTests\ComponentTests\Util\IdGenerator;
 use ElasticOTelTests\ComponentTests\Util\TestInfraHttpServerProcessBase;
 use ElasticOTelTests\Util\AssertEx;
-use ElasticOTelTests\Util\FlagsUtil;
-use ElasticOTelTests\Util\IterableUtil;
 use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LoggableTrait;
-use ElasticOTelTests\Util\Log\LogStreamInterface;
 use ElasticOTelTests\Util\TextUtilForTests;
-use Opentelemetry\Proto\Trace\V1\Span as OTelProtoSpan;
-use Opentelemetry\Proto\Trace\V1\SpanFlags as OTelProtoSpanFlags;
+use Opentelemetry\Proto\Trace\V1\Span as ProtoSpan;
+use Opentelemetry\Proto\Trace\V1\SpanFlags as ProtoSpanFlags;
 use OpenTelemetry\SemConv\TraceAttributes;
 use PHPUnit\Framework\Assert;
 
@@ -53,25 +50,25 @@ final class Span implements LoggableInterface
         public readonly string $name,
         public readonly ?string $parentId,
         public readonly string $traceId,
-        public readonly int $flags,
+        public readonly FlagsBase $flags,
         public readonly float $startTimeUnixNano,
         public readonly float $endTimeUnixNano,
     ) {
     }
 
-    public static function deserializeFromOTelProto(OTelProtoSpan $source): self
+    public static function fromProto(ProtoSpan $proto): self
     {
         return new self(
-            attributes: Attributes::deserializeFromOTelProto($source->getAttributes()),
-            droppedAttributesCount: AssertEx::isNonNegativeInt($source->getDroppedAttributesCount()),
-            id: self::convertId($source->getSpanId()),
-            kind: SpanKind::fromOTelProtoSpanKind($source->getKind()),
-            name: $source->getName(),
-            parentId: self::convertNullableId($source->getParentSpanId()),
-            traceId: self::convertId($source->getTraceId()),
-            flags: $source->getFlags(),
-            startTimeUnixNano: self::convertTimeUnixNano($source->getStartTimeUnixNano()),
-            endTimeUnixNano: self::convertTimeUnixNano($source->getEndTimeUnixNano()),
+            attributes: Attributes::fromProto($proto->getAttributes()),
+            droppedAttributesCount: AssertEx::isNonNegativeInt($proto->getDroppedAttributesCount()),
+            id: self::convertId($proto->getSpanId()),
+            kind: SpanKind::fromProto($proto->getKind()),
+            name: $proto->getName(),
+            parentId: self::convertNullableId($proto->getParentSpanId()),
+            traceId: self::convertId($proto->getTraceId()),
+            flags: new SpanFlags($proto->getFlags()),
+            startTimeUnixNano: self::convertTimeUnixNano($proto->getStartTimeUnixNano()),
+            endTimeUnixNano: self::convertTimeUnixNano($proto->getEndTimeUnixNano()),
         );
     }
 
@@ -131,25 +128,9 @@ final class Span implements LoggableInterface
 
     public function hasRemoteParent(): ?bool
     {
-        if (($this->flags & OTelProtoSpanFlags::SPAN_FLAGS_CONTEXT_HAS_IS_REMOTE_MASK) === 0) {
+        if (!$this->flags->isOn(ProtoSpanFlags::SPAN_FLAGS_CONTEXT_HAS_IS_REMOTE_MASK)) {
             return null;
         }
-        return ($this->flags & OTelProtoSpanFlags::SPAN_FLAGS_CONTEXT_IS_REMOTE_MASK) !== 0;
-    }
-
-    private const SPAN_FLAGS_MASKS_TO_NAME = [
-        OTelProtoSpanFlags::SPAN_FLAGS_CONTEXT_HAS_IS_REMOTE_MASK => 'HAS_IS_REMOTE',
-        OTelProtoSpanFlags::SPAN_FLAGS_CONTEXT_IS_REMOTE_MASK     => 'IS_REMOTE',
-    ];
-
-    public function toLog(LogStreamInterface $stream): void
-    {
-        $flagsToLog = strval($this->flags);
-        $flagsHumanReadable = IterableUtil::convertToString(FlagsUtil::extractBitNames($this->flags, self::SPAN_FLAGS_MASKS_TO_NAME), separator: ' | ');
-        if (!TextUtil::isEmptyString($flagsHumanReadable)) {
-            $flagsToLog .= ' (' . $flagsHumanReadable . ')';
-        }
-        $customToLog = ['flags' => $flagsToLog];
-        $this->toLogLoggableTraitImpl($stream, $customToLog);
+        return $this->flags->isOn(ProtoSpanFlags::SPAN_FLAGS_CONTEXT_IS_REMOTE_MASK);
     }
 }

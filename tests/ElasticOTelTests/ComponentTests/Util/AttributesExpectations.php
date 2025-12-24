@@ -41,7 +41,7 @@ final class AttributesExpectations implements ExpectationsInterface, LoggableInt
     public readonly AttributesArrayExpectations $arrayExpectations;
 
     /**
-     * @param array<string, ArrayValue> $attributes
+     * @param array<string, ?ArrayValue> $attributes
      * @param array<string>             $notAllowedAttributes
      */
     public function __construct(
@@ -49,7 +49,7 @@ final class AttributesExpectations implements ExpectationsInterface, LoggableInt
         bool $allowOtherKeysInActual = true,
         private readonly array $notAllowedAttributes = []
     ) {
-        $this->arrayExpectations = new AttributesArrayExpectations($attributes, $allowOtherKeysInActual);
+        $this->arrayExpectations = new AttributesArrayExpectations(array_filter($attributes, fn($value) => $value !== null), $allowOtherKeysInActual);
     }
 
     public static function matchAny(): self
@@ -64,7 +64,11 @@ final class AttributesExpectations implements ExpectationsInterface, LoggableInt
      */
     public function with(string $key, array|bool|float|int|null|string|ExpectationsInterface $value): self
     {
-        return new self($this->arrayExpectations->add($key, $value)->expectedArray, $this->arrayExpectations->allowOtherKeysInActual, $this->notAllowedAttributes);
+        if ($value === null) {
+            return new self($this->arrayExpectations->remove($key)->expectedArray, $this->arrayExpectations->allowOtherKeysInActual, $this->notAllowedAttributes);
+        } else {
+            return new self($this->arrayExpectations->add($key, $value)->expectedArray, $this->arrayExpectations->allowOtherKeysInActual, $this->notAllowedAttributes);
+        }
     }
 
     public function withNotAllowed(string $key): self

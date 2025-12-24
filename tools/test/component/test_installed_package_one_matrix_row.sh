@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e -o pipefail
+set -e -u -o pipefail
 #set -x
 
 function main() {
@@ -12,14 +12,14 @@ function main() {
     source "./tools/test/component/unpack_matrix_row.sh" "${ELASTIC_OTEL_PHP_TESTS_MATRIX_ROW:?}"
     env | grep ELASTIC_OTEL_PHP_TESTS_ | sort
 
-    composer_command=(composer run-script -- run_component_tests)
+    local composer_command=(composer run-script -- run_component_tests)
 
     if [ -n "${ELASTIC_OTEL_PHP_TESTS_GROUP+x}" ]; then
-        composer_command=("${composer_command[@]}" --group "${ELASTIC_OTEL_PHP_TESTS_GROUP}")
+        composer_command+=(--group "${ELASTIC_OTEL_PHP_TESTS_GROUP}")
     fi
 
     if [ -n "${ELASTIC_OTEL_PHP_TESTS_FILTER+x}" ]; then
-        composer_command=("${composer_command[@]}" --filter "${ELASTIC_OTEL_PHP_TESTS_FILTER}")
+        composer_command+=(--filter "${ELASTIC_OTEL_PHP_TESTS_FILTER}")
     fi
 
     env | sort

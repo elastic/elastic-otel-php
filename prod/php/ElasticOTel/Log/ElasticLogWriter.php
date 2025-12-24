@@ -38,12 +38,17 @@ class ElasticLogWriter implements LogWriterInterface
         $this->attachLogContext = Configuration::getBoolean('ELASTIC_OTEL_LOG_OTEL_WITH_CONTEXT', true);
     }
 
+    private static function levelToEdot(mixed $level): ?LogLevel
+    {
+        return is_string($level) ? PsrLogLevel::tryToFindByName($level)?->toElasticLogLevel() : null;
+    }
+
     /**
      * @param array<array-key, mixed> $context
      */
     public function write(mixed $level, string $message, array $context): void
     {
-        $edotLevel = is_string($level) ? (LogLevel::fromPsrLevel($level) ?? LogLevel::off) : LogLevel::off;
+        $edotLevel = self::levelToEdot($level) ?? LogLevel::off;
 
         $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 4)[3];
 

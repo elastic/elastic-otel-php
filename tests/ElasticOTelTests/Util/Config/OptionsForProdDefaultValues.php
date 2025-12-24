@@ -24,6 +24,7 @@ declare(strict_types=1);
 namespace ElasticOTelTests\Util\Config;
 
 use Elastic\OTel\Log\LogLevel;
+use Elastic\OTel\Log\OTelInternalLogLevel;
 use Elastic\OTel\Util\StaticClassTrait;
 
 /**
@@ -35,9 +36,13 @@ final class OptionsForProdDefaultValues
 {
     use StaticClassTrait;
 
+    public const LOG_LEVEL = OTelInternalLogLevel::info;
+
     public const LOG_LEVEL_FILE = LogLevel::off;
     public const LOG_LEVEL_STDERR = LogLevel::off;
     public const LOG_LEVEL_SYSLOG = LogLevel::info;
+
+    public const SAMPLER = 'parentbased_traceidratio';
 
     public const TRANSACTION_SPAN_ENABLED = true;
     public const TRANSACTION_SPAN_ENABLED_CLI = true;

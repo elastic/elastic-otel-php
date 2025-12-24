@@ -38,13 +38,17 @@ use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LoggableToString;
 use ElasticOTelTests\Util\Log\LogStreamInterface;
 use ElasticOTelTests\Util\TextUtilForTests;
-use Google\Protobuf\RepeatedField as ProtobufRepeatedField;
-use Opentelemetry\Proto\Common\V1\KeyValue as OTelProtoKeyValue;
+use Google\Protobuf\RepeatedField as ProtoRepeatedField;
+use Opentelemetry\Proto\Common\V1\KeyValue as ProtoOTelKeyValue;
+use GeneratedForElasticOTelTests\OpampProto\KeyValue as ProtoOpapmKeyValue;
 use Override;
 use PHPUnit\Framework\Assert;
+use PHPUnit\Framework\Constraint\IsInstanceOf;
+use PHPUnit\Framework\Constraint\LogicalOr;
 
 /**
- * @phpstan-type AttributeValue array<int>|array<mixed>|bool|float|int|null|string
+ * @phpstan-type AttributeScalarValue bool|float|int|string
+ * @phpstan-type AttributeValue AttributeScalarValue|list<AttributeScalarValue>
  *
  * @implements ArrayReadInterface<string, AttributeValue>
  */
@@ -59,16 +63,17 @@ final class Attributes implements ArrayReadInterface, Countable, LoggableInterfa
     }
 
     /**
-     * @param ProtobufRepeatedField<OTelProtoKeyValue> $source
+     * @param ProtoRepeatedField<ProtoOTelKeyValue|ProtoOpapmKeyValue> $source
      */
-    public static function deserializeFromOTelProto(ProtobufRepeatedField $source): self
+    public static function fromProto(ProtoRepeatedField $source): self
     {
         DebugContext::getCurrentScope(/* out */ $dbgCtx);
 
         $keyToValueMap = [];
         foreach ($source as $keyValue) {
             $dbgCtx->add(compact('keyValue'));
-            Assert::assertInstanceOf(OTelProtoKeyValue::class, $keyValue); // @phpstan-ignore staticMethod.alreadyNarrowedType
+            Assert::assertThat($keyValue, LogicalOr::fromConstraints(new IsInstanceOf(ProtoOTelKeyValue::class), new IsInstanceOf(ProtoOpapmKeyValue::class)));
+
             Assert::assertArrayNotHasKey($keyValue->getKey(), $keyToValueMap);
             $keyToValueMap[$keyValue->getKey()] = self::extractValue($keyValue);
         }
@@ -79,27 +84,19 @@ final class Attributes implements ArrayReadInterface, Countable, LoggableInterfa
     /**
      * @return AttributeValue
      */
-    private static function extractValue(OTelProtoKeyValue $keyValue): array|bool|float|int|null|string
+    private static function extractValue(ProtoOTelKeyValue|ProtoOpapmKeyValue $keyValue): array|bool|float|int|string
     {
-        if (!$keyValue->hasValue()) {
-            return null;
-        }
+        Assert::assertTrue($keyValue->hasValue());
 
-        $anyValue = $keyValue->getValue();
-        if ($anyValue === null) {
-            return null;
-        }
+        $anyValue = AssertEx::notNull($keyValue->getValue());
 
         if ($anyValue->hasArrayValue()) {
-            $arrayValue = $anyValue->getArrayValue();
-            if ($arrayValue === null) {
-                return null;
-            }
+            $arrayValue = AssertEx::notNull($anyValue->getArrayValue());
             $result = [];
             foreach ($arrayValue->getValues() as $repeatedFieldSubValue) {
                 $result[] = $repeatedFieldSubValue;
             }
-            return $result;
+            return $result; // @phpstan-ignore return.type
         }
 
         if ($anyValue->hasBoolValue()) {
@@ -123,17 +120,14 @@ final class Attributes implements ArrayReadInterface, Countable, LoggableInterfa
         }
 
         if ($anyValue->hasKvlistValue()) {
-            $kvListValue = $anyValue->getKvlistValue();
-            if ($kvListValue === null) {
-                return null;
-            }
+            $kvListValue = AssertEx::notNull($anyValue->getKvlistValue());
             $result = [];
             foreach ($kvListValue->getValues() as $repeatedFieldSubKey => $repeatedFieldSubValue) {
                 Assert::assertTrue(is_int($repeatedFieldSubKey) || is_string($repeatedFieldSubKey));
                 Assert::assertArrayNotHasKey($repeatedFieldSubKey, $result);
                 $result[$repeatedFieldSubKey] = $repeatedFieldSubValue;
             }
-            return $result;
+            return $result; // @phpstan-ignore return.type
         }
 
         if ($anyValue->hasStringValue()) {
@@ -164,13 +158,14 @@ final class Attributes implements ArrayReadInterface, Countable, LoggableInterfa
     }
 
     /**
-     * @param AttributeValue  &$attributeValueOut
+     * @param ?AttributeValue &$attributeValueOut
      *
-     * @param-out AttributeValue $attributeValueOut
+     * @param-out ?AttributeValue $attributeValueOut
+     * @phpstan-assert-if-true AttributeValue $attributeValueOut
      */
-    public function tryToGetValue(string $attributeName, array|bool|float|int|null|string &$attributeValueOut): bool
+    public function tryToGetValue(string $attributeName, null|array|bool|float|int|string &$attributeValueOut): bool
     {
-        return ArrayUtil::getValueIfKeyExists($attributeName, $this->keyToValueMap, /* out */ $attributeValueOut); // @phpstan-ignore staticMethod.alreadyNarrowedType
+        return ArrayUtil::getValueIfKeyExists($attributeName, $this->keyToValueMap, /* out */ $attributeValueOut);
     }
 
     public function tryToGetBool(string $attributeName): ?bool
@@ -226,6 +221,7 @@ final class Attributes implements ArrayReadInterface, Countable, LoggableInterfa
         return AssertEx::notNull($this->tryToGetString($attributeName));
     }
 
+    #[Override]
     public function toLog(LogStreamInterface $stream): void
     {
         $stream->toLogAs($this->keyToValueMap);

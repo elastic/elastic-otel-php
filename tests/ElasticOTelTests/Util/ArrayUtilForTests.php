@@ -238,7 +238,7 @@ final class ArrayUtilForTests
      */
     public static function iterateListInReverse(array $array): iterable
     {
-        AssertEx::arrayIsList($array);
+        AssertEx::isList($array);
         for ($currentValue = end($array); key($array) !== null; $currentValue = prev($array)) {
             yield $currentValue; // @phpstan-ignore generator.valueType
         }

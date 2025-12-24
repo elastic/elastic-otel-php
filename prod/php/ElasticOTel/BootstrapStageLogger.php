@@ -78,6 +78,16 @@ final class BootstrapStageLogger
         self::$phpSrcCodePathPrefixToRemove = $phpSrcCodeRootDir . DIRECTORY_SEPARATOR;
         self::$classNamePrefixToRemove = $rootNamespace . '\\';
 
+///////////////////////////////////////////////////////////////////////////
+// TODO: Sergey Kleyman: BEGIN: REMOVE: ::
+///////////////////////////////////////
+        if (!class_exists(BootstrapStageStdErrWriter::class)) {
+            require __DIR__ . DIRECTORY_SEPARATOR . 'BootstrapStageStdErrWriter.php';
+        }
+        BootstrapStageStdErrWriter::writeLine(__METHOD__ . ': ' . json_encode(compact('maxEnabledLevel')));
+///////////////////////////////////////
+// END: REMOVE
+////////////////////////////////////////////////////////////////////////////
         self::logDebug(
             'Exiting...'
             . '; maxEnabledLevel: ' . self::levelToString($maxEnabledLevel)
@@ -158,6 +168,11 @@ final class BootstrapStageLogger
         return $statementLevel <= self::$maxEnabledLevel;
     }
 
+    public static function getMaxEnabledLevel(): int
+    {
+        return self::$maxEnabledLevel;
+    }
+
     public static function logCriticalThrowable(Throwable $throwable, string $message, string $file, int $line, string $class, string $func): void
     {
         self::logCritical(
@@ -216,15 +231,21 @@ final class BootstrapStageLogger
         self::logWithFeatureAndLevel(Log\LogFeature::BOOTSTRAP, $statementLevel, $message, $file, $line, $class, $func);
     }
 
-    public static function logWithFeatureAndLevel(int $feature, int $statementLevel, string $message, string $file, int $line, string $class, string $func): void
+    /** @noinspection PhpUnused */
+    public static function logForced(string $message, string $file, int $line, string $class, string $func): void
     {
-        if (!self::isEnabledForLevel($statementLevel)) {
+        self::logWithFeatureAndLevel(Log\LogFeature::BOOTSTRAP, self::LEVEL_OFF, $message, $file, $line, $class, $func, isForced: true);
+    }
+
+    public static function logWithFeatureAndLevel(int $feature, int $statementLevel, string $message, string $file, int $line, string $class, string $func, bool $isForced = false): void
+    {
+        if (!($isForced || self::isEnabledForLevel($statementLevel))) {
             return;
         }
 
         if (self::$writeToSink === null) {
             elastic_otel_log_feature(
-                0 /* $isForced */,
+                $isForced ? 1 : 0,
                 $statementLevel,
                 $feature,
                 self::processSourceCodeFilePathForLog($file),

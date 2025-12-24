@@ -25,75 +25,93 @@ declare(strict_types=1);
 
 namespace Elastic\OTel;
 
-use Elastic\OTel\Util\ArrayUtil;
+use Elastic\OTel\Log\RemoteConfigLoggingLevel;
 use Elastic\OTel\Util\StaticClassTrait;
-use Psr\Log\LogLevel as PsrLogLevel;
+use OpenTelemetry\SDK\Common\Configuration\Configuration as OTelSdkConfiguration;
+use OpenTelemetry\SDK\Common\Configuration\KnownValues as OTelSdkConfigKnownValues;
+use OpenTelemetry\SDK\Common\Configuration\Variables as OTelSdkConfigVariables;
 
 /**
- * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
- *
- * @internal
+ * @phpstan-type ElasticFileDecodedBody array<array-key, mixed>
  */
 final class RemoteConfigHandler
 {
     use StaticClassTrait;
 
-    private const REMOTE_CONFIG_FILE_NAME = 'elastic';
-
-    public const OTEL_EXPERIMENTAL_CONFIG_FILE = 'OTEL_EXPERIMENTAL_CONFIG_FILE';
+    public const ELASTIC_FILE_NAME = 'elastic';
 
     /**
      * Should be the same as the string used by Kibana
      * @see https://github.com/elastic/kibana/blob/v9.1.0/x-pack/solutions/observability/plugins/apm/common/agent_configuration/setting_definitions/edot_sdk_settings.ts#L48
      */
     public const LOGGING_LEVEL_REMOTE_CONFIG_OPTION_NAME = 'logging_level';
-    public const LOG_LEVEL_OTEL_OPTION_NAME = 'OTEL_LOG_LEVEL';
-    public const OTEL_LOG_LEVEL_NONE = 'none';
+
+    /**
+     * @see \OpenTelemetry\API\Behavior\Internal\Logging::OTEL_LOG_LEVEL
+     */
+    public const OTEL_LOG_LEVEL_OPTION_NAME = 'OTEL_LOG_LEVEL';
 
     /**
      * Should be the same as the string used by Kibana
      * @see https://github.com/elastic/kibana/blob/v9.2.0/x-pack/solutions/observability/plugins/apm/common/agent_configuration/setting_definitions/edot_sdk_settings.ts#L106
      */
     public const SAMPLING_RATE_REMOTE_CONFIG_OPTION_NAME = 'sampling_rate';
-    public const OTEL_TRACES_SAMPLER = 'OTEL_TRACES_SAMPLER';
-    public const OTEL_TRACES_SAMPLER_ARG = 'OTEL_TRACES_SAMPLER_ARG';
-    public const OTEL_TRACES_SAMPLER_VALUE_PARENT_BASED_TRACE_ID_RATIO = 'parentbased_traceidratio';
 
-    /**
-     * Called by the extension
-     *
-     * @noinspection PhpUnused
-     */
+    /** @var ?ElasticFileDecodedBody */
+    private static ?array $lastAppliedElasticFileDecodedBody = null;
+
     public static function fetchAndApply(): void
     {
-        $fileNameToContent = get_remote_configuration(); // This function is implemented by the extension
-        if ($fileNameToContent === null) {
-            self::logDebug('extension\'s get_remote_configuration() returned null', __LINE__, __FUNCTION__);
+        if (!self::verifyLocalConfigCompatible()) {
             return;
         }
 
-        if (!is_array($fileNameToContent)) { // @phpstan-ignore function.alreadyNarrowedType
-            self::logDebug('extension\'s get_remote_configuration() return value is not an array; value type: ' . get_debug_type($fileNameToContent), __LINE__, __FUNCTION__);
+        $elasticCfgFileEncodedBody = get_remote_configuration(self::ELASTIC_FILE_NAME); // This function is implemented by the extension
+        if ($elasticCfgFileEncodedBody === null) {
+            self::logDebug(
+                'extension\'s get_remote_configuration(' . self::ELASTIC_FILE_NAME . ') returned null'
+                . ' ; get_remote_configuration() return value: ' . self::valueToDbgString(get_remote_configuration()),
+                __LINE__,
+                __FUNCTION__
+            );
             return;
         }
 
-        self::logDebug('Returned array: ' . self::valueToDbgString($fileNameToContent), __LINE__, __FUNCTION__);
-
-        if (!ArrayUtil::getValueIfKeyExists(self::REMOTE_CONFIG_FILE_NAME, $fileNameToContent, /* out */ $remoteConfigContent)) {
-            self::logDebug('Returned array does not contain remote config file name (' . self::REMOTE_CONFIG_FILE_NAME . ')', __LINE__, __FUNCTION__);
+        if (!is_string($elasticCfgFileEncodedBody)) {
+            self::logError(
+                'Value mapped to remote config file name (' . self::ELASTIC_FILE_NAME . ') is not a string'
+                . ' ; the actual type: ' . get_debug_type($elasticCfgFileEncodedBody),
+                __LINE__,
+                __FUNCTION__,
+            );
             return;
         }
 
-        self::logDebug('Value mapped to remote config file name (' . self::REMOTE_CONFIG_FILE_NAME . ') type: ' . get_debug_type($remoteConfigContent), __LINE__, __FUNCTION__);
-
-        if (!is_string($remoteConfigContent)) {
-            self::logError('Value mapped to remote config file name (' . self::REMOTE_CONFIG_FILE_NAME . ') is not a string', __LINE__, __FUNCTION__);
+        if (($remoteCfgOptKeyToValMap = self::decodeElasticRemoteConfigFileBody($elasticCfgFileEncodedBody)) === null) {
             return;
         }
 
-        self::parseAndApply($remoteConfigContent);
+        self::parseAndApplyOptionNameToValueMap($remoteCfgOptKeyToValMap);
     }
 
+    private static function verifyLocalConfigCompatible(): bool
+    {
+        if (OTelSdkConfiguration::has(OTelSdkConfigVariables::OTEL_EXPERIMENTAL_CONFIG_FILE)) {
+            $dbgCfgFileOptVal = OTelSdkConfiguration::getMixed(OTelSdkConfigVariables::OTEL_EXPERIMENTAL_CONFIG_FILE);
+            if (!is_scalar($dbgCfgFileOptVal)) {
+                $dbgCfgFileOptVal = self::valueToDbgString($dbgCfgFileOptVal);
+            }
+            self::logWarning(
+                'Local config has ' . OTelSdkConfigVariables::OTEL_EXPERIMENTAL_CONFIG_FILE . ' option set - remote config feature is not compatible with this option'
+                . '; ' . OTelSdkConfigVariables::OTEL_EXPERIMENTAL_CONFIG_FILE . ' option value: ' . $dbgCfgFileOptVal,
+                __LINE__,
+                __FUNCTION__,
+            );
+            return false;
+        }
+
+        return true;
+    }
     /**
      * @param callable(mixed): bool $predicate
      */
@@ -121,28 +139,6 @@ final class RemoteConfigHandler
         return self::verifyValueType($remoteOptName, $remoteOptVal, 'float', is_numeric(...));
     }
 
-    private static function convertRemoteLoggingLevelToOTel(string $remoteLoggingLevel): ?string
-    {
-        /**
-         * Values used by Remote/Central Configuration:
-         * @see https://github.com/elastic/kibana/blob/v9.1.0/x-pack/solutions/observability/plugins/apm/common/agent_configuration/setting_definitions/edot_sdk_settings.ts#L59
-         *
-         * Values used by OTel SDK:
-         * @see https://github.com/open-telemetry/opentelemetry-php/blob/73ff5adcb8f1db348bedb422de760e475df16841/src/API/Behavior/Internal/Logging.php#L21
-         * @see https://github.com/php-fig/log/blob/1.1.0/Psr/Log/LogLevel.php
-         * @see https://github.com/php-fig/log/blob/3.0.2/src/LogLevel.php
-         */
-        return match ($remoteLoggingLevel) {
-            'trace', 'debug' => PsrLogLevel::DEBUG,
-            'info' => PsrLogLevel::INFO,
-            'warn' => PsrLogLevel::WARNING,
-            'error' => PsrLogLevel::ERROR,
-            'fatal' => PsrLogLevel::CRITICAL,
-            'off' => self::OTEL_LOG_LEVEL_NONE,
-            default => null
-        };
-    }
-
     /**
      * @see https://github.com/elastic/kibana/blob/v9.1.0/x-pack/solutions/observability/plugins/apm/common/agent_configuration/setting_definitions/edot_sdk_settings.ts#L59
      */
@@ -153,8 +149,8 @@ final class RemoteConfigHandler
         }
         /** @var string $remoteOptVal */
 
-        $otelLogLevel = self::convertRemoteLoggingLevelToOTel($remoteOptVal);
-        if ($otelLogLevel === null) {
+        $remoteConfigLoggingLevel = RemoteConfigLoggingLevel::tryToFindByName($remoteOptVal);
+        if ($remoteConfigLoggingLevel === null) {
             self::logError(
                 'Option ' . self::LOGGING_LEVEL_REMOTE_CONFIG_OPTION_NAME . " value is not in the set of the expected values: $remoteOptVal",
                 __LINE__,
@@ -162,12 +158,13 @@ final class RemoteConfigHandler
             );
             return;
         }
+        $otelLogLevel = $remoteConfigLoggingLevel->toOTelInternalLogLevel()->name;
 
         /**
          * OTel SDK reads log level config directly from $_SERVER
          * @see https://github.com/open-telemetry/opentelemetry-php/blob/73ff5adcb8f1db348bedb422de760e475df16841/src/API/Behavior/Internal/Logging.php#L72
          */
-        $_SERVER[self::LOG_LEVEL_OTEL_OPTION_NAME] = $otelLogLevel;
+        $_SERVER[self::OTEL_LOG_LEVEL_OPTION_NAME] = $otelLogLevel;
         self::logDebug('Set OTel SDK log level to ' . $otelLogLevel, __LINE__, __FUNCTION__);
     }
 
@@ -209,10 +206,11 @@ final class RemoteConfigHandler
             return;
         }
 
-        $otelConfigSampler = self::getOTelConfigWithoutRemote(self::OTEL_TRACES_SAMPLER);
-        if ($otelConfigSampler !== null && $otelConfigSampler !== self::OTEL_TRACES_SAMPLER_VALUE_PARENT_BASED_TRACE_ID_RATIO) {
+        $otelConfigSampler = self::getOTelConfigWithoutRemote(OTelSdkConfigVariables::OTEL_TRACES_SAMPLER);
+        if ($otelConfigSampler !== null && $otelConfigSampler !== OTelSdkConfigKnownValues::VALUE_PARENT_BASED_TRACE_ID_RATIO) {
             self::logDebug(
-                'OpenTelemetry SDK configuration option ' . self::OTEL_TRACES_SAMPLER . " is set to value not compatible with EDOT's remote configuration feature (value: $otelConfigSampler)"
+                'OpenTelemetry SDK configuration option ' . OTelSdkConfigVariables::OTEL_TRACES_SAMPLER
+                . " is set to value not compatible with EDOT's remote configuration feature (value: $otelConfigSampler)"
                 . " - not applying sampling rate received via remote configuration (value: $remoteOptValAsFloat).",
                 __LINE__,
                 __FUNCTION__
@@ -220,8 +218,8 @@ final class RemoteConfigHandler
             return;
         }
 
-        PhpPartFacade::setEnvVar(self::OTEL_TRACES_SAMPLER, self::OTEL_TRACES_SAMPLER_VALUE_PARENT_BASED_TRACE_ID_RATIO);
-        PhpPartFacade::setEnvVar(self::OTEL_TRACES_SAMPLER_ARG, strval($remoteOptValAsFloat));
+        PhpPartFacade::setEnvVar(OTelSdkConfigVariables::OTEL_TRACES_SAMPLER, OTelSdkConfigKnownValues::VALUE_PARENT_BASED_TRACE_ID_RATIO);
+        PhpPartFacade::setEnvVar(OTelSdkConfigVariables::OTEL_TRACES_SAMPLER_ARG, strval($remoteOptValAsFloat));
         self::logDebug('Set OTel SDK sampling rate to ' . $remoteOptValAsFloat, __LINE__, __FUNCTION__);
     }
 
@@ -250,13 +248,22 @@ final class RemoteConfigHandler
         };
     }
 
-    private static function parseAndApply(string $remoteConfigContent): void
+    /**
+     * @return ?ElasticFileDecodedBody
+     */
+    public static function getLastAppliedElasticFileDecodedBody(): ?array
     {
-        if (($remoteOptNameToVal = self::decodeRemoteConfig($remoteConfigContent)) === null) {
-            return;
-        }
+        return self::$lastAppliedElasticFileDecodedBody;
+    }
 
-        foreach ($remoteOptNameToVal as $remoteOptName => $remoteOptVal) {
+    /**
+     * @param ElasticFileDecodedBody $remoteCfgOptKeyToValMap
+     */
+    private static function parseAndApplyOptionNameToValueMap(array $remoteCfgOptKeyToValMap): void
+    {
+        self::$lastAppliedElasticFileDecodedBody = $remoteCfgOptKeyToValMap;
+
+        foreach ($remoteCfgOptKeyToValMap as $remoteOptName => $remoteOptVal) {
             self::parseAndApplyOption($remoteOptName, $remoteOptVal);
         }
     }
@@ -264,6 +271,11 @@ final class RemoteConfigHandler
     private static function logDebug(string $message, int $lineNumber, string $func): void
     {
         self::logWithLevel(BootstrapStageLogger::LEVEL_DEBUG, $message, $lineNumber, $func);
+    }
+
+    private static function logWarning(string $message, int $lineNumber, string $func): void
+    {
+        self::logWithLevel(BootstrapStageLogger::LEVEL_WARNING, $message, $lineNumber, $func);
     }
 
     private static function logError(string $message, int $lineNumber, string $func): void
@@ -278,6 +290,10 @@ final class RemoteConfigHandler
 
     public static function valueToDbgString(mixed $value): string
     {
+        if (is_string($value)) {
+            return $value;
+        }
+
         $options = JSON_INVALID_UTF8_SUBSTITUTE | JSON_UNESCAPED_SLASHES;
         $encodedData = json_encode($value, $options);
         if ($encodedData === false) {
@@ -289,9 +305,9 @@ final class RemoteConfigHandler
     }
 
     /**
-     * @return ?array<array-key, mixed>
+     * @return ?ElasticFileDecodedBody
      */
-    private static function decodeRemoteConfig(string $remoteConfigContent): ?array
+    private static function decodeElasticRemoteConfigFileBody(string $remoteConfigContent): ?array
     {
         $decodedData = json_decode($remoteConfigContent, /* assoc: */ true);
         if ($decodedData === null) {

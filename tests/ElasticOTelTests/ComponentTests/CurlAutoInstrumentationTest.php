@@ -268,7 +268,7 @@ final class CurlAutoInstrumentationTest extends ComponentTestCaseBase
             $expectationsForCurlClientSpan->assertMatches($curlClientSpan);
             $serverTxSpan = $agentBackendComms->singleChildSpan($curlClientSpan->id);
         } else {
-            $serverTxSpan = IterableUtil::singleValue($agentBackendComms->findSpansWithAttributeValue(TraceAttributes::SERVER_PORT, $appCodeRequestParamsForServer->urlParts->port));
+            $serverTxSpan = IterableUtil::singleValue($agentBackendComms->findSpansWithAttributeValue(TraceAttributes::SERVER_PORT, AssertEx::notNull($appCodeRequestParamsForServer->urlParts->port)));
             self::assertNull($serverTxSpan->parentId);
             $clientTxSpan = IterableUtil::singleValue(IterableUtil::findByPredicateOnValue($agentBackendComms->spans(), fn(Span $span) => $span->parentId === null && $span !== $serverTxSpan));
             self::assertNotEquals($serverTxSpan->traceId, $clientTxSpan->traceId);

@@ -45,7 +45,7 @@ class LoggingVariousTypesTest extends TestCaseBase
 {
     public static function logValueAndDecodeToJson(mixed $valueToLog): mixed
     {
-        return JsonUtil::decode(LoggableToEncodedJson::convert($valueToLog), asAssocArray: true);
+        return JsonUtil::decode(LoggableToEncodedJson::convert($valueToLog));
     }
 
     public static function logValueAndVerify(mixed $valueToLog, mixed $expectedValue): void
