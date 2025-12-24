@@ -30,6 +30,7 @@ use ElasticOTelTests\Util\TestCaseBase;
 use OpenTelemetry\API\Behavior\Internal\Logging as OTelInternalLogging;
 use OpenTelemetry\SDK\Common\Configuration\Variables as OTelSdkConfigVariables;
 use OpenTelemetry\SDK\Common\Configuration\KnownValues as OTelSdkConfigKnownValues;
+use OpenTelemetry\SDK\Sdk as OTelSdk;
 use ReflectionClass;
 
 final class EdotDependenciesOnOTelSdkTest extends TestCaseBase
@@ -37,7 +38,7 @@ final class EdotDependenciesOnOTelSdkTest extends TestCaseBase
     /**
      * @param class-string<object> $classFqName
      *
-     * @noinspection PhpDocMissingThrowsInspection, PhpSameParameterValueInspection
+     * @noinspection PhpDocMissingThrowsInspection
      */
     private static function getPrivateConstValue(string $classFqName, string $constName): mixed
     {
@@ -46,17 +47,34 @@ final class EdotDependenciesOnOTelSdkTest extends TestCaseBase
         return $reflClass->getConstant($constName);
     }
 
-    public function testConstNamesInSync(): void
+    public function testDeclarativeConfigFileRelatedNames(): void
     {
         self::assertSame(OTelSdkConfigVariables::OTEL_EXPERIMENTAL_CONFIG_FILE, RemoteConfigHandler::OTEL_EXPERIMENTAL_CONFIG_FILE); // @phpstan-ignore staticMethod.alreadyNarrowedType
+    }
+
+    public function testLogLevelRelatedNames(): void
+    {
         self::assertSame(OTelSdkConfigVariables::OTEL_LOG_LEVEL, RemoteConfigHandler::LOG_LEVEL_OTEL_OPTION_NAME); // @phpstan-ignore staticMethod.alreadyNarrowedType
 
         self::assertSame(self::getPrivateConstValue(OTelInternalLogging::class, 'OTEL_LOG_LEVEL'), RemoteConfigHandler::LOG_LEVEL_OTEL_OPTION_NAME);
         self::assertSame(self::getPrivateConstValue(OTelInternalLogging::class, 'NONE'), RemoteConfigHandler::OTEL_LOG_LEVEL_NONE);
+    }
 
+    public function testSamplingRelatedNames(): void
+    {
         self::assertSame(OTelSdkConfigVariables::OTEL_TRACES_SAMPLER, RemoteConfigHandler::OTEL_TRACES_SAMPLER); // @phpstan-ignore staticMethod.alreadyNarrowedType
         self::assertSame(OTelSdkConfigVariables::OTEL_TRACES_SAMPLER_ARG, RemoteConfigHandler::OTEL_TRACES_SAMPLER_ARG); // @phpstan-ignore staticMethod.alreadyNarrowedType
         $expected = OTelSdkConfigKnownValues::VALUE_PARENT_BASED_TRACE_ID_RATIO;
         self::assertSame($expected, RemoteConfigHandler::OTEL_TRACES_SAMPLER_VALUE_PARENT_BASED_TRACE_ID_RATIO); // @phpstan-ignore staticMethod.alreadyNarrowedType
+    }
+
+    public function testDeactivateInstrumentationsRelatedNames(): void
+    {
+        self::assertSame(OTelSdkConfigVariables::OTEL_PHP_DISABLED_INSTRUMENTATIONS, RemoteConfigHandler::OTEL_PHP_DISABLED_INSTRUMENTATIONS); // @phpstan-ignore staticMethod.alreadyNarrowedType
+    }
+
+    public function testDeactivateAllInstrumentationsRelatedNames(): void
+    {
+        self::assertSame(self::getPrivateConstValue(OTelSdk::class, 'OTEL_PHP_DISABLED_INSTRUMENTATIONS_ALL'), RemoteConfigHandler::OTEL_PHP_DISABLED_INSTRUMENTATIONS_ALL);
     }
 }
