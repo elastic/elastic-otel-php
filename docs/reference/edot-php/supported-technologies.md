@@ -17,8 +17,7 @@ products:
 
 EDOT PHP is a [distribution](https://opentelemetry.io/docs/concepts/distributions/) of OpenTelemetry PHP. It inherits all the [supported](opentelemetry://reference/compatibility/nomenclature.md) technologies of the OpenTelemetry PHP.
 
-:::{note}
-**Understanding auto-instrumentation scope**
+:::{note} - Understanding auto-instrumentation scope
 
 Auto-instrumentation automatically captures telemetry for the frameworks and libraries listed on this page. However, it cannot instrument:
 
