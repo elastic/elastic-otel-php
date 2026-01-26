@@ -27,6 +27,7 @@ namespace Elastic\OTel;
 
 use Elastic\OTel\Util\ArrayUtil;
 use Elastic\OTel\Util\StaticClassTrait;
+use Elastic\OTel\Util\TextUtil;
 use Psr\Log\LogLevel as PsrLogLevel;
 
 /**
@@ -55,9 +56,28 @@ final class RemoteConfigHandler
      * @see https://github.com/elastic/kibana/blob/v9.2.0/x-pack/solutions/observability/plugins/apm/common/agent_configuration/setting_definitions/edot_sdk_settings.ts#L106
      */
     public const SAMPLING_RATE_REMOTE_CONFIG_OPTION_NAME = 'sampling_rate';
+    /**
+     * @see \OpenTelemetry\SDK\Common\Configuration\Variables::OTEL_TRACES_SAMPLER
+     */
     public const OTEL_TRACES_SAMPLER = 'OTEL_TRACES_SAMPLER';
+    /**
+     * @see \OpenTelemetry\SDK\Common\Configuration\Variables::OTEL_TRACES_SAMPLER_ARG
+     */
     public const OTEL_TRACES_SAMPLER_ARG = 'OTEL_TRACES_SAMPLER_ARG';
+    /**
+     * @see \OpenTelemetry\SDK\Common\Configuration\KnownValues::VALUE_PARENT_BASED_TRACE_ID_RATIO
+     */
     public const OTEL_TRACES_SAMPLER_VALUE_PARENT_BASED_TRACE_ID_RATIO = 'parentbased_traceidratio';
+
+    /**
+     * Should be the same as the string used by Kibana
+     * @see https://github.com/elastic/kibana/blob/v9.1.0/x-pack/solutions/observability/plugins/apm/common/agent_configuration/setting_definitions/edot_sdk_settings.ts#L14
+     */
+    public const DEACTIVATE_INSTRUMENTATIONS_CONFIG_OPTION_NAME = 'deactivate_instrumentations';
+    /**
+     * @see \OpenTelemetry\SDK\Common\Configuration\Variables::OTEL_PHP_DISABLED_INSTRUMENTATIONS
+     */
+    public const OTEL_PHP_DISABLED_INSTRUMENTATIONS = 'OTEL_PHP_DISABLED_INSTRUMENTATIONS';
 
     /**
      * Called by the extension
@@ -143,6 +163,23 @@ final class RemoteConfigHandler
         };
     }
 
+    private static function logRemoteConfigHasBeenApplied(string $envVarName, ?string $localVal, string $remoteVal, string $mergedVal): void
+    {
+        self::logDebug('Applied remote config to OTel SDK' . json_encode(compact('envVarName', 'localVal', 'remoteVal', 'mergedVal')), __LINE__, __FUNCTION__);
+    }
+
+    /**
+     * @param non-empty-string $envVarName
+     * @phpstan-param callable(string, string): string $mergeLocalRemote
+     */
+    private static function setEnvVarToRemoteConfigVal(string $envVarName, string $remoteVal, ?callable $mergeLocalRemote = null): void
+    {
+        $localVal = self::getOTelConfigWithoutRemote($envVarName);
+        PhpPartFacade::setEnvVar($envVarName, $remoteVal);
+        $mergedVal = (($mergeLocalRemote === null) || ($localVal === null)) ? $remoteVal : $mergeLocalRemote($localVal, $remoteVal);
+        self::logRemoteConfigHasBeenApplied($envVarName, $localVal, $remoteVal, $mergedVal);
+    }
+
     /**
      * @see https://github.com/elastic/kibana/blob/v9.1.0/x-pack/solutions/observability/plugins/apm/common/agent_configuration/setting_definitions/edot_sdk_settings.ts#L59
      */
@@ -167,8 +204,13 @@ final class RemoteConfigHandler
          * OTel SDK reads log level config directly from $_SERVER
          * @see https://github.com/open-telemetry/opentelemetry-php/blob/73ff5adcb8f1db348bedb422de760e475df16841/src/API/Behavior/Internal/Logging.php#L72
          */
-        $_SERVER[self::LOG_LEVEL_OTEL_OPTION_NAME] = $otelLogLevel;
-        self::logDebug('Set OTel SDK log level to ' . $otelLogLevel, __LINE__, __FUNCTION__);
+        $envVarName = self::LOG_LEVEL_OTEL_OPTION_NAME;
+        $localOptVal = $_SERVER[$envVarName];
+        if (!is_string($localOptVal)) {
+            $localOptVal = self::valueToDbgString($localOptVal);
+        }
+        $_SERVER[$envVarName] = $otelLogLevel;
+        self::logRemoteConfigHasBeenApplied($envVarName, $localOptVal, $otelLogLevel, mergedVal: $otelLogLevel);
     }
 
     /**
@@ -210,7 +252,9 @@ final class RemoteConfigHandler
         }
 
         $otelConfigSampler = self::getOTelConfigWithoutRemote(self::OTEL_TRACES_SAMPLER);
-        if ($otelConfigSampler !== null && $otelConfigSampler !== self::OTEL_TRACES_SAMPLER_VALUE_PARENT_BASED_TRACE_ID_RATIO) {
+        if ($otelConfigSampler === null) {
+            self::setEnvVarToRemoteConfigVal(self::OTEL_TRACES_SAMPLER, self::OTEL_TRACES_SAMPLER_VALUE_PARENT_BASED_TRACE_ID_RATIO);
+        } elseif ($otelConfigSampler !== self::OTEL_TRACES_SAMPLER_VALUE_PARENT_BASED_TRACE_ID_RATIO) {
             self::logDebug(
                 'OpenTelemetry SDK configuration option ' . self::OTEL_TRACES_SAMPLER . " is set to value not compatible with EDOT's remote configuration feature (value: $otelConfigSampler)"
                 . " - not applying sampling rate received via remote configuration (value: $remoteOptValAsFloat).",
@@ -220,9 +264,7 @@ final class RemoteConfigHandler
             return;
         }
 
-        PhpPartFacade::setEnvVar(self::OTEL_TRACES_SAMPLER, self::OTEL_TRACES_SAMPLER_VALUE_PARENT_BASED_TRACE_ID_RATIO);
-        PhpPartFacade::setEnvVar(self::OTEL_TRACES_SAMPLER_ARG, strval($remoteOptValAsFloat));
-        self::logDebug('Set OTel SDK sampling rate to ' . $remoteOptValAsFloat, __LINE__, __FUNCTION__);
+        self::setEnvVarToRemoteConfigVal(self::OTEL_TRACES_SAMPLER_ARG, strval($remoteOptValAsFloat));
     }
 
     private static function parseAndApplyOption(string $remoteOptName, mixed $remoteOptVal): void
@@ -237,6 +279,7 @@ final class RemoteConfigHandler
         );
 
         match ($remoteOptName) {
+            self::DEACTIVATE_INSTRUMENTATIONS_CONFIG_OPTION_NAME => self::parseAndApplyDeactivateInstrumentations($remoteOptVal),
             self::LOGGING_LEVEL_REMOTE_CONFIG_OPTION_NAME => self::parseAndApplyLoggingLevel($remoteOptVal),
             self::SAMPLING_RATE_REMOTE_CONFIG_OPTION_NAME => self::parseAndApplySamplingRate($remoteOptVal),
             default => self::logDebug(
@@ -248,6 +291,37 @@ final class RemoteConfigHandler
                 __FUNCTION__,
             )
         };
+    }
+
+    /**
+     * @return array<string>
+     */
+    private static function parseCommaSeparatedList(string $commaSeparatedList): array
+    {
+        if (TextUtil::isEmptyString(trim($commaSeparatedList))) {
+            return [];
+        }
+
+        return array_map(trim(...), explode(',', $commaSeparatedList));
+    }
+
+    public static function mergeDisabledInstrumentations(string $localVal, string $remoteVal): string
+    {
+        return implode(',', array_merge(self::parseCommaSeparatedList($localVal), self::parseCommaSeparatedList($remoteVal)));
+    }
+
+    /**
+     * @see https://github.com/elastic/kibana/blob/v9.1.0/x-pack/solutions/observability/plugins/apm/common/agent_configuration/setting_definitions/edot_sdk_settings.ts#L15
+     * @see \OpenTelemetry\SDK\Sdk::isInstrumentationDisabled
+     */
+    private static function parseAndApplyDeactivateInstrumentations(mixed $remoteOptVal): void
+    {
+        if (!self::verifyValueIsString(self::DEACTIVATE_INSTRUMENTATIONS_CONFIG_OPTION_NAME, $remoteOptVal)) {
+            return;
+        }
+        /** @var string $remoteOptVal */
+
+        self::setEnvVarToRemoteConfigVal(self::OTEL_PHP_DISABLED_INSTRUMENTATIONS, $remoteOptVal, self::mergeDisabledInstrumentations(...));
     }
 
     private static function parseAndApply(string $remoteConfigContent): void

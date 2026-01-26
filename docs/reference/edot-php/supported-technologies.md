@@ -82,6 +82,21 @@ The following libraries are supported:
 - MySQLi versions 8.1 to 8.4
 - PDO versions 8.1 to 8.4
 
+## Instrumentations
+
+The following instrumentations are included in EDOT PHP.
+
+| Name  | Included from EDOT PHP version | Link to packagist.org |
+| ----- | ------------------------------ | --------------------- |
+| curl | 1.0 | [open-telemetry/opentelemetry-auto-curl](https://packagist.org/packages/open-telemetry/opentelemetry-auto-curl) |
+| http-async-client | 1.0 | [open-telemetry/opentelemetry-auto-http-async](https://packagist.org/packages/open-telemetry/opentelemetry-auto-http-async) |
+| laravel | 1.0 | [open-telemetry/opentelemetry-auto-laravel](https://packagist.org/packages/open-telemetry/opentelemetry-auto-laravel) |
+| mysqli | 1.0 | [open-telemetry/opentelemetry-auto-mysqli](https://packagist.org/packages/open-telemetry/opentelemetry-auto-mysqli) |
+| pdo | 1.0 | [open-telemetry/opentelemetry-auto-pdo](https://packagist.org/packages/open-telemetry/opentelemetry-auto-pdo) |
+| postgresql | 1.2 | [open-telemetry/opentelemetry-auto-postgresql](https://packagist.org/packages/open-telemetry/opentelemetry-auto-postgresql) |
+| slim | 1.0 | [open-telemetry/opentelemetry-auto-slim](https://packagist.org/packages/open-telemetry/opentelemetry-auto-slim) |
+
+
 ## Additional features and improvements
 ### Truly zero-config auto-instrumentation
 
