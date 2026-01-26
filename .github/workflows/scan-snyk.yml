@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
-      SNYK_TOKEN: ${{ secrets.SNYK_API_KEY }}
+      SNYK_TOKEN: ${{ secrets.SNYK_AUTH_TOKEN }}
     steps:
       - uses: actions/checkout@v6
       - name: Scan for vulnerabilities with Snyk
