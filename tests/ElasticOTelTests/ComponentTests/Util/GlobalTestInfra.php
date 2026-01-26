@@ -95,6 +95,7 @@ final class GlobalTestInfra
             portsInUse: $this->portsInUse,
             portsToAllocateCount: ResourcesCleaner::portsCount(),
             resourcesCleaner: null,
+            isProcessTestScoped: false,
         );
         $this->addPortsInUse($httpServerHandle->ports);
         return new ResourcesCleanerHandle($httpServerHandle);
@@ -108,6 +109,7 @@ final class GlobalTestInfra
             portsInUse: $this->portsInUse,
             portsToAllocateCount: MockOTelCollector::portsCount(),
             resourcesCleaner: $resourcesCleaner,
+            isProcessTestScoped: false,
         );
         $this->addPortsInUse($httpServerHandle->ports);
         return new MockOTelCollectorHandle($httpServerHandle);

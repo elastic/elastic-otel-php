@@ -31,6 +31,7 @@ use ElasticOTelTests\ComponentTests\Util\OpampData\AgentRemoteConfig;
 use ElasticOTelTests\ComponentTests\Util\OtlpData\Span;
 use ElasticOTelTests\Util\AmbientContextForTests;
 use ElasticOTelTests\Util\ArrayUtilForTests;
+use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\ClassNameUtil;
 use ElasticOTelTests\Util\Config\CompositeRawSnapshotSource;
 use ElasticOTelTests\Util\Config\ConfigSnapshotForProd;
@@ -308,7 +309,7 @@ class ComponentTestCaseBase extends TestCaseBase
             $loggerProxyOutsideIt && $loggerProxyOutsideIt->log(__LINE__, 'Test failed but $this->testCaseHandle is null - NOT re-running the test with escalated log levels');
             throw $initiallyFailedTestException;
         }
-        $initiallyFailedTestLogLevels = $this->getCurrentLogLevels($this->testCaseHandle);
+        $initiallyFailedTestLogLevels = $this->getCurrentLogLevels();
         if (ArrayUtilForTests::isEmpty($initiallyFailedTestLogLevels)) {
             $loggerProxyOutsideIt && $loggerProxyOutsideIt->log(__LINE__, 'Test failed but not even one app code host has started successfully - NOT re-running the test with escalated log levels');
             throw $initiallyFailedTestException;
@@ -364,15 +365,14 @@ class ComponentTestCaseBase extends TestCaseBase
     }
 
     /**
-     * @param TestCaseHandle $testCaseHandle
-     *
      * @return array<string, LogLevel>
      */
-    private function getCurrentLogLevels(TestCaseHandle $testCaseHandle): array
+    protected function getCurrentLogLevels(): array
     {
         /** @var array<string, LogLevel> $result */
         $result = [];
-        $prodCodeLogLevels = $testCaseHandle->getProdCodeLogLevels();
+        // This function should be called only when $this->testCaseHandle is not null
+        $prodCodeLogLevels = AssertEx::notNull($this->testCaseHandle)->getProdCodeLogLevels();
         if (ArrayUtilForTests::isEmpty($prodCodeLogLevels)) {
             return [];
         }

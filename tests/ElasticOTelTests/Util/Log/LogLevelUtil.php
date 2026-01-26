@@ -62,7 +62,7 @@ final class LogLevelUtil
         if ($result === null) {
             $allOptsMeta = OptionsForProdMetadata::get();
             $parser = new ConfigParser(AmbientContextForTests::loggerFactory());
-            $result = (new ConfigSnapshotForProd($parser->parse($allOptsMeta, EmptyRawSnapshot::singletonInstance())))->effectiveLogLevel();
+            $result = (new ConfigSnapshotForProd($parser->parse($allOptsMeta, EmptyRawSnapshot::singletonInstance())))->effectiveElasticLogLevel();
         }
         /** @var LogLevel $result */
         return $result;

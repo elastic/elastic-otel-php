@@ -23,6 +23,7 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\UnitTests\UtilTests\LogTests;
 
+use Elastic\OTel\Log\LogLevel;
 use Elastic\OTel\Log\OTelInternalLogLevel;
 use Elastic\OTel\Log\PsrLogLevel;
 use ElasticOTelTests\Util\AssertEx;
@@ -31,18 +32,13 @@ use ElasticOTelTests\Util\ReflectionUtil;
 use ElasticOTelTests\Util\TestCaseBase;
 use OpenTelemetry\API\Behavior\Internal\Logging as OTelInternalLogging;
 
-class OTelInternalLogLevelTest extends TestCaseBase
+final class OTelInternalLogLevelTest extends TestCaseBase
 {
-    public function testInSync(): void
+    public function testInSyncWithElastic(): void
     {
         DebugContext::getCurrentScope(/* out */ $dbgCtx);
 
         self::assertSame(ReflectionUtil::getConstValue(OTelInternalLogging::class, 'NONE'), OTelInternalLogLevel::none->name);
-
-        AssertEx::sameConstValues(count(PsrLogLevel::cases()) + 1, count(OTelInternalLogLevel::cases()));
-        foreach (PsrLogLevel::cases() as $psrLogLevel) {
-            self::assertNotNull(OTelInternalLogLevel::tryToFindByName($psrLogLevel->name));
-        }
 
         $otelInternalLoggingLevelsPrivateList = AssertEx::isList(ReflectionUtil::getConstValue(OTelInternalLogging::class, 'LEVELS'));
         $dbgCtx->add(compact('otelInternalLoggingLevelsPrivateList'));
@@ -53,5 +49,26 @@ class OTelInternalLogLevelTest extends TestCaseBase
             self::assertNotNull(OTelInternalLogLevel::tryToFindByName(AssertEx::isString($otelInternalLoggingLevelName)));
         }
         $dbgCtx->popSubScope();
+    }
+
+    public function testInSyncWithPsrLogLevel(): void
+    {
+        AssertEx::sameConstValues(count(PsrLogLevel::cases()) + 1, count(OTelInternalLogLevel::cases()));
+        foreach (PsrLogLevel::cases() as $psrLogLevel) {
+            self::assertNotNull(OTelInternalLogLevel::tryToFindByName($psrLogLevel->name));
+        }
+    }
+
+    public function testToElasticLogLevel(): void
+    {
+        foreach (OTelInternalLogLevel::cases() as $otelLogLevel) {
+            $actualElasticLogLevel = $otelLogLevel->toElasticLogLevel();
+            match ($otelLogLevel) {
+                OTelInternalLogLevel::none => self::assertSame(LogLevel::off, $actualElasticLogLevel),
+                OTelInternalLogLevel::emergency, OTelInternalLogLevel::alert, OTelInternalLogLevel::critical => self::assertSame(LogLevel::critical, $actualElasticLogLevel),
+                OTelInternalLogLevel::notice => self::assertSame(LogLevel::info, $actualElasticLogLevel),
+                default => self::assertSame(LogLevel::tryToFindByName($otelLogLevel->name), $actualElasticLogLevel),
+            };
+        }
     }
 }

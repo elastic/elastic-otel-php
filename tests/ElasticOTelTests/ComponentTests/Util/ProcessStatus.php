@@ -23,34 +23,13 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
-use ElasticOTelTests\Util\Log\LoggableInterface;
-use ElasticOTelTests\Util\Log\LoggableTrait;
-
-final class AgentBackendConnectionBuilder implements LoggableInterface
+final class ProcessStatus
 {
-    use LoggableTrait;
-
-    /** @var list<AgentBackendCommRequestInterface> */
-    private array $requests = [];
-
     public function __construct(
-        public AgentBackendConnectionStarted $started,
+        public readonly string $command,
+        public readonly int $pid,
+        public readonly bool $isRunning,
+        public readonly ?int $exitCode,
     ) {
-    }
-
-    public function addRequest(AgentBackendCommRequestInterface $request): void
-    {
-        $this->requests[] = $request;
-    }
-
-    public function reset(AgentBackendConnectionStarted $started): void
-    {
-        $this->started = $started;
-        $this->requests = [];
-    }
-
-    public function build(): AgentBackendConnection
-    {
-        return new AgentBackendConnection($this->started, $this->requests);
     }
 }

@@ -23,6 +23,7 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\UnitTests\UtilTests\LogTests;
 
+use Elastic\OTel\Log\LogLevel;
 use Elastic\OTel\Log\PsrLogLevel;
 use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\DebugContext;
@@ -65,5 +66,17 @@ class PsrLogLevelTest extends TestCaseBase
 
         self::assertNull(PsrLogLevel::tryToFindByName('dummy'));
         self::assertNull(PsrLogLevel::tryToFindByName(''));
+    }
+
+    public function testToElasticLogLevel(): void
+    {
+        foreach (PsrLogLevel::cases() as $psrLogLevel) {
+            $actualElasticLogLevel = $psrLogLevel->toElasticLogLevel();
+            match ($psrLogLevel) {
+                PsrLogLevel::emergency, PsrLogLevel::alert, PsrLogLevel::critical => self::assertSame(LogLevel::critical, $actualElasticLogLevel),
+                PsrLogLevel::notice => self::assertSame(LogLevel::info, $actualElasticLogLevel),
+                default => self::assertSame(LogLevel::tryToFindByName($psrLogLevel->name), $actualElasticLogLevel),
+            };
+        }
     }
 }

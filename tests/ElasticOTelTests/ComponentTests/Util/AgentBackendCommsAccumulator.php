@@ -85,6 +85,7 @@ final class AgentBackendCommsAccumulator implements LoggableInterface
     private function addRequest(int $port, AgentBackendCommRequestInterface $request): void
     {
         Assert::assertTrue(ArrayUtil::getValueIfKeyExists($port, $this->openConnections, /* out */ $openConnectionBuilder));
+        /** @var AgentBackendConnectionBuilder $openConnectionBuilder */
         $openConnectionBuilder->addRequest($request);
     }
 

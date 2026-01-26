@@ -69,7 +69,7 @@ final class RemoteConfigHandler
         $elasticCfgFileEncodedBody = get_remote_configuration(self::ELASTIC_FILE_NAME); // This function is implemented by the extension
         if ($elasticCfgFileEncodedBody === null) {
             self::logDebug(
-                'extension\'s get_remote_configuration(' . self::ELASTIC_FILE_NAME . ') returned null'
+                'extension\'s get_remote_configuration("' . self::ELASTIC_FILE_NAME . '") returned null'
                 . ' ; get_remote_configuration() return value: ' . self::valueToDbgString(get_remote_configuration()),
                 __LINE__,
                 __FUNCTION__
@@ -79,7 +79,7 @@ final class RemoteConfigHandler
 
         if (!is_string($elasticCfgFileEncodedBody)) {
             self::logError(
-                'Value mapped to remote config file name (' . self::ELASTIC_FILE_NAME . ') is not a string'
+                'Value mapped to "' . self::ELASTIC_FILE_NAME . '" remote config file name is not a string'
                 . ' ; the actual type: ' . get_debug_type($elasticCfgFileEncodedBody),
                 __LINE__,
                 __FUNCTION__,

@@ -126,11 +126,9 @@ final class PhpPartFacade
             // RemoteConfigHandler::fetchAndApply depends on OTel SDK so it has to be called after autoloader for OTel SDK is registered
             RemoteConfigHandler::fetchAndApply();
             // OverrideOTelSdkResourceAttributes::register depends on OTel SDK so it has to be called after autoloader for OTel SDK is registered
-            OverrideOTelSdkResourceAttributes::register($elasticOTelNativePartVersion);
-            // TODO: Sergey Kleyman: UNCOMMENT
-            // self::registerNativeOtlpSerializer();
-            // TODO: Sergey Kleyman: UNCOMMENT
-            // self::registerAsyncTransportFactory();
+            OverrideOTelSdkResourceAttributes::register($elasticOTelNativePartVersion, self::isInDevMode());
+            self::registerNativeOtlpSerializer();
+            self::registerAsyncTransportFactory();
             self::registerOtelLogWriter();
 
             /** @noinspection PhpInternalEntityUsedInspection */
@@ -187,7 +185,13 @@ final class PhpPartFacade
 
     private static function isInDevMode(): bool
     {
-        return self::getBoolEnvVar(self::MODE_IS_DEV_ENV_VAR_NAME, default: false);
+        /** @var ?bool $cachedResult */
+        static $cachedResult = null;
+        if ($cachedResult === null) {
+            $cachedResult = self::getBoolEnvVar(self::MODE_IS_DEV_ENV_VAR_NAME, default: false);
+        }
+        /** @var bool $cachedResult */
+        return $cachedResult;
     }
 
     private static function isEnabled(): bool
@@ -240,8 +244,7 @@ final class PhpPartFacade
         BootstrapStageLogger::logDebug('Finished successfully', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
     }
 
-    /** @noinspection PhpUnusedPrivateMethodInspection */
-    private static function registerAsyncTransportFactory(): void // @phpstan-ignore method.unused
+    private static function registerAsyncTransportFactory(): void
     {
         if (elastic_otel_get_config_option_by_name('async_transport') === false) {
             BootstrapStageLogger::logDebug('ELASTIC_OTEL_ASYNC_TRANSPORT set to false', __FILE__, __LINE__, __CLASS__, __FUNCTION__);
@@ -256,8 +259,7 @@ final class PhpPartFacade
         ElasticLogWriter::enableLogWriter();
     }
 
-    /** @noinspection PhpUnusedPrivateMethodInspection */
-    private static function registerNativeOtlpSerializer(): void // @phpstan-ignore method.unused
+    private static function registerNativeOtlpSerializer(): void
     {
         if (elastic_otel_get_config_option_by_name('native_otlp_serializer_enabled') === false) {
             BootstrapStageLogger::logDebug('ELASTIC_OTEL_NATIVE_OTLP_SERIALIZER_ENABLED set to false', __FILE__, __LINE__, __CLASS__, __FUNCTION__);

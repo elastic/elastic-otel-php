@@ -38,9 +38,9 @@ final class OverrideOTelSdkResourceAttributes implements ResourceDetectorInterfa
 {
     private static ?string $distroVersion = null;
 
-    public static function register(string $elasticOTelNativePartVersion): void
+    public static function register(string $elasticOTelNativePartVersion, bool $isInDevMode): void
     {
-        self::$distroVersion = self::buildDistroVersion($elasticOTelNativePartVersion);
+        self::$distroVersion = self::buildDistroVersion($elasticOTelNativePartVersion, $isInDevMode);
         Registry::registerResourceDetector(self::class, new self());
         BootstrapStageLogger::logDebug('Registered; distroVersion: ' . self::$distroVersion, __FILE__, __LINE__, __CLASS__, __FUNCTION__);
     }
@@ -66,16 +66,22 @@ final class OverrideOTelSdkResourceAttributes implements ResourceDetectorInterfa
         return ResourceInfo::create(Attributes::create($attributes), ResourceAttributes::SCHEMA_URL);
     }
 
-    private static function buildDistroVersion(string $elasticOTelNativePartVersion): string
+    private static function buildDistroVersion(string $elasticOTelNativePartVersion, bool $isInDevMode): string
     {
         if ($elasticOTelNativePartVersion === PhpPartVersion::VALUE) {
             return $elasticOTelNativePartVersion;
         }
 
         $result = $elasticOTelNativePartVersion . '/' . PhpPartVersion::VALUE;
-        $logMsg = 'Native part and PHP part versions do not match - returning ' . $result
-            . ' ; native part version: ' . $elasticOTelNativePartVersion . '; PHP part version: ' . PhpPartVersion::VALUE;
-        BootstrapStageLogger::logWarning($logMsg, __FILE__, __LINE__, __CLASS__, __FUNCTION__);
+        if (!$isInDevMode) {
+            BootstrapStageLogger::logWarning(
+                "Native part and PHP part versions do NOT match - returning $result ; native part version: $elasticOTelNativePartVersion ; PHP part version: " . PhpPartVersion::VALUE,
+                __FILE__,
+                __LINE__,
+                __CLASS__,
+                __FUNCTION__,
+            );
+        }
         return $result;
     }
 

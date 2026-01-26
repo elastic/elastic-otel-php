@@ -26,6 +26,7 @@ declare(strict_types=1);
 namespace Elastic\OTel\Log;
 
 use Elastic\OTel\Util\EnumUtilTrait;
+use RuntimeException;
 
 /**
  * Values used by OTel SDK:
@@ -51,4 +52,16 @@ enum OTelInternalLogLevel
     case alert;
     case emergency;
     case none;
+
+    public function toElasticLogLevel(): LogLevel
+    {
+        if ($this === self::none) {
+            return LogLevel::off;
+        }
+
+        if (($psrLogLevel = PsrLogLevel::tryToFindByName($this->name)) === null) {
+            throw new RuntimeException('Unexpected ' . __CLASS__ . ' value that does not have a case with the same name in ' . PsrLogLevel::class);
+        }
+        return $psrLogLevel->toElasticLogLevel();
+    }
 }

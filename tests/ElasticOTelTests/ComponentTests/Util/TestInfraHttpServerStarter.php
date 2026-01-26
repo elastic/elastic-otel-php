@@ -31,7 +31,6 @@ use Override;
 final class TestInfraHttpServerStarter extends HttpServerStarter
 {
     private string $runScriptName;
-    private ?ResourcesCleanerHandle $resourcesCleaner;
 
     /**
      * @param int[] $portsInUse
@@ -41,17 +40,17 @@ final class TestInfraHttpServerStarter extends HttpServerStarter
         string $runScriptName,
         array $portsInUse,
         int $portsToAllocateCount,
-        ?ResourcesCleanerHandle $resourcesCleaner
+        ?ResourcesCleanerHandle $resourcesCleaner,
+        bool $isProcessTestScoped,
     ): HttpServerHandle {
-        return (new self($dbgProcessNamePrefix, $runScriptName, $resourcesCleaner))->startHttpServer($portsInUse, $portsToAllocateCount);
+        return (new self($dbgProcessNamePrefix, $runScriptName, $resourcesCleaner, $isProcessTestScoped))->startHttpServer($portsInUse, $portsToAllocateCount);
     }
 
-    private function __construct(string $dbgProcessNamePrefix, string $runScriptName, ?ResourcesCleanerHandle $resourcesCleaner)
+    private function __construct(string $dbgProcessNamePrefix, string $runScriptName, ?ResourcesCleanerHandle $resourcesCleaner, bool $isProcessTestScoped)
     {
-        parent::__construct($dbgProcessNamePrefix);
+        parent::__construct($dbgProcessNamePrefix, $resourcesCleaner, $isProcessTestScoped);
 
         $this->runScriptName = $runScriptName;
-        $this->resourcesCleaner = $resourcesCleaner;
     }
 
     /** @inheritDoc */

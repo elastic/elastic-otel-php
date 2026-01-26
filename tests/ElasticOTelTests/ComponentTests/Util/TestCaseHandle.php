@@ -57,7 +57,7 @@ final class TestCaseHandle implements LoggableInterface
     private array $portsInUse;
 
     public function __construct(
-        private readonly ?LogLevel $escalatedLogLevelForProdCode,
+        public readonly ?LogLevel $escalatedLogLevelForProdCode,
     ) {
         $this->logger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__)->addAllContext(compact('this'));
 
@@ -110,7 +110,7 @@ final class TestCaseHandle implements LoggableInterface
     public function waitForEnoughAgentBackendComms(
         IsEnoughAgentBackendCommsInterface $isEnough,
         int $maxWaitSeconds = self::MAX_WAIT_TIME_DATA_FROM_AGENT_SECONDS,
-        ?string $callerFunc = null
+        ?string $callerFunc = null,
     ): AgentBackendComms {
         Assert::assertNotEmpty($this->appCodeInvocations);
         $hasPassed = (new PollingCheck($callerFunc ?? __FUNCTION__ . ' passes', intval(TimeUtil::secondsToMicroseconds($maxWaitSeconds))))->run(
@@ -140,7 +140,8 @@ final class TestCaseHandle implements LoggableInterface
     {
         if ($this->escalatedLogLevelForProdCode !== null) {
             $escalatedLogLevelForProdCodeAsString = $this->escalatedLogLevelForProdCode->name;
-            $params->setProdOption(AmbientContextForTests::testConfig()->escalatedRerunsProdCodeLogLevelOptionName() ?? OptionForProdName::log_level_syslog, $escalatedLogLevelForProdCodeAsString);
+            $params->setProdOption(AmbientContextForTests::testConfig()->escalatedRerunsProdCodeLogLevelOptionName(), $escalatedLogLevelForProdCodeAsString);
+            $params->setProdOption(OptionForProdName::log_level, $this->escalatedLogLevelForProdCode->toOTelInternalLogLevel()->name);
         }
 
         /** @noinspection HttpUrlsUsage */

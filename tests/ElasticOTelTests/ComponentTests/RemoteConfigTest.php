@@ -42,6 +42,7 @@ use ElasticOTelTests\ComponentTests\Util\OTelUtil;
 use ElasticOTelTests\ComponentTests\Util\OtlpData\Attributes;
 use ElasticOTelTests\ComponentTests\Util\OtlpData\Span;
 use ElasticOTelTests\ComponentTests\Util\WaitForOTelSignalCounts;
+use ElasticOTelTests\Util\AmbientContextForTests;
 use ElasticOTelTests\Util\ArrayUtilForTests;
 use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\Config\FloatOptionParser;
@@ -49,6 +50,7 @@ use ElasticOTelTests\Util\Config\OptionForProdName;
 use ElasticOTelTests\Util\Config\OptionsForProdDefaultValues;
 use ElasticOTelTests\Util\DataProviderForTestBuilder;
 use ElasticOTelTests\Util\DebugContext;
+use ElasticOTelTests\Util\DebugContextScopeRef;
 use ElasticOTelTests\Util\HttpContentTypes;
 use ElasticOTelTests\Util\IterableUtil;
 use ElasticOTelTests\Util\JsonUtil;
@@ -107,64 +109,68 @@ final class RemoteConfigTest extends ComponentTestCaseBase
         callable $buildAgentRemoteConfig,
         callable $configureAppCode,
         array $appCodeClassMethod,
-        callable $assertResults
+        callable $assertResults,
+        bool $escalateLogLevelOnFailure = true,
     ): void {
         if (self::skipIfMainAppCodeHostIsNotHttp()) {
             return;
         }
 
-        self::runAndEscalateLogLevelOnFailure(
-            self::buildDbgDescForTestWithArgs(__CLASS__, __FUNCTION__, $testArgs),
-            function () use ($testArgs, $buildAgentRemoteConfig, $configureAppCode, $appCodeClassMethod, $assertResults): void {
-                DebugContext::getCurrentScope(/* out */ $dbgCtx);
+        $testCall = function () use ($testArgs, $buildAgentRemoteConfig, $configureAppCode, $appCodeClassMethod, $assertResults): void {
+            DebugContext::getCurrentScope(/* out */ $dbgCtx);
 
-                $testCaseHandle = $this->getTestCaseHandle();
+            $testCaseHandle = $this->getTestCaseHandle();
 
-                /** @var ?AgentRemoteConfig $agentRemoteConfig */
-                $agentRemoteConfig = null;
-                if ($testArgs->tryToGetBool(self::SET_MOCK_AGENT_REMOTE_CONFIG_KEY) ?? true) {
-                    $agentRemoteConfig = $buildAgentRemoteConfig();
-                    $testCaseHandle->getMockOTelCollector()->setAgentRemoteConfig($agentRemoteConfig);
+            /** @var ?AgentRemoteConfig $agentRemoteConfig */
+            $agentRemoteConfig = null;
+            if ($testArgs->getBoolOrDefault(self::SET_MOCK_AGENT_REMOTE_CONFIG_KEY, true)) {
+                $agentRemoteConfig = $buildAgentRemoteConfig();
+                $testCaseHandle->getMockOTelCollector()->setAgentRemoteConfig($agentRemoteConfig);
+            }
+
+            $appCodeHost = $testCaseHandle->ensureMainAppCodeHost(
+                function (AppCodeHostParams $appCodeParams) use ($testArgs, $testCaseHandle, $configureAppCode): void {
+                    if ($testArgs->getBoolOrDefault(self::SET_OPAMP_ENDPOINT_KEY, true)) {
+                        $appCodeParams->setProdOption(OptionForProdName::opamp_endpoint, $testCaseHandle->getMockOTelCollector()->buildOpampEndpointOptionValue());
+                        $appCodeParams->setProdOption(OptionForProdName::opamp_heartbeat_interval, '1s');
+                    }
+                    $configureAppCode($appCodeParams);
+                    self::disableTimingDependentFeatures($appCodeParams);
                 }
+            );
 
-                $appCodeHost = $testCaseHandle->ensureMainAppCodeHost(
-                    function (AppCodeHostParams $appCodeParams) use ($testArgs, $testCaseHandle, $configureAppCode): void {
-                        if ($testArgs->tryToGetBool(self::SET_OPAMP_ENDPOINT_KEY) ?? true) {
-                            $appCodeParams->setProdOption(OptionForProdName::opamp_endpoint, $testCaseHandle->getMockOTelCollector()->buildOpampEndpointOptionValue());
-                            $appCodeParams->setProdOption(OptionForProdName::opamp_heartbeat_interval, '1s');
-                        }
-                        $configureAppCode($appCodeParams);
-                        self::disableTimingDependentFeatures($appCodeParams);
+            $execAppCode = function () use ($appCodeHost, $appCodeClassMethod, $testArgs): void {
+                $appCodeHost->execAppCode(
+                    AppCodeTarget::asRouted($appCodeClassMethod),
+                    function (AppCodeRequestParams $appCodeRequestParams) use ($testArgs): void {
+                        $appCodeRequestParams->setAppCodeArgs($testArgs);
                     }
                 );
+            };
+            // Invoke app code the first time to make sure agent is running
+            $execAppCode();
+            $expectedSpansCount = 1;
 
-                $execAppCode = function () use ($appCodeHost, $appCodeClassMethod, $testArgs): void {
-                    $appCodeHost->execAppCode(
-                        AppCodeTarget::asRouted($appCodeClassMethod),
-                        function (AppCodeRequestParams $appCodeRequestParams) use ($testArgs): void {
-                            $appCodeRequestParams->setAppCodeArgs($testArgs);
-                        }
-                    );
-                };
-                // Invoke app code the first time to make sure agent is running
+            if ($agentRemoteConfig !== null && self::isRemoteConfigExpectedToBeAppliedByNativePart($testArgs, $agentRemoteConfig)) {
+                $testCaseHandle->waitForAgentToApplyRemoteConfig($agentRemoteConfig->configHash);
+                // Invoke app code the second time after the agent applied remote configuration
                 $execAppCode();
-                $expectedSpansCount = 1;
-
-                if ($agentRemoteConfig !== null && self::isRemoteConfigExpectedToBeAppliedByNativePart($testArgs, $agentRemoteConfig)) {
-                    $testCaseHandle->waitForAgentToApplyRemoteConfig($agentRemoteConfig->configHash);
-                    // Invoke app code the second time after the agent applied remote configuration
-                    $execAppCode();
-                    ++$expectedSpansCount;
-                }
-
-                $agentBackendComms = $testCaseHandle->waitForEnoughAgentBackendComms(WaitForOTelSignalCounts::spans($expectedSpansCount));
-                $dbgCtx->add(compact('agentBackendComms'));
-                $lastSpan = ArrayUtilForTests::getLastValue(IterableUtil::toList($agentBackendComms->spans()));
-                /** @var Span $lastSpan */
-                $dbgCtx->add(compact('lastSpan'));
-                $assertResults($lastSpan);
+                ++$expectedSpansCount;
             }
-        );
+
+            $agentBackendComms = $testCaseHandle->waitForEnoughAgentBackendComms(WaitForOTelSignalCounts::spans($expectedSpansCount));
+            $dbgCtx->add(compact('agentBackendComms'));
+            $lastSpan = ArrayUtilForTests::getLastValue(IterableUtil::toList($agentBackendComms->spans()));
+            /** @var Span $lastSpan */
+            $dbgCtx->add(compact('lastSpan'));
+            $assertResults($lastSpan);
+        };
+
+        if ($escalateLogLevelOnFailure) {
+            self::runAndEscalateLogLevelOnFailure(self::buildDbgDescForTestWithArgs(__CLASS__, __FUNCTION__, $testArgs), $testCall);
+        } else {
+            $testCall();
+        }
     }
 
     /**
@@ -199,9 +205,6 @@ final class RemoteConfigTest extends ComponentTestCaseBase
             (new DataProviderForTestBuilder())
                 ->addBoolKeyedDimensionOnlyFirstValueCombinable(self::SET_MOCK_AGENT_REMOTE_CONFIG_KEY)
                 ->addBoolKeyedDimensionOnlyFirstValueCombinable(self::SET_OPAMP_ENDPOINT_KEY)
-                // TODO: Sergey Kleyman: REMOVE: // TODO: Sergey Kleyman: UNCOMMENT to test non-null OTEL_EXPERIMENTAL_CONFIG_FILE
-                ->addKeyedDimensionOnlyFirstValueCombinable(OTelSdkConfigVariables::OTEL_EXPERIMENTAL_CONFIG_FILE, [null, __DIR__ . '/Util/OTel_SDK_experimental_config_file.yaml'])
-                // TODO: Sergey Kleyman: REMOVE: // ->addKeyedDimensionOnlyFirstValueCombinable(OTelSdkConfigVariables::OTEL_EXPERIMENTAL_CONFIG_FILE, [null])
                 ->addKeyedDimensionOnlyFirstValueCombinable(self::REMOTE_CONFIG_MAP_KEY, $generateRemoteConfigMap),
         );
     }
@@ -222,25 +225,8 @@ final class RemoteConfigTest extends ComponentTestCaseBase
         }
     }
 
-    public static function appForTestHandlingRemoteConfig(): void
+    private static function addGetRemoteConfigAttributes(): void
     {
-        ///////////////////////////////////////////////////////////////////////////
-        // TODO: Sergey Kleyman: BEGIN: REMOVE: ::
-        ///////////////////////////////////////
-        $log = self::getLoggerStatic(__NAMESPACE__, __CLASS__, __FILE__)->ifErrorLevelEnabledNoLine(__FUNCTION__);
-        $log?->log(__LINE__, 'Entered');
-
-        $tracer = OTelUtil::getTracer();
-        $log?->log(__LINE__, 'tracer type: ' . get_debug_type($tracer));
-//        self::assertInstanceOf(OTelTracer::class, $tracer);
-//        $tracerSharedState = ReflectionUtil::getPropertyValue($tracer, 'tracerSharedState');
-//        self::assertInstanceOf(OTelTracerSharedState::class, $tracerSharedState);
-//        $spanProcessor = ReflectionUtil::getPropertyValue($tracerSharedState, 'spanProcessor');
-//        $log?->log(__LINE__, 'spanProcessor type: ' . get_debug_type($spanProcessor));
-
-        ///////////////////////////////////////
-        // END: REMOVE
-        ////////////////////////////////////////////////////////////////////////////
         OTelUtil::addActiveSpanAttributes(
             [
                 // get_remote_configuration() is implemented by the extension
@@ -251,9 +237,25 @@ final class RemoteConfigTest extends ComponentTestCaseBase
         );
     }
 
+    private static function extractGetRemoteConfigAttributesToDebug(Attributes $attributes, DebugContextScopeRef $dbgCtx): void
+    {
+        $dbgCtx->add(['get_remote_configuration() return value' => JsonUtil::decode($attributes->getString(self::GET_REMOTE_CONFIGURATION_RESULT_KEY))]);
+        $dbgCtx->add(
+            [
+                'get_remote_configuration(' . RemoteConfigHandler::ELASTIC_FILE_NAME . ') return value' => JsonUtil::decode($attributes->getString(self::GET_REMOTE_CONFIGURATION_ELASTIC_RESULT_KEY)),
+            ],
+        );
+        $dbgCtx->add(['Last applied ' . RemoteConfigHandler::ELASTIC_FILE_NAME . ' file' => JsonUtil::decode($attributes->getString(self::LAST_APPLIED_ELASTIC_FILE_KEY))]);
+    }
+
+    public static function appForTestHandlingRemoteConfig(): void
+    {
+        self::addGetRemoteConfigAttributes();
+    }
+
     private static function isRemoteConfigExpectedToBeAppliedByNativePart(MixedMap $testArgs, AgentRemoteConfig $agentRemoteConfig): bool
     {
-        if (!($testArgs->getBool(self::SET_MOCK_AGENT_REMOTE_CONFIG_KEY) && $testArgs->getBool(self::SET_OPAMP_ENDPOINT_KEY))) {
+        if (!($testArgs->getBoolOrDefault(self::SET_MOCK_AGENT_REMOTE_CONFIG_KEY, true) && $testArgs->getBoolOrDefault(self::SET_OPAMP_ENDPOINT_KEY, true))) {
             return false;
         }
 
@@ -270,22 +272,21 @@ final class RemoteConfigTest extends ComponentTestCaseBase
     public function testHandlingRemoteConfig(MixedMap $testArgs): void
     {
         $agentRemoteConfig = new AgentRemoteConfig(AssertEx::isInstanceOf($testArgs->get(self::REMOTE_CONFIG_MAP_KEY), AgentConfigMap::class), IdGenerator::generateId(idLengthInBytes: 16));
-        $declConfigFilePath = $testArgs->getNullableString(OTelSdkConfigVariables::OTEL_EXPERIMENTAL_CONFIG_FILE);
 
         $this->implTestOption(
             $testArgs,
-            buildAgentRemoteConfig: function () use ($agentRemoteConfig): AgentRemoteConfig {
+            buildAgentRemoteConfig: static function () use ($agentRemoteConfig): AgentRemoteConfig {
                 return $agentRemoteConfig;
             },
-            configureAppCode: function (AppCodeHostParams $appCodeParams) use ($declConfigFilePath): void {
-                $appCodeParams->setProdOptionIfNotNull(OptionForProdName::experimental_config_file, $declConfigFilePath);
+            configureAppCode: static function (AppCodeHostParams $appCodeParams): void {
             },
             appCodeClassMethod: [__CLASS__, 'appForTestHandlingRemoteConfig'],
-            assertResults: function (Span $lastSpan) use ($testArgs, $agentRemoteConfig, $declConfigFilePath): void {
+            assertResults: static function (Span $lastSpan) use ($testArgs, $agentRemoteConfig): void {
+                DebugContext::getCurrentScope(/* out */ $dbgCtx);
+                self::extractGetRemoteConfigAttributesToDebug($lastSpan->attributes, $dbgCtx);
                 $elasticConfigFile = ArrayUtil::getValueIfKeyExistsElse(RemoteConfigHandler::ELASTIC_FILE_NAME, $agentRemoteConfig->config->configMap, null);
                 $isRemoteConfigExpectedToBeAppliedByNativePart = self::isRemoteConfigExpectedToBeAppliedByNativePart($testArgs, $agentRemoteConfig);
-                $decodeElasticConfigFile = ($isRemoteConfigExpectedToBeAppliedByNativePart && $declConfigFilePath === null && $elasticConfigFile !== null)
-                    ? self::decodeElasticConfigFileFromMap($elasticConfigFile) : null;
+                $decodedElasticConfigFile = ($isRemoteConfigExpectedToBeAppliedByNativePart && $elasticConfigFile !== null) ? self::decodeElasticConfigFileFromMap($elasticConfigFile) : null;
 
                 AssertEx::equalMaps(
                     $isRemoteConfigExpectedToBeAppliedByNativePart ? array_map(fn($file) => $file->body, $agentRemoteConfig->config->configMap) : [],
@@ -295,18 +296,18 @@ final class RemoteConfigTest extends ComponentTestCaseBase
                     $isRemoteConfigExpectedToBeAppliedByNativePart ? $elasticConfigFile?->body : null,
                     AssertEx::isNullableString(JsonUtil::decode($lastSpan->attributes->getString(self::GET_REMOTE_CONFIGURATION_ELASTIC_RESULT_KEY)))
                 );
-                if ($decodeElasticConfigFile === null) {
+                if ($decodedElasticConfigFile === null) {
                     self::assertNull(JsonUtil::decode($lastSpan->attributes->getString(self::LAST_APPLIED_ELASTIC_FILE_KEY)));
                 } else {
-                    AssertEx::equalMaps($decodeElasticConfigFile, AssertEx::isArray(JsonUtil::decode($lastSpan->attributes->getString(self::LAST_APPLIED_ELASTIC_FILE_KEY))));
+                    AssertEx::equalMaps($decodedElasticConfigFile, AssertEx::isArray(JsonUtil::decode($lastSpan->attributes->getString(self::LAST_APPLIED_ELASTIC_FILE_KEY))));
                 }
             }
         );
     }
 
-    private static function elasticLogLevelOpt(): OptionForProdName
+    private static function elasticLogLevelOptionForLoggingTest(): OptionForProdName
     {
-        return OptionForProdName::log_level_syslog;
+        return AmbientContextForTests::testConfig()->escalatedRerunsProdCodeLogLevelOptionName();
     }
 
     /**
@@ -326,7 +327,7 @@ final class RemoteConfigTest extends ComponentTestCaseBase
                     [null, PsrLogLevel::emergency->name, PsrLogLevel::warning->name]
                 )
                 ->addKeyedDimensionOnlyFirstValueCombinable(
-                    self::elasticLogLevelOpt()->toEnvVarName(),
+                    self::elasticLogLevelOptionForLoggingTest()->toEnvVarName(),
                     [null, LogLevel::error->name, LogLevel::debug->name]
                 )
         );
@@ -358,6 +359,8 @@ final class RemoteConfigTest extends ComponentTestCaseBase
 
     public static function appForTestLoggingLevel(): void
     {
+        self::addGetRemoteConfigAttributes();
+
         OTelUtil::addActiveSpanAttributes(
             [
                 self::ACTUAL_OTEL_LOG_LEVEL_KEY => self::discoverOTelInternalLoggingLogLevelName(OTelInternalLogging::logLevel()),
@@ -394,30 +397,31 @@ final class RemoteConfigTest extends ComponentTestCaseBase
      */
     public function testLoggingLevel(MixedMap $testArgs): void
     {
-        DebugContext::getCurrentScope(/* out */ $dbgCtx);
-
         $remoteCfgLevel = $testArgs->get(self::REMOTE_CONFIG_LOGGING_LEVEL_KEY);
         $localOTelLevel = $testArgs->getNullableString(RemoteConfigHandler::OTEL_LOG_LEVEL_OPTION_NAME);
-        $localElasticLevel = $testArgs->getNullableString(self::elasticLogLevelOpt()->toEnvVarName());
+        $localElasticLevel = $testArgs->getNullableString(self::elasticLogLevelOptionForLoggingTest()->toEnvVarName());
 
         $this->implTestOption(
             $testArgs,
-            buildAgentRemoteConfig: function () use ($remoteCfgLevel): AgentRemoteConfig {
+            buildAgentRemoteConfig: static function () use ($remoteCfgLevel): AgentRemoteConfig {
                 return self::buildAgentRemoteConfig([RemoteConfigHandler::LOGGING_LEVEL_REMOTE_CONFIG_OPTION_NAME => $remoteCfgLevel]);
             },
-            configureAppCode: function (AppCodeHostParams $appCodeParams) use ($localOTelLevel, $localElasticLevel): void {
+            configureAppCode: static function (AppCodeHostParams $appCodeParams) use ($localOTelLevel, $localElasticLevel): void {
                 $appCodeParams->setProdOptionIfNotNull(OptionForProdName::log_level, $localOTelLevel);
-                $appCodeParams->setProdOptionIfNotNull(self::elasticLogLevelOpt(), $localElasticLevel);
+                $appCodeParams->setProdOptionIfNotNull(self::elasticLogLevelOptionForLoggingTest(), $localElasticLevel);
             },
             appCodeClassMethod: [__CLASS__, 'appForTestLoggingLevel'],
-            assertResults: function (Span $lastSpan) use ($dbgCtx, $localOTelLevel, $localElasticLevel, $remoteCfgLevel): void {
+            assertResults: static function (Span $lastSpan) use ($localOTelLevel, $localElasticLevel, $remoteCfgLevel): void {
+                DebugContext::getCurrentScope(/* out */ $dbgCtx);
+                self::extractGetRemoteConfigAttributesToDebug($lastSpan->attributes, $dbgCtx);
                 $expectedLevels = self::deriveExpectedLogLevels($localOTelLevel, $localElasticLevel, $remoteCfgLevel);
                 $dbgCtx->add(compact('expectedLevels'));
                 $expectedOTelLevel = $expectedLevels['OTel'];
                 $expectedElasticLevel = $expectedLevels['Elastic'];
                 self::assertSame($expectedOTelLevel, $lastSpan->attributes->getString(self::ACTUAL_OTEL_LOG_LEVEL_KEY));
                 self::assertSame($expectedElasticLevel, $lastSpan->attributes->getString(self::ACTUAL_ELASTIC_LOG_LEVEL_KEY));
-            }
+            },
+            escalateLogLevelOnFailure: false
         );
     }
 
@@ -509,15 +513,15 @@ final class RemoteConfigTest extends ComponentTestCaseBase
 
         $this->implTestOption(
             $testArgs,
-            buildAgentRemoteConfig: function () use ($remoteCfgSamplingRate): AgentRemoteConfig {
+            buildAgentRemoteConfig: static function () use ($remoteCfgSamplingRate): AgentRemoteConfig {
                 return self::buildAgentRemoteConfig([RemoteConfigHandler::SAMPLING_RATE_REMOTE_CONFIG_OPTION_NAME => $remoteCfgSamplingRate]);
             },
-            configureAppCode: function (AppCodeHostParams $appCodeParams) use ($localCfgSampler, $localCfgSamplerArg): void {
+            configureAppCode: static function (AppCodeHostParams $appCodeParams) use ($localCfgSampler, $localCfgSamplerArg): void {
                 $appCodeParams->setProdOptionIfNotNull(OptionForProdName::sampler, $localCfgSampler);
                 $appCodeParams->setProdOptionIfNotNull(OptionForProdName::sampler_arg, $localCfgSamplerArg);
             },
             appCodeClassMethod: [__CLASS__, 'appForTestSamplingRate'],
-            assertResults: function (Span $lastSpan) use ($dbgCtx, $localCfgSampler, $localCfgSamplerArg, $remoteCfgSamplingRate): void {
+            assertResults: static function (Span $lastSpan) use ($dbgCtx, $localCfgSampler, $localCfgSamplerArg, $remoteCfgSamplingRate): void {
                 $expectedSamplerAndArg = self::deriveExpectedSamplerAndArg($localCfgSampler, $localCfgSamplerArg, $remoteCfgSamplingRate);
                 $dbgCtx->add(compact('expectedSamplerAndArg'));
                 $actualSamplerAndArg = AssertEx::isArray(JsonUtil::decode($lastSpan->attributes->getString(self::ACTUAL_SAMPLER_AND_ARG_KEY)));

@@ -25,13 +25,9 @@ namespace ElasticOTelTests\ComponentTests\Util;
 
 use Closure;
 use Elastic\OTel\Log\LogLevel;
-use Elastic\OTel\Util\BoolUtil;
 use ElasticOTelTests\Util\AmbientContextForTests;
-use ElasticOTelTests\Util\ClassNameUtil;
 use ElasticOTelTests\Util\EnvVarUtil;
 use ElasticOTelTests\Util\ExceptionUtil;
-use ElasticOTelTests\Util\HttpMethods;
-use ElasticOTelTests\Util\HttpStatusCodes;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
 use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LoggableToString;
@@ -106,7 +102,11 @@ abstract class SpawnedProcessBase implements LoggableInterface
             $thisObj->processConfig();
 
             if ($thisObj->shouldRegisterThisProcessWithResourcesCleaner()) {
-                $thisObj->registerWithResourcesCleaner();
+                $resourcesClient = new ResourcesClient(
+                    AmbientContextForTests::testConfig()->dataPerProcess()->resourcesCleanerSpawnedProcessInternalId,
+                    AmbientContextForTests::testConfig()->dataPerProcess()->resourcesCleanerPort,
+                );
+                $resourcesClient->registerProcessToTerminate(AmbientContextForTests::dbgProcessName(), $thisObj->isThisProcessTestScoped());
             }
 
             $runImpl($thisObj);
@@ -146,32 +146,6 @@ abstract class SpawnedProcessBase implements LoggableInterface
         return false;
     }
 
-    protected function registerWithResourcesCleaner(): void
-    {
-        $loggerProxyDebug = $this->logger->ifDebugLevelEnabledNoLine(__FUNCTION__);
-        $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Registering with ' . ClassNameUtil::fqToShort(ResourcesCleaner::class) . '...');
-
-        Assert::assertNotNull(AmbientContextForTests::testConfig()->dataPerProcess()->resourcesCleanerPort);
-        $resCleanerId = AmbientContextForTests::testConfig()->dataPerProcess()->resourcesCleanerSpawnedProcessInternalId;
-        Assert::assertNotNull($resCleanerId);
-        $response = HttpClientUtilForTests::sendRequest(
-            HttpMethods::POST,
-            new UrlParts(port: AmbientContextForTests::testConfig()->dataPerProcess()->resourcesCleanerPort, path: ResourcesCleaner::REGISTER_PROCESS_TO_TERMINATE_URI_PATH),
-            new TestInfraDataPerRequest(spawnedProcessInternalId: $resCleanerId),
-            [
-                ResourcesCleaner::DBG_PROCESS_NAME_HEADER_NAME => AmbientContextForTests::dbgProcessName(),
-                ResourcesCleaner::PID_HEADER_NAME => strval(getmypid()),
-                ResourcesCleaner::IS_TEST_SCOPED_HEADER_NAME => BoolUtil::toString($this->isThisProcessTestScoped()),
-            ],
-        );
-        if ($response->getStatusCode() !== HttpStatusCodes::OK) {
-            throw new ComponentTestsInfraException('Failed to register with ' . ClassNameUtil::fqToShort(ResourcesCleaner::class));
-        }
-
-        $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Successfully registered with ' . ClassNameUtil::fqToShort(ResourcesCleaner::class));
-    }
-
-
     /**
      * @phpstan-param EnvVars $envVars
      */
@@ -180,10 +154,10 @@ abstract class SpawnedProcessBase implements LoggableInterface
         $logger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__);
         $logger->addAllContext(compact('dbgProcessName', 'command', 'envVars'));
 
-        $procInfo = ProcessUtil::startProcessAndWaitForItToExit($dbgProcessName, $command, $envVars, /* maxWaitTimeInMicroseconds - 30 seconds */ 30 * 1000 * 1000);
-        $logger->addAllContext(compact('procInfo'));
+        $procStatus = ProcessUtil::startProcessAndWaitForItToExit($dbgProcessName, $command, $envVars, /* maxWaitTimeInMicroseconds - 30 seconds */ 30 * 1000 * 1000);
+        $logger->addAllContext(compact('procStatus'));
 
-        if ($procInfo['exitCode'] === SpawnedProcessBase::FAILURE_PROCESS_EXIT_CODE) {
+        if ($procStatus->exitCode === SpawnedProcessBase::FAILURE_PROCESS_EXIT_CODE) {
             ($loggerProxyError = $logger->ifErrorLevelEnabled(__LINE__, __FUNCTION__)) && $loggerProxyError->log('Process exited with the failure exit code');
             throw new ComponentTestsInfraException(ExceptionUtil::buildMessage('Process exited with the failure exit code', $logger->getContext()));
         }

@@ -43,18 +43,6 @@ enum RemoteConfigLoggingLevel
     case fatal;
     case off;
 
-    public function toOTelInternalLogLevel(): OTelInternalLogLevel
-    {
-        return match ($this) {
-            self::trace, self::debug => OTelInternalLogLevel::debug,
-            self::info => OTelInternalLogLevel::info,
-            self::warn => OTelInternalLogLevel::warning,
-            self::error => OTelInternalLogLevel::error,
-            self::fatal => OTelInternalLogLevel::critical,
-            self::off => OTelInternalLogLevel::none,
-        };
-    }
-
     public function toElasticLogLevel(): LogLevel
     {
         return match ($this) {
@@ -65,6 +53,18 @@ enum RemoteConfigLoggingLevel
             self::error => LogLevel::error,
             self::fatal => LogLevel::critical,
             self::off => LogLevel::off,
+        };
+    }
+
+    public function toOTelInternalLogLevel(): OTelInternalLogLevel
+    {
+        return match ($this) {
+            self::trace, self::debug => OTelInternalLogLevel::debug,
+            self::info => OTelInternalLogLevel::info,
+            self::warn => OTelInternalLogLevel::warning,
+            self::error => OTelInternalLogLevel::error,
+            self::fatal => OTelInternalLogLevel::critical,
+            self::off => OTelInternalLogLevel::none,
         };
     }
 }

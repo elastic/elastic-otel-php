@@ -70,7 +70,7 @@ final class ConfigSnapshotForProd implements LoggableInterface
         self::setPropertiesToValuesFrom($optNameToParsedValue);
     }
 
-    public function effectiveLogLevel(): LogLevel
+    public function effectiveLogLevel(bool $elasticOnly = false): LogLevel
     {
         $maxFoundLevel = LogLevel::off;
 
@@ -86,7 +86,16 @@ final class ConfigSnapshotForProd implements LoggableInterface
             $keepMaxLevel($this->logLevelFile);
         }
 
+        if (!$elasticOnly) {
+            $keepMaxLevel($this->logLevel->toElasticLogLevel());
+        }
+
         return $maxFoundLevel;
+    }
+
+    public function effectiveElasticLogLevel(): LogLevel
+    {
+        return $this->effectiveLogLevel(elasticOnly: true);
     }
 
     /** @noinspection PhpUnused */

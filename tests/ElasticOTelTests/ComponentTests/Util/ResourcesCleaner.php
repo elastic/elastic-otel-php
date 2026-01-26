@@ -26,6 +26,7 @@ namespace ElasticOTelTests\ComponentTests\Util;
 use Ds\Set;
 use ElasticOTelTests\Util\AmbientContextForTests;
 use ElasticOTelTests\Util\AssertEx;
+use ElasticOTelTests\Util\EnvVarUtil;
 use ElasticOTelTests\Util\JsonUtil;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
 use ElasticOTelTests\Util\Log\Logger;
@@ -35,8 +36,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use React\EventLoop\TimerInterface;
 
 /**
- * @phpstan-type ProcessesToTerminateData array{string, int}
- * @phpstan-type SetOfProcessesToTerminateData Set<ProcessesToTerminateData>
+ * @phpstan-import-type PidToDbgDesc from ProcessUtil
  */
 final class ResourcesCleaner extends TestInfraHttpServerProcessBase
 {
@@ -54,11 +54,11 @@ final class ResourcesCleaner extends TestInfraHttpServerProcessBase
     /** @var Set<string> */
     private Set $testScopedFilesToDeletePaths;
 
-    /** @var SetOfProcessesToTerminateData */
-    private Set $globalProcessesToTerminate;
+    /** @var PidToDbgDesc */
+    private array $globalProcessesToTerminate = [];
 
-    /** @var SetOfProcessesToTerminateData */
-    private Set $testScopedProcessesToTerminate;
+    /** @var PidToDbgDesc */
+    private array $testScopedProcessesToTerminate = [];
 
     private ?TimerInterface $parentProcessTrackingTimer = null;
 
@@ -68,9 +68,6 @@ final class ResourcesCleaner extends TestInfraHttpServerProcessBase
     {
         $this->globalFilesToDeletePaths = new Set();
         $this->testScopedFilesToDeletePaths = new Set();
-
-        $this->globalProcessesToTerminate = new Set();
-        $this->testScopedProcessesToTerminate = new Set();
 
         $this->logger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__)->addAllContext(compact('this'));
 
@@ -110,9 +107,9 @@ final class ResourcesCleaner extends TestInfraHttpServerProcessBase
 
     private function cleanSpawnedProcesses(bool $isTestScopedOnly): void
     {
-        $this->cleanSpawnedProcessesFrom(/* dbgProcessesSetDesc */ 'test scoped', $this->testScopedProcessesToTerminate);
+        $this->cleanSpawnedProcessesFrom(/* dbgProcessesSetDesc */ 'test scoped', /* ref */ $this->testScopedProcessesToTerminate);
         if (!$isTestScopedOnly) {
-            $this->cleanSpawnedProcessesFrom(/* dbgProcessesSetDesc */ 'global', $this->globalProcessesToTerminate);
+            $this->cleanSpawnedProcessesFrom(/* dbgProcessesSetDesc */ 'global', /* ref */ $this->globalProcessesToTerminate);
         }
     }
 
@@ -123,30 +120,31 @@ final class ResourcesCleaner extends TestInfraHttpServerProcessBase
     }
 
     /**
-     * @phpstan-param SetOfProcessesToTerminateData $processesToTerminateIds
+     * @param PidToDbgDesc $pidToDbgDesc
      */
-    private function cleanSpawnedProcessesFrom(string $dbgProcessesSetDesc, Set $processesToTerminateIds): void
+    private function cleanSpawnedProcessesFrom(string $dbgProcessesSetDesc, array &$pidToDbgDesc): void
     {
-        $processesToTerminateIdsCount = $processesToTerminateIds->count();
-        $localLogger = $this->logger->inherit();
-        $localLogger->addAllContext(compact('dbgProcessesSetDesc', 'processesToTerminateIdsCount'));
-        $loggerProxyDebug = $localLogger->ifDebugLevelEnabledNoLine(__FUNCTION__);
-        $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Terminating spawned processes...');
+        ProcessUtil::terminateProcessesTrees($dbgProcessesSetDesc, $pidToDbgDesc);
+        $pidToDbgDesc = [];
+    }
 
-        /** @var string $dbgProcessName */
-        /** @var int $pid */
-        foreach ($processesToTerminateIds as [$dbgProcessName, $pid]) {
-            $localLogger->addAllContext(compact('dbgProcessName', 'pid'));
-            if (!ProcessUtil::doesProcessExist($pid)) {
-                $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Spawned process does not exist anymore - no need to terminate');
-                continue;
-            }
-            $hasExitedNormally = ProcessUtil::terminateProcess($pid);
-            $hasExited = ProcessUtil::waitForProcessToExitUsingPid($dbgProcessName, $pid, /* maxWaitTimeInMicroseconds = 10 seconds */ 10 * 1000 * 1000);
-            $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Issued command to terminate spawned process', compact('hasExited', 'hasExitedNormally'));
+    private static function terminateProcess(string $dbgProcessName, int $pid, Logger $localLogger): void
+    {
+        $logDebug = $localLogger->ifDebugLevelEnabledNoLine(__FUNCTION__);
+
+        $localLogger->addAllContext(compact('dbgProcessName', 'pid'));
+        if (!ProcessUtil::doesProcessExist($pid)) {
+            $logDebug?->log(__LINE__, 'Spawned process does not exist anymore - no need to terminate');
+            return;
         }
+        $hasExitedNormally = ProcessUtil::terminateProcess($dbgProcessName, $pid);
+        $hasExited = ProcessUtil::waitForProcessToExitUsingPid($dbgProcessName, $pid, /* maxWaitTimeInMicroseconds = 10 seconds */ 10 * 1000 * 1000);
+        $logDebug?->log(__LINE__, 'Issued command to terminate spawned process', compact('hasExited', 'hasExitedNormally'));
+    }
 
-        $processesToTerminateIds->clear();
+    private static function terminateProcessTrees(int $pid): void
+    {
+        // TODO: Sergey Kleyman: Implement: ResourcesCleaner::
     }
 
     private function cleanFiles(bool $isTestScopedOnly): void

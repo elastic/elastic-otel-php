@@ -38,4 +38,16 @@ enum LogLevel: int
     case info     = 4;
     case debug    = 5;
     case trace    = 6;
+
+    public function toOTelInternalLogLevel(): OTelInternalLogLevel
+    {
+        return match ($this) {
+            self::off => OTelInternalLogLevel::none,
+            self::critical => OTelInternalLogLevel::critical,
+            self::error => OTelInternalLogLevel::error,
+            self::warning => OTelInternalLogLevel::warning,
+            self::info => OTelInternalLogLevel::info,
+            self::debug, self::trace => OTelInternalLogLevel::debug,
+        };
+    }
 }

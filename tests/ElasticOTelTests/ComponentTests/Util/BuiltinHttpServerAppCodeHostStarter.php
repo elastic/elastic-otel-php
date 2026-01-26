@@ -35,9 +35,9 @@ final class BuiltinHttpServerAppCodeHostStarter extends HttpServerStarter
 
     private function __construct(
         private readonly HttpAppCodeHostParams $appCodeHostParams,
-        private readonly ResourcesCleanerHandle $resourcesCleaner
+        ResourcesCleanerHandle $resourcesCleaner
     ) {
-        parent::__construct($appCodeHostParams->dbgProcessNamePrefix);
+        parent::__construct($appCodeHostParams->dbgProcessNamePrefix, $resourcesCleaner, isProcessTestScoped: true);
     }
 
     /**
