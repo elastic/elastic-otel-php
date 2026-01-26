@@ -41,13 +41,14 @@ jobs:
     env:
       BUCKET_NAME: "elastic-otel-php"
     permissions:
+      artifact-metadata: write
       attestations: write
-      id-token: write
       contents: write
+      id-token: write
     steps:
       - uses: actions/checkout@v6
       - name: Download package artifacts
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           pattern: packages-*
           path: ${{ env.BUILD_PACKAGES }}
@@ -97,7 +98,7 @@ jobs:
       # this artifact name is used also in some other places,
       # such as ./.github/workflows/test-packages.yml.
       # Therefore v4 cannot be used at the moment.
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           name: signed-artifacts
           path: signed-artifacts.zip
@@ -140,7 +141,7 @@ jobs:
             exit 1
           fi
       - uses: actions/checkout@v6
-      - uses: actions/download-artifact@v6
+      - uses: actions/download-artifact@v7
         with:
           name: signed-artifacts
           path: ${{ env.BUILD_PACKAGES }}

@@ -154,8 +154,8 @@ You can modify the following settings for EDOT PHP through APM Agent Central Con
 
 | Setting                            | Central configuration name      | Type    | Versions                                                               |
 |------------------------------------|---------------------------------| ------- |------------------------------------------------------------------------|
-| Turn off all instrumentations      | deactivate_all_instrumentations | Dynamic | {applies_to}`stack: preview 9.3` {applies_to}`edot_php: preview 1.3.0` |
-| Turn off selected instrumentations | deactivate_instrumentations     | Dynamic | {applies_to}`stack: preview 9.3` {applies_to}`edot_php: preview 1.3.0` |
+| Turn off all instrumentations      | deactivate_all_instrumentations | Dynamic | {applies_to}`stack: preview 9.3` {applies_to}`edot_php: preview 1.4.0` |
+| Turn off selected instrumentations | deactivate_instrumentations     | Dynamic | {applies_to}`stack: preview 9.3` {applies_to}`edot_php: preview 1.4.0` |
 | Logging level                      | logging_level                   | Dynamic | {applies_to}`stack: preview 9.1` {applies_to}`edot_php: preview 1.1.0` |
 | Sampling rate                      | sampling_rate                   | Dynamic | {applies_to}`stack: preview 9.3` {applies_to}`edot_php: preview 1.2.0` |
 
