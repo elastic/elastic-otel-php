@@ -24,7 +24,7 @@ declare(strict_types=1);
 namespace Elastic\OTel;
 
 use OpenTelemetry\SDK\Common\Attribute\Attributes;
-use OpenTelemetry\SDK\Registry;
+use OpenTelemetry\SDK\Registry as OTelSdkRegistry;
 use OpenTelemetry\SDK\Resource\ResourceDetectorInterface;
 use OpenTelemetry\SDK\Resource\ResourceInfo;
 use OpenTelemetry\SemConv\ResourceAttributes;
@@ -41,7 +41,7 @@ final class OverrideOTelSdkResourceAttributes implements ResourceDetectorInterfa
     public static function register(string $elasticOTelNativePartVersion): void
     {
         self::$distroVersion = self::buildDistroVersion($elasticOTelNativePartVersion);
-        Registry::registerResourceDetector(self::class, new self());
+        OTelSdkRegistry::registerResourceDetector(self::class, new self());
         BootstrapStageLogger::logDebug('Registered; distroVersion: ' . self::$distroVersion, __FILE__, __LINE__, __CLASS__, __FUNCTION__);
     }
 
