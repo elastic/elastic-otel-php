@@ -26,6 +26,7 @@ declare(strict_types=1);
 namespace Elastic\OTel;
 
 use Elastic\OTel\Util\ArrayUtil;
+use Elastic\OTel\Util\BoolUtil;
 use Elastic\OTel\Util\StaticClassTrait;
 use Elastic\OTel\Util\TextUtil;
 use Psr\Log\LogLevel as PsrLogLevel;
@@ -80,6 +81,17 @@ final class RemoteConfigHandler
     public const OTEL_PHP_DISABLED_INSTRUMENTATIONS = 'OTEL_PHP_DISABLED_INSTRUMENTATIONS';
 
     /**
+     * Should be the same as the string used by Kibana
+     * @see https://github.com/elastic/kibana/blob/v9.1.0/x-pack/solutions/observability/plugins/apm/common/agent_configuration/setting_definitions/edot_sdk_settings.ts#L33
+     */
+    public const DEACTIVATE_ALL_INSTRUMENTATIONS_CONFIG_OPTION_NAME = 'deactivate_all_instrumentations';
+    /**
+     * @see \OpenTelemetry\SDK\Sdk::OTEL_PHP_DISABLED_INSTRUMENTATIONS_ALL
+     * @see \OpenTelemetry\SDK\Sdk::isInstrumentationDisabled
+     */
+    public const OTEL_PHP_DISABLED_INSTRUMENTATIONS_ALL = 'all';
+
+    /**
      * Called by the extension
      *
      * @noinspection PhpUnused
@@ -114,6 +126,15 @@ final class RemoteConfigHandler
         self::parseAndApply($remoteConfigContent);
     }
 
+    private static function logUnexpectedRemoteOptValType(string $remoteOptName, mixed $remoteOptVal, string $dbgTypeDesc): void
+    {
+        self::logError(
+            "Remote config option value type is not as expected; option name: $remoteOptName ; actual value type: " . get_debug_type($remoteOptVal) . "; expected value type: $dbgTypeDesc",
+            __LINE__,
+            __FUNCTION__,
+        );
+    }
+
     /**
      * @param callable(mixed): bool $predicate
      */
@@ -123,22 +144,58 @@ final class RemoteConfigHandler
             return true;
         }
 
-        self::logError(
-            "Remote config option value type is not as expected; option name: $remoteOptName ; actual value type: " . get_debug_type($remoteOptVal) . "; expected value type: $dbgTypeDesc",
-            __LINE__,
-            __FUNCTION__,
-        );
+        self::logUnexpectedRemoteOptValType($remoteOptName, $remoteOptVal, $dbgTypeDesc);
         return false;
     }
 
+    /**
+     * @phpstan-assert-if-true string $remoteOptVal
+     */
     private static function verifyValueIsString(string $remoteOptName, mixed $remoteOptVal): bool
     {
         return self::verifyValueType($remoteOptName, $remoteOptVal, 'string', is_string(...));
     }
 
-    private static function verifyValueIsJsonFloat(string $remoteOptName, mixed $remoteOptVal): bool
+    /**
+     * @param-out float $parsedVal
+     *
+     * @phpstan-assert-if-true float $parsedVal
+     */
+    private static function parseValueAsJsonFloat(string $remoteOptName, mixed $remoteOptRawVal, /* out */ ?float &$parsedVal): bool
     {
-        return self::verifyValueType($remoteOptName, $remoteOptVal, 'float', is_numeric(...));
+        if (!self::verifyValueType($remoteOptName, $remoteOptRawVal, 'float', is_numeric(...))) {
+            return false;
+        }
+
+        /** @var float|int|numeric-string $remoteOptRawVal */
+        $parsedVal = floatval($remoteOptRawVal);
+        return true;
+    }
+
+    /**
+     * @param-out bool $parsedVal
+     *
+     * @phpstan-assert-if-true bool $parsedVal
+     */
+    private static function parseValueAsJsonBool(string $remoteOptName, mixed $remoteOptRawVal, /* out */ ?bool &$parsedVal): bool
+    {
+        if (is_string($remoteOptRawVal)) {
+            $remoteOptValAsBool = BoolUtil::parseValue($remoteOptRawVal);
+            if ($remoteOptValAsBool === null) {
+                self::logUnexpectedRemoteOptValType($remoteOptName, $remoteOptRawVal, 'bool as string');
+                return false;
+            }
+            $parsedVal = $remoteOptValAsBool;
+            return true;
+        }
+
+        if (!self::verifyValueType($remoteOptName, $remoteOptRawVal, 'bool', is_bool(...))) {
+            return false;
+        }
+        /** @var bool $remoteOptRawVal */
+
+        $parsedVal = $remoteOptRawVal;
+        return true;
     }
 
     private static function convertRemoteLoggingLevelToOTel(string $remoteLoggingLevel): ?string
@@ -236,11 +293,9 @@ final class RemoteConfigHandler
      */
     private static function parseAndApplySamplingRate(mixed $remoteOptVal): void
     {
-        if (!self::verifyValueIsJsonFloat(self::LOGGING_LEVEL_REMOTE_CONFIG_OPTION_NAME, $remoteOptVal)) {
+        if (!self::parseValueAsJsonFloat(self::LOGGING_LEVEL_REMOTE_CONFIG_OPTION_NAME, $remoteOptVal, /* out */ $remoteOptValAsFloat)) {
             return;
         }
-        /** @var float|int|numeric-string $remoteOptVal */
-        $remoteOptValAsFloat = floatval($remoteOptVal);
 
         if (!self::isInClosedRange(0, $remoteOptValAsFloat, 1)) {
             self::logError(
@@ -279,7 +334,8 @@ final class RemoteConfigHandler
         );
 
         match ($remoteOptName) {
-            self::DEACTIVATE_INSTRUMENTATIONS_CONFIG_OPTION_NAME => self::parseAndApplyDeactivateInstrumentations($remoteOptVal),
+            // deactivate_all_instrumentations and deactivate_instrumentations are handled in the caller
+            self::DEACTIVATE_ALL_INSTRUMENTATIONS_CONFIG_OPTION_NAME, self::DEACTIVATE_INSTRUMENTATIONS_CONFIG_OPTION_NAME => null,
             self::LOGGING_LEVEL_REMOTE_CONFIG_OPTION_NAME => self::parseAndApplyLoggingLevel($remoteOptVal),
             self::SAMPLING_RATE_REMOTE_CONFIG_OPTION_NAME => self::parseAndApplySamplingRate($remoteOptVal),
             default => self::logDebug(
@@ -311,17 +367,41 @@ final class RemoteConfigHandler
     }
 
     /**
+     * @param array<array-key, mixed> $remoteOptNameToVal
+     *
      * @see https://github.com/elastic/kibana/blob/v9.1.0/x-pack/solutions/observability/plugins/apm/common/agent_configuration/setting_definitions/edot_sdk_settings.ts#L15
      * @see \OpenTelemetry\SDK\Sdk::isInstrumentationDisabled
      */
-    private static function parseAndApplyDeactivateInstrumentations(mixed $remoteOptVal): void
+    private static function parseAndApplyDeactivateInstrumentations(array $remoteOptNameToVal): void
     {
-        if (!self::verifyValueIsString(self::DEACTIVATE_INSTRUMENTATIONS_CONFIG_OPTION_NAME, $remoteOptVal)) {
-            return;
+        $deactivateAllInstrumentations = false;
+        if (
+            array_key_exists(self::DEACTIVATE_ALL_INSTRUMENTATIONS_CONFIG_OPTION_NAME, $remoteOptNameToVal)
+            && self::parseValueAsJsonBool(
+                self::DEACTIVATE_ALL_INSTRUMENTATIONS_CONFIG_OPTION_NAME,
+                $remoteOptNameToVal[self::DEACTIVATE_ALL_INSTRUMENTATIONS_CONFIG_OPTION_NAME],
+                $parsedDeactivateAllInstrumentations /* <- out */,
+            )
+        ) {
+            $deactivateAllInstrumentations = $parsedDeactivateAllInstrumentations;
         }
-        /** @var string $remoteOptVal */
 
-        self::setEnvVarToRemoteConfigVal(self::OTEL_PHP_DISABLED_INSTRUMENTATIONS, $remoteOptVal, self::mergeDisabledInstrumentations(...));
+        $deactivateInstrumentationsVal = null;
+        if (
+            array_key_exists(self::DEACTIVATE_INSTRUMENTATIONS_CONFIG_OPTION_NAME, $remoteOptNameToVal)
+            && self::verifyValueIsString(
+                self::DEACTIVATE_INSTRUMENTATIONS_CONFIG_OPTION_NAME,
+                ($deactivateInstrumentationsRemoteVal = $remoteOptNameToVal[self::DEACTIVATE_ALL_INSTRUMENTATIONS_CONFIG_OPTION_NAME]),
+            )
+        ) {
+            $deactivateInstrumentationsVal = $deactivateInstrumentationsRemoteVal;
+        }
+
+        if ($deactivateAllInstrumentations) {
+            self::setEnvVarToRemoteConfigVal(self::OTEL_PHP_DISABLED_INSTRUMENTATIONS, self::OTEL_PHP_DISABLED_INSTRUMENTATIONS_ALL);
+        } elseif ($deactivateInstrumentationsVal != null) {
+            self::setEnvVarToRemoteConfigVal(self::OTEL_PHP_DISABLED_INSTRUMENTATIONS, $deactivateInstrumentationsVal, self::mergeDisabledInstrumentations(...));
+        }
     }
 
     private static function parseAndApply(string $remoteConfigContent): void
@@ -333,6 +413,8 @@ final class RemoteConfigHandler
         foreach ($remoteOptNameToVal as $remoteOptName => $remoteOptVal) {
             self::parseAndApplyOption($remoteOptName, $remoteOptVal);
         }
+
+        self::parseAndApplyDeactivateInstrumentations($remoteOptNameToVal);
     }
 
     private static function logDebug(string $message, int $lineNumber, string $func): void
