@@ -69,6 +69,7 @@ final class RemoteConfigHandler
      * @see https://github.com/elastic/kibana/blob/v9.1.0/x-pack/solutions/observability/plugins/apm/common/agent_configuration/setting_definitions/edot_sdk_settings.ts#L33
      */
     public const DEACTIVATE_ALL_INSTRUMENTATIONS_CONFIG_OPTION_NAME = 'deactivate_all_instrumentations';
+    
     /**
      * @see \OpenTelemetry\SDK\Sdk::OTEL_PHP_DISABLED_INSTRUMENTATIONS_ALL
      * @see \OpenTelemetry\SDK\Sdk::isInstrumentationDisabled

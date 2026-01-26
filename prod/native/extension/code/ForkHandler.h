@@ -19,4 +19,4 @@
 
 #pragma once
 
-void registerCallbacksToLogFork();
+void registerCallbacksToHandleFork();
