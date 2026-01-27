@@ -23,8 +23,10 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
+use Elastic\OTel\Util\ArrayUtil;
 use Elastic\OTel\Util\StaticClassTrait;
 use ElasticOTelTests\Util\AmbientContextForTests;
+use ElasticOTelTests\Util\ArrayUtilForTests;
 use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\EnvVarUtil;
@@ -37,6 +39,8 @@ use PHPUnit\Framework\Assert;
  * @phpstan-type PidParentPidCmd array{'pid': int, 'parentPid': int, 'cmd': string}
  * @phpstan-type PidToDbgDesc array<int, string>
  * @phpstan-type PidToParentPid array<int, int>
+ * @phpstan-type PidList list<int>
+ * @phpstan-type PidToPidList array<int, PidList>
  *
  * @phpstan-import-type EnvVars from EnvVarUtil
  */
@@ -185,12 +189,75 @@ final class ProcessUtil
     }
 
     /**
+     * @param PidList $rootsPids
      * @param PidToParentPid $pidToParentPid
+     *
+     * @return PidList
      */
-    public static function orderTopologically(array $pidToParentPid): array
+    private static function removeDescendantRoots(array $rootsPids, array $pidToParentPid): array
     {
-        // TODO: Sergey Kleyman: Implement: ProcessUtil::terminateProcessesTrees
-        return [];
+        while (true) {
+
+        }
+    }
+
+    /**
+     * @param PidToParentPid $pidToParentPid
+     *
+     * @return PidToPidList
+     */
+    private static function derivePidToChildrenPids(array $pidToParentPid): array
+    {
+        $result = [];
+        foreach ($pidToParentPid as $pid => $parentPid) {
+            $children = ArrayUtil::getValueIfKeyExistsElse($parentPid, $pidToParentPid, []);
+            $children[] = $pid;
+            $result[$parentPid] = $children;
+        }
+        return $result;
+    }
+
+    /**
+     * @param PidToPidList $pidToChildrenPids
+     *
+     * @return PidList
+     */
+    private static function getToDescendantPids(int $rootPid, array $pidToChildrenPids): array
+    {
+        $result = ArrayUtil::getValueIfKeyExistsElse($rootPid, $pidToChildrenPids, fallbackValue: []);
+        $nextIndexToProcess = 0;
+        while (($nextIndexToProcess + 1) < count($result)) {
+            $currentPid = $result[$nextIndexToProcess++];
+            ArrayUtilForTests::append(ArrayUtil::getValueIfKeyExistsElse($currentPid, $pidToChildrenPids, fallbackValue: []), /* ref */ $result);
+        }
+        return $result;
+    }
+
+    /**
+     * @param array<int> $rootPids
+     * @param PidToChildrenPids $pidToChildrenPids
+     */
+    public static function orderTopologically(array $rootPids, array $pidToChildrenPids): array
+    {
+        $result = [];
+        $pathBackToRoot = [];
+        foreach ($rootPids as $rootPid) {
+            $result[] = self::orderTopologicallyFrom($rootPid, $pidToChildrenPids);
+        }
+
+        // TODO: Sergey Kleyman: Implement: ProcessUtil::orderTopologically
+        return $result;
+    }
+
+    /**
+     * @param PidToChildrenPids $pidToChildrenPids
+     */
+    public static function orderTopologicallyFrom(int $rootPid, array $pidToChildrenPids): array
+    {
+        $result = [];
+
+        // TODO: Sergey Kleyman: Implement: ProcessUtil::orderTopologically
+        return $result;
     }
 
     private static function execKillCommand(int $pid, bool $force = true): bool

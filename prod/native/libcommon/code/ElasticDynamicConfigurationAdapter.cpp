@@ -55,12 +55,16 @@ std::unordered_map<std::string, std::string> ElasticDynamicConfigurationAdapter:
 
 void ElasticDynamicConfigurationAdapter::update(configFiles_t const &files) {
     auto elasticConfig = files.find("elastic"s);
-    if (elasticConfig == std::end(files)) {
+    if (elasticConfig == std::end(files) || elasticConfig->second.empty()) {
         options_.clear();
         return;
     }
 
-    options_ = remapOptions(parseJsonConfigFile(elasticConfig->second));
+    try {
+        options_ = remapOptions(parseJsonConfigFile(elasticConfig->second));
+    } catch (std::exception const &e) {
+        ELOG_WARNING(logger_, CONFIG, "Failed to parse elastic dynamic configuration file: {}", e.what());
+    }
 }
 
 ElasticDynamicConfigurationAdapter::optionsMap_t ElasticDynamicConfigurationAdapter::remapOptions(optionsMap_t remoteOptions) const {

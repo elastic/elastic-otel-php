@@ -78,16 +78,6 @@ final class BootstrapStageLogger
         self::$phpSrcCodePathPrefixToRemove = $phpSrcCodeRootDir . DIRECTORY_SEPARATOR;
         self::$classNamePrefixToRemove = $rootNamespace . '\\';
 
-///////////////////////////////////////////////////////////////////////////
-// TODO: Sergey Kleyman: BEGIN: REMOVE: ::
-///////////////////////////////////////
-        if (!class_exists(BootstrapStageStdErrWriter::class)) {
-            require __DIR__ . DIRECTORY_SEPARATOR . 'BootstrapStageStdErrWriter.php';
-        }
-        BootstrapStageStdErrWriter::writeLine(__METHOD__ . ': ' . json_encode(compact('maxEnabledLevel')));
-///////////////////////////////////////
-// END: REMOVE
-////////////////////////////////////////////////////////////////////////////
         self::logDebug(
             'Exiting...'
             . '; maxEnabledLevel: ' . self::levelToString($maxEnabledLevel)

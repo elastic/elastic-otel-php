@@ -17,6 +17,20 @@ products:
 
 EDOT PHP is a [distribution](https://opentelemetry.io/docs/concepts/distributions/) of OpenTelemetry PHP. It inherits all the [supported](opentelemetry://reference/compatibility/nomenclature.md) technologies of the OpenTelemetry PHP.
 
+:::{note} - Understanding auto-instrumentation scope
+
+Auto-instrumentation automatically captures telemetry for the frameworks and libraries listed on this page. However, it cannot instrument:
+
+- Custom or proprietary frameworks and libraries
+- Closed-source components without instrumentation support
+- Application-specific business logic
+
+If your application uses technologies not covered by auto-instrumentation, you have two options:
+
+1. **Native OpenTelemetry support** — Some frameworks and libraries include built-in OpenTelemetry instrumentation provided by the vendor.
+2. **Manual instrumentation** — Use the [OpenTelemetry API](https://opentelemetry.io/docs/languages/php/instrumentation/) to add custom spans, metrics, and logs for unsupported components.
+:::
+
 ## EDOT Collector and Elastic Stack versions
 
 EDOT PHP sends data through the OpenTelemetry protocol (OTLP). While OTLP ingest works with later 8.16+ versions of the EDOT Collector, for full support use either [EDOT Collector](elastic-agent://reference/edot-collector/index.md) versions 9.x or [{{serverless-full}}](docs-content://deploy-manage/deploy/elastic-cloud/serverless.md) for OTLP ingest.
@@ -67,6 +81,21 @@ The following libraries are supported:
 - HTTP Async (php-http/httplug) version 2.x
 - MySQLi versions 8.1 to 8.4
 - PDO versions 8.1 to 8.4
+
+## Instrumentations
+
+The following instrumentations are included in EDOT PHP.
+
+| Name  | Included from EDOT PHP version | Link to packagist.org |
+| ----- | ------------------------------ | --------------------- |
+| curl | 1.0 | [open-telemetry/opentelemetry-auto-curl](https://packagist.org/packages/open-telemetry/opentelemetry-auto-curl) |
+| http-async-client | 1.0 | [open-telemetry/opentelemetry-auto-http-async](https://packagist.org/packages/open-telemetry/opentelemetry-auto-http-async) |
+| laravel | 1.0 | [open-telemetry/opentelemetry-auto-laravel](https://packagist.org/packages/open-telemetry/opentelemetry-auto-laravel) |
+| mysqli | 1.0 | [open-telemetry/opentelemetry-auto-mysqli](https://packagist.org/packages/open-telemetry/opentelemetry-auto-mysqli) |
+| pdo | 1.0 | [open-telemetry/opentelemetry-auto-pdo](https://packagist.org/packages/open-telemetry/opentelemetry-auto-pdo) |
+| postgresql | 1.2 | [open-telemetry/opentelemetry-auto-postgresql](https://packagist.org/packages/open-telemetry/opentelemetry-auto-postgresql) |
+| slim | 1.0 | [open-telemetry/opentelemetry-auto-slim](https://packagist.org/packages/open-telemetry/opentelemetry-auto-slim) |
+
 
 ## Additional features and improvements
 ### Truly zero-config auto-instrumentation

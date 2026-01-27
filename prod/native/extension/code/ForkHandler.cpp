@@ -65,6 +65,9 @@ static void callbackToLogForkAfterInChild() {
     if (ELASTICAPM_G(globals) && ELASTICAPM_G(globals)->httpTransportAsync_) {
         ELASTICAPM_G(globals)->httpTransportAsync_->postfork(true);
     }
+    if (ELASTICAPM_G(globals) && ELASTICAPM_G(globals)->opAmp_) {
+        ELASTICAPM_G(globals)->opAmp_->postfork(true);
+    }
 }
 
 void registerCallbacksToHandleFork() {

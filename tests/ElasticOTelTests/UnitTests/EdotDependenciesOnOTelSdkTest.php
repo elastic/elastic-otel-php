@@ -25,19 +25,26 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\UnitTests;
 
-use Elastic\OTel\RemoteConfigHandler;
+use Elastic\OTel\Config\OTelConfigOptionValues;
 use ElasticOTelTests\Util\Config\OptionForProdName;
 use ElasticOTelTests\Util\Config\OptionsForProdDefaultValues;
 use ElasticOTelTests\Util\ReflectionUtil;
 use ElasticOTelTests\Util\TestCaseBase;
 use OpenTelemetry\API\Behavior\Internal\Logging as OTelInternalLogging;
+use OpenTelemetry\SDK\Common\Configuration\Variables as OTelSdkConfigVariables;
+use OpenTelemetry\SDK\Sdk as OTelSdk;
 
 final class EdotDependenciesOnOTelSdkTest extends TestCaseBase
 {
     public function testOTelLogLevelOptionNameInSync(): void
     {
-        self::assertSame(ReflectionUtil::getConstValue(OTelInternalLogging::class, 'OTEL_LOG_LEVEL'), RemoteConfigHandler::OTEL_LOG_LEVEL_OPTION_NAME);
-        self::assertSame(OptionForProdName::log_level->toEnvVarName(), RemoteConfigHandler::OTEL_LOG_LEVEL_OPTION_NAME);
+        /**
+         * @see \OpenTelemetry\API\Behavior\Internal\Logging::getLogLevel
+         * @noinspection PhpUnnecessaryFullyQualifiedNameInspection
+         */
+        $envVarNameActuallyUsedByOTelForLogLevel = ReflectionUtil::getConstValue(OTelInternalLogging::class, 'OTEL_LOG_LEVEL');
+        self::assertSame($envVarNameActuallyUsedByOTelForLogLevel, OTelSdkConfigVariables::OTEL_LOG_LEVEL);
+        self::assertSame($envVarNameActuallyUsedByOTelForLogLevel, OptionForProdName::log_level->toEnvVarName());
 
         self::assertSame(ReflectionUtil::getConstValue(OTelInternalLogging::class, 'DEFAULT_LEVEL'), OptionsForProdDefaultValues::LOG_LEVEL->name);
 
@@ -45,5 +52,10 @@ final class EdotDependenciesOnOTelSdkTest extends TestCaseBase
          * Also regarding verification of OTel log level values being in sync
          * @see \ElasticOTelTests\UnitTests\UtilTests\LogTests\OTelInternalLogLevelTest
          */
+    }
+
+    public function testDeactivateAllInstrumentationsRelatedNames(): void
+    {
+        self::assertSame(ReflectionUtil::getConstValue(OTelSdk::class, 'OTEL_PHP_DISABLED_INSTRUMENTATIONS_ALL'), OTelConfigOptionValues::DISABLED_INSTRUMENTATIONS_ALL);
     }
 }
