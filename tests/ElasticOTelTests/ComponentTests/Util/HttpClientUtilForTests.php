@@ -35,7 +35,6 @@ use ElasticOTelTests\Util\Log\Logger;
 use GuzzleHttp\Client;
 use GuzzleHttp\RequestOptions;
 use PHPUnit\Framework\Assert;
-use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 
 final class HttpClientUtilForTests
@@ -72,7 +71,7 @@ final class HttpClientUtilForTests
         $dbgCtx->add(compact('actualResponseStatusCode'));
 
         if ($requestParams->expectedHttpResponseStatusCode !== null) {
-            TestCase::assertSame($requestParams->expectedHttpResponseStatusCode, $actualResponseStatusCode);
+            Assert::assertSame($requestParams->expectedHttpResponseStatusCode, $actualResponseStatusCode);
         }
 
         $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Successfully sent HTTP request to app code');
@@ -84,7 +83,7 @@ final class HttpClientUtilForTests
      *
      * @noinspection PhpDocMissingThrowsInspection
      */
-    public static function sendRequest(string $httpMethod, UrlParts $urlParts, TestInfraDataPerRequest $dataPerRequest, array $headers = []): ResponseInterface
+    public static function sendRequest(string $httpMethod, UrlParts $urlParts, TestInfraDataPerRequest $dataPerRequest, array $headers = [], ?string $body = null): ResponseInterface
     {
         $localLogger = self::getLogger()->inherit()->addAllContext(compact('httpMethod', 'urlParts', 'dataPerRequest', 'headers'));
         ($loggerProxyDebug = $localLogger->ifDebugLevelEnabledNoLine(__FUNCTION__));
@@ -99,7 +98,7 @@ final class HttpClientUtilForTests
             $httpMethod,
             $urlRelPart,
             [
-                RequestOptions::HEADERS     =>
+                RequestOptions::HEADERS =>
                     $headers
                     + [RequestHeadersRawSnapshotSource::optionNameToHeaderName(OptionForTestsName::data_per_request->name) => PhpSerializationUtil::serializeToString($dataPerRequest)],
                 /*
@@ -130,6 +129,7 @@ final class HttpClientUtilForTests
                  */
                 RequestOptions::TIMEOUT => self::TIMEOUT_SECONDS,
             ]
+            + ($body === null ? [] : [RequestOptions::BODY => $body])
         );
 
         $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Sent HTTP request', ['response status code' => $response->getStatusCode()]);

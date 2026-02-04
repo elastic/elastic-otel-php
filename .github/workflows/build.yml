@@ -26,6 +26,9 @@ jobs:
   test-sources-license:
     uses: ./.github/workflows/test-sources-license.yml
 
+  test-non-CI-tools:
+    uses: ./.github/workflows/test-non-CI-tools.yml
+
   test-php-static-and-unit:
     uses: ./.github/workflows/test-php-static-and-unit.yml
 
@@ -71,6 +74,7 @@ jobs:
   ci:
     needs:
       - test-sources-license
+      - test-non-CI-tools
       - test-php-static-and-unit
       - tests-phpt
       - build-packages

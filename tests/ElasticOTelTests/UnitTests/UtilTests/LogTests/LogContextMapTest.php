@@ -79,7 +79,7 @@ class LogContextMapTest extends TestCaseBase
         $actualCtxEncodedAsJson = trim(substr($actualStmt->messageWithContext, strlen($stmtMsg)));
         $dbgCtx->add(compact('actualCtxEncodedAsJson'));
 
-        $actualCtx = JsonUtil::decode($actualCtxEncodedAsJson, asAssocArray: true);
+        $actualCtx = JsonUtil::decode($actualCtxEncodedAsJson);
         self::assertIsArray($actualCtx);
         $expectedCtx = [
             'stmt_key_1' => 'stmt_key_1 value', 'stmt_key_2' => 'stmt_key_2 value',

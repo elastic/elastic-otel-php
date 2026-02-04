@@ -11,6 +11,9 @@ export elastic_otel_php_test_groups_short_names=("${test_groups_short_names[@]:?
 export elastic_otel_php_otel_proto_version="${otel_proto_version:?}"
 export elastic_otel_php_native_otlp_exporters_based_on_php_impl_version="${native_otlp_exporters_based_on_php_impl_version:?}"
 
+# Make sure the following value is in sync with the rest of locations where it's used:
+#   - \ElasticOTelTools\Build\ComposerUtil::GENERATED_FILES_DIR_NAME
+# The path is relative to repo root
 export elastic_otel_php_build_tools_composer_lock_files_dir_name="generated_composer_lock_files"
 export elastic_otel_php_build_tools_composer_lock_files_dir="${repo_root_dir:?}/${elastic_otel_php_build_tools_composer_lock_files_dir_name:?}"
 
@@ -23,6 +26,20 @@ export elastic_otel_php_packages_adapted_to_PHP_81_rel_path="build/adapted_to_PH
 #   - tools/build/AdaptPackagesToPhp81.php
 # The path is relative to repo root
 export elastic_otel_php_composer_home_for_packages_adapted_to_PHP_81_rel_path="build/adapted_to_PHP_81/composer_home"
+
+# Make sure the following value is in sync with the rest of locations where it's used:
+#   - composer.json
+# The path is relative to repo root
+export elastic_otel_php_tests_generated_source_code_dir_rel_path="tests/GENERATED_source_code"
+
+function edot_log() {
+    local NUMBER_CALL_STACK_FRAMES=${#FUNCNAME[@]}
+    local CALLER_FRAME_INDEX=$((NUMBER_CALL_STACK_FRAMES-2))
+    local CALLER_FRAME_FILE="${BASH_SOURCE[${CALLER_FRAME_INDEX}]}"
+    local CALLER_FRAME_LINE="${BASH_LINENO[$((CALLER_FRAME_INDEX-1))]}" # BASH_LINENO is off by one index
+
+    echo "${CALLER_FRAME_FILE}:${CALLER_FRAME_LINE}: $*" 1>&2
+}
 
 function get_supported_php_versions_as_string() {
     local supported_php_versions_as_string=""
@@ -57,7 +74,7 @@ function convert_no_dot_to_dot_separated_version() {
     local no_dot_version_str_len=${#no_dot_version}
 
     if [ "${no_dot_version_str_len}" -ne 2 ]; then
-        echo "Dot version should have length 2"
+        edot_log "Dot version should have length 2"
         exit 1
     fi
 
@@ -99,7 +116,7 @@ function adapt_architecture_to_package_type() {
             adapted_x86_64=x86_64
             ;;
         *)
-            echo "Unknown package type: ${package_type}"
+            edot_log "Unknown package type: ${package_type}"
             exit 1
             ;;
     esac
@@ -112,7 +129,7 @@ function adapt_architecture_to_package_type() {
             echo "${adapted_x86_64}"
             ;;
         *)
-            echo "Unknown architecture: ${architecture}"
+            edot_log "Unknown architecture: ${architecture}"
             exit 1
             ;;
     esac
@@ -147,7 +164,7 @@ function select_elastic_otel_package_file() {
     done
 
     if [ "${found_files_count}" -ne 1 ]; then
-        echo "Number of found files should be 1, found_files_count: ${found_files_count}, found_files: ${found_files}"
+        edot_log "Number of found files should be 1, found_files_count: ${found_files_count}, found_files: ${found_files}"
         exit 1
     fi
 
@@ -160,7 +177,7 @@ function ensure_dir_exists_and_empty() {
     if [ -d "${dir_to_clean}" ]; then
         rm -rf "${dir_to_clean}"
         if [ -d "${dir_to_clean}" ]; then
-            echo "Directory ${dir_to_clean} still exists. Directory content:"
+            edot_log "Directory ${dir_to_clean} still exists. Directory content:"
             ls -l "${dir_to_clean}"
             exit 1
         fi
@@ -237,7 +254,7 @@ function copy_file() {
     local src_file="${1:?}"
     local dst_file="${2:?}"
 
-    echo "Copying file ${src_file} to ${dst_file} ..."
+    edot_log "Copying file ${src_file} to ${dst_file} ..."
     cp "${src_file}" "${dst_file}"
 }
 
@@ -245,7 +262,7 @@ function copy_file_overwrite() {
     local src_file="${1:?}"
     local dst_file="${2:?}"
 
-    echo "Copying file ${src_file} to ${dst_file} ..."
+    edot_log "Copying file ${src_file} to ${dst_file} ..."
     cp -f "${src_file}" "${dst_file}"
 }
 
@@ -259,7 +276,7 @@ function copy_dir_contents() {
         return
     fi
 
-    echo "Copying directory contents ${src_dir}/ to ${dst_dir}/ ..."
+    edot_log "Copying directory contents ${src_dir}/ to ${dst_dir}/ ..."
     cp -r "${src_dir}/"* "${dst_dir}/"
 }
 
@@ -273,15 +290,24 @@ function copy_dir_contents_overwrite() {
         return
     fi
 
-    echo "Copying directory contents ${src_dir}/ to ${dst_dir}/ ..."
+    edot_log "Copying directory contents ${src_dir}/ to ${dst_dir}/ ..."
     cp -r -f "${src_dir}/"* "${dst_dir}/"
+}
+
+function move_dir_contents () {
+    local SRC_DIR="$1"
+    local DST_DIR="$2"
+
+    edot_log "Moving directory ${SRC_DIR}/ contents to ${DST_DIR}/ ..."
+
+    find "${SRC_DIR}" -maxdepth 1 -not -path "${SRC_DIR}" -exec mv "{}" "${DST_DIR}/" \;
 }
 
 function delete_dir_contents() {
     local dir_contents_to_delete="${1:?}"
 
     if [ -d "${dir_contents_to_delete}" ]; then
-        echo "Deleting contents of ${dir_contents_to_delete}/ ..."
+        edot_log "Deleting contents of ${dir_contents_to_delete}/ ..."
         rm -rf "${dir_contents_to_delete:?}/"*
     fi
 }
@@ -290,11 +316,11 @@ function delete_temp_dir() {
     local dir_to_delete="${1:?}"
 
     if [ -n "${ELASTIC_OTEL_PHP_TOOLS_KEEP_TEMP_FILES+x}" ] && [ "${ELASTIC_OTEL_PHP_TOOLS_KEEP_TEMP_FILES}" == "true" ]; then
-        echo "Keeping temporary directory ${dir_to_delete}/"
+        edot_log "Keeping temporary directory ${dir_to_delete}/"
         return
     fi
 
-    echo "Deleting temporary directory ${dir_to_delete}/ ..."
+    edot_log "Deleting temporary directory ${dir_to_delete}/ ..."
     rm -rf "${dir_to_delete:?}/"
 }
 
@@ -331,7 +357,102 @@ function build_docker_env_vars_command_line_part () {
         if [ "${should_pass}" == "false" ] ; then
             continue
         fi
-        echo "Passing env var to docker: name: ${env_var_name}, value: ${env_var_value}"
+        edot_log "Passing env var to docker: name: ${env_var_name}, value: ${env_var_value}"
         result_var+=(-e "${env_var_name}=${env_var_value}")
     done < <(env)
+}
+
+function change_dir_permissions_to_current_user () {
+    local target_dir="$1"
+
+    local DOCKER_IMAGE="alpine"
+
+    docker pull "${DOCKER_IMAGE}"
+
+    local current_user_id
+    current_user_id="$(id -u)"
+    local current_user_group_id
+    current_user_group_id="$(id -g)"
+    docker run --rm -v "${target_dir}:/target_dir" -w /tmp "${DOCKER_IMAGE}" \
+        sh -c \
+        "\
+            chown -R ${current_user_id}:${current_user_group_id} /target_dir \
+            && chmod -R +r,u+w /target_dir \
+        "
+}
+
+function github_download_release_source_code_by_tag () {
+    local repo_org="$1"
+    local repo_name="$2"
+    local release_tag="$3"
+    local target_dir="$4"
+
+    local source_zip_file="${release_tag}.zip"
+    local source_zip_url="https://github.com/${repo_org}/${repo_name}/archive/refs/tags/${source_zip_file}"
+    local DOCKER_IMAGE="alpine"
+
+    docker pull "${DOCKER_IMAGE}"
+
+    local current_user_id
+    current_user_id="$(id -u)"
+    local current_user_group_id
+    current_user_group_id="$(id -g)"
+    docker run --rm -v "${target_dir}:/target_dir" -w /tmp "${DOCKER_IMAGE}" \
+        sh -c \
+        "\
+            apk update && apk add unzip wget \
+            && mkdir -p /tmp/target_dir && cd /tmp/target_dir \
+            && wget --output-document=source.zip \"${source_zip_url}\" \
+            && unzip source.zip \
+            && rm -f source.zip \
+            && find . -maxdepth 1 -type d -not -path '.' -exec cp --recursive --no-target-directory {} /target_dir \; \
+        "
+
+    change_dir_permissions_to_current_user "${target_dir}"
+}
+
+function generate_PHP_source_code_files_from_dot_proto () {
+    local DOT_PROTO_FILES_DIR="$1"
+    local GENERATED_SOURCE_CODE_FILES_DST_DIR="$2"
+
+    #
+    # Steps were copied from https://github.com/open-telemetry/opamp-go/blob/v0.22.0/makefile#L71
+    #
+
+    local DOCKER_IMAGE="otel/build-protobuf:0.25.0"
+
+    docker pull "${DOCKER_IMAGE}"
+
+    for DOT_PROTO_FILE_FULL_PATH in "${DOT_PROTO_FILES_DIR}/"*.proto; do
+        local DOT_PROTO_FILE
+        DOT_PROTO_FILE="$(basename "${DOT_PROTO_FILE_FULL_PATH}")"
+        docker run --rm \
+            -v "${DOT_PROTO_FILES_DIR}:/dot_proto_files_dir" \
+            -v "${GENERATED_SOURCE_CODE_FILES_DST_DIR}:/generated_source_code_files_dir" \
+            -w /generated_source_code_files_dir \
+            "${DOCKER_IMAGE}" \
+            --proto_path=/dot_proto_files_dir \
+            --php_out=/generated_source_code_files_dir \
+            "/dot_proto_files_dir/${DOT_PROTO_FILE}"
+    done
+
+    change_dir_permissions_to_current_user "${GENERATED_SOURCE_CODE_FILES_DST_DIR}"
+}
+
+log_caller_stack_trace() {
+    local NUMBER_CALL_STACK_FRAMES=${#FUNCNAME[@]}
+    edot_log "Call stack (${NUMBER_CALL_STACK_FRAMES} frames):"
+
+    local i
+    # Stop at 1 to skip the this function itself
+    # SC2004: $/${} is unnecessary on arithmetic variables.
+    # shellcheck disable=SC2004
+    for (( i=${NUMBER_CALL_STACK_FRAMES}-1; i>=1; i-- )); do
+        local CURRENT_FRAME_FUNC="${FUNCNAME[$i]}"
+        local CURRENT_FRAME_FILE="${BASH_SOURCE[$i]}"
+        local CURRENT_FRAME_LINE="${BASH_LINENO[$((i-1))]}" # BASH_LINENO is off by one index
+        edot_log "    ${CURRENT_FRAME_FILE}:${CURRENT_FRAME_LINE} ${CURRENT_FRAME_FUNC}()"
+    done
+    # Add the main script entry point
+    edot_log "    ${BASH_SOURCE[0]}:${BASH_LINENO[0]} main"
 }

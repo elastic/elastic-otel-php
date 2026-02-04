@@ -32,16 +32,21 @@ use ElasticOTelTests\ComponentTests\Util\HelperSleepsAndExitsWithArgCode;
 use ElasticOTelTests\ComponentTests\Util\InfraUtilForTests;
 use ElasticOTelTests\ComponentTests\Util\ProcessUtil;
 use ElasticOTelTests\Util\ArrayUtilForTests;
+use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\ClassNameUtil;
 use ElasticOTelTests\Util\Config\OptionForProdName;
 use ElasticOTelTests\Util\DataProviderForTestBuilder;
 use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\FileUtil;
+use ElasticOTelTests\Util\IterableUtil;
 use ElasticOTelTests\Util\MixedMap;
+use ElasticOTelTests\Util\OsUtil;
 
 /**
  * @group smoke
  * @group does_not_require_external_services
+ *
+ * @phpstan-import-type PidToParentPid from ProcessUtil
  */
 final class ProcessUtilTest extends ComponentTestCaseBase
 {
@@ -99,13 +104,62 @@ final class ProcessUtilTest extends ComponentTestCaseBase
         );
 
         $loggerProxy && $loggerProxy->log(__LINE__, 'Before ProcessUtil::startProcessAndWaitForItToExit');
-        $procInfo = ProcessUtil::startProcessAndWaitForItToExit($dbgProcessName, $command, $envVars, $waitForHelperToExitSecondsInMicroseconds);
-        $dbgCtx->add(compact('procInfo'));
+        $procStatus = ProcessUtil::startProcessAndWaitForItToExit($dbgProcessName, $command, $envVars, $waitForHelperToExitSecondsInMicroseconds);
+        $dbgCtx->add(compact('procStatus'));
         $loggerProxy && $loggerProxy->log(__LINE__, 'After ProcessUtil::startProcessAndWaitForItToExit');
         if ($shouldWaitSucceed) {
-            self::assertSame($exitCode, $procInfo['exitCode']);
+            self::assertSame($exitCode, $procStatus->exitCode);
         } else {
-            self::assertNull($procInfo['exitCode']);
+            self::assertNull($procStatus->exitCode);
         }
+    }
+
+    public static function testParseProcessesInfoPsOutput(): void
+    {
+        // ps -A -o pid= -o ppid= -o cmd=
+        //      ...
+        //      2440    2439 -bash
+        //      2743    2440 watch docker ps
+        //      ...
+
+        $psCmdOutputLines = [
+            '2440 2439 -bash',
+            "2743 \t 2440 \t watch docker \t ps",
+        ];
+        $expectedResult = [
+            ['pid' => 2440, 'parentPid' => 2439, 'cmd' => '-bash'],
+            ['pid' => 2743, 'parentPid' => 2440, 'cmd' => "watch docker \t ps"],
+        ];
+        $actualParseResult = ProcessUtil::parseProcessesInfoPsOutput($psCmdOutputLines);
+        self::assertCount(count($expectedResult), $actualParseResult);
+        foreach (IterableUtil::zip($expectedResult, $actualParseResult) as [$expectedParsedLine, $actualParsedLine]) {
+            AssertEx::arraysHaveTheSameContent($expectedParsedLine, $actualParsedLine);
+        }
+    }
+
+    public static function testOrderTopologically(): void
+    {
+        $testImpl = function (array $pidToParentPid): void {
+
+        };
+
+    }
+
+    public static function testDoesProcessExist(): void
+    {
+        if (OsUtil::isWindows()) {
+            self::dummyAssert();
+            return;
+        }
+
+        DebugContext::getCurrentScope(/* out */ $dbgCtx);
+
+        $currentPid = getmypid();
+        $allProcessesInfo = ProcessUtil::getAllProcessesInfo();
+        $dbgCtx->add(compact('currentPid', 'allProcessesInfo'));
+        self::assertTrue(ProcessUtil::doesProcessExist($currentPid));
+
+        $maxPid = array_reduce(array_keys($allProcessesInfo), fn($maxPid, $currPid) => $maxPid === null ? max($maxPid, $currPid) : $currPid);
+        self::assertFalse(ProcessUtil::doesProcessExist($maxPid + 1));
     }
 }

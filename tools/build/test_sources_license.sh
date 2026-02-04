@@ -7,7 +7,9 @@ find prod/native/ -type f \
 STATUS=$?
 find prod/php/ -type f -not -path "prod/php/vendor_*" -name *.php | xargs -L1 tools/license/check_license.sh
 STATUS=$(expr ${STATUS} + $?)
-find tests/ -type f -name *.php | xargs -L1 tools/license/check_license.sh
+find tests/ -type f \
+	-not -path "tests/GENERATED_source_code/*" \
+    -name *.php | xargs -L1 tools/license/check_license.sh
 STATUS=$(expr ${STATUS} + $?)
 
 if [ $STATUS -ne 0 ]; then

@@ -69,6 +69,28 @@ final class ResourcesClient
         $this->logger = $this->buildLogger();
     }
 
+    public function registerProcessToTerminate(string $dbgProcessName, bool $isProcessTestScoped): void
+    {
+        $logDebug = $this->logger->ifDebugLevelEnabledNoLine(__FUNCTION__);
+        $logDebug?->log(__LINE__, 'Registering with ' . ClassNameUtil::fqToShort(ResourcesCleaner::class) . '...');
+
+        $response = HttpClientUtilForTests::sendRequest(
+            HttpMethods::POST,
+            new UrlParts(port: $this->resourcesCleanerPort, path: ResourcesCleaner::REGISTER_PROCESS_TO_TERMINATE_URI_PATH),
+            new TestInfraDataPerRequest(spawnedProcessInternalId: $this->resourcesCleanerSpawnedProcessInternalId),
+            [
+                ResourcesCleaner::DBG_PROCESS_NAME_HEADER_NAME => $dbgProcessName,
+                ResourcesCleaner::PID_HEADER_NAME => strval(getmypid()),
+                ResourcesCleaner::IS_TEST_SCOPED_HEADER_NAME => BoolUtil::toString($isProcessTestScoped),
+            ],
+        );
+        if ($response->getStatusCode() !== HttpStatusCodes::OK) {
+            throw new ComponentTestsInfraException('Failed to register with ' . ClassNameUtil::fqToShort(ResourcesCleaner::class));
+        }
+
+        $logDebug?->log(__LINE__, 'Successfully registered with ' . ClassNameUtil::fqToShort(ResourcesCleaner::class));
+    }
+
     /** @noinspection PhpSameParameterValueInspection */
     private function registerFileToDelete(string $fullPath, bool $isTestScoped): void
     {

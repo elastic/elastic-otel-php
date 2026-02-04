@@ -117,18 +117,16 @@ final class ConfigSnapshotForTests implements LoggableInterface
         return $this->group === null || $this->group->doesRequireExternalServices();
     }
 
-    public function escalatedRerunsProdCodeLogLevelOptionName(): ?OptionForProdName
+    public function escalatedRerunsProdCodeLogLevelOptionName(): OptionForProdName
     {
-        if ($this->escalatedRerunsProdCodeLogLevelOptionName === null) {
-            return null;
-        }
-
         /** @var ?OptionForProdName $result */
         static $result = null;
-
         if ($result === null) {
-            $result = OptionForProdName::findByName($this->escalatedRerunsProdCodeLogLevelOptionName);
+            $result = $this->escalatedRerunsProdCodeLogLevelOptionName === null
+                ? OptionForProdName::log_level_syslog
+                : OptionForProdName::findByName($this->escalatedRerunsProdCodeLogLevelOptionName);
         }
+        /** @var OptionForProdName $result */
         return $result;
     }
 

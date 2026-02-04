@@ -23,27 +23,36 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
+use Elastic\OTel\Util\ArrayUtil;
+use ElasticOTelTests\Util\AmbientContextForTests;
+use ElasticOTelTests\Util\ClassNameUtil;
+use ElasticOTelTests\Util\Log\LogCategoryForTests;
 use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LoggableToString;
 use ElasticOTelTests\Util\Log\LoggableTrait;
+use ElasticOTelTests\Util\Log\Logger;
 use PHPUnit\Framework\Assert;
 
 final class AgentBackendCommsAccumulator implements LoggableInterface
 {
     use LoggableTrait;
 
-    /** @var list<AgentBackendCommEvent> */
-    private array $events = [];
-
     /** @var list<AgentBackendConnection> */
     private array $closedConnections = [];
 
-    private ?AgentBackendConnectionStarted $openConnectionStart = null;
-
-    /** @var list<IntakeDataRequestDeserialized> */
-    private array $openConnectionRequests = [];
+    /** @var array<int, AgentBackendConnectionBuilder> */
+    private array $openConnections = [];
 
     private ?AgentBackendComms $cachedResult = null;
+
+    private string $dbgName; // @phpstan-ignore property.onlyWritten
+    private readonly Logger $logger;
+
+    public function __construct()
+    {
+        $this->dbgName = DbgProcessNameGenerator::generate(ClassNameUtil::fqToShort(__CLASS__));
+        $this->logger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__)->addAllContext(compact('this'));
+    }
 
     /**
      * @param iterable<AgentBackendCommEvent> $events
@@ -53,9 +62,11 @@ final class AgentBackendCommsAccumulator implements LoggableInterface
         $this->cachedResult = null;
 
         foreach ($events as $event) {
+            $this->logger->ifTraceLevelEnabled(__LINE__, __FUNCTION__)?->log('Adding ...', compact('event'));
             match (true) {
                 $event instanceof AgentBackendConnectionStarted => $this->onConnectionStarted($event),
-                $event instanceof IntakeDataRequestRaw => $this->onIntakeDataRequest($event),
+                $event instanceof IntakeDataRequestRaw => $this->addRequest($event->port, self::deserializeIntakeDataRequestBody($event)),
+                $event instanceof OpampAgentToServerRequest => $this->addRequest($event->port, $event),
                 default => throw new ComponentTestsInfraException('Unexpected event type: ' . get_debug_type($events) . '; ' . LoggableToString::convert(compact('event'))),
             };
         }
@@ -63,19 +74,28 @@ final class AgentBackendCommsAccumulator implements LoggableInterface
 
     private function onConnectionStarted(AgentBackendConnectionStarted $event): void
     {
-        if ($this->openConnectionStart === null) {
-            Assert::assertCount(0, $this->openConnectionRequests);
+        if (ArrayUtil::getValueIfKeyExists($event->port, $this->openConnections, /* out */ $openConnectionBuilder)) {
+            $this->closedConnections[] = $openConnectionBuilder->build();
+            $openConnectionBuilder->reset($event);
         } else {
-            $this->closedConnections[] = new AgentBackendConnection($this->openConnectionStart, $this->openConnectionRequests);
-            $this->openConnectionRequests = [];
+            $this->openConnections[$event->port] = new AgentBackendConnectionBuilder($event);
         }
-
-        $this->openConnectionStart = $event;
     }
 
-    private function onIntakeDataRequest(IntakeDataRequestRaw $requestRaw): void
+    private function addRequest(int $port, AgentBackendCommRequestInterface $request): void
     {
-        $this->openConnectionRequests[] = self::deserializeIntakeDataRequestBody($requestRaw);
+        Assert::assertTrue(ArrayUtil::getValueIfKeyExists($port, $this->openConnections, /* out */ $openConnectionBuilder));
+        /** @var AgentBackendConnectionBuilder $openConnectionBuilder */
+        $openConnectionBuilder->addRequest($request);
+    }
+
+    /** @noinspection PhpMixedReturnTypeCanBeReducedInspection */
+    public static function deserializeIntakeDataRequestBodyToProto(IntakeDataRequestRaw $requestRaw): mixed
+    {
+        return match ($requestRaw->signalType) {
+            OTelSignalType::trace => IntakeTraceDataRequest::deserializeFromRawToProto($requestRaw),
+            default => throw new ComponentTestsInfraException('Unexpected OTel signal type: ' . $requestRaw->signalType->name),
+        };
     }
 
     public static function deserializeIntakeDataRequestBody(IntakeDataRequestRaw $requestRaw): IntakeDataRequestDeserialized
@@ -95,10 +115,10 @@ final class AgentBackendCommsAccumulator implements LoggableInterface
     {
         if ($this->cachedResult === null) {
             $connections = $this->closedConnections;
-            if ($this->openConnectionStart !== null) {
-                $connections[] = new AgentBackendConnection($this->openConnectionStart, $this->openConnectionRequests);
+            foreach ($this->openConnections as $openConnectionBuilder) {
+                $connections[] = $openConnectionBuilder->build();
             }
-            $this->cachedResult = new AgentBackendComms($this->events, $connections);
+            $this->cachedResult = new AgentBackendComms($connections);
         }
 
         return $this->cachedResult;

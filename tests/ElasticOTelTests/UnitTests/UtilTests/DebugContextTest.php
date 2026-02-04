@@ -897,7 +897,7 @@ class DebugContextTest extends TestCaseBase
 
         self::assertNull($lineNumber);
         self::assertGreaterThanOrEqual(1, $actualNonVendorCallDepth);
-        self::assertSame(self::HELPER_FUNC_FOR_TEST_TRIM_VENDOR_FRAMES_NAME, __FUNCTION__); // @phpstan-ignore staticMethod.alreadyNarrowedType
+        AssertEx::sameConstValues(self::HELPER_FUNC_FOR_TEST_TRIM_VENDOR_FRAMES_NAME, __FUNCTION__);
 
         ++$actualNonVendorCallDepth;
 
@@ -1192,7 +1192,7 @@ class DebugContextTest extends TestCaseBase
     private static function helperFuncForTestAddedTextFormat(array $listArg, array $mapArg, /* out */ ?int &$lineNumber): void
     {
         self::assertNull($lineNumber);
-        self::assertSame(self::HELPER_FUNC_FOR_TEST_ADDED_TEXT_FORMAT, __FUNCTION__); // @phpstan-ignore staticMethod.alreadyNarrowedType
+        AssertEx::sameConstValues(self::HELPER_FUNC_FOR_TEST_ADDED_TEXT_FORMAT, __FUNCTION__);
 
         $lineNumber = __LINE__ + 1;
         self::fail('Dummy message');

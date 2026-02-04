@@ -23,6 +23,7 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
+use ElasticOTelTests\ComponentTests\Util\OtlpData\Attributes;
 use ElasticOTelTests\Util\AmbientContextForTests;
 use ElasticOTelTests\Util\IterableUtil;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
@@ -39,9 +40,8 @@ use PHPUnit\Framework\Assert;
 use Throwable;
 
 /**
- * @phpstan-type OTelAttributeScalarValue bool|int|float|string|null
- * @phpstan-type OTelAttributeValue OTelAttributeScalarValue|array<OTelAttributeScalarValue>
- * @phpstan-type OTelAttributesMapIterable iterable<non-empty-string, OTelAttributeValue>
+ * @phpstan-import-type AttributeValue from Attributes
+ * @phpstan-type AttributesMapIterable iterable<non-empty-string, AttributeValue>
  * @phpstan-type IntLimitedToOTelSpanKind OTelSpanKind::KIND_*
  */
 class OTelUtil
@@ -52,9 +52,9 @@ class OTelUtil
     }
 
     /**
-     * @phpstan-param non-empty-string          $spanName
-     * @phpstan-param IntLimitedToOTelSpanKind  $spanKind
-     * @phpstan-param OTelAttributesMapIterable $attributes
+     * @phpstan-param non-empty-string $spanName
+     * @phpstan-param IntLimitedToOTelSpanKind $spanKind
+     * @phpstan-param AttributesMapIterable $attributes
      */
     public static function startSpan(TracerInterface $tracer, string $spanName, int $spanKind = OTelSpanKind::KIND_INTERNAL, iterable $attributes = []): OTelApiSpanInterface
     {
@@ -67,7 +67,7 @@ class OTelUtil
     }
 
     /**
-     * @param OTelAttributesMapIterable $attributes
+     * @param AttributesMapIterable $attributes
      */
     public static function endActiveSpan(?Throwable $throwable = null, ?string $errorStatus = null, iterable $attributes = []): void
     {
@@ -94,9 +94,9 @@ class OTelUtil
     }
 
     /**
-     * @phpstan-param non-empty-string          $spanName
-     * @phpstan-param IntLimitedToOTelSpanKind  $spanKind
-     * @phpstan-param OTelAttributesMapIterable $attributes
+     * @phpstan-param non-empty-string $spanName
+     * @phpstan-param IntLimitedToOTelSpanKind $spanKind
+     * @phpstan-param AttributesMapIterable $attributes
      */
     public static function startEndSpan(
         TracerInterface $tracer,
@@ -132,7 +132,7 @@ class OTelUtil
     }
 
     /**
-     * @param OTelAttributesMapIterable $attributes
+     * @param AttributesMapIterable $attributes
      */
     public static function addSpanAttributes(OTelApiSpanInterface $span, iterable $attributes): void
     {
@@ -146,7 +146,7 @@ class OTelUtil
     }
 
     /**
-     * @param OTelAttributesMapIterable $attributes
+     * @param AttributesMapIterable $attributes
      */
     public static function addActiveSpanAttributes(iterable $attributes): void
     {

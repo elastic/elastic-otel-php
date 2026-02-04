@@ -23,8 +23,11 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\Util\Config;
 
+use Elastic\OTel\Log\OTelInternalLogLevel;
+use ElasticOTelTests\Util\AssertEx;
 use ElasticOTelTests\Util\Duration;
 use ElasticOTelTests\Util\DurationUnit;
+use OpenTelemetry\SDK\Common\Configuration\Defaults as OTelSdkConfigDefaults;
 
 /**
  * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
@@ -53,12 +56,15 @@ final class OptionsForProdMetadata
             defaultValue:  new Duration(0, DurationUnit::ms),
         );
 
+        static $defaultOpampHeartbeatInterval = new DurationOptionMetadata(minValidValue: null, maxValidValue: null, defaultUnit: DurationUnit::ms, defaultValue: new Duration(30, DurationUnit::s));
+
         /** @var array{OptionForProdName, OptionMetadata<mixed>}[] $optNameMetaPairs */
         $optNameMetaPairs = [
             [OptionForProdName::autoload_enabled, new BoolOptionMetadata(false)],
             [OptionForProdName::bootstrap_php_part_file, new NullableStringOptionMetadata()],
             [OptionForProdName::disabled_instrumentations, new NullableWildcardListOptionMetadata()],
             [OptionForProdName::enabled, new BoolOptionMetadata(true)],
+            [OptionForProdName::experimental_config_file, new NullableStringOptionMetadata()],
             [OptionForProdName::exporter_otlp_endpoint, new NullableStringOptionMetadata()],
             [OptionForProdName::inferred_spans_enabled, new BoolOptionMetadata(false)],
             [OptionForProdName::inferred_spans_min_duration, $inferredSpansMinDuration],
@@ -66,10 +72,15 @@ final class OptionsForProdMetadata
             [OptionForProdName::inferred_spans_sampling_interval, $inferredSpansSamplingInterval],
             [OptionForProdName::inferred_spans_stacktrace_enabled, new BoolOptionMetadata(true)],
             [OptionForProdName::log_file, new NullableStringOptionMetadata()],
+            [OptionForProdName::log_level, new OTelInternalLogLevelOptionMetadata(AssertEx::notNull(OTelInternalLogLevel::tryToFindByName(OTelSdkConfigDefaults::OTEL_LOG_LEVEL)))],
             [OptionForProdName::log_level_file, new LogLevelOptionMetadata(OptionsForProdDefaultValues::LOG_LEVEL_FILE)],
             [OptionForProdName::log_level_stderr, new LogLevelOptionMetadata(OptionsForProdDefaultValues::LOG_LEVEL_STDERR)],
             [OptionForProdName::log_level_syslog, new LogLevelOptionMetadata(OptionsForProdDefaultValues::LOG_LEVEL_SYSLOG)],
+            [OptionForProdName::opamp_endpoint, new NullableStringOptionMetadata()],
+            [OptionForProdName::opamp_heartbeat_interval, $defaultOpampHeartbeatInterval],
             [OptionForProdName::resource_attributes, new NullableStringOptionMetadata()],
+            [OptionForProdName::sampler, new StringOptionMetadata(OTelSdkConfigDefaults::OTEL_TRACES_SAMPLER)],
+            [OptionForProdName::sampler_arg, new NullableStringOptionMetadata()],
             [OptionForProdName::transaction_span_enabled, new BoolOptionMetadata(OptionsForProdDefaultValues::TRANSACTION_SPAN_ENABLED)],
             [OptionForProdName::transaction_span_enabled_cli, new BoolOptionMetadata(OptionsForProdDefaultValues::TRANSACTION_SPAN_ENABLED_CLI)],
         ];

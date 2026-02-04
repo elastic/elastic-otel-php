@@ -25,6 +25,11 @@ namespace ElasticOTelTests\Util\Log;
 
 use Elastic\OTel\Log\LogLevel;
 use Elastic\OTel\Util\StaticClassTrait;
+use ElasticOTelTests\Util\AmbientContextForTests;
+use ElasticOTelTests\Util\Config\ConfigSnapshotForProd;
+use ElasticOTelTests\Util\Config\EmptyRawSnapshot;
+use ElasticOTelTests\Util\Config\OptionsForProdMetadata;
+use ElasticOTelTests\Util\Config\Parser as ConfigParser;
 use ElasticOTelTests\Util\IterableUtil;
 
 /**
@@ -47,6 +52,19 @@ final class LogLevelUtil
             $result = LogLevel::from($maxValue);
         }
 
+        return $result;
+    }
+
+    public static function defaultProdElasticLogLevel(): LogLevel
+    {
+        /** @var ?LogLevel $result */
+        static $result = null;
+        if ($result === null) {
+            $allOptsMeta = OptionsForProdMetadata::get();
+            $parser = new ConfigParser(AmbientContextForTests::loggerFactory());
+            $result = (new ConfigSnapshotForProd($parser->parse($allOptsMeta, EmptyRawSnapshot::singletonInstance())))->effectiveElasticLogLevel();
+        }
+        /** @var LogLevel $result */
         return $result;
     }
 }

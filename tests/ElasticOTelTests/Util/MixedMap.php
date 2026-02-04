@@ -118,6 +118,11 @@ class MixedMap implements LoggableInterface, ArrayAccess, IteratorAggregate
         return self::getBoolFrom($key, $this->map);
     }
 
+    public function getBoolOrDefault(string $key, bool $default): bool
+    {
+        return self::tryToGetBool($key) ?? $default;
+    }
+
     public function tryToGetBool(string $key): ?bool
     {
         if (!array_key_exists($key, $this->map)) {

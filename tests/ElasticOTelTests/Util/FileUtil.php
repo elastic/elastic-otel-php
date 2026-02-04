@@ -134,18 +134,35 @@ final class FileUtil
     }
 
     /**
-     * @param string $dirFullPath
+     * @param string $dirPath
      *
      * @return iterable<SplFileInfo>
      */
-    public static function iterateOverFilesInDirectoryRecursively(string $dirFullPath): iterable
+    public static function iterateOverFilesInDirectoryRecursively(string $dirPath): iterable
     {
-        $dirIter = new RecursiveDirectoryIterator($dirFullPath);
+        $dirIter = new RecursiveDirectoryIterator($dirPath);
         foreach (new RecursiveIteratorIterator($dirIter) as $fileInfo) {
             Assert::assertInstanceOf(SplFileInfo::class, $fileInfo);
             if ($fileInfo->isFile()) {
                 yield $fileInfo;
             }
+        }
+    }
+
+    /**
+     * @param string $dirPath
+     *
+     * @return iterable<SplFileInfo>
+     */
+    public static function iterateOverDirectoryContentsRecursively(string $dirPath): iterable
+    {
+        $dirIter = new RecursiveDirectoryIterator($dirPath);
+        foreach (new RecursiveIteratorIterator($dirIter) as $fileInfo) {
+            Assert::assertInstanceOf(SplFileInfo::class, $fileInfo);
+            if ($fileInfo->getFilename() === '.' || $fileInfo->getFilename() === '..') {
+                continue;
+            }
+            yield $fileInfo;
         }
     }
 

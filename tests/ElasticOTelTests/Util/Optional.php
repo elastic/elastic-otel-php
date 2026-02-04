@@ -25,6 +25,7 @@ namespace ElasticOTelTests\Util;
 
 use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LogStreamInterface;
+use Override;
 use PHPUnit\Framework\Assert;
 
 /**
@@ -98,6 +99,7 @@ final class Optional implements LoggableInterface
         return $this->isValueSet ? $this : Optional::value($value);
     }
 
+    #[Override]
     public function toLog(LogStreamInterface $stream): void
     {
         $stream->toLogAs($this->isValueSet ? $this->value : /** @lang text */ '<Optional NOT SET>');

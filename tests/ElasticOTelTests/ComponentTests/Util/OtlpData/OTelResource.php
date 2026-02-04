@@ -24,12 +24,12 @@ declare(strict_types=1);
 namespace ElasticOTelTests\ComponentTests\Util\OtlpData;
 
 use ElasticOTelTests\Util\AssertEx;
-use Opentelemetry\Proto\Resource\V1\Resource as OTelProtoResource;
+use Opentelemetry\Proto\Resource\V1\Resource as ProtoResource;
 
 /**
  * @see https://github.com/open-telemetry/opentelemetry-proto/blob/v1.8.0/opentelemetry/proto/resource/v1/resource.proto#L28
  */
-class OTelResource
+final class OTelResource
 {
     /**
      * @param non-negative-int $droppedAttributesCount
@@ -40,11 +40,11 @@ class OTelResource
     ) {
     }
 
-    public static function deserializeFromOTelProto(OTelProtoResource $source): self
+    public static function fromProto(ProtoResource $proto): self
     {
         return new self(
-            attributes: Attributes::deserializeFromOTelProto($source->getAttributes()),
-            droppedAttributesCount: AssertEx::isNonNegativeInt($source->getDroppedAttributesCount()),
+            attributes: Attributes::fromProto($proto->getAttributes()),
+            droppedAttributesCount: AssertEx::isNonNegativeInt($proto->getDroppedAttributesCount()),
         );
     }
 }

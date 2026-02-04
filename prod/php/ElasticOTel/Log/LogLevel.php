@@ -39,15 +39,15 @@ enum LogLevel: int
     case debug    = 5;
     case trace    = 6;
 
-    public static function fromPsrLevel(string $level): ?self
+    public function toOTelInternalLogLevel(): OTelInternalLogLevel
     {
-        return match ($level) {
-            \Psr\Log\LogLevel::EMERGENCY, \Psr\Log\LogLevel::ALERT, \Psr\Log\LogLevel::CRITICAL => self::critical,
-            \Psr\Log\LogLevel::ERROR => self::error,
-            \Psr\Log\LogLevel::WARNING => self::warning,
-            \Psr\Log\LogLevel::NOTICE, \Psr\Log\LogLevel::INFO => self::info,
-            \Psr\Log\LogLevel::DEBUG => self::debug,
-            default => null,
+        return match ($this) {
+            self::off => OTelInternalLogLevel::none,
+            self::critical => OTelInternalLogLevel::critical,
+            self::error => OTelInternalLogLevel::error,
+            self::warning => OTelInternalLogLevel::warning,
+            self::info => OTelInternalLogLevel::info,
+            self::debug, self::trace => OTelInternalLogLevel::debug,
         };
     }
 }

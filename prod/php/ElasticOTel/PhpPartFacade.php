@@ -126,7 +126,7 @@ final class PhpPartFacade
             // RemoteConfigHandler::fetchAndApply depends on OTel SDK so it has to be called after autoloader for OTel SDK is registered
             RemoteConfigHandler::fetchAndApply();
             // OverrideOTelSdkResourceAttributes::register depends on OTel SDK so it has to be called after autoloader for OTel SDK is registered
-            OverrideOTelSdkResourceAttributes::register($elasticOTelNativePartVersion);
+            OverrideOTelSdkResourceAttributes::register($elasticOTelNativePartVersion, self::isInDevMode());
             self::registerNativeOtlpSerializer();
             self::registerAsyncTransportFactory();
             self::registerOtelLogWriter();
@@ -185,7 +185,13 @@ final class PhpPartFacade
 
     private static function isInDevMode(): bool
     {
-        return self::getBoolEnvVar(self::MODE_IS_DEV_ENV_VAR_NAME, default: false);
+        /** @var ?bool $cachedResult */
+        static $cachedResult = null;
+        if ($cachedResult === null) {
+            $cachedResult = self::getBoolEnvVar(self::MODE_IS_DEV_ENV_VAR_NAME, default: false);
+        }
+        /** @var bool $cachedResult */
+        return $cachedResult;
     }
 
     private static function isEnabled(): bool

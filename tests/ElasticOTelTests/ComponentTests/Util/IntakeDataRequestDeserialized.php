@@ -26,7 +26,7 @@ namespace ElasticOTelTests\ComponentTests\Util;
 use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LoggableTrait;
 
-abstract class IntakeDataRequestDeserialized implements LoggableInterface
+abstract class IntakeDataRequestDeserialized implements AgentBackendCommRequestInterface, LoggableInterface
 {
     use LoggableTrait;
 

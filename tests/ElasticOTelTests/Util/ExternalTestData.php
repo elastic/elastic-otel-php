@@ -51,6 +51,6 @@ final class ExternalTestData
             }
         );
 
-        return JsonUtil::decode($fileContent, asAssocArray: true);
+        return JsonUtil::decode($fileContent);
     }
 }
