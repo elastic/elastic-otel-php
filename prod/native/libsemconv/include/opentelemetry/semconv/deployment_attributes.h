@@ -36,7 +36,7 @@ namespace deployment
  */
 OPENTELEMETRY_DEPRECATED
 static constexpr const char *kDeploymentEnvironment
- = "deployment.environment";
+ = "deployment.environment.name";
 
 /**
  * Name of the <a href="https://wikipedia.org/wiki/Deployment_environment">deployment environment</a> (aka deployment tier).
