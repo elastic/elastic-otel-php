@@ -8,6 +8,11 @@ this_script_dir="$( realpath "${this_script_dir}" )"
 repo_root_dir="$( realpath "${this_script_dir}/../.." )"
 source "${repo_root_dir}/tools/shared.sh"
 
+# Read scoper prefix from upstream properties for smoke tests
+source "${repo_root_dir}/tools/read_properties.sh"
+read_properties "${repo_root_dir}/upstream/project.properties" _UPSTREAM_PROPERTIES
+SCOPE_NAME="${_UPSTREAM_PROPERTIES_PHP_SCOPER_PREFIX}"
+
 PACKAGE_SHA="unknown"
 
 show_help() {
@@ -89,32 +94,32 @@ test_package() {
 
     case "${PKG_TYPE}" in
         "apk")
-            local INSTALL_SMOKE="apk add --allow-untrusted --verbose --no-cache  /source/build/packages/${PKG_FILENAME} && php /source/packaging/test/smokeTest.php"
-            local UNINSTALL_SMOKE="apk del --verbose --no-cache elastic-otel-php && php /source/packaging/test/smokeTestUninstalled.php"
+            local INSTALL_SMOKE="apk add --allow-untrusted --verbose --no-cache  /source/build/packages/${PKG_FILENAME} && php /source/packaging/test/smokeTest.php ${SCOPE_NAME}"
+            local UNINSTALL_SMOKE="apk del --verbose --no-cache elastic-otel-php && php /source/packaging/test/smokeTestUninstalled.php ${SCOPE_NAME}"
             docker run --rm \
                 --platform ${DOCKER_PLATFORM} \
                 -v ${PWD}:/source \
-                -e ELASTIC_OTEL_LOG_LEVEL_STDERR=error \
+                -e OTEL_PHP_LOG_LEVEL_STDERR=error \
                 php:${PHP_VERSION}-alpine sh -c "ls /source/build/packages && ${INSTALL_SMOKE} && ${TEST_LICENSE_FILES} && ${UNINSTALL_SMOKE} && ls -alR /opt/elastic"
         ;;
         "deb")
-            local INSTALL_SMOKE="dpkg -i  /source/build/packages/${PKG_FILENAME} && php /source/packaging/test/smokeTest.php"
-            local UNINSTALL_SMOKE="dpkg --purge elastic-otel-php && php /source/packaging/test/smokeTestUninstalled.php"
+            local INSTALL_SMOKE="dpkg -i  /source/build/packages/${PKG_FILENAME} && php /source/packaging/test/smokeTest.php ${SCOPE_NAME}"
+            local UNINSTALL_SMOKE="dpkg --purge elastic-otel-php && php /source/packaging/test/smokeTestUninstalled.php ${SCOPE_NAME}"
             docker run --rm \
                 --platform ${DOCKER_PLATFORM} \
                 -v ${PWD}:/source \
-                -e ELASTIC_OTEL_LOG_LEVEL_STDERR=error \
+                -e OTEL_PHP_LOG_LEVEL_STDERR=error \
                 php:${PHP_VERSION} sh -c "ls /source/build/packages && ${INSTALL_SMOKE} && ${TEST_LICENSE_FILES} && ${UNINSTALL_SMOKE} && ls -alR /opt/elastic"
         ;;
         "rpm")
             local INSTALL_PHP="cat /etc/redhat-release && dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-\$(grep -oP '(?<=release )\d+' /etc/redhat-release).noarch.rpm -y && dnf install https://rpms.remirepo.net/enterprise/remi-release-9.rpm -y && dnf install --setopt=install_weak_deps=False -y php${PHP_VERSION//./} php${PHP_VERSION//./}-syspaths"
-            local INSTALL_SMOKE="rpm -ivh /source/build/packages/${PKG_FILENAME} && php /source/packaging/test/smokeTest.php"
-            local UNINSTALL_SMOKE="rpm -ve elastic-otel-php && php /source/packaging/test/smokeTestUninstalled.php"
+            local INSTALL_SMOKE="rpm -ivh /source/build/packages/${PKG_FILENAME} && php /source/packaging/test/smokeTest.php ${SCOPE_NAME}"
+            local UNINSTALL_SMOKE="rpm -ve elastic-otel-php && php /source/packaging/test/smokeTestUninstalled.php ${SCOPE_NAME}"
 
             docker run --rm \
                 --platform ${DOCKER_PLATFORM} \
                 -v ${PWD}:/source \
-                -e ELASTIC_OTEL_LOG_LEVEL_STDERR=error \
+                -e OTEL_PHP_LOG_LEVEL_STDERR=error \
                 redhat/ubi9 sh -c "ls /source/build/packages && ${INSTALL_PHP} && ${INSTALL_SMOKE} && ${TEST_LICENSE_FILES} && ${UNINSTALL_SMOKE} && ls -alR /opt/elastic"
         ;;
         *)
@@ -189,7 +194,7 @@ rm ${PWD}/build/packages/nfpm.yaml
 
 echo "Creating debug symbols artifacts"
 DBGSYM="${PWD}/build/packages/elastic-otel-php-debugsymbols-${BUILD_ARCHITECTURE}.tar.gz"
-pushd prod/native/_build/${BUILD_ARCHITECTURE}-release
+pushd upstream/prod/native/_build/${BUILD_ARCHITECTURE}-release
 tar --transform 's/.*\///g' -zcvf ${DBGSYM} extension/code/*.debug loader/code/*.debug
 popd
 

@@ -50,8 +50,10 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Elastic\\OTel\\": "./prod/php/ElasticOTel/",
+            "OpenTelemetry\\Distro\\": "./upstream/prod/php/OpenTelemetry/Distro/",
+            "OTelDistroTests\\": "./tests/OTelDistroTests/",
             "ElasticOTelTests\\": "./tests/ElasticOTelTests/",
+            "OpenTelemetry\\DistroTools\\Build\\": "./upstream/tools/build/",
             "ElasticOTelTools\\Build\\": "./tools/build/"
         }
     },
@@ -77,39 +79,45 @@
         ],
         "parallel-lint": [
             "@putenv ELASTIC_OTEL_ENABLED=false",
+            "@putenv OTEL_PHP_ENABLED=false",
             "@putenv OTEL_PHP_DISABLED_INSTRUMENTATIONS=all",
             "@putenv OTEL_PHP_AUTOLOAD_ENABLED=false",
-            "parallel-lint ./prod/php/ ./tests/ ./tools/ --exclude ./tests/polyfills/"
+            "parallel-lint ./upstream/prod/php/ ./elastic/php/ ./tests/ ./tools/ --exclude ./tests/polyfills/"
         ],
         "php_codesniffer_check": [
             "@putenv ELASTIC_OTEL_ENABLED=false",
+            "@putenv OTEL_PHP_ENABLED=false",
             "@putenv OTEL_PHP_DISABLED_INSTRUMENTATIONS=all",
             "@putenv OTEL_PHP_AUTOLOAD_ENABLED=false",
-            "phpcs -s ./prod/php/ ./tests/ ./tools/"
+            "phpcs -s ./upstream/prod/php/ ./elastic/php/ ./tests/ ./tools/"
         ],
         "php_codesniffer_fix": [
             "@putenv ELASTIC_OTEL_ENABLED=false",
+            "@putenv OTEL_PHP_ENABLED=false",
             "@putenv OTEL_PHP_DISABLED_INSTRUMENTATIONS=all",
             "@putenv OTEL_PHP_AUTOLOAD_ENABLED=false",
-            "phpcbf ./prod/php/ ./tests/ ./tools/"
+            "phpcbf ./upstream/prod/php/ ./elastic/php/ ./tests/ ./tools/"
         ],
         "fix_code_format_for": [
             "@putenv ELASTIC_OTEL_ENABLED=false",
+            "@putenv OTEL_PHP_ENABLED=false",
             "@putenv OTEL_PHP_DISABLED_INSTRUMENTATIONS=all",
             "@putenv OTEL_PHP_AUTOLOAD_ENABLED=false",
             "phpcbf"
         ],
         "phpstan-junit-report-for-ci": [
             "@putenv ELASTIC_OTEL_ENABLED=false",
+            "@putenv OTEL_PHP_ENABLED=false",
             "@putenv OTEL_PHP_DISABLED_INSTRUMENTATIONS=all",
             "@putenv OTEL_PHP_AUTOLOAD_ENABLED=false",
-            "phpstan analyse --level max --memory-limit=1G --error-format=junit ./prod/php/ ./tests/ ./tools/ | tee build/phpstan-junit.xml"
+            "phpstan analyse --level max --memory-limit=1G --error-format=junit ./upstream/prod/php/ ./elastic/php/ ./tests/ ./tools/ | tee build/phpstan-junit.xml"
         ],
         "phpstan": [
             "@putenv ELASTIC_OTEL_ENABLED=false",
+            "@putenv OTEL_PHP_ENABLED=false",
             "@putenv OTEL_PHP_DISABLED_INSTRUMENTATIONS=all",
             "@putenv OTEL_PHP_AUTOLOAD_ENABLED=false",
-            "phpstan analyse --level max --memory-limit=1G ./prod/php/ ./tests/ ./tools/"
+            "phpstan analyse --level max --memory-limit=1G ./upstream/prod/php/ ./elastic/php/ ./tests/ ./tools/"
         ],
         "static_check": [
             "composer run-script -- parallel-lint",
@@ -118,6 +126,7 @@
         ],
         "run_unit_tests": [
             "@putenv ELASTIC_OTEL_ENABLED=false",
+            "@putenv OTEL_PHP_ENABLED=false",
             "@putenv OTEL_PHP_DISABLED_INSTRUMENTATIONS=all",
             "@putenv OTEL_PHP_AUTOLOAD_ENABLED=false",
             "phpunit"
@@ -128,6 +137,7 @@
         ],
         "run_component_tests": [
             "@putenv ELASTIC_OTEL_ENABLED=false",
+            "@putenv OTEL_PHP_ENABLED=false",
             "@putenv OTEL_PHP_DISABLED_INSTRUMENTATIONS=all",
             "@putenv OTEL_PHP_AUTOLOAD_ENABLED=false",
             "phpunit -c phpunit_component_tests.xml"

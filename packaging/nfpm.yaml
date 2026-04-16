@@ -30,24 +30,31 @@ homepage: "https://github.com/elastic/elastic-otel-php"
 license: "ASL 2.0"
 #changelog: "changelog.yaml"
 contents:
-- src: /source/prod/native/_build/${BUILD_ARCHITECTURE}-release/loader/code/elastic_otel_php_loader.so
+# Native extension loader (.so)
+- src: /source/upstream/prod/native/_build/${BUILD_ARCHITECTURE}-release/loader/code/opentelemetry_php_distro_loader.so
   dst: /opt/elastic/elastic-otel-php/
   expand: true
-- src: /source/prod/native/_build/${BUILD_ARCHITECTURE}-release/extension/code/elastic_otel_php_*.so
+# Native extension (.so per PHP version)
+- src: /source/upstream/prod/native/_build/${BUILD_ARCHITECTURE}-release/extension/code/opentelemetry_php_distro_*.so
   dst: /opt/elastic/elastic-otel-php/
   expand: true
-- src: /source/prod/php
+# Upstream PHP code (bootstrap, classes, scoped vendor dependencies)
+- src: /source/upstream/prod/php
   dst: /opt/elastic/elastic-otel-php/php
   type: tree
   packager: rpm
-- src: /source/prod/php
+- src: /source/upstream/prod/php
   dst: /opt/elastic/elastic-otel-php/php
   packager: deb
-- src: /source/prod/php
+- src: /source/upstream/prod/php
   dst: /opt/elastic/elastic-otel-php/php
   packager: apk
-- src: /source/packaging/configs/elastic-otel-custom-template.ini
-  dst: /opt/elastic/elastic-otel-php/etc/elastic-otel-custom.ini
+# Elastic PHP bootstrap wrapper (entry point for the native extension)
+- src: /source/elastic/php/bootstrap_elastic.php
+  dst: /opt/elastic/elastic-otel-php/php/bootstrap_elastic.php
+# INI config template (upstream convention)
+- src: /source/upstream/packaging/configs/opentelemetry_distro_custom_template.ini
+  dst: /opt/elastic/elastic-otel-php/etc/opentelemetry-distro-custom.ini
   type: config
 - src: /source/README.md
   dst: /opt/elastic/elastic-otel-php/docs/README.md

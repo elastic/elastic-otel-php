@@ -78,10 +78,13 @@ echo "BUILD_ARCHITECTURE: $BUILD_ARCHITECTURE"
 echo "NCPU: $NCPU"
 echo "SKIP_CONFIGURE: $SKIP_CONFIGURE"
 
+# Elastic vendor inject: tell upstream cmake to include our vendor lib
+ELASTIC_INJECT="/source/elastic/native/libelastic/elastic_vendor_inject.cmake"
+
 if [ "$SKIP_CONFIGURE" = true ]; then
     echo "Skipping configuration step..."
 else
-    CONFIGURE="cmake --preset ${BUILD_ARCHITECTURE}-release  && "
+    CONFIGURE="cmake --preset ${BUILD_ARCHITECTURE}-release -DCMAKE_PROJECT_INCLUDE=${ELASTIC_INJECT} && "
 fi
 
 if [ "$GITHUB_ACTIONS" = true ]; then
@@ -100,8 +103,8 @@ ls -al "${PWD}"
 
 docker run --rm -t ${INTERACTIVE} ${USERID} -v ${PWD}:/source \
     "${CONAN_HOME_MP[@]}" \
-    -w /source/prod/native \
+    -w /source/upstream/prod/native \
     -e GITHUB_SHA=${GITHUB_SHA} \
-    elasticobservability/apm-agent-php-dev:native-build-gcc-14.2.0-${BUILD_ARCHITECTURE}-0.0.1 \
+    otel/opentelemetry-php-distro-dev:native-build-${BUILD_ARCHITECTURE}-gcc15.2.0-v0.0.2-conancache-v0.0.1 \
     sh -c "id && echo CONAN_HOME: \$CONAN_HOME && ${CONFIGURE} cmake --build --preset ${BUILD_ARCHITECTURE}-release ${NCPU} && ${UNIT_TESTS}"
 

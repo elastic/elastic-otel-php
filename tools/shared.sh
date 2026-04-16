@@ -2,6 +2,9 @@
 set -e -u -o pipefail
 #set -x
 
+# Build parameters come from upstream
+source "${repo_root_dir:?}/upstream/project.properties"
+# EDOT version overwrites upstream 'version'
 source "${repo_root_dir:?}/elastic-otel-php.properties"
 export elastic_otel_php_version="${version:?}"
 export elastic_otel_php_supported_php_versions=("${supported_php_versions[@]:?}")
