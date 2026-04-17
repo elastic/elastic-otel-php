@@ -14,7 +14,7 @@ function main() {
     local current_github_workflow_log_group_name="Stopping external services used by component tests"
     start_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
-    ${ELASTIC_OTEL_PHP_TESTS_EXTERNAL_SERVICES_DOCKER_COMPOSE_CMD_PREFIX:?} down -v --remove-orphans
+    ${OTEL_PHP_TESTS_EXTERNAL_SERVICES_DOCKER_COMPOSE_CMD_PREFIX:?} down -v --remove-orphans
 
     end_github_workflow_log_group "${current_github_workflow_log_group_name}"
 }

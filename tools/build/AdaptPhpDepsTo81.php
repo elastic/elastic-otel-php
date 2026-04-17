@@ -1,32 +1,13 @@
 <?php
 
-/*
- * Copyright Elasticsearch B.V. and/or licensed to Elasticsearch B.V. under one
- * or more contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright
- * ownership. Elasticsearch B.V. licenses this file to you under
- * the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *  http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
-
 /** @noinspection PhpIllegalPsrClassPathInspection */
 
 declare(strict_types=1);
 
-namespace ElasticOTelTools\Build;
+namespace OpenTelemetry\DistroTools\Build;
 
-use Elastic\OTel\Util\ArrayUtil;
-use Elastic\OTel\Util\BoolUtil;
+use OpenTelemetry\Distro\Util\ArrayUtil;
+use OpenTelemetry\Distro\Util\BoolUtil;
 use RuntimeException;
 
 /**
@@ -60,7 +41,7 @@ final class AdaptPhpDepsTo81
     private const ADAPTED_TO_PHP_81_LAST_DIR_REL_PATH = self::ADAPTED_TO_PHP_81_FIRST_DIR_REL_PATH . '/adapted_to_PHP_81'; // 'build/adapted_to_PHP_81'
 
     /**
-     * Make sure the following value is in sync with the rest of locations where it's used (see elastic_otel_php_packages_adapted_to_PHP_81_rel_path in <repo root>/tools/shared.sh)
+     * Make sure the following value is in sync with the rest of locations where it's used (see packages_adapted_to_PHP_81_rel_path in project.properties)
      *
      * The path is relative to repo root
      */
@@ -68,7 +49,7 @@ final class AdaptPhpDepsTo81
 
     /**
      * Make sure the following value is in sync with the rest of locations where it's used
-     * (see elastic_otel_php_composer_home_for_packages_adapted_to_PHP_81_rel_path in <repo root>/tools/shared.sh)
+     * (see composer_home_for_packages_adapted_to_PHP_81_rel_path in project.properties)
      * *
      * The path is relative to repo root
      */
@@ -165,7 +146,7 @@ final class AdaptPhpDepsTo81
     {
         $fileContents = BuildToolsUtil::getFileContents($minimalComposerJsonFilePath);
         self::logDebug(__LINE__, __METHOD__, 'Entered; fileContents: ' . $fileContents);
-        $fileContentsJsonDecoded = self::assertIsArray(BuildToolsUtil::decodeJson($fileContents, asAssocArray: true));
+        $fileContentsJsonDecoded = self::assertIsArray(BuildToolsUtil::decodeJson($fileContents));
         // Keep only "require" top key
         $resultArray = array_filter($fileContentsJsonDecoded, fn ($key) => $key === self::COMPOSER_JSON_REQUIRE_KEY, ARRAY_FILTER_USE_KEY);
         self::assertCount(1, $resultArray);
@@ -202,7 +183,7 @@ final class AdaptPhpDepsTo81
     private static function adaptPackageComposerJson(string $composerJsonFilePath, string $packageVersion): void
     {
         $fileContents = BuildToolsUtil::getFileContents($composerJsonFilePath);
-        $jsonDecoded = self::assertIsArray(BuildToolsUtil::decodeJson($fileContents, asAssocArray: true));
+        $jsonDecoded = self::assertIsArray(BuildToolsUtil::decodeJson($fileContents));
         $resultArray = $jsonDecoded;
         if (ArrayUtil::getValueIfKeyExists(self::COMPOSER_JSON_VERSION_KEY, $jsonDecoded, /* out */ $alreadyPresentVersion) && ($alreadyPresentVersion !== $packageVersion)) {
             self::assertIsString($alreadyPresentVersion);

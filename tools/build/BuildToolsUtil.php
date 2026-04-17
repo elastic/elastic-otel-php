@@ -1,33 +1,14 @@
 <?php
 
-/*
- * Copyright Elasticsearch B.V. and/or licensed to Elasticsearch B.V. under one
- * or more contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright
- * ownership. Elasticsearch B.V. licenses this file to you under
- * the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *  http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
-
 /** @noinspection PhpIllegalPsrClassPathInspection */
 
 declare(strict_types=1);
 
-namespace ElasticOTelTools\Build;
+namespace OpenTelemetry\DistroTools\Build;
 
 use DirectoryIterator;
-use Elastic\OTel\Log\LogLevel;
-use Elastic\OTel\PhpPartFacade;
+use OpenTelemetry\Distro\Log\LogLevel;
+use OpenTelemetry\Distro\PhpPartFacade;
 use JsonException;
 use RuntimeException;
 use Throwable;
@@ -40,7 +21,7 @@ final class BuildToolsUtil
     use BuildToolsAssertTrait;
     use BuildToolsLoggingClassTrait;
 
-    private const KEEP_TEMP_FILES_ENV_VAR_NAME = 'ELASTIC_OTEL_PHP_TOOLS_KEEP_TEMP_FILES';
+    private const KEEP_TEMP_FILES_ENV_VAR_NAME = 'OTEL_PHP_TOOLS_KEEP_TEMP_FILES';
 
     public const FAILURE_EXIT_CODE = 1;
 
@@ -175,9 +156,9 @@ final class BuildToolsUtil
         return $encodedData;
     }
 
-    public static function decodeJson(string $encodedData, bool $asAssocArray): mixed
+    public static function decodeJson(string $encodedData): mixed
     {
-        $decodedData = json_decode($encodedData, /* assoc: */ $asAssocArray);
+        $decodedData = json_decode($encodedData, /* assoc: */ true);
         if ($decodedData === null && ($encodedData !== 'null')) {
             throw new JsonException(
                 'json_decode() failed.'

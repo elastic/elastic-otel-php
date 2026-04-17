@@ -49,15 +49,15 @@ function install_package_file() {
     esac
 }
 
-function install_elastic_otel_package () {
-    local current_github_workflow_log_group_name="Installing package with Elastic OTel for PHP distro"
+function install_open_telemetry_php_distro_package () {
+    local current_github_workflow_log_group_name="Installing package with OpenTelemetry PHP Distro"
     start_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
     # Until we add testing for ARM architecture is hardcoded as x86_64
     local architecture="x86_64"
 
     local package_file_full_path
-    package_file_full_path=$(select_elastic_otel_package_file /elastic_otel_php_tests/packages "${ELASTIC_OTEL_PHP_TESTS_PACKAGE_TYPE:?}" "${architecture}")
+    package_file_full_path=$(select_otel_package_file /otel_php_distro_tests/packages "${OTEL_PHP_TESTS_PACKAGE_TYPE:?}" "${architecture}")
 
     install_package_file "${package_file_full_path}"
 
@@ -88,7 +88,7 @@ function start_syslog_and_set_related_config () {
     if [[ "${start_syslog_started}" != "true" ]]; then
         # By default tests log level escalation mechanism uses log_level_syslog production option
         # If there is not syslog running then let's use log_level_stderr
-        export ELASTIC_OTEL_PHP_TESTS_ESCALATED_RERUNS_PROD_CODE_LOG_LEVEL_OPTION_NAME=log_level_stderr
+        export OTEL_PHP_TESTS_ESCALATED_RERUNS_PROD_CODE_LOG_LEVEL_OPTION_NAME=log_level_stderr
     fi
 }
 
@@ -104,7 +104,7 @@ function extract_log_ending () {
     # then we print only the last ${small_tail_lines_count} lines of the log
 
     last_test_case_log_lines_count=-1
-    last_test_case_log_file=/elastic_otel_php_tests/logs/composer_-_run_component_tests_-_last_test_case.log
+    last_test_case_log_file=/otel_php_distro_tests/logs/composer_-_run_component_tests_-_last_test_case.log
     local last_starting_test_case_line=''
     if grep -n -E "^Starting test case: " "${composer_run_component_tests_log_file}" &> /dev/null ; then
         last_starting_test_case_line="$(grep -n -E "^Starting test case: " "${composer_run_component_tests_log_file}" | tail -1)"
@@ -121,7 +121,7 @@ function extract_log_ending () {
     fi
 
     small_tail_lines_count=100
-    small_tail_log_file="/elastic_otel_php_tests/logs/composer_-_run_component_tests_-_last_${small_tail_lines_count}_lines.log"
+    small_tail_log_file="/otel_php_distro_tests/logs/composer_-_run_component_tests_-_last_${small_tail_lines_count}_lines.log"
 
     if [[ "${last_test_case_log_lines_count}" -eq -1 ]] || [[ "${last_test_case_log_lines_count}" -gt "${small_tail_lines_count}" ]]; then
         tail -n "${small_tail_lines_count}" "${composer_run_component_tests_log_file}" > "${small_tail_log_file}"
@@ -129,7 +129,7 @@ function extract_log_ending () {
 }
 
 function copy_syslog () {
-    local copy_syslog_to_dir=/elastic_otel_php_tests/logs/var_log
+    local copy_syslog_to_dir=/otel_php_distro_tests/logs/var_log
     mkdir -p "${copy_syslog_to_dir}"
 
     local -a syslog_prefix_candidates=(/var/log/syslog /var/log/messages)
@@ -165,15 +165,15 @@ function gather_logs () {
 
     extract_log_ending
 
-    # Setting ownership/permissions to allow docker host to read files copied to /elastic_otel_php_tests/logs/
-    chown -R "${ELASTIC_OTEL_PHP_TESTS_DOCKER_RUNNING_USER_ID:?}:${ELASTIC_OTEL_PHP_TESTS_DOCKER_RUNNING_USER_GROUP_ID:?}" /elastic_otel_php_tests/logs
-    chmod -R 777 /elastic_otel_php_tests/logs
+    # Setting ownership/permissions to allow docker host to read files copied to /otel_php_distro_tests/logs/
+    chown -R "${OTEL_PHP_TESTS_DOCKER_RUNNING_USER_ID:?}:${OTEL_PHP_TESTS_DOCKER_RUNNING_USER_GROUP_ID:?}" /otel_php_distro_tests/logs
+    chmod -R 777 /otel_php_distro_tests/logs
 
-    current_github_workflow_log_group_name="Content of /elastic_otel_php_tests/logs after setting ownership/permissions"
+    current_github_workflow_log_group_name="Content of /otel_php_distro_tests/logs after setting ownership/permissions"
     start_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
-    ls -ld /elastic_otel_php_tests/logs
-    ls -l -R /elastic_otel_php_tests/logs/
+    ls -ld /otel_php_distro_tests/logs
+    ls -l -R /otel_php_distro_tests/logs/
 
     end_github_workflow_log_group "${current_github_workflow_log_group_name}"
 }
@@ -208,12 +208,12 @@ function main() {
         # If you include an empty path segment (i.e., with a leading colon),
         # PHP will also scan the directory specified during compilation (via the --with-config-file-scan-dir option).
         # :/some_dir scans the compile-time directory and then /some_dir
-        export PHP_INI_SCAN_DIR=:/elastic_otel_php_tests/php_ini_scan_dir
+        export PHP_INI_SCAN_DIR=:/otel_php_distro_tests/php_ini_scan_dir
     else
-        export PHP_INI_SCAN_DIR=${PHP_INI_SCAN_DIR}:/elastic_otel_php_tests/php_ini_scan_dir
+        export PHP_INI_SCAN_DIR=${PHP_INI_SCAN_DIR}:/otel_php_distro_tests/php_ini_scan_dir
     fi
-    echo "ls -l /elastic_otel_php_tests/php_ini_scan_dir"
-    ls -l /elastic_otel_php_tests/php_ini_scan_dir
+    echo "ls -l /otel_php_distro_tests/php_ini_scan_dir"
+    ls -l /otel_php_distro_tests/php_ini_scan_dir
 
     echo 'After setting PHP_INI_SCAN_DIR'
     print_info_about_environment
@@ -221,19 +221,19 @@ function main() {
     start_syslog_and_set_related_config
 
     export composer_run_component_tests_log_file
-    composer_run_component_tests_log_file=/elastic_otel_php_tests/logs/composer_-_run_component_tests.log
+    composer_run_component_tests_log_file=/otel_php_distro_tests/logs/composer_-_run_component_tests.log
 
     trap on_script_exit EXIT
 
     # Disable agent for auxiliary PHP processes to reduce noise in logs
-    export ELASTIC_OTEL_ENABLED=false
+    export OTEL_PHP_ENABLED=false
     export OTEL_PHP_DISABLED_INSTRUMENTATIONS=all
     export OTEL_PHP_AUTOLOAD_ENABLED=false
 
     end_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
-    install_elastic_otel_package
-    echo 'After installing Elastic OTel (EDOT)'
+    install_open_telemetry_php_distro_package
+    echo 'After installing OpenTelemetry PHP Distro package'
     print_info_about_environment
 
     current_github_workflow_log_group_name="Installing PHP dependencies using composer"
@@ -243,16 +243,16 @@ function main() {
 
     end_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
-    current_github_workflow_log_group_name="Running component tests for app_host_kind: ${ELASTIC_OTEL_PHP_TESTS_APP_CODE_HOST_KIND}"
-    if [[ -n "${ELASTIC_OTEL_PHP_TESTS_GROUP+x}" ]]; then # -n is true if string is not empty
-        current_github_workflow_log_group_name="${current_github_workflow_log_group_name}, test_group: ${ELASTIC_OTEL_PHP_TESTS_GROUP}"
+    current_github_workflow_log_group_name="Running component tests for app_host_kind: ${OTEL_PHP_TESTS_APP_CODE_HOST_KIND}"
+    if [[ -n "${OTEL_PHP_TESTS_GROUP+x}" ]]; then # -n is true if string is not empty
+        current_github_workflow_log_group_name="${current_github_workflow_log_group_name}, test_group: ${OTEL_PHP_TESTS_GROUP}"
     fi
-    if [[ -n "${ELASTIC_OTEL_PHP_TESTS_FILTER+x}" ]]; then # -n is true if string is not empty
-        current_github_workflow_log_group_name="${current_github_workflow_log_group_name}, filter: ${ELASTIC_OTEL_PHP_TESTS_FILTER}"
+    if [[ -n "${OTEL_PHP_TESTS_FILTER+x}" ]]; then # -n is true if string is not empty
+        current_github_workflow_log_group_name="${current_github_workflow_log_group_name}, filter: ${OTEL_PHP_TESTS_FILTER}"
     fi
     start_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
-    export ELASTIC_OTEL_PHP_TESTS_LOGS_DIRECTORY="/elastic_otel_php_tests/logs"
+    export OTEL_PHP_TESTS_LOGS_DIRECTORY="/otel_php_distro_tests/logs"
     ./tools/test/component/test_installed_package_one_matrix_row.sh
 }
 

@@ -21,7 +21,7 @@ function main() {
     # SC2086: <var> might contain multiple space separated arguments
     # shellcheck disable=SC2086
     "${repo_root_dir}/tools/run_command_with_timeout_and_retries.sh" "${run_command_with_timeout_and_retries_args[@]}" -- \
-        ${ELASTIC_OTEL_PHP_TESTS_EXTERNAL_SERVICES_DOCKER_COMPOSE_CMD_PREFIX:?} up -d
+        ${OTEL_PHP_TESTS_EXTERNAL_SERVICES_DOCKER_COMPOSE_CMD_PREFIX:?} up -d
 
     end_github_workflow_log_group "${current_github_workflow_log_group_name}"
 }
