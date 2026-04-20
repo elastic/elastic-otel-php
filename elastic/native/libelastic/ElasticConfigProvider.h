@@ -19,23 +19,24 @@
 
 #pragma once
 
-#include "config/OptionValueProviderInterface.h"
-
 #include <optional>
 #include <string>
 #include <string_view>
-#include <unordered_map>
+
+#include "config/OptionValueProviderInterface.h"
 
 namespace elastic::otel {
 
 /**
- * Elastic-specific OptionValueProvider that maps legacy ELASTIC_OTEL_* environment
- * variables and INI entries to the upstream OTEL_PHP_* names.
+ * Elastic-specific OptionValueProvider that maps legacy ELASTIC_OTEL_*
+ * environment variables and elastic_otel.* INI entries to the upstream
+ * OTEL_PHP_* / opentelemetry_distro.* names.
  *
- * When the upstream ConfigurationManager asks for e.g. "log_level", this provider
- * checks the ELASTIC_OTEL_LOG_LEVEL environment variable (and elastic_otel.log_level INI).
- * If found, it returns the value — providing backward compatibility for existing
- * Elastic deployments.
+ * The upstream ConfigurationManager calls
+ * getIniOptionValue("opentelemetry_distro.log_level") and
+ * getEnvironmentOptionValue("OTEL_PHP_LOG_LEVEL"). This provider translates
+ * those to elastic_otel.log_level and ELASTIC_OTEL_LOG_LEVEL respectively,
+ * providing backward compatibility for existing Elastic deployments.
  */
 class ElasticConfigProvider : public opentelemetry::php::config::OptionValueProviderInterface {
 public:
@@ -44,18 +45,7 @@ public:
     std::optional<std::string> getDynamicOptionValue(std::string_view name) override;
     void update(configFiles_t const &configFiles) override;
 
-private:
-    /**
-     * Maps upstream option short names (e.g. "log_level") to the legacy
-     * ELASTIC_OTEL_* environment variable name (e.g. "ELASTIC_OTEL_LOG_LEVEL").
-     */
-    static const std::unordered_map<std::string_view, std::string> envAliasMap_;
-
-    /**
-     * Maps upstream option short names to legacy elastic_otel.* INI entry names.
-     */
-    static const std::unordered_map<std::string_view, std::string> iniAliasMap_;
-
+   private:
     configFiles_t configFiles_;
 };
 
