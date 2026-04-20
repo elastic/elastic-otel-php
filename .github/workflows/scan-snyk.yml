@@ -24,6 +24,6 @@ jobs:
         if: github.event_name != 'pull_request' || ( github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false && github.actor != 'dependabot[bot]' )
         run: |
           source ./tools/read_properties.sh
-          read_properties elastic-otel-php.properties PROJECT_PROPERTIES
+          read_properties upstream/project.properties PROJECT_PROPERTIES
           PHP_VERSIONS=${PROJECT_PROPERTIES_SUPPORTED_PHP_VERSIONS//[()]/}
           ./tools/build/snyk_scan.sh --php_versions "${PHP_VERSIONS}" --snyk_token "${SNYK_TOKEN}"
