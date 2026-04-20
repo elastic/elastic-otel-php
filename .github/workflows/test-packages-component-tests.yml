@@ -28,6 +28,8 @@ jobs:
       MATRIX_ROW: ${{ matrix.row }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          submodules: recursive
       - name: Download built packages
         uses: actions/download-artifact@v8
         with:

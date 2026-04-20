@@ -27,6 +27,8 @@ jobs:
       PHP_VERSION: ${{ matrix.php-version }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          submodules: recursive
       - name: Download package artifacts for Debian AMD64
         uses: actions/download-artifact@v8
         with:

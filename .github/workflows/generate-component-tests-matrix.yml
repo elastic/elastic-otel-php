@@ -22,6 +22,8 @@ jobs:
       matrix: ${{ steps.generate.outputs.matrix }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          submodules: recursive
       - id: generate
         run: |
           MATRIX_JSON=$(./tools/test/component/generate_matrix.sh | jq --raw-input --slurp -c 'split("\n") | map(select(length > 0)) | map({ "row": . } )')

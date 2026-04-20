@@ -17,5 +17,7 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v6
+        with:
+          submodules: recursive
       - name: Verification whether the source files contain a header with the license
         run: ./tools/build/test_sources_license.sh

@@ -18,6 +18,8 @@ jobs:
       SNYK_TOKEN: ${{ secrets.SNYK_AUTH_TOKEN }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          submodules: recursive
       - name: Scan for vulnerabilities with Snyk
         if: github.event_name != 'pull_request' || ( github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false && github.actor != 'dependabot[bot]' )
         run: |

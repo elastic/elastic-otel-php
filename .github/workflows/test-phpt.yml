@@ -41,6 +41,8 @@ jobs:
       BUILD_ARCHITECTURE: ${{ matrix.arch }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          submodules: recursive
       - uses: actions/download-artifact@v8
         with:
           name: build-native-${{ matrix.arch }}

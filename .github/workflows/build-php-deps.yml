@@ -20,6 +20,8 @@ jobs:
       COMPOSER_ALLOW_SUPERUSER: 1
     steps:
       - uses: actions/checkout@v6
+        with:
+          submodules: recursive
       - name: Build PHP dependencies
         run: |
           source ./tools/read_properties.sh
