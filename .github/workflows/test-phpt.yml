@@ -46,7 +46,7 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           name: build-native-${{ matrix.arch }}
-          path: prod/native/_build/${{ matrix.arch }}-release/
+          path: upstream/prod/native/_build/${{ matrix.arch }}-release/
       # - if: ${{ matrix.goarch == 'arm64' }}
       #   uses: docker/setup-qemu-action@v3
       #   with:

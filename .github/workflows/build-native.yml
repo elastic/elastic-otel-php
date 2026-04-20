@@ -60,9 +60,9 @@ jobs:
         with:
           name: build-native-${{ matrix.arch }}
           path: |
-            prod/native/_build/${{ matrix.arch }}-release/extension/code/elastic_otel_php*.so
-            prod/native/_build/${{ matrix.arch }}-release/extension/code/elastic_otel_php*.debug
-            prod/native/_build/${{ matrix.arch }}-release/loader/code/elastic_otel_php_loader.so
-            prod/native/_build/${{ matrix.arch }}-release/loader/code/elastic_otel_php_loader.debug
-            prod/native/_build/${{ matrix.arch }}-release/phpbridge_extension/code/phpbridge_*.so
-            prod/native/_build/${{ matrix.arch }}-release/phpbridge_extension/code/phpbridge_*.debug
+            upstream/prod/native/_build/${{ matrix.arch }}-release/extension/code/opentelemetry_php_distro_*.so
+            upstream/prod/native/_build/${{ matrix.arch }}-release/extension/code/opentelemetry_php_distro_*.debug
+            upstream/prod/native/_build/${{ matrix.arch }}-release/loader/code/opentelemetry_php_distro_loader.so
+            upstream/prod/native/_build/${{ matrix.arch }}-release/loader/code/opentelemetry_php_distro_loader.debug
+            upstream/prod/native/_build/${{ matrix.arch }}-release/phpbridge_extension/code/phpbridge_*.so
+            upstream/prod/native/_build/${{ matrix.arch }}-release/phpbridge_extension/code/phpbridge_*.debug

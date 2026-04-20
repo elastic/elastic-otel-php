@@ -51,7 +51,7 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           name: build-native-${{ matrix.arch }}
-          path: prod/native/_build/${{ matrix.arch }}-release/
+          path: upstream/prod/native/_build/${{ matrix.arch }}-release/
       - uses: actions/download-artifact@v8
         with:
             name: php-dependencies
