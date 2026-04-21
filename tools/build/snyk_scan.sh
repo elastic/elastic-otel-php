@@ -47,6 +47,12 @@ main() {
     repo_root_dir="$(realpath "${this_script_dir}/../..")"
     source "${repo_root_dir}/tools/shared.sh"
 
+    # Read properties from upstream for generated_lock_files_folder
+    source "${repo_root_dir}/tools/read_properties.sh"
+    read_properties "${repo_root_dir}/upstream/project.properties" _PROJECT_PROPERTIES
+    # Lock files live inside the upstream submodule
+    local _LOCK_FILES_DIR="${repo_root_dir}/upstream/${_PROJECT_PROPERTIES_GENERATED_LOCK_FILES_FOLDER:?}"
+
     # Parse arguments
     parse_args "$@"
 
@@ -74,10 +80,10 @@ main() {
 
         local composer_lock_file_name
         composer_lock_file_name="$(build_generated_composer_lock_file_name "prod" "${PHP_version_no_dot}")"
-        local composer_lock_full_path="${elastic_otel_php_build_tools_composer_lock_files_dir:?}/${composer_lock_file_name}"
+        local composer_lock_full_path="${_LOCK_FILES_DIR}/${composer_lock_file_name}"
         local composer_json_file_name
         composer_json_file_name="$(build_generated_composer_json_file_name "prod")"
-        local composer_json_full_path="${elastic_otel_php_build_tools_composer_lock_files_dir:?}/${composer_json_file_name}"
+        local composer_json_full_path="${_LOCK_FILES_DIR}/${composer_json_file_name}"
 
         if [ ! -f "${composer_lock_full_path}" ]; then
             echo "::error Composer lock file not found at ${composer_lock_full_path}"
