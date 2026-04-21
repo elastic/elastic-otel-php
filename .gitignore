@@ -1,6 +1,6 @@
-# Generated files
-prod/php/ElasticOTel/PhpPartVersion.php
-prod/php/ElasticOTel/Log/LogFeature.php
+# Generated files (upstream)
+upstream/prod/php/OpenTelemetry/Distro/PhpPartVersion.php
+upstream/prod/php/OpenTelemetry/Distro/Log/LogFeature.php
 
 # Mac
 .DS_Store
@@ -18,7 +18,7 @@ prod/php/ElasticOTel/Log/LogFeature.php
 composer.lock
 composer.phar
 vendor/
-prod/php/vendor_*/
+upstream/prod/php/vendor_*/
 
 # PHP_CodeSniffer
 .php_cs.cache
@@ -27,11 +27,11 @@ prod/php/vendor_*/
 .phpunit.result.cache
 
 #phpt results folder
-prod/native/extension/phpt/results/
-prod/native/phpbridge_extension/phpt/results/
+upstream/prod/native/extension/phpt/results/
+upstream/prod/native/phpbridge_extension/phpt/results/
 
 #native build folder
-prod/native/_build/
+upstream/prod/native/_build/
 
 # Built documentation
 html_docs
