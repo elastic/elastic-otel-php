@@ -55,7 +55,7 @@ jobs:
         run: |
           uname -a
           echo "Arch: ${BUILD_ARCHITECTURE}"
-          source ./tools/read_properties.sh
+          source ./upstream/tools/read_properties.sh
           read_properties upstream/project.properties PROJECT_PROPERTIES
           PHP_VERSIONS=${PROJECT_PROPERTIES_SUPPORTED_PHP_VERSIONS//[()]/}
           ./tools/build/test_phpt.sh --build_architecture ${BUILD_ARCHITECTURE} --results_path ${PWD}/build/test_phpt_results --php_versions "${PHP_VERSIONS}"

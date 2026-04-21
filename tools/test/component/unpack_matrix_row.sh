@@ -96,7 +96,7 @@ function unpack_matrix_row {
 
     source "tools/shared.sh"
     source "tools/helpers/array_helpers.sh"
-    source "tools/read_properties.sh"
+    source "upstream/tools/read_properties.sh"
     read_properties "upstream/project.properties" "_PROJECT_PROPERTIES"
 
     local matrix_row_parts

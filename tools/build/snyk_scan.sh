@@ -48,7 +48,7 @@ main() {
     source "${repo_root_dir}/tools/shared.sh"
 
     # Read properties from upstream for generated_lock_files_folder
-    source "${repo_root_dir}/tools/read_properties.sh"
+    source "${repo_root_dir}/upstream/tools/read_properties.sh"
     read_properties "${repo_root_dir}/upstream/project.properties" _PROJECT_PROPERTIES
     # Lock files live inside the upstream submodule
     local _LOCK_FILES_DIR="${repo_root_dir}/upstream/${_PROJECT_PROPERTIES_GENERATED_LOCK_FILES_FOLDER:?}"

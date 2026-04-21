@@ -26,7 +26,7 @@ jobs:
           submodules: recursive
       - id: generate
         run: |
-          source ./tools/read_properties.sh
+          source ./upstream/tools/read_properties.sh
           read_properties upstream/project.properties PROJECT_PROPERTIES
           PHP_VERSIONS=${PROJECT_PROPERTIES_SUPPORTED_PHP_VERSIONS//[()]/}
           echo "PHP_VERSIONS: ${PHP_VERSIONS}"

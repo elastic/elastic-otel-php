@@ -24,7 +24,7 @@ jobs:
           submodules: recursive
       - name: Build PHP dependencies
         run: |
-          source ./tools/read_properties.sh
+          source ./upstream/tools/read_properties.sh
           read_properties upstream/project.properties PROJECT_PROPERTIES
           PHP_VERSIONS=${PROJECT_PROPERTIES_SUPPORTED_PHP_VERSIONS//[()]/}
           ./tools/build/build_php_deps.sh --php_versions "${PHP_VERSIONS}"

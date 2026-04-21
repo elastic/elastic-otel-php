@@ -10,7 +10,7 @@ source "${repo_root_dir}/tools/shared.sh"
 source "${repo_root_dir}/tools/helpers/array_helpers.sh"
 
 # Read scoper prefix from upstream properties for smoke tests
-source "${repo_root_dir}/tools/read_properties.sh"
+source "${repo_root_dir}/upstream/tools/read_properties.sh"
 read_properties "${repo_root_dir}/upstream/project.properties" _UPSTREAM_PROPERTIES
 SCOPE_NAME="${_UPSTREAM_PROPERTIES_PHP_SCOPER_PREFIX}"
 

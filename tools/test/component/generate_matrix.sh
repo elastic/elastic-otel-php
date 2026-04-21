@@ -74,7 +74,7 @@ function main () {
 
     source "${repo_root_dir}/tools/helpers/array_helpers.sh"
 
-    source "${repo_root_dir}/tools/read_properties.sh"
+    source "${repo_root_dir}/upstream/tools/read_properties.sh"
     read_properties "${repo_root_dir}/upstream/project.properties" _PROJECT_PROPERTIES
 
 

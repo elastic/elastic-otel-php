@@ -57,7 +57,7 @@ jobs:
             name: php-dependencies
       - name: Build packages
         run: |
-          source "./tools/read_properties.sh"
+          source "./upstream/tools/read_properties.sh"
           read_properties elastic-otel-php.properties ELASTIC_OTEL_PHP
           read_properties upstream/project.properties PROJECT_PROPERTIES
 
