@@ -7,6 +7,7 @@ this_script_dir="$( realpath "${this_script_dir}" )"
 
 repo_root_dir="$( realpath "${this_script_dir}/../.." )"
 source "${repo_root_dir}/tools/shared.sh"
+source "${repo_root_dir}/tools/helpers/array_helpers.sh"
 
 # Read scoper prefix from upstream properties for smoke tests
 source "${repo_root_dir}/tools/read_properties.sh"
@@ -77,7 +78,7 @@ fi
 
 test_package() {
     local highest_supported_php_version_no_dot
-    highest_supported_php_version_no_dot=$(get_highest_supported_php_version)
+    highest_supported_php_version_no_dot=$(get_array_max_value ${_UPSTREAM_PROPERTIES_SUPPORTED_PHP_VERSIONS})
     local highest_supported_php_version_dot_separated
     highest_supported_php_version_dot_separated=$(convert_no_dot_to_dot_separated_version "${highest_supported_php_version_no_dot}")
     local PHP_VERSION="${highest_supported_php_version_dot_separated}"
