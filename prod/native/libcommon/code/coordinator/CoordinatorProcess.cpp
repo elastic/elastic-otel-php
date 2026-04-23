@@ -32,7 +32,7 @@ void CoordinatorProcess::coordinatorLoop() {
         unsigned int priority = 0;
 
         try {
-            if (commandQueue_->timed_receive(buffer, maxMqPayloadSize, receivedSize, priority, std::chrono::steady_clock::now() + std::chrono::milliseconds(10))) {
+            if (commandQueue_->timed_receive(buffer, maxMqPayloadSize, receivedSize, priority, std::chrono::system_clock::now() + std::chrono::milliseconds(10))) {
                 processor_.processReceivedChunk(reinterpret_cast<const CoordinatorPayload *>(buffer), receivedSize);
             }
         } catch (std::exception &ex) {
