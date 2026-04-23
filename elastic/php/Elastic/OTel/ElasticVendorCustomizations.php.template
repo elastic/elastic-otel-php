@@ -11,7 +11,8 @@ use OpenTelemetry\Distro\VendorCustomizationsInterface;
 final class ElasticVendorCustomizations implements VendorCustomizationsInterface
 {
     private const VENDOR_NAME = 'elastic';
-    private const DISTRIBUTION_NAME = 'elastic-otel-php';
+    private const DISTRIBUTION_NAME = 'elastic';
+    private const USER_AGENT = 'elastic-otlp-http-php/' . self::VERSION;
     private const VERSION = '@_EDOT_VERSION@';
 
     public function getVendorName(): string
@@ -31,7 +32,7 @@ final class ElasticVendorCustomizations implements VendorCustomizationsInterface
 
     public function getUserAgentString(): ?string
     {
-        return self::DISTRIBUTION_NAME . '/' . self::VERSION;
+        return self::USER_AGENT;
     }
 
     /**

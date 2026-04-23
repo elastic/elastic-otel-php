@@ -15,6 +15,10 @@ edot_root_dir="$(realpath "${this_script_dir}/../..")"
 
 echo "=== EDOT build_php_deps.sh: delegating to upstream ==="
 
+# Configure EDOT-specific PHP templates (e.g., ElasticVendorCustomizations.php)
+# before upstream build, which will configure its own templates internally.
+"${edot_root_dir}/tools/build/configure_php_templates.sh"
+
 pushd "${edot_root_dir}/upstream"
 ./tools/build/build_php_deps.sh "$@"
 popd
