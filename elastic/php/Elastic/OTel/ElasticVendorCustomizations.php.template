@@ -1,0 +1,44 @@
+<?php
+
+/* this file is generated from ElasticVendorCustomizations.php.template, do not edit it manually */
+
+declare(strict_types=1);
+
+namespace Elastic\OTel;
+
+use OpenTelemetry\Distro\VendorCustomizationsInterface;
+
+final class ElasticVendorCustomizations implements VendorCustomizationsInterface
+{
+    private const VENDOR_NAME = 'elastic';
+    private const DISTRIBUTION_NAME = 'elastic-otel-php';
+    private const VERSION = '@_EDOT_VERSION@';
+
+    public function getVendorName(): string
+    {
+        return self::VENDOR_NAME;
+    }
+
+    public function getDistributionName(): string
+    {
+        return self::DISTRIBUTION_NAME;
+    }
+
+    public function getDistributionVersion(): string
+    {
+        return self::VERSION;
+    }
+
+    public function getUserAgentString(): ?string
+    {
+        return self::DISTRIBUTION_NAME . '/' . self::VERSION;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function getResourceAttributes(): array
+    {
+        return [];
+    }
+}

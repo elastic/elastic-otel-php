@@ -39,9 +39,13 @@ declare(strict_types=1);
 // Only set the OTEL_PHP_* var if it's not already set (OTEL_PHP_* takes
 // precedence if the user explicitly sets it).
 $elasticToOtelEnvMap = [
-    'ELASTIC_OTEL_ENABLED'         => 'OTEL_PHP_ENABLED',
-    'ELASTIC_OTEL_LOG_LEVEL'       => 'OTEL_PHP_LOG_LEVEL',
-    'ELASTIC_OTEL_LOG_FILE'        => 'OTEL_PHP_LOG_FILE',
+    'ELASTIC_OTEL_ENABLED'                      => 'OTEL_PHP_ENABLED',
+    'ELASTIC_OTEL_LOG_LEVEL'                     => 'OTEL_PHP_LOG_LEVEL',
+    'ELASTIC_OTEL_LOG_FILE'                      => 'OTEL_PHP_LOG_FILE',
+    'ELASTIC_OTEL_LOG_OTEL_WITH_CONTEXT'         => 'OTEL_PHP_LOG_OTEL_WITH_CONTEXT',
+    'ELASTIC_OTEL_TRANSACTION_SPAN_ENABLED'      => 'OTEL_PHP_TRANSACTION_SPAN_ENABLED',
+    'ELASTIC_OTEL_TRANSACTION_SPAN_ENABLED_CLI'  => 'OTEL_PHP_TRANSACTION_SPAN_ENABLED_CLI',
+    'ELASTIC_OTEL_TRANSACTION_URL_GROUPS'         => 'OTEL_PHP_TRANSACTION_URL_GROUPS',
 ];
 
 foreach ($elasticToOtelEnvMap as $elasticVar => $otelVar) {
@@ -71,3 +75,34 @@ if (!file_exists($upstreamBootstrap)) {
 
 require $upstreamBootstrap;
 unset($upstreamBootstrap);
+
+// ── Register EDOT vendor customizations ────────────────────────────────
+// Must be called AFTER upstream bootstrap loads PhpPartFacade class
+// but BEFORE the native extension calls PhpPartFacade::bootstrap().
+//
+// Upstream classes live in the scoped namespace (OTelDistroScoped\OpenTelemetry\Distro\*).
+// EDOT code uses the non-scoped names (OpenTelemetry\Distro\*).
+// Bridge the two with class_alias so PHP type checks pass.
+$_edotScopePrefix = \OpenTelemetry\Distro\OTelDistroScoperConfig::PREFIX . '\\';
+if (!interface_exists('OpenTelemetry\\Distro\\VendorCustomizationsInterface', false)) {
+    class_alias($_edotScopePrefix . 'OpenTelemetry\\Distro\\VendorCustomizationsInterface', 'OpenTelemetry\\Distro\\VendorCustomizationsInterface');
+}
+if (!interface_exists('OpenTelemetry\\Distro\\RemoteConfigConsumerInterface', false)) {
+    class_alias($_edotScopePrefix . 'OpenTelemetry\\Distro\\RemoteConfigConsumerInterface', 'OpenTelemetry\\Distro\\RemoteConfigConsumerInterface');
+}
+if (!class_exists('OpenTelemetry\\Distro\\PhpPartFacade', false)) {
+    class_alias($_edotScopePrefix . 'OpenTelemetry\\Distro\\PhpPartFacade', 'OpenTelemetry\\Distro\\PhpPartFacade');
+}
+unset($_edotScopePrefix);
+
+require __DIR__ . '/Elastic/OTel/ElasticVendorCustomizations.php';
+require __DIR__ . '/Elastic/OTel/OpAmp/ElasticRemoteConfigParser.php';
+require __DIR__ . '/Elastic/OTel/OpAmp/ElasticRemoteConfigConsumer.php';
+
+\OpenTelemetry\Distro\PhpPartFacade::setVendorCustomizations(
+    new \Elastic\OTel\ElasticVendorCustomizations()
+);
+\OpenTelemetry\Distro\PhpPartFacade::registerRemoteConfigConsumer(
+    new \Elastic\OTel\OpAmp\ElasticRemoteConfigConsumer()
+);
+
