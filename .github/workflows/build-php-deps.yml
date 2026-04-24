@@ -32,6 +32,7 @@ jobs:
         with:
           name: php-dependencies
           path: |
+            elastic/php/Elastic/OTel/ElasticVendorCustomizations.php
             upstream/prod/php/vendor_*
             upstream/prod/php/OpenTelemetry/Distro/PhpPartVersion.php
             upstream/prod/php/OpenTelemetry/Distro/Log/LogFeature.php
