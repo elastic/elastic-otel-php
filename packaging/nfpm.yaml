@@ -52,6 +52,17 @@ contents:
 # Elastic PHP bootstrap wrapper (entry point for the native extension)
 - src: /source/elastic/php/bootstrap_elastic.php
   dst: /opt/elastic/elastic-otel-php/php/bootstrap_elastic.php
+# Elastic PHP classes (vendor customizations, OpAMP consumer, remote config parser)
+- src: /source/elastic/php/Elastic
+  dst: /opt/elastic/elastic-otel-php/php/Elastic
+  type: tree
+  packager: rpm
+- src: /source/elastic/php/Elastic
+  dst: /opt/elastic/elastic-otel-php/php/Elastic
+  packager: deb
+- src: /source/elastic/php/Elastic
+  dst: /opt/elastic/elastic-otel-php/php/Elastic
+  packager: apk
 # INI config template (upstream convention)
 - src: /source/upstream/packaging/configs/opentelemetry_distro_custom_template.ini
   dst: /opt/elastic/elastic-otel-php/etc/opentelemetry-distro-custom.ini
