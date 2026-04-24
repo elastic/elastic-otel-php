@@ -164,6 +164,11 @@ final class ElasticRemoteConfigParser
         if (!$shouldSend) {
             self::setEnvVar($otelEnvVar, self::VALUE_NONE);
             self::logDebug("Applied $optName=false", ['envVar' => $otelEnvVar]);
+        } else {
+            // Remove any prior override so the default exporter resumes.
+            // putenv() values persist across PHP-FPM requests in the same worker.
+            self::unsetEnvVar($otelEnvVar);
+            self::logDebug("Applied $optName=true (unset override)", ['envVar' => $otelEnvVar]);
         }
     }
 
@@ -193,18 +198,11 @@ final class ElasticRemoteConfigParser
                 return;
             }
 
-            // Merge with existing local disabled instrumentations
-            $localVal = getenv(self::OTEL_PHP_DISABLED_INSTRUMENTATIONS);
-            if (is_string($localVal) && $localVal !== '') {
-                $localList = self::parseCommaSeparatedList($localVal);
-                $remoteList = self::parseCommaSeparatedList($val);
-                $merged = implode(',', array_unique(array_merge($localList, $remoteList)));
-            } else {
-                $merged = $val;
-            }
-
-            self::setEnvVar(self::OTEL_PHP_DISABLED_INSTRUMENTATIONS, $merged);
-            self::logDebug('Applied deactivate_instrumentations', ['merged' => $merged]);
+            // Set remote value directly — do NOT merge with getenv() because in PHP-FPM
+            // workers putenv() values persist across requests, causing stale entries
+            // from previous remote configs to accumulate.
+            self::setEnvVar(self::OTEL_PHP_DISABLED_INSTRUMENTATIONS, $val);
+            self::logDebug('Applied deactivate_instrumentations', ['value' => $val]);
         }
     }
 
@@ -212,6 +210,9 @@ final class ElasticRemoteConfigParser
     {
         if (is_bool($val)) {
             return $val;
+        }
+        if (is_int($val)) {
+            return $val !== 0;
         }
         if (is_string($val)) {
             $lower = strtolower($val);
@@ -241,6 +242,12 @@ final class ElasticRemoteConfigParser
     {
         putenv("{$name}={$value}");
         $_SERVER[$name] = $value;
+    }
+
+    private static function unsetEnvVar(string $name): void
+    {
+        putenv($name);
+        unset($_SERVER[$name]);
     }
 
     /**
