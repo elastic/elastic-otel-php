@@ -31,20 +31,20 @@ To check for security updates, go to [Security announcements for the Elastic sta
 
 ### Fixes [edot-php-1.4.0-fixes]
 
-- fix: use system_clock for Boost.Interprocess timed_receive to prevent futex spin loop causing high CPU ([#358](https://github.com/elastic/elastic-otel-php/issues/358)) (PR [#368](https://github.com/elastic/elastic-otel-php/pull/368))
+- Fixes high CPU usage caused by a futex spin loop by using `system_clock` for Boost.Interprocess `timed_receive` ([#358](https://github.com/elastic/elastic-otel-php/issues/358), [#368](https://github.com/elastic/elastic-otel-php/pull/368)).
 
 ### Features and enhancements [edot-php-1.4.0-features-enhancements]
 
-- Added send_logs, send_metrics and send_traces remote config options  (PR [#328](https://github.com/elastic/elastic-otel-php/pull/328))
-- Added deactivate_all_instrumentations remote config (PR [#327](https://github.com/elastic/elastic-otel-php/pull/327))
-- Added deactivate_instrumentations remote config (PR [#326](https://github.com/elastic/elastic-otel-php/pull/326))
+- Adds the `send_logs`, `send_metrics`, and `send_traces` remote configuration options ([#328](https://github.com/elastic/elastic-otel-php/pull/328)).
+- Adds the `deactivate_all_instrumentations` remote configuration option ([#327](https://github.com/elastic/elastic-otel-php/pull/327)).
+- Adds the `deactivate_instrumentations` remote configuration option ([#326](https://github.com/elastic/elastic-otel-php/pull/326)).
 
 ### Other [edot-php-1.4.0-other]
 
-- Add TLS notes and settings (PR [#339](https://github.com/elastic/elastic-otel-php/pull/339))
-- Start using the snyk service account credentials  (PR [#351](https://github.com/elastic/elastic-otel-php/pull/351))
-- Move docs workflows to elastic/docs-actions (PR [#359](https://github.com/elastic/elastic-otel-php/pull/359))
-- Add Vale docs linting support (PR [#353](https://github.com/elastic/elastic-otel-php/pull/353))
+- Adds TLS notes and settings ([#339](https://github.com/elastic/elastic-otel-php/pull/339)).
+- Starts using the Snyk service account credentials ([#351](https://github.com/elastic/elastic-otel-php/pull/351)).
+- Moves docs workflows to `elastic/docs-actions` ([#359](https://github.com/elastic/elastic-otel-php/pull/359)).
+- Adds Vale docs linting support ([#353](https://github.com/elastic/elastic-otel-php/pull/353)).
 
 
 ## 1.3.1 [edot-php-1.3.1-release-notes]
