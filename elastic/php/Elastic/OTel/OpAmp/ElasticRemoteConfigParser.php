@@ -139,8 +139,8 @@ final class ElasticRemoteConfigParser
             return;
         }
 
-        $currentSampler = getenv(self::OTEL_TRACES_SAMPLER);
-        if ($currentSampler === false || $currentSampler === '') {
+        $currentSampler = self::getEnvVar(self::OTEL_TRACES_SAMPLER);
+        if ($currentSampler === null || $currentSampler === '') {
             self::setEnvVar(self::OTEL_TRACES_SAMPLER, self::VALUE_PARENT_BASED_TRACE_ID_RATIO);
         } elseif ($currentSampler !== self::VALUE_PARENT_BASED_TRACE_ID_RATIO) {
             self::logDebug(
@@ -248,6 +248,18 @@ final class ElasticRemoteConfigParser
     {
         putenv($name);
         unset($_SERVER[$name]);
+    }
+
+    /**
+     * Read env var checking $_SERVER first, then getenv() — matching OTel SDK resolution order.
+     */
+    private static function getEnvVar(string $name): ?string
+    {
+        if (isset($_SERVER[$name]) && is_string($_SERVER[$name])) {
+            return $_SERVER[$name];
+        }
+        $val = getenv($name);
+        return $val !== false ? $val : null;
     }
 
     /**
