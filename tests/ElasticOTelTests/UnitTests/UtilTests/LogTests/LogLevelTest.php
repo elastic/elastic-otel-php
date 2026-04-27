@@ -24,13 +24,26 @@ declare(strict_types=1);
 namespace ElasticOTelTests\UnitTests\UtilTests\LogTests;
 
 use Elastic\OTel\Log\LogLevel;
+use Elastic\OTel\Log\OTelInternalLogLevel;
 use ElasticOTelTests\Util\Log\LogLevelUtil;
 use ElasticOTelTests\Util\TestCaseBase;
 
-class LogLevelTest extends TestCaseBase
+final class LogLevelTest extends TestCaseBase
 {
     public function testGetHighest(): void
     {
         self::assertSame(LogLevel::trace, LogLevelUtil::getHighest());
+    }
+
+    public function testToOTelInternalLogLevel(): void
+    {
+        foreach (LogLevel::cases() as $elasticLogLevel) {
+            $actualOTelInternalLogLevel = $elasticLogLevel->toOTelInternalLogLevel();
+            match ($elasticLogLevel) {
+                LogLevel::off => self::assertSame(OTelInternalLogLevel::none, $actualOTelInternalLogLevel),
+                LogLevel::trace => self::assertSame(OTelInternalLogLevel::debug, $actualOTelInternalLogLevel),
+                default => self::assertSame(OTelInternalLogLevel::tryToFindByName($elasticLogLevel->name), $actualOTelInternalLogLevel),
+            };
+        }
     }
 }

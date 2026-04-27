@@ -23,18 +23,29 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
+use ElasticOTelTests\Util\ClassNameUtil;
 use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LoggableTrait;
+use ElasticOTelTests\Util\Log\LogStreamInterface;
 use ElasticOTelTests\Util\MonotonicTime;
 use ElasticOTelTests\Util\SystemTime;
+use Override;
 
 abstract class AgentBackendCommEvent implements LoggableInterface
 {
     use LoggableTrait;
 
     public function __construct(
+        public readonly int $port,
         public readonly MonotonicTime $monotonicTime,
         public readonly SystemTime $systemTime,
     ) {
+    }
+
+    #[Override]
+    public function toLog(LogStreamInterface $stream): void
+    {
+        $customToLog = ['type ' => ClassNameUtil::fqToShort($this::class)];
+        $this->toLogLoggableTraitImpl($stream, $customToLog);
     }
 }

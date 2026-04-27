@@ -64,7 +64,7 @@ final class ComponentTestsEnvVarsForAppCodeTest extends TestCaseBase
         $genInheritedEnvVarsVariants = function (): iterable {
             yield 'Unrelated to OTel/EDOT' => ['COMPOSER_BINARY', 'SHELL', 'XDG_SESSION_TYPE'];
 
-            yield 'All options for tests' => array_map(fn($optName) => $optName->name, OptionForTestsName::cases());
+            yield 'All options for tests' => OptionForTestsName::casesNames();
 
             yield 'DEV_INTERNAL_MODE_IS_DEV' => [PhpPartFacade::MODE_IS_DEV_ENV_VAR_NAME];
         };

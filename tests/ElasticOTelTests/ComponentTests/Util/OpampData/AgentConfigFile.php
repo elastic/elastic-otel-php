@@ -21,26 +21,26 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTests\UnitTests;
+namespace ElasticOTelTests\ComponentTests\Util\OpampData;
 
-use Elastic\OTel\RemoteConfigHandler;
-use ElasticOTelTests\Util\TestCaseBase;
+use GeneratedForElasticOTelTests\OpampProto\AgentConfigFile as ProtoAgentConfigFile;
 
-final class RemoteConfigUnitTest extends TestCaseBase
+/**
+ * @see https://github.com/open-telemetry/opamp-spec/blob/v0.14.0/proto/opamp.proto#L1041
+ */
+final class AgentConfigFile
 {
-    public function testMergeDisabledInstrumentations(): void
-    {
-        $impl = function (string $localVal, string $remoteVal, string $expectedMergedVal): void {
-            $actualMergedVal = RemoteConfigHandler::mergeDisabledInstrumentations($localVal, $remoteVal);
-            self::assertSame($expectedMergedVal, $actualMergedVal);
-        };
+    public function __construct(
+        public readonly string $contentType,
+        public readonly string $body,
+    ) {
+    }
 
-        $impl('', '', '');
-        $impl("\t", " \n ", '');
-        $impl('a', '', 'a');
-        $impl('', 'b', 'b');
-        $impl('a', 'b', 'a,b');
-        $impl('1,b', 'c,4', '1,b,c,4');
-        $impl("1\n, b", "\t c, 4", '1,b,c,4');
+    public function toProto(): ProtoAgentConfigFile
+    {
+        $result = new ProtoAgentConfigFile();
+        $result->setContentType($this->contentType);
+        $result->setBody($this->body);
+        return $result;
     }
 }

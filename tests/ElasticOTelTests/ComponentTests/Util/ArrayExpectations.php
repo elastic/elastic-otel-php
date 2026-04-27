@@ -73,6 +73,18 @@ class ArrayExpectations implements ExpectationsInterface
         return new self($newExpectedArray, $this->allowOtherKeysInActual);
     }
 
+    /**
+     * @phpstan-param TKey $key
+     *
+     * @return self<TKey, TValue>
+     */
+    public function remove(string|int $key): self
+    {
+        $newExpectedArray = $this->expectedArray;
+        unset($newExpectedArray[$key]);
+        return new self($newExpectedArray, $this->allowOtherKeysInActual);
+    }
+
     #[Override]
     public function assertMatchesMixed(mixed $actual): void
     {

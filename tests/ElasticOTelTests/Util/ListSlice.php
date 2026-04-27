@@ -133,6 +133,7 @@ final class ListSlice implements Countable, IteratorAggregate, LoggableInterface
         return $this->base[$this->offset + $this->length - 1];
     }
 
+    #[Override]
     public function toLog(LogStreamInterface $stream): void
     {
         $stream->toLogAs(array_slice($this->base, $this->offset, $this->length));

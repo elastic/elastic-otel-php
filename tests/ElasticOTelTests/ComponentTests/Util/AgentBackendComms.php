@@ -23,6 +23,7 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
+use ElasticOTelTests\ComponentTests\Util\OpampData\AgentToServer;
 use ElasticOTelTests\ComponentTests\Util\OtlpData\Attributes;
 use ElasticOTelTests\ComponentTests\Util\OtlpData\OTelResource;
 use ElasticOTelTests\ComponentTests\Util\OtlpData\Span;
@@ -37,11 +38,9 @@ use PHPUnit\Framework\Assert;
 final class AgentBackendComms
 {
     /**
-     * @param iterable<AgentBackendCommEvent> $commEvents
      * @param list<AgentBackendConnection> $connections
      */
     public function __construct(
-        public readonly iterable $commEvents,
         public readonly array $connections,
     ) {
     }
@@ -60,7 +59,11 @@ final class AgentBackendComms
     public function intakeDataRequests(): iterable
     {
         foreach ($this->connections as $connection) {
-            yield from $connection->requests;
+            foreach ($connection->requests as $request) {
+                if ($request instanceof IntakeDataRequestDeserialized) {
+                    yield $request;
+                }
+            }
         }
     }
 
@@ -186,12 +189,12 @@ final class AgentBackendComms
     }
 
     /**
-     * @param non-empty-string   $attributeName
+     * @param non-empty-string $attributeName
      * @phpstan-param AttributeValue $attributeValueToFind
      *
      * @return iterable<Span>
      */
-    public function findSpansWithAttributeValue(string $attributeName, array|bool|float|int|null|string $attributeValueToFind): iterable
+    public function findSpansWithAttributeValue(string $attributeName, array|bool|float|int|string $attributeValueToFind): iterable
     {
         foreach ($this->spans() as $span) {
             if ($span->attributes->tryToGetValue($attributeName, /* out */ $actualAttributeValue) && $actualAttributeValue === $attributeValueToFind) {
@@ -214,5 +217,27 @@ final class AgentBackendComms
             $current = AssertEx::isNotNull($this->findSpanById($current->parentId));
         }
         return false;
+    }
+
+    /**
+     * @return iterable<OpampAgentToServerRequest>
+     */
+    public function opampAgentToServerRequests(): iterable
+    {
+        foreach ($this->connections as $connection) {
+            foreach ($connection->requests as $request) {
+                if ($request instanceof OpampAgentToServerRequest) {
+                    yield $request;
+                }
+            }
+        }
+    }
+
+    /**
+     * @return iterable<AgentToServer>
+     */
+    public function opampAgentToServerRequestsData(): iterable
+    {
+        return IterableUtil::map($this->opampAgentToServerRequests(), fn($req) => $req->data); // @phpstan-ignore return.type
     }
 }

@@ -32,5 +32,4 @@ enum OTelSignalType
     case trace;
     case metric;
     case log;
-    case baggage;
 }

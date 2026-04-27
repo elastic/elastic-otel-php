@@ -37,7 +37,6 @@ use ElasticOTelTests\Util\Log\Logger;
 use ElasticOTelTests\Util\RandomUtil;
 use ElasticOTelTests\Util\RangeUtil;
 use PHPUnit\Framework\Assert;
-use PHPUnit\Framework\TestCase;
 use Throwable;
 
 /**
@@ -56,7 +55,9 @@ abstract class HttpServerStarter
     private readonly Logger $logger;
 
     protected function __construct(
-        protected readonly string $dbgProcessNamePrefix
+        protected readonly string $dbgProcessNamePrefix,
+        protected readonly ?ResourcesCleanerHandle $resourcesCleaner,
+        protected readonly bool $isProcessTestScoped,
     ) {
         $this->logger = AmbientContextForTests::loggerFactory()->loggerForClass(LogCategoryForTests::TEST_INFRA, __NAMESPACE__, __CLASS__, __FILE__)->addAllContext(compact('this'));
     }
@@ -104,14 +105,15 @@ abstract class HttpServerStarter
 
             $logger = $this->logger->inherit()->addAllContext(
                 array_merge(
-                    ['dbgProcessName' => $dbgProcessName, 'maxTries' => self::MAX_TRIES_TO_START_SERVER],
-                    compact('tryCount', 'currentTryPorts', 'currentTrySpawnedProcessInternalId', 'cmdLine', 'envVars')
+                    ['maxTries' => self::MAX_TRIES_TO_START_SERVER],
+                    compact('dbgProcessName', 'tryCount', 'currentTryPorts', 'currentTrySpawnedProcessInternalId', 'cmdLine', 'envVars')
                 )
             );
             $loggerProxyDebug = $logger->ifDebugLevelEnabledNoLine(__FUNCTION__);
 
             $loggerProxyDebug && $loggerProxyDebug->log(__LINE__, 'Starting HTTP server...');
             ProcessUtil::startBackgroundProcess($dbgProcessName, $cmdLine, $envVars);
+            $this->resourcesCleaner->getClient()->registerProcessToTerminate($dbgProcessName, $this->isProcessTestScoped);
 
             $pid = -1;
             if ($this->isHttpServerRunning($dbgProcessName, $currentTrySpawnedProcessInternalId, $currentTryPorts[0], $logger, /* ref */ $pid)) {
@@ -170,7 +172,7 @@ abstract class HttpServerStarter
             }
             $candidate = $calcNextInCircularPortRange($candidate);
             if ($candidate === $portToStartSearchFrom) {
-                TestCase::fail(
+                Assert::fail(
                     'Could not find a free port'
                     . LoggableToString::convert(
                         [
@@ -217,14 +219,13 @@ abstract class HttpServerStarter
                 }
 
                 /** @var array<string, mixed> $decodedBody */
-                $decodedBody = JsonUtil::decode($response->getBody()->getContents(), asAssocArray: true);
-                TestCase::assertArrayHasKey(HttpServerHandle::PID_KEY, $decodedBody);
+                $decodedBody = JsonUtil::decode($response->getBody()->getContents());
+                Assert::assertArrayHasKey(HttpServerHandle::PID_KEY, $decodedBody);
                 $receivedPid = $decodedBody[HttpServerHandle::PID_KEY];
-                TestCase::assertIsInt($receivedPid, LoggableToString::convert(['$decodedBody' => $decodedBody]));
+                Assert::assertIsInt($receivedPid, LoggableToString::convert(['$decodedBody' => $decodedBody]));
                 $pid = $receivedPid;
 
-                ($loggerProxy = $logger->ifDebugLevelEnabled(__LINE__, __FUNCTION__))
-                && $loggerProxy->log('HTTP server status is OK', ['PID' => $pid]);
+                $logger->ifDebugLevelEnabled(__LINE__, __FUNCTION__)?->log('HTTP server status is OK', compact('pid'));
                 return true;
             }
         );

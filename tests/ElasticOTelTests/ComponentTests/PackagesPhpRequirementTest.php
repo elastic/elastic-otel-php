@@ -111,7 +111,7 @@ final class PackagesPhpRequirementTest extends ComponentTestCaseBase
             return null;
         }
         $jsonEncoded = FileUtil::getFileContents($packageComposerJsonFilePath);
-        $jsonDecoded = AssertEx::isArray(JsonUtil::decode($jsonEncoded, asAssocArray: true));
+        $jsonDecoded = AssertEx::isArray(JsonUtil::decode($jsonEncoded));
         $requireMap = AssertEx::isArray(AssertEx::arrayHasKey('require', $jsonDecoded));
         return AssertEx::isString(AssertEx::arrayHasKey('php', $requireMap));
     }
@@ -231,14 +231,14 @@ final class PackagesPhpRequirementTest extends ComponentTestCaseBase
 
         $helperScript = __DIR__ . DIRECTORY_SEPARATOR . 'helperToTestPackagesPhpRequirement.php';
         $helperScriptFileInfo = new SplFileInfo($helperScript);
-        $procInfo = ProcessUtil::startProcessAndWaitForItToExit(
+        $procStatus = ProcessUtil::startProcessAndWaitForItToExit(
             dbgProcessName: $helperScriptFileInfo->getBasename($helperScriptFileInfo->getExtension()),
             command: "php \"$helperScript\" \"$prodVendorDir\"",
             envVars: EnvVarUtilForTests::getAll(),
             maxWaitTimeInMicroseconds: intval(TimeUtil::secondsToMicroseconds(60)) // 1 minute
         );
-        $dbgCtx->add(compact('procInfo'));
-        self::assertSame(0, $procInfo['exitCode']);
+        $dbgCtx->add(compact('procStatus'));
+        self::assertSame(0, $procStatus->exitCode);
     }
 
     public static function appCodeForTestPackagesHaveCorrectPhpVersion(): void

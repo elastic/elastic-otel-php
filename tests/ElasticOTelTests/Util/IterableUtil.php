@@ -144,11 +144,11 @@ final class IterableUtil
      *
      * @param iterable<TValue> $iterable
      *
-     * @return array<TValue>
+     * @return list<TValue>
      */
     public static function toList(iterable $iterable): array
     {
-        if (is_array($iterable)) {
+        if (is_array($iterable) && array_is_list($iterable)) {
             return $iterable;
         }
 

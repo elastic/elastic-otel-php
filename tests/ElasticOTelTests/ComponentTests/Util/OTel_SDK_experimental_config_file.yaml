@@ -1,0 +1,12 @@
+# Based on the examples at
+#     https://opentelemetry.io/docs/languages/sdk-configuration/declarative-configuration/#getting-started
+#     https://github.com/open-telemetry/opentelemetry-php/blob/95a09ab68ca5a1113655b0dcbb9b67f5954815a7/tests/Unit/SDK/fixtures/otel-sdk.yaml
+
+file_format: '0.4'
+
+tracer_provider:
+  processors:
+    - simple:
+        exporter:
+          otlp_http:
+            endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}

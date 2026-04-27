@@ -25,6 +25,7 @@ namespace ElasticOTelTests\Util;
 
 use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LogStreamInterface;
+use Override;
 
 /**
  * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
@@ -59,6 +60,7 @@ final class Duration implements LoggableInterface
         return $value * $unit->toMillisecondsFactor();
     }
 
+    #[Override]
     public function toLog(LogStreamInterface $stream): void
     {
         $stream->toLogAs($this->value . $this->unit->name);

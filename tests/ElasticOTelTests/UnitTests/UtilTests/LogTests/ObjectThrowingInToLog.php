@@ -27,10 +27,12 @@ namespace ElasticOTelTests\UnitTests\UtilTests\LogTests;
 
 use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LogStreamInterface;
+use Override;
 use RuntimeException;
 
 class ObjectThrowingInToLog implements LoggableInterface
 {
+    #[Override]
     public function toLog(LogStreamInterface $stream): void
     {
         throw new RuntimeException('Dummy thrown on purpose');

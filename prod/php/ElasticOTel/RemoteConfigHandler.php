@@ -25,129 +25,69 @@ declare(strict_types=1);
 
 namespace Elastic\OTel;
 
+use Elastic\OTel\Config\OTelConfigOptionValues;
+use Elastic\OTel\Config\RemoteConfigOptionName;
+use Elastic\OTel\Log\RemoteConfigLoggingLevel;
 use Elastic\OTel\Util\ArrayUtil;
 use Elastic\OTel\Util\BoolUtil;
 use Elastic\OTel\Util\StaticClassTrait;
-use Elastic\OTel\Util\TextUtil;
 use OpenTelemetry\SDK\Common\Configuration\Configuration as OTelSdkConfiguration;
-use OpenTelemetry\SDK\Common\Configuration\Variables as OTelSdkConfigVariables;
 use OpenTelemetry\SDK\Common\Configuration\KnownValues as OTelSdkConfigKnownValues;
-use Psr\Log\LogLevel as PsrLogLevel;
+use OpenTelemetry\SDK\Common\Configuration\Variables as OTelSdkConfigVariables;
 
 /**
- * Code in this file is part of implementation internals, and thus it is not covered by the backward compatibility.
- *
- * @internal
+ * @phpstan-type ElasticFileDecodedBody array<array-key, mixed>
  */
 final class RemoteConfigHandler
 {
     use StaticClassTrait;
 
-    private const REMOTE_CONFIG_FILE_NAME = 'elastic';
+    public const ELASTIC_FILE_NAME = 'elastic';
 
-    /**
-     * Should be the same as the string used by Kibana
-     * @see https://github.com/elastic/kibana/blob/v9.1.0/x-pack/solutions/observability/plugins/apm/common/agent_configuration/setting_definitions/edot_sdk_settings.ts#L48
-     */
-    public const LOGGING_LEVEL_REMOTE_CONFIG_OPTION_NAME = 'logging_level';
-    public const OTEL_LOG_LEVEL_NONE = 'none';
-
-    /**
-     * Should be the same as the string used by Kibana
-     * @see https://github.com/elastic/kibana/blob/v9.2.0/x-pack/solutions/observability/plugins/apm/common/agent_configuration/setting_definitions/edot_sdk_settings.ts#L106
-     */
-    public const SAMPLING_RATE_REMOTE_CONFIG_OPTION_NAME = 'sampling_rate';
-
-    /**
-     * Should be the same as the string used by Kibana
-     * @see https://github.com/elastic/kibana/blob/v9.1.0/x-pack/solutions/observability/plugins/apm/common/agent_configuration/setting_definitions/edot_sdk_settings.ts#L14
-     */
-    public const DEACTIVATE_INSTRUMENTATIONS_CONFIG_OPTION_NAME = 'deactivate_instrumentations';
-
-    /**
-     * Should be the same as the string used by Kibana
-     * @see https://github.com/elastic/kibana/blob/v9.1.0/x-pack/solutions/observability/plugins/apm/common/agent_configuration/setting_definitions/edot_sdk_settings.ts#L33
-     */
-    public const DEACTIVATE_ALL_INSTRUMENTATIONS_CONFIG_OPTION_NAME = 'deactivate_all_instrumentations';
-
-    /**
-     * @see \OpenTelemetry\SDK\Sdk::OTEL_PHP_DISABLED_INSTRUMENTATIONS_ALL
-     * @see \OpenTelemetry\SDK\Sdk::isInstrumentationDisabled
-     */
-    public const OTEL_PHP_DISABLED_INSTRUMENTATIONS_ALL = 'all';
-
-    /**
-     * Should be the same as the string used by Kibana
-     * @see https://github.com/elastic/kibana/blob/v9.1.0/x-pack/solutions/observability/plugins/apm/common/agent_configuration/setting_definitions/edot_sdk_settings.ts#L104
-     */
-    public const SEND_LOGS_CONFIG_OPTION_NAME = 'send_logs';
-
-    /**
-     * Should be the same as the string used by Kibana
-     * @see https://github.com/elastic/kibana/blob/v9.1.0/x-pack/solutions/observability/plugins/apm/common/agent_configuration/setting_definitions/edot_sdk_settings.ts#L90
-     */
-    public const SEND_METRICS_CONFIG_OPTION_NAME = 'send_metrics';
-
-    /**
-     * Should be the same as the string used by Kibana
-     * @see https://github.com/elastic/kibana/blob/v9.1.0/x-pack/solutions/observability/plugins/apm/common/agent_configuration/setting_definitions/edot_sdk_settings.ts#L76
-     */
-    public const SEND_TRACES_CONFIG_OPTION_NAME = 'send_traces';
-
-    /**
-     * Called by the extension
-     *
-     * @noinspection PhpUnused
-     */
     public static function fetchAndApply(): void
     {
         if (!self::verifyLocalConfigCompatible()) {
             return;
         }
 
-        $fileNameToContent = get_remote_configuration(); // This function is implemented by the extension
-        if ($fileNameToContent === null) {
-            self::logDebug('extension\'s get_remote_configuration() returned null', __LINE__, __FUNCTION__);
+        $elasticCfgFileEncodedBody = get_remote_configuration(self::ELASTIC_FILE_NAME); // This function is implemented by the extension
+        if ($elasticCfgFileEncodedBody === null) {
+            self::logDebug(
+                'extension\'s get_remote_configuration("' . self::ELASTIC_FILE_NAME . '") returned null'
+                . ' ; get_remote_configuration() return value: ' . self::valueToDbgString(get_remote_configuration()),
+                __LINE__,
+                __FUNCTION__
+            );
             return;
         }
 
-        if (!is_array($fileNameToContent)) { // @phpstan-ignore function.alreadyNarrowedType
-            self::logDebug('extension\'s get_remote_configuration() return value is not an array; value type: ' . get_debug_type($fileNameToContent), __LINE__, __FUNCTION__);
+        if (!is_string($elasticCfgFileEncodedBody)) {
+            self::logError(
+                'Value mapped to "' . self::ELASTIC_FILE_NAME . '" remote config file name is not a string'
+                . ' ; the actual type: ' . get_debug_type($elasticCfgFileEncodedBody),
+                __LINE__,
+                __FUNCTION__,
+            );
             return;
         }
 
-        self::logDebug('Returned array: ' . self::valueToDbgString($fileNameToContent), __LINE__, __FUNCTION__);
-
-        if (!ArrayUtil::getValueIfKeyExists(self::REMOTE_CONFIG_FILE_NAME, $fileNameToContent, /* out */ $remoteConfigContent)) {
-            self::logDebug('Returned array does not contain remote config file name (' . self::REMOTE_CONFIG_FILE_NAME . ')', __LINE__, __FUNCTION__);
+        if (($remoteCfgOptKeyToValMap = self::decodeElasticRemoteConfigFileBody($elasticCfgFileEncodedBody)) === null) {
             return;
         }
 
-        self::logDebug('Value mapped to remote config file name (' . self::REMOTE_CONFIG_FILE_NAME . ') type: ' . get_debug_type($remoteConfigContent), __LINE__, __FUNCTION__);
-
-        if (!is_string($remoteConfigContent)) {
-            self::logError('Value mapped to remote config file name (' . self::REMOTE_CONFIG_FILE_NAME . ') is not a string', __LINE__, __FUNCTION__);
-            return;
-        }
-
-        self::parseAndApply($remoteConfigContent);
+        self::parseAndApplyOptionNameToValueMap($remoteCfgOptKeyToValMap);
     }
 
-    /**
-     * Called by the extension
-     *
-     * @noinspection PhpUnused
-     */
     private static function verifyLocalConfigCompatible(): bool
     {
         if (OTelSdkConfiguration::has(OTelSdkConfigVariables::OTEL_EXPERIMENTAL_CONFIG_FILE)) {
-            $cfgFileOptVal = OTelSdkConfiguration::getMixed(OTelSdkConfigVariables::OTEL_EXPERIMENTAL_CONFIG_FILE);
-            if (!is_scalar($cfgFileOptVal)) {
-                $cfgFileOptVal = self::valueToDbgString($cfgFileOptVal);
+            $dbgCfgFileOptVal = OTelSdkConfiguration::getMixed(OTelSdkConfigVariables::OTEL_EXPERIMENTAL_CONFIG_FILE);
+            if (!is_scalar($dbgCfgFileOptVal)) {
+                $dbgCfgFileOptVal = self::valueToDbgString($dbgCfgFileOptVal);
             }
-            self::logError(
+            self::logWarning(
                 'Local config has ' . OTelSdkConfigVariables::OTEL_EXPERIMENTAL_CONFIG_FILE . ' option set - remote config feature is not compatible with this option'
-                . '; ' . OTelSdkConfigVariables::OTEL_EXPERIMENTAL_CONFIG_FILE . ' option value: ' . $cfgFileOptVal,
+                . '; ' . OTelSdkConfigVariables::OTEL_EXPERIMENTAL_CONFIG_FILE . ' option value: ' . $dbgCfgFileOptVal,
                 __LINE__,
                 __FUNCTION__,
             );
@@ -229,76 +169,85 @@ final class RemoteConfigHandler
         return true;
     }
 
-    private static function convertRemoteLoggingLevelToOTel(string $remoteLoggingLevel): ?string
+    private static function logRemoteConfigHasBeenApplied(string $remoteOptName, string $remoteOptVal, string $otelEnvVarName, string $otelEnvVarValFromRemote): void
     {
-        /**
-         * Values used by Remote/Central Configuration:
-         * @see https://github.com/elastic/kibana/blob/v9.1.0/x-pack/solutions/observability/plugins/apm/common/agent_configuration/setting_definitions/edot_sdk_settings.ts#L59
-         *
-         * Values used by OTel SDK:
-         * @see https://github.com/open-telemetry/opentelemetry-php/blob/73ff5adcb8f1db348bedb422de760e475df16841/src/API/Behavior/Internal/Logging.php#L21
-         * @see https://github.com/php-fig/log/blob/1.1.0/Psr/Log/LogLevel.php
-         * @see https://github.com/php-fig/log/blob/3.0.2/src/LogLevel.php
-         */
-        return match ($remoteLoggingLevel) {
-            'trace', 'debug' => PsrLogLevel::DEBUG,
-            'info' => PsrLogLevel::INFO,
-            'warn' => PsrLogLevel::WARNING,
-            'error' => PsrLogLevel::ERROR,
-            'fatal' => PsrLogLevel::CRITICAL,
-            'off' => self::OTEL_LOG_LEVEL_NONE,
-            default => null
-        };
-    }
-
-    private static function logRemoteConfigHasBeenApplied(string $envVarName, ?string $localVal, string $remoteVal, string $mergedVal): void
-    {
-        self::logDebug('Applied remote config to OTel SDK' . json_encode(compact('envVarName', 'localVal', 'remoteVal', 'mergedVal')), __LINE__, __FUNCTION__);
+        self::logDebug('Applied remote config to OTel SDK' . json_encode(compact('remoteOptName', 'remoteOptVal', 'otelEnvVarName', 'otelEnvVarValFromRemote')), __LINE__, __FUNCTION__);
     }
 
     /**
-     * @param non-empty-string $envVarName
-     * @phpstan-param callable(string, string): string $mergeLocalRemote
+     * @param non-empty-string $otelEnvVarName
      */
-    private static function setEnvVarToRemoteConfigVal(string $envVarName, string $remoteVal, ?callable $mergeLocalRemote = null): void
+    private static function setEnvVarToRemoteConfigVal(string $remoteOptName, string $remoteOptVal, string $otelEnvVarName, string $otelEnvVarValFromRemote): void
     {
-        $localVal = self::getOTelConfigWithoutRemote($envVarName);
-        PhpPartFacade::setEnvVar($envVarName, $remoteVal);
-        $mergedVal = (($mergeLocalRemote === null) || ($localVal === null)) ? $remoteVal : $mergeLocalRemote($localVal, $remoteVal);
-        self::logRemoteConfigHasBeenApplied($envVarName, $localVal, $remoteVal, $mergedVal);
+        PhpPartFacade::setEnvVar($otelEnvVarName, $otelEnvVarValFromRemote);
+        self::logRemoteConfigHasBeenApplied($remoteOptName, $remoteOptVal, $otelEnvVarName, $otelEnvVarValFromRemote);
+    }
+
+    /**
+     * @param ElasticFileDecodedBody $remoteCfgOptKeyToValMap
+     *
+     * @see https://github.com/elastic/kibana/blob/v9.1.0/x-pack/solutions/observability/plugins/apm/common/agent_configuration/setting_definitions/edot_sdk_settings.ts#L15
+     * @see \OpenTelemetry\SDK\Sdk::isInstrumentationDisabled
+     */
+    private static function parseAndApplyDeactivateInstrumentations(array $remoteCfgOptKeyToValMap): void
+    {
+        $deactivateAllInstrumentations = false;
+        if (
+            ArrayUtil::getValueIfKeyExists(RemoteConfigOptionName::deactivate_all_instrumentations->name, $remoteCfgOptKeyToValMap, /* out */ $rawDeactivateAllInstrumentations)
+            && self::parseValueAsJsonBool(RemoteConfigOptionName::deactivate_all_instrumentations->name, $rawDeactivateAllInstrumentations, /* out */ $parsedDeactivateAllInstrumentations)
+        ) {
+            $deactivateAllInstrumentations = $parsedDeactivateAllInstrumentations;
+        }
+
+        $deactivateInstrumentations = null;
+        if (
+            ArrayUtil::getValueIfKeyExists(RemoteConfigOptionName::deactivate_instrumentations->name, $remoteCfgOptKeyToValMap, /* out */ $rawDeactivateInstrumentations)
+            && self::verifyValueIsString(RemoteConfigOptionName::deactivate_instrumentations->name, $rawDeactivateInstrumentations)
+        ) {
+            $deactivateInstrumentations = $rawDeactivateInstrumentations;
+        }
+
+        if ($deactivateAllInstrumentations) {
+            self::setEnvVarToRemoteConfigVal(
+                RemoteConfigOptionName::deactivate_all_instrumentations->name,
+                $rawDeactivateAllInstrumentations,
+                OTelSdkConfigVariables::OTEL_PHP_DISABLED_INSTRUMENTATIONS,
+                OTelConfigOptionValues::DISABLED_INSTRUMENTATIONS_ALL,
+            );
+        } elseif ($deactivateInstrumentations != null) {
+            self::setEnvVarToRemoteConfigVal(
+                RemoteConfigOptionName::deactivate_instrumentations->name,
+                $deactivateInstrumentations,
+                OTelSdkConfigVariables::OTEL_PHP_DISABLED_INSTRUMENTATIONS,
+                $deactivateInstrumentations,
+            );
+        }
     }
 
     /**
      * @see https://github.com/elastic/kibana/blob/v9.1.0/x-pack/solutions/observability/plugins/apm/common/agent_configuration/setting_definitions/edot_sdk_settings.ts#L59
      */
-    private static function parseAndApplyLoggingLevel(mixed $remoteOptVal): void
+    private static function parseAndApplyLoggingLevel(string $remoteOptName, mixed $remoteOptVal): void
     {
-        if (!self::verifyValueIsString(self::LOGGING_LEVEL_REMOTE_CONFIG_OPTION_NAME, $remoteOptVal)) {
+        if (!self::verifyValueIsString($remoteOptName, $remoteOptVal)) {
             return;
         }
         /** @var string $remoteOptVal */
 
-        $otelLogLevel = self::convertRemoteLoggingLevelToOTel($remoteOptVal);
-        if ($otelLogLevel === null) {
-            self::logError(
-                'Option ' . self::LOGGING_LEVEL_REMOTE_CONFIG_OPTION_NAME . " value is not in the set of the expected values: $remoteOptVal",
-                __LINE__,
-                __FUNCTION__
-            );
+        $remoteConfigLoggingLevel = RemoteConfigLoggingLevel::tryToFindByName($remoteOptVal);
+        if ($remoteConfigLoggingLevel === null) {
+            self::logError("Option $remoteOptName value is not in the set of the expected values: $remoteOptVal", __LINE__, __FUNCTION__);
             return;
         }
+        $otelLogLevel = $remoteConfigLoggingLevel->toOTelInternalLogLevel()->name;
 
         /**
          * OTel SDK reads log level config directly from $_SERVER
          * @see https://github.com/open-telemetry/opentelemetry-php/blob/73ff5adcb8f1db348bedb422de760e475df16841/src/API/Behavior/Internal/Logging.php#L72
          */
-        $envVarName = OTelSdkConfigVariables::OTEL_LOG_LEVEL;
-        $localOptVal = $_SERVER[$envVarName];
-        if (!is_string($localOptVal)) {
-            $localOptVal = self::valueToDbgString($localOptVal);
-        }
-        $_SERVER[$envVarName] = $otelLogLevel;
-        self::logRemoteConfigHasBeenApplied($envVarName, $localOptVal, $otelLogLevel, mergedVal: $otelLogLevel);
+        $otelEnvVarName = OTelSdkConfigVariables::OTEL_LOG_LEVEL;
+        $_SERVER[$otelEnvVarName] = $otelLogLevel;
+        self::logRemoteConfigHasBeenApplied($remoteOptName, $remoteOptVal, $otelEnvVarName, $otelLogLevel);
     }
 
     /**
@@ -322,25 +271,21 @@ final class RemoteConfigHandler
     /**
      * @see https://github.com/elastic/kibana/blob/v9.2.0/x-pack/solutions/observability/plugins/apm/common/agent_configuration/setting_definitions/edot_sdk_settings.ts#L107
      */
-    private static function parseAndApplySamplingRate(mixed $remoteOptVal): void
+    private static function parseAndApplySamplingRate(string $remoteOptName, mixed $remoteOptVal): void
     {
-        if (!self::parseValueAsJsonFloat(self::LOGGING_LEVEL_REMOTE_CONFIG_OPTION_NAME, $remoteOptVal, /* out */ $remoteOptValAsFloat)) {
+        if (!self::parseValueAsJsonFloat($remoteOptName, $remoteOptVal, /* out */ $remoteOptValAsFloat)) {
             return;
         }
+        /** @var float|int|numeric-string $remoteOptVal */
+        $remoteOptValAsFloat = floatval($remoteOptVal);
 
         if (!self::isInClosedRange(0, $remoteOptValAsFloat, 1)) {
-            self::logError(
-                'Option ' . self::SAMPLING_RATE_REMOTE_CONFIG_OPTION_NAME . " value is not between 0 and 1: $remoteOptValAsFloat",
-                __LINE__,
-                __FUNCTION__
-            );
+            self::logError("Option $remoteOptName value is not between 0 and 1: $remoteOptValAsFloat", __LINE__, __FUNCTION__);
             return;
         }
 
         $otelConfigSampler = self::getOTelConfigWithoutRemote(OTelSdkConfigVariables::OTEL_TRACES_SAMPLER);
-        if ($otelConfigSampler === null) {
-            self::setEnvVarToRemoteConfigVal(OTelSdkConfigVariables::OTEL_TRACES_SAMPLER, OTelSdkConfigKnownValues::VALUE_PARENT_BASED_TRACE_ID_RATIO);
-        } elseif ($otelConfigSampler !== OTelSdkConfigKnownValues::VALUE_PARENT_BASED_TRACE_ID_RATIO) {
+        if ($otelConfigSampler !== null && $otelConfigSampler !== OTelSdkConfigKnownValues::VALUE_PARENT_BASED_TRACE_ID_RATIO) {
             self::logDebug(
                 'OpenTelemetry SDK configuration option ' . OTelSdkConfigVariables::OTEL_TRACES_SAMPLER
                 . " is set to value not compatible with EDOT's remote configuration feature (value: $otelConfigSampler)"
@@ -351,7 +296,7 @@ final class RemoteConfigHandler
             return;
         }
 
-        self::setEnvVarToRemoteConfigVal(OTelSdkConfigVariables::OTEL_TRACES_SAMPLER_ARG, strval($remoteOptValAsFloat));
+        self::setEnvVarToRemoteConfigVal($remoteOptName, $remoteOptVal, OTelSdkConfigVariables::OTEL_TRACES_SAMPLER_ARG, strval($remoteOptValAsFloat));
     }
 
     /**
@@ -364,11 +309,11 @@ final class RemoteConfigHandler
         }
 
         if (!$shouldSend) {
-            self::setEnvVarToRemoteConfigVal($otelEnvVarName, OTelSdkConfigKnownValues::VALUE_NONE);
+            self::setEnvVarToRemoteConfigVal($remoteOptName, $remoteOptVal, $otelEnvVarName, OTelSdkConfigKnownValues::VALUE_NONE);
         }
     }
 
-    private static function parseAndApplyOption(string $remoteOptName, mixed $remoteOptVal): void
+    private static function dispatchParseAndApplyOption(string $remoteOptName, mixed $remoteOptVal): void
     {
         self::logDebug(
             'Entered'
@@ -379,96 +324,51 @@ final class RemoteConfigHandler
             __FUNCTION__,
         );
 
-        match ($remoteOptName) {
-            // deactivate_all_instrumentations and deactivate_instrumentations are handled in the caller
-            self::DEACTIVATE_ALL_INSTRUMENTATIONS_CONFIG_OPTION_NAME, self::DEACTIVATE_INSTRUMENTATIONS_CONFIG_OPTION_NAME => null,
-            self::LOGGING_LEVEL_REMOTE_CONFIG_OPTION_NAME => self::parseAndApplyLoggingLevel($remoteOptVal),
-            self::SAMPLING_RATE_REMOTE_CONFIG_OPTION_NAME => self::parseAndApplySamplingRate($remoteOptVal),
-            self::SEND_LOGS_CONFIG_OPTION_NAME => self::parseAndApplySendSignal($remoteOptName, $remoteOptVal, OTelSdkConfigVariables::OTEL_LOGS_EXPORTER),
-            self::SEND_METRICS_CONFIG_OPTION_NAME => self::parseAndApplySendSignal($remoteOptName, $remoteOptVal, OTelSdkConfigVariables::OTEL_METRICS_EXPORTER),
-            self::SEND_TRACES_CONFIG_OPTION_NAME => self::parseAndApplySendSignal($remoteOptName, $remoteOptVal, OTelSdkConfigVariables::OTEL_TRACES_EXPORTER),
-            default => self::logDebug(
+        if (($remoteOptNameEnum = RemoteConfigOptionName::tryToFindByName($remoteOptName)) === null) {
+            self::logDebug(
                 'Encountered an option that is not supported as remote configuration option'
                 . '; option name: ' . $remoteOptName
                 . '; value type: ' . get_debug_type($remoteOptVal)
                 . '; value: ' . self::valueToDbgString($remoteOptVal),
                 __LINE__,
                 __FUNCTION__,
-            )
+            );
+            return;
+        }
+
+        match ($remoteOptNameEnum) {
+            // deactivate_all_instrumentations and deactivate_instrumentations are handled in the caller
+            RemoteConfigOptionName::deactivate_all_instrumentations, RemoteConfigOptionName::deactivate_instrumentations => null,
+            RemoteConfigOptionName::logging_level => self::parseAndApplyLoggingLevel($remoteOptName, $remoteOptVal),
+            RemoteConfigOptionName::sampling_rate => self::parseAndApplySamplingRate($remoteOptName, $remoteOptVal),
+            RemoteConfigOptionName::send_logs => self::parseAndApplySendSignal($remoteOptName, $remoteOptVal, OTelSdkConfigVariables::OTEL_LOGS_EXPORTER),
+            RemoteConfigOptionName::send_metrics => self::parseAndApplySendSignal($remoteOptName, $remoteOptVal, OTelSdkConfigVariables::OTEL_METRICS_EXPORTER),
+            RemoteConfigOptionName::send_traces => self::parseAndApplySendSignal($remoteOptName, $remoteOptVal, OTelSdkConfigVariables::OTEL_TRACES_EXPORTER),
         };
     }
 
     /**
-     * @return array<string>
+     * @param ElasticFileDecodedBody $remoteCfgOptKeyToValMap
      */
-    private static function parseCommaSeparatedList(string $commaSeparatedList): array
+    private static function parseAndApplyOptionNameToValueMap(array $remoteCfgOptKeyToValMap): void
     {
-        if (TextUtil::isEmptyString(trim($commaSeparatedList))) {
-            return [];
+        foreach ($remoteCfgOptKeyToValMap as $remoteOptName => $remoteOptVal) {
+            self::dispatchParseAndApplyOption($remoteOptName, $remoteOptVal);
         }
 
-        return array_map(trim(...), explode(',', $commaSeparatedList));
-    }
-
-    public static function mergeDisabledInstrumentations(string $localVal, string $remoteVal): string
-    {
-        return implode(',', array_merge(self::parseCommaSeparatedList($localVal), self::parseCommaSeparatedList($remoteVal)));
-    }
-
-    /**
-     * @param array<array-key, mixed> $remoteOptNameToVal
-     *
-     * @see https://github.com/elastic/kibana/blob/v9.1.0/x-pack/solutions/observability/plugins/apm/common/agent_configuration/setting_definitions/edot_sdk_settings.ts#L15
-     * @see \OpenTelemetry\SDK\Sdk::isInstrumentationDisabled
-     */
-    private static function parseAndApplyDeactivateInstrumentations(array $remoteOptNameToVal): void
-    {
-        $deactivateAllInstrumentations = false;
-        if (
-            array_key_exists(self::DEACTIVATE_ALL_INSTRUMENTATIONS_CONFIG_OPTION_NAME, $remoteOptNameToVal)
-            && self::parseValueAsJsonBool(
-                self::DEACTIVATE_ALL_INSTRUMENTATIONS_CONFIG_OPTION_NAME,
-                $remoteOptNameToVal[self::DEACTIVATE_ALL_INSTRUMENTATIONS_CONFIG_OPTION_NAME],
-                $parsedDeactivateAllInstrumentations /* <- out */,
-            )
-        ) {
-            $deactivateAllInstrumentations = $parsedDeactivateAllInstrumentations;
-        }
-
-        $deactivateInstrumentationsVal = null;
-        if (
-            array_key_exists(self::DEACTIVATE_INSTRUMENTATIONS_CONFIG_OPTION_NAME, $remoteOptNameToVal)
-            && self::verifyValueIsString(
-                self::DEACTIVATE_INSTRUMENTATIONS_CONFIG_OPTION_NAME,
-                ($deactivateInstrumentationsRemoteVal = $remoteOptNameToVal[self::DEACTIVATE_ALL_INSTRUMENTATIONS_CONFIG_OPTION_NAME]),
-            )
-        ) {
-            $deactivateInstrumentationsVal = $deactivateInstrumentationsRemoteVal;
-        }
-
-        if ($deactivateAllInstrumentations) {
-            self::setEnvVarToRemoteConfigVal(OTelSdkConfigVariables::OTEL_PHP_DISABLED_INSTRUMENTATIONS, self::OTEL_PHP_DISABLED_INSTRUMENTATIONS_ALL);
-        } elseif ($deactivateInstrumentationsVal != null) {
-            self::setEnvVarToRemoteConfigVal(OTelSdkConfigVariables::OTEL_PHP_DISABLED_INSTRUMENTATIONS, $deactivateInstrumentationsVal, self::mergeDisabledInstrumentations(...));
-        }
-    }
-
-    private static function parseAndApply(string $remoteConfigContent): void
-    {
-        if (($remoteOptNameToVal = self::decodeRemoteConfig($remoteConfigContent)) === null) {
-            return;
-        }
-
-        foreach ($remoteOptNameToVal as $remoteOptName => $remoteOptVal) {
-            self::parseAndApplyOption($remoteOptName, $remoteOptVal);
-        }
-
-        self::parseAndApplyDeactivateInstrumentations($remoteOptNameToVal);
+        // deactivate_all_instrumentations and deactivate_instrumentations are skipped in dispatchParseAndApplyOption
+        // because if deactivate_all_instrumentations is true it overrides deactivate_instrumentations
+        self::parseAndApplyDeactivateInstrumentations($remoteCfgOptKeyToValMap);
     }
 
     private static function logDebug(string $message, int $lineNumber, string $func): void
     {
         self::logWithLevel(BootstrapStageLogger::LEVEL_DEBUG, $message, $lineNumber, $func);
+    }
+
+    private static function logWarning(string $message, int $lineNumber, string $func): void
+    {
+        self::logWithLevel(BootstrapStageLogger::LEVEL_WARNING, $message, $lineNumber, $func);
     }
 
     private static function logError(string $message, int $lineNumber, string $func): void
@@ -483,6 +383,10 @@ final class RemoteConfigHandler
 
     public static function valueToDbgString(mixed $value): string
     {
+        if (is_string($value)) {
+            return $value;
+        }
+
         $options = JSON_INVALID_UTF8_SUBSTITUTE | JSON_UNESCAPED_SLASHES;
         $encodedData = json_encode($value, $options);
         if ($encodedData === false) {
@@ -494,9 +398,9 @@ final class RemoteConfigHandler
     }
 
     /**
-     * @return ?array<array-key, mixed>
+     * @return ?ElasticFileDecodedBody
      */
-    private static function decodeRemoteConfig(string $remoteConfigContent): ?array
+    private static function decodeElasticRemoteConfigFileBody(string $remoteConfigContent): ?array
     {
         $decodedData = json_decode($remoteConfigContent, /* assoc: */ true);
         if ($decodedData === null) {

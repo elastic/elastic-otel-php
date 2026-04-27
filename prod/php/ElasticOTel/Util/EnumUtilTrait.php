@@ -27,21 +27,39 @@ namespace Elastic\OTel\Util;
 
 trait EnumUtilTrait
 {
-    public static function tryToFindByName(string $enumName): ?self
+    public static function tryToFindByName(string $enumName, bool $isCaseSensitive = false): ?self
     {
-        /** @var ?array<string, self> $mapByName */
-        static $mapByName = null;
+        /** @var ?array<string, self> $nameToSelf */
+        static $nameToSelf = null;
+        /** @var ?array<string, self> $lowerCaseNameToSelf */
+        static $lowerCaseNameToSelf = null;
 
-        if ($mapByName === null) {
-            $mapByName = [];
+        if ($nameToSelf === null) {
+            $nameToSelf = [];
+            $lowerCaseNameToSelf = [];
             foreach (self::cases() as $enumCase) {
-                $mapByName[$enumCase->name] = $enumCase;
+                $nameToSelf[$enumCase->name] = $enumCase;
+                $lowerCaseNameToSelf[strtolower($enumCase->name)] = $enumCase;
             }
         }
+        /** @var array<string, self> $nameToSelf */
+        /** @var array<string, self> $lowerCaseNameToSelf */
 
-        if (!array_key_exists($enumName, $mapByName)) {
-            return null;
+        return ArrayUtil::getValueIfKeyExistsElse($isCaseSensitive ? $enumName : strtolower($enumName), $isCaseSensitive ? $nameToSelf : $lowerCaseNameToSelf, null);
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function casesNames(): array
+    {
+        /** @var ?list<string> $result */
+        static $result = null;
+        if ($result === null) {
+            $result = array_map(fn($enumCase) => $enumCase->name, self::cases());
         }
-        return $mapByName[$enumName];
+        /** @var list<string> $result */
+
+        return $result;
     }
 }

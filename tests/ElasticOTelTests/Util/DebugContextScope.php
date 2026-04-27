@@ -25,6 +25,7 @@ namespace ElasticOTelTests\Util;
 
 use ElasticOTelTests\Util\Log\LoggableInterface;
 use ElasticOTelTests\Util\Log\LogStreamInterface;
+use Override;
 use PHPUnit\Framework\Assert;
 
 /**
@@ -131,6 +132,7 @@ final class DebugContextScope implements LoggableInterface
         return $result;
     }
 
+    #[Override]
     public function toLog(LogStreamInterface $stream): void
     {
         $stream->toLogAs(

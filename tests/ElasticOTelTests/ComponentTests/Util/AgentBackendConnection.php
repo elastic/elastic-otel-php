@@ -26,7 +26,7 @@ namespace ElasticOTelTests\ComponentTests\Util;
 final class AgentBackendConnection
 {
     /**
-     * @param IntakeDataRequestDeserialized[] $requests
+     * @param list<AgentBackendCommRequestInterface> $requests
      */
     public function __construct(
         public readonly AgentBackendConnectionStarted $started,

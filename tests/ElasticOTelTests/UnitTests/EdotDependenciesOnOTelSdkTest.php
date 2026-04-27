@@ -25,35 +25,37 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\UnitTests;
 
-use Elastic\OTel\RemoteConfigHandler;
+use Elastic\OTel\Config\OTelConfigOptionValues;
+use ElasticOTelTests\Util\Config\OptionForProdName;
+use ElasticOTelTests\Util\Config\OptionsForProdDefaultValues;
+use ElasticOTelTests\Util\ReflectionUtil;
 use ElasticOTelTests\Util\TestCaseBase;
 use OpenTelemetry\API\Behavior\Internal\Logging as OTelInternalLogging;
 use OpenTelemetry\SDK\Common\Configuration\Variables as OTelSdkConfigVariables;
 use OpenTelemetry\SDK\Sdk as OTelSdk;
-use ReflectionClass;
 
 final class EdotDependenciesOnOTelSdkTest extends TestCaseBase
 {
-    /**
-     * @param class-string<object> $classFqName
-     *
-     * @noinspection PhpDocMissingThrowsInspection
-     */
-    private static function getPrivateConstValue(string $classFqName, string $constName): mixed
+    public function testOTelLogLevelOptionNameInSync(): void
     {
-        $reflClass = new ReflectionClass($classFqName);
-        self::assertTrue($reflClass->hasConstant($constName));
-        return $reflClass->getConstant($constName);
-    }
+        /**
+         * @see \OpenTelemetry\API\Behavior\Internal\Logging::getLogLevel
+         * @noinspection PhpUnnecessaryFullyQualifiedNameInspection
+         */
+        $envVarNameActuallyUsedByOTelForLogLevel = ReflectionUtil::getConstValue(OTelInternalLogging::class, 'OTEL_LOG_LEVEL');
+        self::assertSame($envVarNameActuallyUsedByOTelForLogLevel, OTelSdkConfigVariables::OTEL_LOG_LEVEL);
+        self::assertSame($envVarNameActuallyUsedByOTelForLogLevel, OptionForProdName::log_level->toEnvVarName());
 
-    public function testLogLevelRelatedNames(): void
-    {
-        self::assertSame(self::getPrivateConstValue(OTelInternalLogging::class, 'OTEL_LOG_LEVEL'), OTelSdkConfigVariables::OTEL_LOG_LEVEL);
-        self::assertSame(self::getPrivateConstValue(OTelInternalLogging::class, 'NONE'), RemoteConfigHandler::OTEL_LOG_LEVEL_NONE);
+        self::assertSame(ReflectionUtil::getConstValue(OTelInternalLogging::class, 'DEFAULT_LEVEL'), OptionsForProdDefaultValues::LOG_LEVEL->name);
+
+        /**
+         * Also regarding verification of OTel log level values being in sync
+         * @see \ElasticOTelTests\UnitTests\UtilTests\LogTests\OTelInternalLogLevelTest
+         */
     }
 
     public function testDeactivateAllInstrumentationsRelatedNames(): void
     {
-        self::assertSame(self::getPrivateConstValue(OTelSdk::class, 'OTEL_PHP_DISABLED_INSTRUMENTATIONS_ALL'), RemoteConfigHandler::OTEL_PHP_DISABLED_INSTRUMENTATIONS_ALL);
+        self::assertSame(ReflectionUtil::getConstValue(OTelSdk::class, 'OTEL_PHP_DISABLED_INSTRUMENTATIONS_ALL'), OTelConfigOptionValues::DISABLED_INSTRUMENTATIONS_ALL);
     }
 }

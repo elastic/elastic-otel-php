@@ -32,14 +32,14 @@ use Elastic\OTel\Util\StaticClassTrait;
 use ElasticOTelTests\Util\AmbientContextForTests;
 use ElasticOTelTests\Util\DebugContext;
 use ElasticOTelTests\Util\Log\LogCategoryForTests;
-use Google\Protobuf\RepeatedField as ProtobufRepeatedField;
+use Google\Protobuf\RepeatedField as ProtoRepeatedField;
 
 /**
  * Code in this file is part of implementation internals and thus it is not covered by the backward compatibility.
  *
  * @internal
  */
-final class DeserializationUtil
+final class FromProtoUtil
 {
     use StaticClassTrait;
 
@@ -47,12 +47,12 @@ final class DeserializationUtil
      * @template TSourceElementType
      * @template TResultElementType
      *
-     * @param ProtobufRepeatedField<mixed> $source
+     * @param ProtoRepeatedField<mixed> $source
      * @param callable(TSourceElementType): ?TResultElementType $deserializeElement
      *
      * @return TResultElementType[]
      */
-    public static function deserializeArrayFromOTelProto(ProtobufRepeatedField $source, callable $deserializeElement): array
+    public static function arrayFromProto(ProtoRepeatedField $source, callable $deserializeElement): array
     {
         $logCtx = compact('source');
         $logCtx['source count'] = count($source);
@@ -81,7 +81,7 @@ final class DeserializationUtil
      *
      * @phpstan-return ?TResult
      */
-    public static function deserializeNullableFromOTelProto(mixed $source, callable $deserialize): mixed
+    public static function nullableFromProto(mixed $source, callable $deserialize): mixed
     {
         if ($source === null) {
             return null;

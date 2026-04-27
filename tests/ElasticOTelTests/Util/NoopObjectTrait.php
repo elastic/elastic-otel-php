@@ -26,6 +26,7 @@ namespace ElasticOTelTests\Util;
 use Elastic\OTel\Util\SingletonInstanceTrait;
 use ElasticOTelTests\Util\Log\LogConsts;
 use ElasticOTelTests\Util\Log\LogStreamInterface;
+use Override;
 
 /**
  * Code in this file is part of implementation internals and thus it is not covered by the backward compatibility.
@@ -41,6 +42,7 @@ trait NoopObjectTrait
         return true;
     }
 
+    #[Override]
     public function toLog(LogStreamInterface $stream): void
     {
         $stream->toLogAs([LogConsts::TYPE_KEY => ClassNameUtil::fqToShort(get_class($this))]);

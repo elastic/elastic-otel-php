@@ -23,6 +23,7 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\Util\Log;
 
+use Override;
 use ReflectionClass;
 use ReflectionException;
 
@@ -99,6 +100,7 @@ trait LoggableTrait
         $stream->toLogAs($nameToValue);
     }
 
+    #[Override]
     public function toLog(LogStreamInterface $stream): void
     {
         $this->toLogLoggableTraitImpl($stream);
