@@ -36,10 +36,11 @@ RUN dnf -y update \
         php-pgsql \
         php-zip \
         procps \
+        rsync \
         which \
         zip
 
 
 WORKDIR /
 
-ENTRYPOINT exec /read_only_repo_root/tools/test/component/docker_entrypoint.sh
+ENTRYPOINT exec /docker_host_repo_root/tools/test/component/docker_entrypoint.sh

@@ -24,6 +24,7 @@ declare(strict_types=1);
 namespace ElasticOTelTests\Util;
 
 use Countable;
+use Elastic\OTel\Util\ArrayUtil;
 use Elastic\OTel\Util\StaticClassTrait;
 use Elastic\OTel\Util\TextUtil;
 use Generator;
@@ -228,7 +229,7 @@ final class IterableUtil
         $expectedEndTupleCount = $withIndex ? 1 : 0;
         $expectedTupleCount = count($iterables) + $expectedEndTupleCount;
         $index = 0;
-        if (ArrayUtilForTests::isEmpty($iterables)) {
+        if (ArrayUtil::isEmpty($iterables)) {
             return;
         }
 

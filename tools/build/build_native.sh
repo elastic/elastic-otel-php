@@ -1,8 +1,13 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -e -u -o pipefail
+#set -x
 
-set -x
-
+BUILD_ARCHITECTURE=""
+CONAN_CACHE_PATH=""
+INTERACTIVE=false
+NCPU=""
 SKIP_CONFIGURE=false
+SKIP_UNIT_TESTS=false
 
 show_help() {
     echo "Usage: $0 --build_architecture <architecture> [--ncpu <num_cpus>] [--conan_cache_path <conan_cache_path>] [--skip_configure] [--skip_unit_tests]"
@@ -38,7 +43,7 @@ parse_args() {
                 SKIP_CONFIGURE=true
                 ;;
             --interactive)
-                INTERACTIVE=" -i "
+                INTERACTIVE=true
                 ;;
             --skip_unit_tests)
                 SKIP_UNIT_TESTS=true
@@ -65,13 +70,15 @@ if [[ -z "$BUILD_ARCHITECTURE" ]]; then
     exit 1
 fi
 
+DOCKER_RUN_CMD_LINE_ARGS=()
+
 # Building mount point and environment if ${CONAN_CACHE_PATH} not empty
 if [[ -n "${CONAN_CACHE_PATH}" ]]; then
     echo "CONAN_CACHE_PATH: ${CONAN_CACHE_PATH}"
     # due safety not mounting user home folder but only .conan
     mkdir -p "${CONAN_CACHE_PATH}"
     # https://docs.conan.io/2/reference/environment.html#conan-home
-    CONAN_HOME_MP=(-e "CONAN_HOME=/conan_home" -v "${CONAN_CACHE_PATH}:/conan_home")
+    DOCKER_RUN_CMD_LINE_ARGS+=(-e "CONAN_HOME=/conan_home" -v "${CONAN_CACHE_PATH}:/conan_home")
 fi
 
 echo "BUILD_ARCHITECTURE: $BUILD_ARCHITECTURE"
@@ -80,14 +87,15 @@ echo "SKIP_CONFIGURE: $SKIP_CONFIGURE"
 
 if [ "$SKIP_CONFIGURE" = true ]; then
     echo "Skipping configuration step..."
+    CONFIGURE=""
 else
     CONFIGURE="cmake --preset ${BUILD_ARCHITECTURE}-release  && "
 fi
 
-if [ "$GITHUB_ACTIONS" = true ]; then
-    USERID=" -u : "
+if [[ -n "${GITHUB_ACTIONS+x}" ]] && [[ "${GITHUB_ACTIONS}" == "true" ]]; then
+    DOCKER_RUN_CMD_LINE_ARGS+=(-u :)
 else
-    USERID=" -u $(id -u):$(id -g) "
+    DOCKER_RUN_CMD_LINE_ARGS+=(-u "$(id -u):$(id -g)")
 fi
 
 if [ "$SKIP_UNIT_TESTS" = true ]; then
@@ -96,12 +104,16 @@ else
     UNIT_TESTS="ctest --preset ${BUILD_ARCHITECTURE}-release --verbose"
 fi
 
-ls -al "${PWD}"
+if [[ -n "${GITHUB_SHA+x}" ]]; then
+    DOCKER_RUN_CMD_LINE_ARGS+=(-e "GITHUB_SHA=${GITHUB_SHA}")
+fi
 
-docker run --rm -t ${INTERACTIVE} ${USERID} -v ${PWD}:/source \
-    "${CONAN_HOME_MP[@]}" \
+if [[ "${INTERACTIVE}" == true ]]; then
+    DOCKER_RUN_CMD_LINE_ARGS+=(-i)
+fi
+
+docker run --rm -t -v  "${PWD}:/source" \
+    "${DOCKER_RUN_CMD_LINE_ARGS[@]}" \
     -w /source/prod/native \
-    -e GITHUB_SHA=${GITHUB_SHA} \
-    elasticobservability/apm-agent-php-dev:native-build-gcc-14.2.0-${BUILD_ARCHITECTURE}-0.0.1 \
+    "elasticobservability/apm-agent-php-dev:native-build-gcc-14.2.0-${BUILD_ARCHITECTURE}-0.0.1" \
     sh -c "id && echo CONAN_HOME: \$CONAN_HOME && ${CONFIGURE} cmake --build --preset ${BUILD_ARCHITECTURE}-release ${NCPU} && ${UNIT_TESTS}"
-

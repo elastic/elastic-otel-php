@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-set -e -o pipefail
-set -x
+set -e -u -o pipefail
+#set -x
 
 function show_help() {
     echo "Usage: $0 --architecture <architecture> --packages_dir <full path to a directory> --logs_dir <full path to a directory>"
@@ -87,11 +87,11 @@ function main() {
     local current_workflow_group_name="Setting the environment for ${BASH_SOURCE[0]}"
     echo "::group::${current_workflow_group_name}"
 
-    this_script_dir="$( dirname "${BASH_SOURCE[0]}" )"
-    this_script_dir="$( realpath "${this_script_dir}" )"
+    this_script_dir="$(dirname "${BASH_SOURCE[0]}")"
+    this_script_dir="$(realpath "${this_script_dir}")"
+    src_repo_root_dir="$(realpath "${this_script_dir}/../../..")"
 
-    repo_root_dir="$( realpath "${this_script_dir}/../../.." )"
-    source "${repo_root_dir}/tools/shared.sh"
+    source "${src_repo_root_dir}/tools/shared.sh"
 
     parse_args "$@"
 

@@ -19,79 +19,187 @@
  * under the License.
  */
 
-/** @noinspection PhpIllegalPsrClassPathInspection */
-
 declare(strict_types=1);
 
-namespace ElasticOTelTools\Build;
+namespace ElasticOTelTools\build;
 
+use Elastic\OTel\Util\ArrayUtil;
 use Elastic\OTel\Util\BoolUtil;
+use ElasticOTelTools\test\StaticCheckProd;
+use ElasticOTelTools\ToolsLoggingClassTrait;
+use ElasticOTelTools\ToolsAssertTrait;
+use ElasticOTelTools\ToolsUtil;
 
 /**
- * @phpstan-import-type EnvVars from BuildToolsUtil
+ * @phpstan-import-type EnvVars from ToolsUtil
+ * @phpstan-import-type PackageNameToVersionMap from ComposerUtil
  */
 final class InstallPhpDeps
 {
-    use BuildToolsAssertTrait;
-    use BuildToolsLoggingClassTrait;
+    use ToolsAssertTrait;
+    use ToolsLoggingClassTrait;
 
-    public static function verifyGeneratedComposerLockFiles(): void
-    {
-        BuildToolsUtil::runCmdLineImpl(
-            __METHOD__,
-            function (): void {
-                $repoRootDir = BuildToolsUtil::getCurrentDirectory();
-                $repoRootJsonPath = $repoRootDir . DIRECTORY_SEPARATOR . ComposerUtil::COMPOSER_JSON_FILE_NAME;
-                $generatedDevJsonPath = ComposerUtil::buildToGeneratedFileFullPath($repoRootDir, ComposerUtil::buildGeneratedComposerJsonFileName(PhpDepsEnvKind::dev));
-                self::assertFilesHaveSameContent($repoRootJsonPath, $generatedDevJsonPath);
-            }
-        );
-    }
-
-    public static function selectDevLockAndInstall(): void
-    {
-        BuildToolsUtil::runCmdLineImpl(
-            __METHOD__,
-            function (): void {
-                self::selectLockAndInstall(BuildToolsUtil::getCurrentDirectory(), PhpDepsEnvKind::dev, allowOverwrite: true);
-            }
-        );
-    }
+    /**
+     * Make sure the following value is in sync with the rest of locations where it's defined (see elastic_otel_php_vendor_prod_dir_name in <repo root>/tools/shared.sh)
+     */
+    public const VENDOR_PROD_DIR_NAME = 'vendor_prod';
 
     /**
      * @param list<string> $cmdLineArgs
      */
-    public static function selectJsonLockAndInstall(array $cmdLineArgs): void
+    public static function selectComposerLockAndInstallCmdLine(string $dbgCalledFrom, array $cmdLineArgs): void
     {
-        BuildToolsUtil::runCmdLineImpl(
-            __METHOD__,
+        ToolsUtil::runCmdLineImpl(
+            $dbgCalledFrom,
             function () use ($cmdLineArgs): void {
                 self::assertCount(1, $cmdLineArgs);
-                $envKind = self::assertNotNull(PhpDepsEnvKind::tryToFindByName($cmdLineArgs[0]));
-                $repoRootDir = BuildToolsUtil::getCurrentDirectory();
-                $generatedJsonFile = ComposerUtil::buildToGeneratedFileFullPath($repoRootDir, ComposerUtil::buildGeneratedComposerJsonFileName($envKind));
-                BuildToolsUtil::copyFile($generatedJsonFile, BuildToolsUtil::partsToPath($repoRootDir, ComposerUtil::COMPOSER_JSON_FILE_NAME));
-                self::selectLockAndInstall($repoRootDir, $envKind, allowOverwrite: false);
+                $depsGroup = self::assertNotNull(PhpDepsGroup::tryToFindByName($cmdLineArgs[0]));
+                self::selectComposerLockAndInstall($depsGroup);
             }
         );
     }
 
-    private static function selectLockAndInstall(string $repoRootDir, PhpDepsEnvKind $envKind, bool $allowOverwrite): void
+    public static function selectComposerLockAndInstall(PhpDepsGroup $depsGroup): void
     {
-        $generatedLockFile = ComposerUtil::buildToGeneratedFileFullPath($repoRootDir, ComposerUtil::buildGeneratedComposerLockFileNameForCurrentPhpVersion($envKind));
-        BuildToolsUtil::copyFile($generatedLockFile, BuildToolsUtil::partsToPath($repoRootDir, ComposerUtil::COMPOSER_LOCK_FILE_NAME), allowOverwrite: $allowOverwrite);
-        ComposerUtil::verifyThatComposerJsonAndLockAreInSync();
+        $repoRootDir = ToolsUtil::getCurrentDirectory();
+        self::selectComposerLock($repoRootDir, GenerateComposerFiles::BASE_FILE_NAME_NO_EXT, allowOverwrite: true);
+        match ($depsGroup) {
+            PhpDepsGroup::dev, PhpDepsGroup::dev_for_prod_static_check => self::installInTempAndCopy($depsGroup, $repoRootDir),
+            PhpDepsGroup::prod => self::installProd($repoRootDir),
+        };
+        self::verifyDevProdOnlyPackages($depsGroup, ToolsUtil::partsToPath($repoRootDir, self::mapDepsGroupToVendorDirName($depsGroup)));
+    }
 
-        $withDev = ComposerUtil::convertEnvKindToWithDev($envKind);
-        if (AdaptPhpDepsTo81::isCurrentPhpVersion81() && ($envKind !== PhpDepsEnvKind::test)) {
-            AdaptPhpDepsTo81::downloadAdaptPackagesGenConfigAndInstall($withDev);
+    public static function selectComposerLock(string $repoRootDir, string $fileNamePrefix, bool $allowOverwrite = false): void
+    {
+        $generatedLockFile = GenerateComposerFiles::buildFullPath($repoRootDir, GenerateComposerFiles::buildLockFileNameForCurrentPhpVersion($fileNamePrefix));
+        $dstLockFile = ToolsUtil::partsToPath($repoRootDir, ComposerUtil::LOCK_FILE_NAME);
+        ToolsUtil::copyFile($generatedLockFile, $dstLockFile, $allowOverwrite);
+        ComposerUtil::verifyThatComposerJsonAndLockAreInSync();
+    }
+
+    private static function installProd(string $repoRootDir): void
+    {
+        if (AdaptPhpDepsTo81::isCurrentPhpVersion81()) {
+            AdaptPhpDepsTo81::downloadAdaptPackagesGenConfigAndInstallProd($repoRootDir);
         } else {
-            ComposerUtil::execComposerInstallShellCommand($withDev, envVars: [ComposerUtil::ALLOW_DIRECT_COMPOSER_COMMAND_ENV_VAR_NAME => BoolUtil::toString(true)]);
+            self::installInTempAndCopy(PhpDepsGroup::prod, $repoRootDir);
+        }
+    }
+
+    public static function selectComposerJsonAndLock(string $repoRootDir, string $fileNamePrefix): void
+    {
+        $derivedJsonFile = GenerateComposerFiles::buildFullPath($repoRootDir, GenerateComposerFiles::buildJsonFileName($fileNamePrefix));
+        $dstJsonFile = ToolsUtil::partsToPath($repoRootDir, ComposerUtil::JSON_FILE_NAME);
+        ToolsUtil::copyFile($derivedJsonFile, $dstJsonFile);
+        self::selectComposerLock($repoRootDir, $fileNamePrefix);
+    }
+
+    /**
+     * @phpstan-param ?callable(string $tempRepoDir): EnvVars $preProcess
+     */
+    public static function installInTempAndCopy(PhpDepsGroup $depsGroup, string $repoRootDir, ?callable $preProcess = null): void
+    {
+        ToolsUtil::runCodeOnUniqueNameTempDir(
+            tempDirNamePrefix: ToolsUtil::fqClassNameToShort(__CLASS__) . '_' . __FUNCTION__ . "_for_{$depsGroup->name}_",
+            code: function (string $tempRepoDir) use ($depsGroup, $repoRootDir, $preProcess): void {
+                foreach ([GenerateComposerFiles::GENERATED_FILES_DIR_NAME, 'prod/php', 'tools'] as $dirToCopyRelPath) {
+                    $dirToCopyRelPathAdapted = ToolsUtil::adaptUnixDirectorySeparators($dirToCopyRelPath);
+                    $dstDir = ToolsUtil::partsToPath($tempRepoDir, $dirToCopyRelPathAdapted);
+                    ToolsUtil::createDirectory($dstDir);
+                    ToolsUtil::copyDirectoryContents(ToolsUtil::partsToPath($repoRootDir, $dirToCopyRelPathAdapted), $dstDir);
+                }
+
+                self::selectComposerJsonAndLock($tempRepoDir, $depsGroup->name);
+
+                $envVars = ($preProcess === null) ? [] : $preProcess($tempRepoDir);
+
+                self::composerInstall($depsGroup, $envVars);
+
+                $dstVendorDir = ToolsUtil::partsToPath($repoRootDir, self::mapDepsGroupToVendorDirName($depsGroup));
+                ToolsUtil::ensureEmptyDirectory($dstVendorDir);
+                ToolsUtil::copyDirectoryContents(ToolsUtil::partsToPath($tempRepoDir, ComposerUtil::VENDOR_DIR_NAME), $dstVendorDir);
+            }
+        );
+    }
+
+    /**
+     * @phpstan-param EnvVars $envVars
+     */
+    public static function composerInstall(PhpDepsGroup $depsGroup, array $envVars = []): void
+    {
+        $withDev = self::mapDepsGroupToIsDev($depsGroup);
+        $classmapAuthoritative = match ($depsGroup) {
+            PhpDepsGroup::dev => false,
+            PhpDepsGroup::prod, PhpDepsGroup::dev_for_prod_static_check => true,
+        };
+        ComposerUtil::execInstall($withDev, envVars: $envVars);
+        ComposerUtil::execDumpAutoLoad($withDev, $classmapAuthoritative);
+    }
+
+    private static function mapDepsGroupToVendorDirName(PhpDepsGroup $depsGroup): string
+    {
+        return match ($depsGroup) {
+            PhpDepsGroup::dev, PhpDepsGroup::dev_for_prod_static_check => ComposerUtil::VENDOR_DIR_NAME,
+            PhpDepsGroup::prod => self::VENDOR_PROD_DIR_NAME,
+        };
+    }
+
+    public static function mapDepsGroupToIsDev(PhpDepsGroup $depsGroup): bool
+    {
+        return match ($depsGroup) {
+            PhpDepsGroup::dev, PhpDepsGroup::dev_for_prod_static_check => true,
+            PhpDepsGroup::prod => false,
+        };
+    }
+
+    public static function verifyVendorDir(PhpDepsGroup $depsGroup, string $vendorDir): void
+    {
+        foreach ($depsGroupToOnlyPackages as $currentDepsGroup => $onlyPackages) {
+            foreach ($onlyPackages as $fqPackageName) {
+                $packageDir = ToolsUtil::partsToPath($vendorDir, ToolsUtil::adaptUnixDirectorySeparators($fqPackageName));
+                $dbgCtx = compact('packageDir', 'vendorDir', 'fqPackageName', 'currentDepsGroup');
+                if ($depsGroup->name === $currentDepsGroup) {
+                    self::assertDirectoryExists($packageDir, $dbgCtx);
+                } else {
+                    self::assertDirectoryDoesNotExist($packageDir, $dbgCtx);
+                }
+            }
         }
     }
 
     /**
-     * Must be defined in class using BuildToolsLoggingClassTrait
+     * @param PackageNameToVersionMap $packageNameToVersionMap
+     */
+    public static function verifyDevProdOnlyPackages(PhpDepsGroup $depsGroup, array $packageNameToVersionMap): void
+    {
+        /** @var ?array<string, list<string>> $depsGroupToOnlyPackages */
+        static $depsGroupToOnlyPackages = null;
+        if ($depsGroupToOnlyPackages === null) {
+            $depsGroupToOnlyPackages = [
+                PhpDepsGroup::prod->name => [
+                ],
+                PhpDepsGroup::dev->name => [
+                ],
+            ];
+        }
+        self::assertNotNull($depsGroupToOnlyPackages);
+
+        foreach ($depsGroupToOnlyPackages as $currentDepsGroup => $onlyPackages) {
+            foreach ($onlyPackages as $fqPackageName) {
+                $packageDir = ToolsUtil::partsToPath($vendorDir, ToolsUtil::adaptUnixDirectorySeparators($fqPackageName));
+                $dbgCtx = compact('packageDir', 'vendorDir', 'fqPackageName', 'currentDepsGroup');
+                if ($depsGroup->name === $currentDepsGroup) {
+                    self::assertDirectoryExists($packageDir, $dbgCtx);
+                } else {
+                    self::assertDirectoryDoesNotExist($packageDir, $dbgCtx);
+                }
+            }
+        }
+    }
+
+    /**
+     * Must be defined in class using ToolsLoggingClassTrait
      */
     private static function getCurrentSourceCodeFile(): string
     {

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e -o pipefail
+set -e -u -o pipefail
 #set -x
 
 function is_value_in_array () {
@@ -78,9 +78,9 @@ function unpack_row_optional_parts_to_env_vars () {
 function main () {
     this_script_dir="$( dirname "${BASH_SOURCE[0]}" )"
     this_script_dir="$( realpath "${this_script_dir}" )"
+    src_repo_root_dir="$(realpath "${this_script_dir}/../../..")"
 
-    repo_root_dir="$( realpath "${this_script_dir}/../../.." )"
-    source "${repo_root_dir}/tools/shared.sh"
+    source "${src_repo_root_dir}/tools/shared.sh"
 
     #
     # Expected format (see generate_matrix.sh)

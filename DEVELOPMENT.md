@@ -230,7 +230,7 @@ https://artifactory.elastic.dev/ui/repos/tree/General/apm-agent-php-dev
 and in "raw" format here:
 https://artifactory.elastic.dev/ui/native/apm-agent-php-dev/
 
-# Managing PHP 3rd party dependencies
+# To manage PHP 3rd party dependencies
 This documentation section describes how to manage PHP 3rd party dependencies
 i.e., `vendor` directory, `composer.json` and `composer.lock`
 
@@ -239,7 +239,7 @@ versions of dependencies are used for each build of the source code repository s
 To achieve this, we committed `composer.lock` files to version control.
 There are multiple `composer.lock` files - one for each supported major.minor PHP version. 
 
-## To install dependencies
+## To install dependencies in development environment
 
 Run
 ```
@@ -252,7 +252,7 @@ copy it to `<repo root>/composer.lock`and install the packages using that `compo
 ## To check which dependencies can be updated
 Run
 ```
-composer outdated
+./tools/build/show_outdated_PHP_deps.sh
 ```
 
 ## To update dependencies
@@ -263,6 +263,13 @@ composer outdated
 ```
 instead of the usual `composer update`
 3) Commit the changes to the composer's lock files
+
+## Development tools configuration
+| Environment variable name | Description | Value type | Valid values | Default value |
+|---------------------------|-------------|------------|--------------|---------------|
+| `ELASTIC_OTEL_PHP_TOOLS_LOG_LEVEL` | Logging level for tools used during build, etc.                      | string     | `OFF`, `CRITICAL`, `ERROR`, `WARNING`, `INFO`, `DEBUG`, `TRACE` | `INFO` |
+| `ELASTIC_OTEL_PHP_TOOLS_KEEP_TEMP_FILES` | Should temporary files and directories be kept or deleted after use? | boolean    | `true`, `false`                                                 | `false` (i.e., temporary files and directories are deleted after use) |
+
 
 # Documentation
 

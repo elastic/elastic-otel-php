@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e -o pipefail
+set -e -u -o pipefail
 #set -x
 
 function print_info_about_environment () {
@@ -194,12 +194,10 @@ function main() {
     current_github_workflow_log_group_name="Setting the environment for ${BASH_SOURCE[0]}"
     echo "::group::${current_github_workflow_log_group_name}"
 
-    mkdir -p /tmp/repo
-    export repo_root_dir="/tmp/repo"
-    cp -r /read_only_repo_root/* "${repo_root_dir}/"
-    cd "${repo_root_dir}/"
-    rm -rf composer.json composer.lock ./vendor/ ./prod/php/vendor_*
-    source "./tools/shared.sh"
+    this_script_dir="$(dirname "${BASH_SOURCE[0]}")"
+    this_script_dir="$(realpath "${this_script_dir}")"
+    src_repo_root_dir="$(realpath "${this_script_dir}/../../..")"
+    source "${src_repo_root_dir}/tools/shared.sh"
 
     echo 'Before setting PHP_INI_SCAN_DIR'
     print_info_about_environment
@@ -239,7 +237,9 @@ function main() {
     current_github_workflow_log_group_name="Installing PHP dependencies using composer"
     start_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
-    php ./tools/build/select_json_lock_and_install_PHP_deps.php test
+    /docker_host_repo_root/tools/copy_repo_exclude_generated.sh /docker_host_repo_root /tmp/repo
+     cd /tmp/repo
+    ./tools/build/install_PHP_deps_in_dev_env.sh
 
     end_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
@@ -253,7 +253,7 @@ function main() {
     start_github_workflow_log_group "${current_github_workflow_log_group_name}"
 
     export ELASTIC_OTEL_PHP_TESTS_LOGS_DIRECTORY="/elastic_otel_php_tests/logs"
-    ./tools/test/component/test_installed_package_one_matrix_row.sh
+    "${src_repo_root_dir}/tools/test/component/test_installed_package_one_matrix_row.sh"
 }
 
 main "$@"

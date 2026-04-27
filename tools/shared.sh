@@ -2,7 +2,30 @@
 set -e -u -o pipefail
 #set -x
 
-source "${repo_root_dir:?}/elastic-otel-php.properties"
+function print_caller_stack_trace() {
+    local numberCallStackFrames
+    numberCallStackFrames=${#FUNCNAME[@]}
+    echo "Call stack (${numberCallStackFrames} frames - most recent on top):"
+
+    local i
+    # Stop at 1 to skip the this function itself
+    # SC2004: $/${} is unnecessary on arithmetic variables.
+    # shellcheck disable=SC2004
+    for (( i=0; i<${numberCallStackFrames}; ++i )); do
+        local func="${FUNCNAME[$i]}"
+        local file="${BASH_SOURCE[$i]}"
+        local line="${BASH_LINENO[$((i-1))]}" # BASH_LINENO is off by one index
+        echo "    ${file}:${line} ; ${func}()"
+    done
+    # Add the main script entry point
+    echo "    ${BASH_SOURCE[0]}:${BASH_LINENO[0]} main"
+}
+
+tools_shared_script_dir="$(dirname "${BASH_SOURCE[0]}")"
+tools_shared_script_dir="$(realpath "${tools_shared_script_dir}")"
+src_repo_root_dir="$(realpath "${tools_shared_script_dir}/..")"
+
+source "${src_repo_root_dir}/elastic-otel-php.properties"
 export elastic_otel_php_version="${version:?}"
 export elastic_otel_php_supported_php_versions=("${supported_php_versions[@]:?}")
 export elastic_otel_php_supported_package_types=("${supported_package_types[@]:?}")
@@ -11,18 +34,28 @@ export elastic_otel_php_test_groups_short_names=("${test_groups_short_names[@]:?
 export elastic_otel_php_otel_proto_version="${otel_proto_version:?}"
 export elastic_otel_php_native_otlp_exporters_based_on_php_impl_version="${native_otlp_exporters_based_on_php_impl_version:?}"
 
-export elastic_otel_php_build_tools_composer_lock_files_dir_name="generated_composer_lock_files"
-export elastic_otel_php_build_tools_composer_lock_files_dir="${repo_root_dir:?}/${elastic_otel_php_build_tools_composer_lock_files_dir_name:?}"
+# Make sure the following value is in sync with the rest of locations where it's defined:
+#   - tools/build/GenerateComposerFiles.php
+export elastic_otel_php_generated_composer_lock_files_dir_name="generated_composer_lock_files"
 
-# Make sure the following value is in sync with the rest of locations where it's used:
-#   - tools/build/AdaptPackagesToPhp81.php
+# Make sure the following value is in sync with the rest of locations where it's defined:
+#   - tools/build/GenerateComposerFiles.php
+export elastic_otel_php_generated_composer_files_base_file_name="base"
+
+# Make sure the following value is in sync with the rest of locations where it's defined:
+#   - tools/build/AdaptPhpDepsTo81.php
 # The path is relative to repo root
 export elastic_otel_php_packages_adapted_to_PHP_81_rel_path="build/adapted_to_PHP_81/packages"
 
-# Make sure the following value is in sync with the rest of locations where it's used:
-#   - tools/build/AdaptPackagesToPhp81.php
+# Make sure the following value is in sync with the rest of locations where it's defined:
+#   - tools/build/AdaptPhpDepsTo81.php
 # The path is relative to repo root
 export elastic_otel_php_composer_home_for_packages_adapted_to_PHP_81_rel_path="build/adapted_to_PHP_81/composer_home"
+
+# Make sure the following value is in sync with the rest of locations where it's defined:
+#   - tools/build/InstallPhpDeps.php
+#   - tests/bootstrapDev.php
+export elastic_otel_php_vendor_prod_dir_name="vendor_prod"
 
 function get_supported_php_versions_as_string() {
     local supported_php_versions_as_string=""
@@ -212,16 +245,16 @@ function end_github_workflow_log_group() {
 }
 
 function build_generated_composer_json_file_name() {
-    local env_kind="${1:?}"
+    local deps_group="${1:?}"
 
-    echo "${env_kind}.json"
+    echo "${deps_group}.json"
 }
 
 function build_generated_composer_lock_file_name() {
-    local env_kind="${1:?}"
+    local file_name_prefix="${1:?}"
     local PHP_version_no_dot="${2:?}"
 
-    echo "${env_kind}_${PHP_version_no_dot}.lock"
+    echo "${file_name_prefix}_${PHP_version_no_dot}.lock"
 }
 
 function build_light_PHP_docker_image_name_for_version_no_dot() {
@@ -253,14 +286,8 @@ function copy_dir_contents() {
     local src_dir="${1:?}"
     local dst_dir="${2:?}"
 
-    local src_dir_ls
-    src_dir_ls=$(ls -A "${src_dir}/")
-    if [ -z "${src_dir_ls}" ]; then
-        return
-    fi
-
     echo "Copying directory contents ${src_dir}/ to ${dst_dir}/ ..."
-    cp -r "${src_dir}/"* "${dst_dir}/"
+    cp -r "${src_dir}/." "${dst_dir}/"
 }
 
 function copy_dir_contents_overwrite() {
@@ -308,7 +335,7 @@ function copy_dir_if_exists() {
     fi
 }
 
-function should_pass_env_var_to_docker () {
+function should_pass_env_var_to_docker() {
     env_var_name_to_check="${1:?}"
 
     if [[ ${env_var_name_to_check} == "ELASTIC_OTEL_"* ]] || [[ ${env_var_name_to_check} == "OTEL_"* ]]; then
@@ -319,7 +346,7 @@ function should_pass_env_var_to_docker () {
     echo "false"
 }
 
-function build_docker_env_vars_command_line_part () {
+function build_docker_env_vars_command_line_part() {
     # $1 should be the name of the environment variable to hold the result
     # local -n makes `result_var' reference to the variable named by $1
     local -n result_var=${1:?}
@@ -334,4 +361,19 @@ function build_docker_env_vars_command_line_part () {
         echo "Passing env var to docker: name: ${env_var_name}, value: ${env_var_value}"
         result_var+=(-e "${env_var_name}=${env_var_value}")
     done < <(env)
+}
+
+function build_docker_read_only_volume_mounts_command_line_part() {
+    # $1 should be the name of the environment variable to hold the result
+    # local -n makes `result_var' reference to the variable named by $1
+    # SC2178: Variable was used as an array but is now assigned a string.
+    # shellcheck disable=SC2178
+    local -n result_var=${1:?}
+    result_var=()
+    local src_root_dir="${2:?}"
+    local dst_root_dir="${3:?}"
+    local rel_paths=("${@:4}")
+    for rel_path in "${rel_paths[@]:?}" ; do
+        result_var+=(-v "${src_root_dir}/${rel_path}:${dst_root_dir}/${rel_path}:ro")
+    done
 }

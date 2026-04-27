@@ -23,6 +23,7 @@ declare(strict_types=1);
 
 namespace ElasticOTelTests\ComponentTests\Util;
 
+use Elastic\OTel\Util\ArrayUtil;
 use ElasticOTelTests\ComponentTests\Util\OtlpData\Attributes;
 use ElasticOTelTests\ComponentTests\Util\OtlpData\OTelResource;
 use ElasticOTelTests\ComponentTests\Util\OtlpData\Span;
@@ -133,7 +134,7 @@ final class AgentBackendComms
     public function findSpanById(string $id): ?Span
     {
         $spans = $this->findSpansById($id);
-        if (ArrayUtilForTests::isEmpty($spans)) {
+        if (ArrayUtil::isEmpty($spans)) {
             return null;
         }
         return ArrayUtilForTests::getSingleValue($spans);

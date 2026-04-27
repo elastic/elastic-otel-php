@@ -35,14 +35,6 @@ final class ArrayUtilForTests
     use StaticClassTrait;
 
     /**
-     * @param array<array-key, mixed> $array
-     */
-    public static function isEmpty(array $array): bool
-    {
-        return count($array) === 0;
-    }
-
-    /**
      * @template       T
      * @param          T[] $array
      * @phpstan-return T

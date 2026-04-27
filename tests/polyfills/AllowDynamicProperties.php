@@ -19,9 +19,7 @@
  * under the License.
  */
 
-/**
- * @noinspection PhpElementIsNotAvailableInCurrentPhpVersionInspection, PhpIllegalPsrClassPathInspection
- */
+/** @noinspection PhpElementIsNotAvailableInCurrentPhpVersionInspection, PhpIllegalPsrClassPathInspection */
 
 declare(strict_types=1);
 

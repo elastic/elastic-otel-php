@@ -3,7 +3,7 @@ includes:
 
 parameters:
     bootstrapFiles:
-        - ./tests/bootstrap.php
+        - ./tools/test/PHPStan_bootstrapFiles.php
 
     level: max
 

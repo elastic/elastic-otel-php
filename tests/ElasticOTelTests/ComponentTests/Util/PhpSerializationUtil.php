@@ -49,7 +49,7 @@ final class PhpSerializationUtil
     public static function unserializeFromString(string $serialized): mixed
     {
         DebugContext::getCurrentScope(/* out */ $dbgCtx);
-        $decodedJson = JsonUtil::decode($serialized, asAssocArray: true);
+        $decodedJson = JsonUtil::decode($serialized);
         $dbgCtx->add(compact('decodedJson'));
         Assert::assertIsArray($decodedJson);
         Assert::assertTrue(ArrayUtil::getValueIfKeyExists(self::CHECKSUM_KEY, $decodedJson, /* out */ $receivedChecksum));

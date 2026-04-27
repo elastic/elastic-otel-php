@@ -21,8 +21,10 @@
 
 declare(strict_types=1);
 
-namespace ElasticOTelTools\Build;
+namespace ElasticOTelTools\build;
 
-require __DIR__ . DIRECTORY_SEPARATOR . 'bootstrap_build_tools.php';
+use ElasticOTelTools\ToolsUtil;
 
-InstallPhpDeps::verifyGeneratedComposerLockFiles();
+require __DIR__ . '/../bootstrap_tools.php';
+
+GenerateComposerFiles::verifyGeneratedFiles(basename(__FILE__, ToolsUtil::getCurrentDirectory()));
