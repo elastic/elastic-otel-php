@@ -1,0 +1,42 @@
+--- a/tests/OTelDistroTests/ComponentTests/SdkDistroAttributesTest.php
++++ b/tests/OTelDistroTests/ComponentTests/SdkDistroAttributesTest.php
+@@ -133,7 +133,7 @@
+         );
+
+         $expectedResourceAttributes = [
+-            ResourceAttributes::TELEMETRY_DISTRO_NAME    => 'opentelemetry-php-distro',
++            ResourceAttributes::TELEMETRY_DISTRO_NAME    => 'elastic',
+             ResourceAttributes::TELEMETRY_SDK_LANGUAGE   => 'php',
+             ResourceAttributes::TELEMETRY_SDK_NAME       => 'opentelemetry',
+             ResourceAttributes::TELEMETRY_SDK_VERSION    => self::getOTelSdkVersion(),
+@@ -172,23 +172,12 @@
+
+         $distroVersionInAppContext = $appCodeContextData->getString(self::DISTRO_VERSION_IN_APP_CONTEXT);
+         $dbgCtx->add(compact('distroVersionInAppContext'));
+-        $dbgCtx->add(['PhpPartVersion::VALUE' => PhpPartVersion::VALUE]);
+-        $phpPartVerWithoutSuffix = $removeVersionSuffix(PhpPartVersion::VALUE);
+-        $dbgCtx->add(compact('phpPartVerWithoutSuffix'));
+-        /**
+-         * @see OverrideOTelSdkResourceAttributes::buildDistroVersion
+-         */
+-        $distroVerSlashPos = strpos($distroVersionInAppContext, '/');
+-        if ($distroVerSlashPos === false) {
+-            self::assertSame($phpPartVerWithoutSuffix, $removeVersionSuffix($distroVersionInAppContext));
+-        } else {
+-            self::assertGreaterThan(0, $distroVerSlashPos);
+-            self::assertLessThan(strlen($distroVersionInAppContext) - 1, $distroVerSlashPos);
+-            $nativePartVerInAppContext = substr($distroVersionInAppContext, 0, $distroVerSlashPos);
+-            self::assertSame($phpPartVerWithoutSuffix, $removeVersionSuffix($nativePartVerInAppContext));
+-            $phpPartVerInAppContext = substr($distroVersionInAppContext, $distroVerSlashPos + 1);
+-            self::assertSame($phpPartVerWithoutSuffix, $removeVersionSuffix($phpPartVerInAppContext));
+-        }
++        // EDOT: distro version comes from ElasticVendorCustomizations::getDistributionVersion()
++        // which is the EDOT version (e.g. '1.3.1'), not derived from PhpPartVersion::VALUE
++        // (upstream PHP part version). Just validate it's a valid semver.
++        self::assertNotEmpty($distroVersionInAppContext);
++        self::assertMatchesRegularExpression('/^\d+\.\d+\.\d+/', $distroVersionInAppContext,
++            "EDOT distro version should be a semver string, got: $distroVersionInAppContext");
+
+         $expectedResourceAttributes[ResourceAttributes::TELEMETRY_DISTRO_VERSION] = $distroVersionInAppContext;
+         $resources = IterableUtil::toList($agentBackendComms->resources());
+             ResourceAttributes::TELEMETRY_SDK_VERSION    => self::getOTelSdkVersion(),

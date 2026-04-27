@@ -19,7 +19,7 @@ set(_ELASTIC_VENDOR_INJECTED TRUE)
 # CMAKE_SOURCE_DIR here is upstream/prod/native (where cmake runs from)
 # The repo root is 3 levels up: upstream/prod/native -> upstream/prod -> upstream -> root
 get_filename_component(_REPO_ROOT "${CMAKE_SOURCE_DIR}/../../.." ABSOLUTE)
-set(ELASTIC_VENDOR_DIR "${_REPO_ROOT}/elastic/native/libelastic" CACHE PATH "Elastic vendor lib source" FORCE)
+set(ELASTIC_VENDOR_DIR "${_REPO_ROOT}/elastic_prod/native/libelastic" CACHE PATH "Elastic vendor lib source" FORCE)
 
 message(STATUS "EDOT: Will inject Elastic vendor library from ${ELASTIC_VENDOR_DIR}")
 

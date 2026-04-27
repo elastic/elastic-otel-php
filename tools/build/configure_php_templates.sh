@@ -41,7 +41,7 @@ configure_from_template() {
     configure_file "${_ARG_INPUT_FILE}" >"${_OUTPUT_FILE}"
 }
 
-configure_from_template "${repo_root_dir}/elastic/php/Elastic/OTel/ElasticVendorCustomizations.php.template"
+configure_from_template "${repo_root_dir}/elastic_prod/php/Elastic/OTel/ElasticVendorCustomizations.php.template"
 
 # ── Upstream templates ──────────────────────────────────────────────────
 cd "${repo_root_dir}/upstream"

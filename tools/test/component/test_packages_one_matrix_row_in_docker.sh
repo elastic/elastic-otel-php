@@ -8,6 +8,11 @@ set -e -o pipefail
 
 echo "Entered ${BASH_SOURCE[0]}"
 
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+
+# Apply EDOT test patches to upstream before running tests
+"${REPO_ROOT}/elastic_tests/patch/apply.sh"
+
 cd upstream
 
 cleanup() {
@@ -15,6 +20,8 @@ cleanup() {
         rm -rf .git
         mv .git_file_backup .git
     fi
+    # Revert EDOT test patches after tests (pass or fail)
+    "${REPO_ROOT}/elastic_tests/patch/revert.sh"
 }
 trap cleanup EXIT
 

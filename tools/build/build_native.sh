@@ -79,7 +79,7 @@ echo "NCPU: $NCPU"
 echo "SKIP_CONFIGURE: $SKIP_CONFIGURE"
 
 # Elastic vendor inject: tell upstream cmake to include our vendor lib
-ELASTIC_INJECT="/source/elastic/native/libelastic/elastic_vendor_inject.cmake"
+ELASTIC_INJECT="/source/elastic_prod/native/libelastic/elastic_vendor_inject.cmake"
 
 if [ "$SKIP_CONFIGURE" = true ]; then
     echo "Skipping configuration step..."
