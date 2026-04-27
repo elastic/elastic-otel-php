@@ -21,7 +21,8 @@
         "open-telemetry/sdk": "1.9.0",
         "open-telemetry/sem-conv": "1.32.0",
         "php-http/guzzle7-adapter": "^1.0",
-        "nyholm/psr7-server": "^1.1"
+        "nyholm/psr7-server": "^1.1",
+        "google/protobuf": "^4.33.6"
     },
     "provide": {
         "laravel/framework": "*",
