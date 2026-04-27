@@ -39,11 +39,11 @@ jobs:
         continue-on-error: true
         run: |
           PACKAGE_FILE=$(find ${{ env.BUILD_PACKAGES }} -name elastic*amd64.deb)
-          ./tools/build/test_otel_unit_tests_in_docker.sh --php_versions "${PHP_VERSION}" --results_path "build/otel_unit_results" --deb_package ${PACKAGE_FILE}
+          ./tools/build/test_otel_unit_tests_in_docker.sh --php_versions "${PHP_VERSION}" --results_path "${PWD}/build/otel_unit_results" --deb_package "${PWD}/${PACKAGE_FILE}"
 
       - name: Generate test summary
         if: always()
-        run: ./tools/build/junit_summary.py --path-to-test-results "build/otel_unit_results/**/*.xml" --header "Test summary for PHP ${PHP_VERSION}" >>$GITHUB_STEP_SUMMARY
+        run: ./upstream/tools/build/junit_summary.py --path-to-test-results "build/otel_unit_results/**/*.xml" --header "Test summary for PHP ${PHP_VERSION}" >>$GITHUB_STEP_SUMMARY
 
       - uses: actions/upload-artifact@v7
         if: always()
