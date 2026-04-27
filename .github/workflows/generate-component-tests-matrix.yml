@@ -26,6 +26,6 @@ jobs:
           submodules: recursive
       - id: generate
         run: |
-          MATRIX_JSON=$(./tools/test/component/generate_matrix.sh | jq --raw-input --slurp -c 'split("\n") | map(select(length > 0)) | map({ "row": . } )')
+          MATRIX_JSON=$(cd upstream && ./tools/test/component/generate_matrix.sh | jq --raw-input --slurp -c 'split("\n") | map(select(length > 0)) | map({ "row": . } )')
           echo "matrix={\"include\":${MATRIX_JSON}}"
           echo "matrix={\"include\":${MATRIX_JSON}}" >> $GITHUB_OUTPUT
