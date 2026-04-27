@@ -15,11 +15,15 @@ for patch_file in "${SCRIPT_DIR}"/*.patch; do
     if [ -f "$patch_file" ]; then
         echo "  Applying: $(basename "$patch_file")"
         abs_patch="$(realpath "$patch_file")"
-        git -C "${UPSTREAM_DIR}" apply --check "$abs_patch" 2>/dev/null || {
-            echo "  SKIP (already applied or conflict): $(basename "$patch_file")"
-            continue
-        }
-        git -C "${UPSTREAM_DIR}" apply "$abs_patch"
+        if git -C "${UPSTREAM_DIR}" apply --check "$abs_patch" 2>/dev/null; then
+            git -C "${UPSTREAM_DIR}" apply "$abs_patch"
+        elif git -C "${UPSTREAM_DIR}" apply --reverse --check "$abs_patch" 2>/dev/null; then
+            echo "  SKIP (already applied): $(basename "$patch_file")"
+        else
+            echo "  ERROR: patch failed to apply: $(basename "$patch_file")" >&2
+            git -C "${UPSTREAM_DIR}" apply --check "$abs_patch"
+            exit 1
+        fi
     fi
 done
 
