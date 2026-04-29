@@ -59,23 +59,46 @@ If you change the exporter or the transport protocol, for example to gRPC or ano
 EDOT PHP also sets the `OTEL_PHP_AUTOLOAD_ENABLED` option to `true` by default. This turns on automatic instrumentation without requiring any changes to your application code.
 Modifying this option will have no effect: EDOT will override it and enforce it as `true`.
 
-## Options only available in EDOT PHP
+## EDOT PHP distro configuration options
 
-In addition to general OpenTelemetry configuration options, there are two kinds of configuration options that are only available in EDOT PHP.
+In addition to general OpenTelemetry configuration options, EDOT PHP provides distro-specific configuration options listed below.
 
-Each option listed in this document that starts with the `ELASTIC_OTEL_` prefix can be set using either an environment variable or the `php.ini` file.
+:::{note}
+**Naming convention change:** Since EDOT PHP has been contributed to the upstream [opentelemetry-php-distro](https://github.com/open-telemetry/opentelemetry-php-distro), all distro-specific options now support **two naming conventions**:
 
-When using the `php.ini` file, replace the `ELASTIC_OTEL_` prefix with `elastic_otel.` and convert the rest of the option name to lowercase, for example:
+| Convention | Environment variable prefix | php.ini prefix | Status |
+|---|---|---|---|
+| **OpenTelemetry (preferred)** | `OTEL_PHP_` | `opentelemetry_distro.` | Recommended |
+| **Elastic (deprecated)** | `ELASTIC_OTEL_` | `elastic_otel.` | Deprecated — still works during the transition period |
+
+Both forms are fully functional. If both are set, the `OTEL_PHP_*` / `opentelemetry_distro.*` value takes precedence.
+
+For example, `OTEL_PHP_LOG_LEVEL` and `ELASTIC_OTEL_LOG_LEVEL` are equivalent, but `OTEL_PHP_LOG_LEVEL` is preferred.
+:::
+
+Each option can be set using either an environment variable or the `php.ini` file:
 
 ::::{tab-set}
 
-:::{tab-item} Environment variable
+:::{tab-item} Environment variable (preferred)
+```bash
+export OTEL_PHP_ENABLED=true
+```
+:::
+
+:::{tab-item} Environment variable (deprecated)
 ```bash
 export ELASTIC_OTEL_ENABLED=true
 ```
 :::
 
-:::{tab-item} php.ini
+:::{tab-item} php.ini (preferred)
+```ini
+opentelemetry_distro.enabled=true
+```
+:::
+
+:::{tab-item} php.ini (deprecated)
 ```ini
 elastic_otel.enabled=true
 ```
@@ -83,51 +106,58 @@ elastic_otel.enabled=true
 
 ::::
 
-`ELASTIC_OTEL_` options that are specific to Elastic and always live in EDOT PHP, meaning they will not be added to upstream, include the following.
-
 ### General configuration
 
 | Option(s)            | Default | Accepted values | Description                                                 |
 | -------------------- | ------- | --------------- | ----------------------------------------------------------- |
-| ELASTIC_OTEL_ENABLED | `true`    | `true` or `false`   | Enables the automatic bootstrapping of instrumentation code |
-| ELASTIC_OTEL_NATIVE_OTLP_SERIALIZER_ENABLED   | `true`    | `true` or `false`   | Enables the native built-in OTLP Protobuf serializer for maximum performance |
+| OTEL_PHP_ENABLED | `true`    | `true` or `false`   | Enables the automatic bootstrapping of instrumentation code |
+| OTEL_PHP_NATIVE_OTLP_SERIALIZER_ENABLED   | `true`    | `true` or `false`   | Enables the native built-in OTLP Protobuf serializer for maximum performance |
+
+_Deprecated aliases: `ELASTIC_OTEL_ENABLED`, `ELASTIC_OTEL_NATIVE_OTLP_SERIALIZER_ENABLED`_
 
 ### Asynchronous data sending configuration
 
 | Option(s)                                     | Default | Accepted values                                                                                         | Description                                                                                                                          |
 | --------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| ELASTIC_OTEL_ASYNC_TRANSPORT                  | `true`    | `true` or `false`                                                                                           | Use asynchronous (background) transfer of traces, metrics and logs. If `false` - brings back original OpenTelemetry SDK transfer modes |
-| ELASTIC_OTEL_ASYNC_TRANSPORT_SHUTDOWN_TIMEOUT | `30s`     | Integer number with time duration. Set to 0 to disable the timeout. Optional units: ms (default), s, m | Timeout after which the asynchronous (background) transfer will interrupt data transmission during process termination               |
-| ELASTIC_OTEL_MAX_SEND_QUEUE_SIZE              | `2MB`     | integer number with optional units: `B`, `MB` or `GB`                                                         | Set the maximum buffer size for asynchronous (background) transfer. It is set per worker process.                                    |
+| OTEL_PHP_ASYNC_TRANSPORT                  | `true`    | `true` or `false`                                                                                           | Use asynchronous (background) transfer of traces, metrics and logs. If `false` - brings back original OpenTelemetry SDK transfer modes |
+| OTEL_PHP_ASYNC_TRANSPORT_SHUTDOWN_TIMEOUT | `30s`     | Integer number with time duration. Set to 0 to disable the timeout. Optional units: ms (default), s, m | Timeout after which the asynchronous (background) transfer will interrupt data transmission during process termination               |
+| OTEL_PHP_MAX_SEND_QUEUE_SIZE              | `2MB`     | integer number with optional units: `B`, `MB` or `GB`                                                         | Set the maximum buffer size for asynchronous (background) transfer. It is set per worker process.                                    |
+
+_Deprecated aliases: `ELASTIC_OTEL_ASYNC_TRANSPORT`, `ELASTIC_OTEL_ASYNC_TRANSPORT_SHUTDOWN_TIMEOUT`, `ELASTIC_OTEL_MAX_SEND_QUEUE_SIZE`_
 
 ### Logging configuration
 
 | Option(s)                     | Default | Accepted values                                                                                                                               | Description                                                                                                                                                                                                                                                                                                                      |
 | ----------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ELASTIC_OTEL_LOG_FILE         |         | Filesystem path                                                                                                                               | Log file name. You can use the %p placeholder where the process ID will appear in the file name, and %t where the timestamp will appear. Please note that the PHP process must have write permissions for the specified path.                                                                                                    |
-| ELASTIC_OTEL_LOG_LEVEL_FILE   | `OFF`     | `OFF`, `CRITICAL`, `ERROR`, `WARNING`, `INFO`, `DEBUG`, `TRACE`                                                                                             | Log level for file sink. Set to OFF if you don't want to log to file.                                                                                                                                                                                                                                                            |
-| ELASTIC_OTEL_LOG_LEVEL_STDERR | `OFF`     | `OFF`, `CRITICAL`, `ERROR`, `WARNING`, `INFO`, `DEBUG`, `TRACE`                                                                                             | Log level for the stderr sink. Set to OFF if you don't want to log to a file. This sink is recommended when running the application in a container.                                                                                                                                                                              |
-| ELASTIC_OTEL_LOG_LEVEL_SYSLOG | `OFF`     | `OFF`, `CRITICAL`, `ERROR`, `WARNING`, `INFO`, `DEBUG`, `TRACE`                                                                                             | Log level for file sink. Set to OFF if you don't want to log to file. This sink is recommended when you don't have write access to file system.                                                                                                                                                                                  |
-| ELASTIC_OTEL_LOG_FEATURES     |         | Comma separated string with `FEATURE=LEVEL` pairs.<br>Supported features:<br>`ALL`, `MODULE`, `REQUEST`, `TRANSPORT`, `BOOTSTRAP`, `HOOKS`, `INSTRUMENTATION` | Allows selective setting of log level for features. For example, "ALL=info,TRANSPORT=trace" will result in all other features logging at the info level, while the `TRANSPORT` feature logs at the trace level. It should be noted that the appropriate log level must be set for the sink. In the previous example, this would be `TRACE`. |
+| OTEL_PHP_LOG_FILE         |         | Filesystem path                                                                                                                               | Log file name. You can use the %p placeholder where the process ID will appear in the file name, and %t where the timestamp will appear. Please note that the PHP process must have write permissions for the specified path.                                                                                                    |
+| OTEL_PHP_LOG_LEVEL_FILE   | `OFF`     | `OFF`, `CRITICAL`, `ERROR`, `WARNING`, `INFO`, `DEBUG`, `TRACE`                                                                                             | Log level for file sink. Set to OFF if you don't want to log to file.                                                                                                                                                                                                                                                            |
+| OTEL_PHP_LOG_LEVEL_STDERR | `OFF`     | `OFF`, `CRITICAL`, `ERROR`, `WARNING`, `INFO`, `DEBUG`, `TRACE`                                                                                             | Log level for the stderr sink. Set to OFF if you don't want to log to a file. This sink is recommended when running the application in a container.                                                                                                                                                                              |
+| OTEL_PHP_LOG_LEVEL_SYSLOG | `OFF`     | `OFF`, `CRITICAL`, `ERROR`, `WARNING`, `INFO`, `DEBUG`, `TRACE`                                                                                             | Log level for syslog sink. Set to OFF if you don't want to log to syslog. This sink is recommended when you don't have write access to file system.                                                                                                                                                                                  |
+| OTEL_PHP_LOG_FEATURES     |         | Comma separated string with `FEATURE=LEVEL` pairs.<br>Supported features:<br>`ALL`, `MODULE`, `REQUEST`, `TRANSPORT`, `BOOTSTRAP`, `HOOKS`, `INSTRUMENTATION` | Allows selective setting of log level for features. For example, "ALL=info,TRANSPORT=trace" will result in all other features logging at the info level, while the `TRANSPORT` feature logs at the trace level. It should be noted that the appropriate log level must be set for the sink. In the previous example, this would be `TRACE`. |
+
+_Deprecated aliases: `ELASTIC_OTEL_LOG_FILE`, `ELASTIC_OTEL_LOG_LEVEL_FILE`, `ELASTIC_OTEL_LOG_LEVEL_STDERR`, `ELASTIC_OTEL_LOG_LEVEL_SYSLOG`, `ELASTIC_OTEL_LOG_FEATURES`_
 
 ### Transaction span configuration
 
 | Option(s)                                 | Default         | Accepted values                              | Description                                                                                                                                                                    |
 | ----------------------------------------- | --------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| ELASTIC_OTEL_TRANSACTION_SPAN_ENABLED     | `true`            | `true` or `false`                                | Enables automatic creation of transaction (root) spans for the webserver SAPI. The name of the span will correspond to the request method and path.                            |
-| ELASTIC_OTEL_TRANSACTION_SPAN_ENABLED_CLI | `true`            | `true` or `false`                                | Enables automatic creation of transaction (root) spans for the CLI SAPI. The name of the span will correspond to the script name.                                              |
-| ELASTIC_OTEL_TRANSACTION_URL_GROUPS       |                 | Comma-separated list of wildcard expressions | Allows grouping multiple URL paths using wildcard expressions, such as `/user/*`. For example, `/user/Alice` and `/user/Bob` will be mapped to the transaction name `/user/*`. |
-| <option>                                  | <default value> | <description>                                |
+| OTEL_PHP_TRANSACTION_SPAN_ENABLED     | `true`            | `true` or `false`                                | Enables automatic creation of transaction (root) spans for the webserver SAPI. The name of the span will correspond to the request method and path.                            |
+| OTEL_PHP_TRANSACTION_SPAN_ENABLED_CLI | `true`            | `true` or `false`                                | Enables automatic creation of transaction (root) spans for the CLI SAPI. The name of the span will correspond to the script name.                                              |
+| OTEL_PHP_TRANSACTION_URL_GROUPS       |                 | Comma-separated list of wildcard expressions | Allows grouping multiple URL paths using wildcard expressions, such as `/user/*`. For example, `/user/Alice` and `/user/Bob` will be mapped to the transaction name `/user/*`. |
+
+_Deprecated aliases: `ELASTIC_OTEL_TRANSACTION_SPAN_ENABLED`, `ELASTIC_OTEL_TRANSACTION_SPAN_ENABLED_CLI`, `ELASTIC_OTEL_TRANSACTION_URL_GROUPS`_
 
 ### Inferred spans configuration
 
 | Option(s)                                      | Default | Accepted values                                                                                 | Description                                                                                                                                                                                                                                                                                                                                |
 | ---------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| ELASTIC_OTEL_INFERRED_SPANS_ENABLED            | `false`   | `true` or `false`                                                                                   | Enables the inferred spans feature.                                                                                                                                                                                                                                                                                                        |
-| ELASTIC_OTEL_INFERRED_SPANS_REDUCTION_ENABLED  | `true`    | `true` or `false`                                                                                   | If enabled, reduces the number of spans by eliminating preceding frames with the same execution time.                                                                                                                                                                                                                                      |
-| ELASTIC_OTEL_INFERRED_SPANS_STACKTRACE_ENABLED | `true`    | `true` or `false`                                                                                   | If enabled, attaches a stack trace to the span metadata.                                                                                                                                                                                                                                                                                   |
-| ELASTIC_OTEL_INFERRED_SPANS_SAMPLING_INTERVAL  | 50ms    | Integer number with time duration. Optional units: ms (default), s, m. It can't be set to 0.   | The frequency at which stack traces are gathered within a profiling session. The lower you set it, the more accurate the durations will be. This comes at the expense of higher overhead and more spans for potentially irrelevant operations. The minimal duration of a profiling-inferred span is the same as the value of this setting. |
-| ELASTIC_OTEL_INFERRED_SPANS_MIN_DURATION       | 0       | Integer number with time duration. Optional units: ms (default), s, m. _Disabled if set to 0_. | The minimum duration of an inferred span. Note that the min duration is also implicitly set by the sampling interval. However, increasing the sampling interval also decreases the accuracy of the duration of inferred spans.                                                                                                             |
+| OTEL_PHP_INFERRED_SPANS_ENABLED            | `false`   | `true` or `false`                                                                                   | Enables the inferred spans feature.                                                                                                                                                                                                                                                                                                        |
+| OTEL_PHP_INFERRED_SPANS_REDUCTION_ENABLED  | `true`    | `true` or `false`                                                                                   | If enabled, reduces the number of spans by eliminating preceding frames with the same execution time.                                                                                                                                                                                                                                      |
+| OTEL_PHP_INFERRED_SPANS_STACKTRACE_ENABLED | `true`    | `true` or `false`                                                                                   | If enabled, attaches a stack trace to the span metadata.                                                                                                                                                                                                                                                                                   |
+| OTEL_PHP_INFERRED_SPANS_SAMPLING_INTERVAL  | 50ms    | Integer number with time duration. Optional units: ms (default), s, m. It can't be set to 0.   | The frequency at which stack traces are gathered within a profiling session. The lower you set it, the more accurate the durations will be. This comes at the expense of higher overhead and more spans for potentially irrelevant operations. The minimal duration of a profiling-inferred span is the same as the value of this setting. |
+| OTEL_PHP_INFERRED_SPANS_MIN_DURATION       | 0       | Integer number with time duration. Optional units: ms (default), s, m. _Disabled if set to 0_. | The minimum duration of an inferred span. Note that the min duration is also implicitly set by the sampling interval. However, increasing the sampling interval also decreases the accuracy of the duration of inferred spans.                                                                                                             |
+
+_Deprecated aliases: `ELASTIC_OTEL_INFERRED_SPANS_ENABLED`, `ELASTIC_OTEL_INFERRED_SPANS_REDUCTION_ENABLED`, `ELASTIC_OTEL_INFERRED_SPANS_STACKTRACE_ENABLED`, `ELASTIC_OTEL_INFERRED_SPANS_SAMPLING_INTERVAL`, `ELASTIC_OTEL_INFERRED_SPANS_MIN_DURATION`_
 
 ### Central configuration
 
@@ -135,17 +165,19 @@ The following settings control Central configuration management through OpAMP.
 
 | Option(s)                             | Default                        | Accepted values                                                                               | Description                                                                                                                                                                 |
 | ------------------------------------- | ------------------------------ | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ELASTIC_OTEL_OPAMP_ENDPOINT           |              | Valid HTTP or HTTPS URL.                                          | The HTTP or HTTPS endpoint of the OpAMP server. Required to enable Central configuration management. For example, `http://localhost:4320/v1/opamp`. Endpoint must always end with `/v1/opamp`.                            |
-| ELASTIC_OTEL_OPAMP_HEADERS            | -                              | Comma-separated key-value pairs. For example, `Authorization=Bearer xxxxxx,UserData=abc`            | Custom HTTP headers to send with the OpAMP connection request. Use key-value pairs separated by commas.                                                               |
-| ELASTIC_OTEL_OPAMP_HEARTBEAT_INTERVAL | 30s                            | Integer number with time duration. Optional units: ms (default), s, m. It can't be set to 0. | The interval between heartbeat messages sent to the OpAMP server. This also determines how often the agent will poll for updated configuration, if available.               |
-| ELASTIC_OTEL_OPAMP_SEND_TIMEOUT       | 10s                            | Integer number with time duration. Optional units: ms (default), s, m. It can't be set to 0. | Timeout duration for sending messages to the OpAMP server.                                                                                                                   |
-| ELASTIC_OTEL_OPAMP_SEND_MAX_RETRIES   | 3                              | Integer ≥ 0                                                                                   | Maximum number of retry attempts for failed message sends.                                                                                                                  |
-| ELASTIC_OTEL_OPAMP_SEND_RETRY_DELAY   | 10s                            | Integer number with time duration. Optional units: ms (default), s, m. It can't be set to 0. | Time to wait between retries of failed sends.                                                                                                                                |
-| ELASTIC_OTEL_OPAMP_INSECURE           | false                          | `true` or `false` | If `true`, disables TLS server certificate and hostname verification for the OpAMP HTTPS endpoint (analogous to insecure mode in OTLP exporters). Use ONLY for local testing; leaves the connection vulnerable to MITM. |
-| ELASTIC_OTEL_OPAMP_CERTIFICATE        |                                | Filesystem path (PEM bundle) | Filesystem path to a PEM-encoded CA certificate file or bundle. Must be a readable file; used to verify the OpAMP server when TLS verification is enabled. (same intent as custom root certificates for OTLP). |
-| ELASTIC_OTEL_OPAMP_CLIENT_CERTIFICATE |                                | Filesystem path (PEM) | Path to the client certificate for mutual TLS authentication to the OpAMP server (similar to OTLP mTLS client cert). Must match the private key below. |
-| ELASTIC_OTEL_OPAMP_CLIENT_KEY         |                                | Filesystem path (PEM) | Path to the unencrypted or encrypted private key associated with `ELASTIC_OTEL_OPAMP_CLIENT_CERTIFICATE`. Required for mTLS. |
-| ELASTIC_OTEL_OPAMP_CLIENT_KEYPASS     |                                | String (passphrase) | Passphrase for the encrypted private key (if the key is protected). Don't set or leave empty if the key is not encrypted. |
+| OTEL_PHP_OPAMP_ENDPOINT           |              | Valid HTTP or HTTPS URL.                                          | The HTTP or HTTPS endpoint of the OpAMP server. Required to enable Central configuration management. For example, `http://localhost:4320/v1/opamp`. Endpoint must always end with `/v1/opamp`.                            |
+| OTEL_PHP_OPAMP_HEADERS            | -                              | Comma-separated key-value pairs. For example, `Authorization=Bearer xxxxxx,UserData=abc`            | Custom HTTP headers to send with the OpAMP connection request. Use key-value pairs separated by commas.                                                               |
+| OTEL_PHP_OPAMP_HEARTBEAT_INTERVAL | 30s                            | Integer number with time duration. Optional units: ms (default), s, m. It can't be set to 0. | The interval between heartbeat messages sent to the OpAMP server. This also determines how often the agent will poll for updated configuration, if available.               |
+| OTEL_PHP_OPAMP_SEND_TIMEOUT       | 10s                            | Integer number with time duration. Optional units: ms (default), s, m. It can't be set to 0. | Timeout duration for sending messages to the OpAMP server.                                                                                                                   |
+| OTEL_PHP_OPAMP_SEND_MAX_RETRIES   | 3                              | Integer ≥ 0                                                                                   | Maximum number of retry attempts for failed message sends.                                                                                                                  |
+| OTEL_PHP_OPAMP_SEND_RETRY_DELAY   | 10s                            | Integer number with time duration. Optional units: ms (default), s, m. It can't be set to 0. | Time to wait between retries of failed sends.                                                                                                                                |
+| OTEL_PHP_OPAMP_INSECURE           | false                          | `true` or `false` | If `true`, disables TLS server certificate and hostname verification for the OpAMP HTTPS endpoint (analogous to insecure mode in OTLP exporters). Use ONLY for local testing; leaves the connection vulnerable to MITM. |
+| OTEL_PHP_OPAMP_CERTIFICATE        |                                | Filesystem path (PEM bundle) | Filesystem path to a PEM-encoded CA certificate file or bundle. Must be a readable file; used to verify the OpAMP server when TLS verification is enabled. (same intent as custom root certificates for OTLP). |
+| OTEL_PHP_OPAMP_CLIENT_CERTIFICATE |                                | Filesystem path (PEM) | Path to the client certificate for mutual TLS authentication to the OpAMP server (similar to OTLP mTLS client cert). Must match the private key below. |
+| OTEL_PHP_OPAMP_CLIENT_KEY         |                                | Filesystem path (PEM) | Path to the unencrypted or encrypted private key associated with `OTEL_PHP_OPAMP_CLIENT_CERTIFICATE`. Required for mTLS. |
+| OTEL_PHP_OPAMP_CLIENT_KEYPASS     |                                | String (passphrase) | Passphrase for the encrypted private key (if the key is protected). Don't set or leave empty if the key is not encrypted. |
+
+_Deprecated aliases: `ELASTIC_OTEL_OPAMP_ENDPOINT`, `ELASTIC_OTEL_OPAMP_HEADERS`, `ELASTIC_OTEL_OPAMP_HEARTBEAT_INTERVAL`, `ELASTIC_OTEL_OPAMP_SEND_TIMEOUT`, `ELASTIC_OTEL_OPAMP_SEND_MAX_RETRIES`, `ELASTIC_OTEL_OPAMP_SEND_RETRY_DELAY`, `ELASTIC_OTEL_OPAMP_INSECURE`, `ELASTIC_OTEL_OPAMP_CERTIFICATE`, `ELASTIC_OTEL_OPAMP_CLIENT_CERTIFICATE`, `ELASTIC_OTEL_OPAMP_CLIENT_KEY`, `ELASTIC_OTEL_OPAMP_CLIENT_KEYPASS`_
 
 
 #### Central configuration settings
@@ -167,7 +199,7 @@ Dynamic settings can be changed without having to restart the application or web
 :::{note}
 :applies_to: {"stack": "ga 9.2"}
 Version 9.2 and later of the {{product.elastic-stack}} includes an
-[Advanced configuration section](opentelemetry://reference/central-configuration.md#advanced-configuration) 
+[Advanced configuration section](opentelemetry://reference/central-configuration.md#advanced-configuration)
 that allows you to define custom configuration options as key-value pairs.
 
 For example, you can configure the `sampling_rate` option for {{product.elastic-stack}} 9.2,

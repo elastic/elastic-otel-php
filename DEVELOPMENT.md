@@ -1,9 +1,38 @@
 # Local development
+
+## Repository structure
+
+EDOT PHP is built on top of `opentelemetry-php-distro` which is included as a git submodule. All Elastic-specific customizations live outside the submodule:
+
+| Directory | Description |
+|-----------|-------------|
+| `upstream/` | Git submodule — [opentelemetry-php-distro](https://github.com/open-telemetry/opentelemetry-php-distro). Contains the upstream build system, native extension, PHP code, tests, and tools. |
+| `elastic_prod/` | Elastic-only production code: native C++ vendor layer (`libelastic/`), PHP bootstrap (`bootstrap_elastic.php`), vendor customizations, and OpAMP remote config. |
+| `elastic_tests/` | Test patch system — `*.patch` files applied to upstream tests before component test runs, with `apply.sh` / `revert.sh` scripts. |
+| `tools/` | EDOT thin wrappers that delegate to `upstream/tools/` (e.g. `build_native.sh`, `test_phpt.sh`), plus Elastic-specific scripts (`configure_php_templates.sh`, `test_sources_license.sh`). |
+| `packaging/` | Package definitions (`nfpm.yaml`) and install/uninstall scripts for deb/rpm/apk. |
+| `docs/` | Elastic user-facing documentation (configuration, setup, migration, release notes). |
+
+Most build and test scripts in `tools/` are thin wrappers that `cd upstream` and call the upstream equivalent, passing through all arguments. Elastic-specific scripts (license checks, template generation) run directly from the repo root.
+
+### Contributing changes
+
+Changes that are **not Elastic-specific** (bug fixes, new instrumentations, performance improvements, etc.) should be contributed directly to the upstream [opentelemetry-php-distro](https://github.com/open-telemetry/opentelemetry-php-distro) repository. Once merged upstream, update the `upstream/` submodule in this repo to pull them in:
+
+```bash
+cd upstream
+git fetch origin
+git checkout <new-commit-or-tag>
+cd ..
+git add upstream
+git commit -m "Update upstream submodule to <version>"
+```
+
+Only Elastic-specific code (vendor identity, OpAMP config, bootstrap, packaging, CI wrappers) should be added or modified in this repository.
+
 ## Build and package
 
 The best method for building is to use a set of Bash scripts that we utilize in production workflows for building releases.
-
-
 
 All scripts are located in the `tools/build` folder, but they should be called from the root folder of the repository. To ensure everything works correctly on your system, you need to have Docker installed.
 Each of the scripts mentioned below has a help page; to display it, simply provide the `--help` argument.
@@ -44,34 +73,36 @@ To make everything work on your system, you will need the gcc compiler (at the t
 Since our system uses Conan as the repository for required dependencies, you need to install them first. The following script will install everything necessary in the `~/.conan2` folder. If you haven't used Conan before, provide the argument `--detect_conan_profile` to create a default profile – if you have used Conan before, you can skip this. If you are not using python-venv and have Conan installed directly on your system, you can pass the argument `--skip_venv_conan`, which will cause the script to skip creating a venv and installing Conan.
 
 ```bash
-./prod/native/building/install_dependencies.sh --build_output_path ./prod/native/_build/custom-release --build_type Release --detect_conan_profile
+./upstream/prod/native/building/install_dependencies.sh --build_output_path ./upstream/prod/native/_build/custom-release --build_type Release --detect_conan_profile
 ```
 
-The script will install dependencies and generate the files necessary to configure the project in the next step (prod/native/_build/custom-release):
+The script will install dependencies and generate the files necessary to configure the project in the next step. Note the `-DCMAKE_PROJECT_INCLUDE` argument — it injects the Elastic vendor library (`libelastic`) into the upstream build:
 
 ```bash
-cmake -S ./prod/native/ -B ./prod/native/_build/custom-release/  -DCMAKE_PREFIX_PATH=./prod/native/_build/custom-release/build/Release/generators/ -DSKIP_CONAN_INSTALL=1 -DCMAKE_BUILD_TYPE=Release
+cmake -S ./upstream/prod/native/ -B ./upstream/prod/native/_build/custom-release/ \
+  -DCMAKE_PREFIX_PATH=./upstream/prod/native/_build/custom-release/build/Release/generators/ \
+  -DCMAKE_PROJECT_INCLUDE=${PWD}/elastic_prod/native/libelastic/elastic_vendor_inject.cmake \
+  -DSKIP_CONAN_INSTALL=1 -DCMAKE_BUILD_TYPE=Release
 ```
 
 Building:
 ```bash
-cmake --build ./prod/native/_build/custom-release/
+cmake --build ./upstream/prod/native/_build/custom-release/
 ```
 
 If the build is successful, you can find the built libraries using the following command:
 ```bash
-find prod/native/_build/custom-release -name elastic*.so
+find upstream/prod/native/_build/custom-release -name opentelemetry*.so
 ```
 
 As a result you should see:
 ```bash
-prod/native/_build/custom-release/loader/code/elastic_otel_php_loader.so
-prod/native/_build/custom-release/extension/code/elastic_otel_php_81.so
-prod/native/_build/custom-release/extension/code/elastic_otel_php_82.so
-prod/native/_build/custom-release/extension/code/elastic_otel_php_83.so
+upstream/prod/native/_build/custom-release/loader/code/opentelemetry_php_distro_loader.so
+upstream/prod/native/_build/custom-release/extension/code/opentelemetry_php_distro_84.so
+upstream/prod/native/_build/custom-release/extension/code/opentelemetry_php_distro_83.so
+upstream/prod/native/_build/custom-release/extension/code/opentelemetry_php_distro_82.so
+upstream/prod/native/_build/custom-release/extension/code/opentelemetry_php_distro_81.so
 ```
-
-
 
 ### Testing the native library
 
@@ -79,7 +110,7 @@ The following script will run the phpt tests for the native library, which shoul
 
 ```bash
 cd elastic-otel-php
-  ./tools/build/test_phpt.sh --build_architecture linux-x86-64 --php_versions '81 82 83'
+  ./tools/build/test_phpt.sh --build_architecture linux-x86-64 --php_versions '81 82 83 84'
 ```
 
 ### Building PHP dependencies
@@ -88,7 +119,7 @@ To ensure the instrumentation is fully successful, it is required to download an
 
 ```bash
 cd elastic-otel-php
-  ./tools/build/build_php_deps.sh --php_versions '81 82 83'
+  ./tools/build/build_php_deps.sh --php_versions '81 82 83 84'
 ```
 
 ### Building Packages
@@ -129,140 +160,24 @@ If the license check fails, you can use a script that automatically updates and 
 
 ```bash
 cd elastic-otel-php
-./tools/license/insert_license.py prod/native cpp h
+./tools/license/insert_license.py elastic_prod/native cpp h
 ```
-
 
 # Updating docker images used for building and testing
-## Building and updating docker images used to build the agent extension
 
-If you want to update images used to build native extension, you need to go into `prod/native/building/dockerized` folder and modify Dockerfile stored in images folder. In this moment, there are four Dockerfiles:
+Docker images for building and testing are managed in the upstream repository. See the [upstream DEVELOPMENT.md](upstream/DEVELOPMENT.md) for instructions on building, updating, and publishing docker images.
 
-`Dockerfile_musl` for Linux x86_64 with musl libc implementation\
-`Dockerfile_glibc` for all other x86_64 distros with glibc implementation\
-`Dockerfile_arm64` for all ARM64 linux distros with glibc implementation\
-`Dockerfile_arm64_musl` for ARM64 Linux with musl libc implementation
-
-Then you need to increment image version in `docker-compose.yml`. Remember to update Dockerfiles for all architectures, if needed. To build new images, you just need to call:
-```bash
-docker compose build
-```
-It will build images for all supported architectures. As a result you should get summary like this:
-```bash
-Successfully tagged elasticobservability/apm-agent-php-dev:native-build-gcc-14.2.0-linux-x86-64-0.0.1
-Successfully tagged elasticobservability/apm-agent-php-dev:native-build-gcc-14.2.0-linuxmusl-x86-64-0.0.1
-```
-
-Be aware that if you want to build images for ARM64 you must run it on ARM64 hardware or inside emulator. The same applies to x86-64.
-
-To test freshly built images, you need to udate image version in ```./tools/build/build_native.sh``` script and run build task described in [Build/package](#build-and-package)
-
-\
-If everything works as you expected, you just need to push new image to dockerhub by calling:
-```bash
-docker push elasticobservability/apm-agent-php-dev:native-build-gcc-14.2.0-linux-x86-64-0.0.1
-```
-
-## Adding or removing support for PHP release
-
-- Add the new version to the `supported_php_versions` list in the [elastic-otel.properties](elastic-otel.properties) file.
-- Update supported PHP version detection in function `is_php_supported` in [post-install.sh](packaging/scripts/post-install.sh)
-- Add or modify the supported versions array in the loader's [phpdetection.cpp](prod/native/loader/code/phpdetection.cpp) file.
-- Add or remove metadata for the specified PHP version in [conandata.yml](prod/native/building/dependencies/php-headers/conandata.yml).
-- Add or remove the Conan dependency for php-headers-* in [conanfile.txt](prod/native/conanfile.txt).
-- Follow the steps in the ["Building the native library like on CI"](#building-the-native-library-like-on-ci) section to configure and build the agent.
-- To speed up CI builds, upload Conan artifacts to Artifactory if support for the new PHP release has been added (see [Building and publishing conan artifacts](#building-and-publishing-conan-artifacts))
-
+Changes to docker images should be contributed to the upstream [opentelemetry-php-distro](https://github.com/open-telemetry/opentelemetry-php-distro) repository.
 
 ## Building and publishing conan artifacts
 
-First, please remember that you need to perform all steps inside a proper docker container. This will ensure that each package receives the same unique identifier (and package will be used in CI build).
-
-The following are instructions for building and uploading artifacts for the linux-x86-64 architecture
-
-Execution of container. All you need to do here is to use latest container image revision and replace path to your local repository.
-```bash
-docker run -ti -v /your/forked/repository/path/elastic-otel-php:/source -w /source/agent/native elasticobservability/apm-agent-php-dev:native-build-gcc-14.2.0-linux-x86-64-0.0.1 bash
-```
-
-In container environment we need to configure project - it will setup build environment, conan environment and build all required conan dependencies
-```bash
-cmake --preset linux-x86-64-release
-```
-
-Now we need to load python virtual environment created in previous step. This will enable path to conan tool.
-```bash
-source _build/linux-x86-64-release/venv/bin/activate
-```
-
-You can list all local conan packages simply by calling:
-```bash
-conan list -c "*"
-```
-
-it should output listing similar to this:
-```bash
-Local Cache
-...
-  php-headers-81
-    php-headers-81/2.0
-  php-headers-82
-    php-headers-82/2.0
-  php-headers-83
-    php-headers-83/2.0
-...
-```
-
-Now you need to login into conan as elastic user. Package upload is allowed only for mainteiners. You need to generate token from UI and use is instead of password.
-```bash
-conan remote login ElasticConan user@elastic.co
-```
-
-Now you can upload package to conan artifactory.
-
-```bash
-conan upload -r=ElasticConan php-headers-81
-```
-
-Now you can check conan artifactory for new packages here:
-https://artifactory.elastic.dev/ui/repos/tree/General/apm-agent-php-dev
-
-and in "raw" format here:
-https://artifactory.elastic.dev/ui/native/apm-agent-php-dev/
+Since we use upstream as a base, Conan artifacts are cached in upstream docker images. Any additional artifacts should be managed in the upstream repository. See the [upstream DEVELOPMENT.md](upstream/DEVELOPMENT.md) for details on building and publishing Conan artifacts.
 
 # Managing PHP 3rd party dependencies
-This documentation section describes how to manage PHP 3rd party dependencies
-i.e., `vendor` directory, `composer.json` and `composer.lock`
 
-We would like to have reproducible builds, so we need to ensure that the same
-versions of dependencies are used for each build of the source code repository snapshot.
-To achieve this, we committed `composer.lock` files to version control.
-There are multiple `composer.lock` files - one for each supported major.minor PHP version. 
+PHP dependencies are managed in the upstream submodule. See the [upstream DEVELOPMENT.md](upstream/DEVELOPMENT.md) for instructions on installing, checking, and updating PHP dependencies.
 
-## To install dependencies
-
-Run
-```
-./tools/build/install_PHP_deps_in_dev_env.sh
-```
-Instead of the usual `composer install`.
-This will select one of the generated composer's lock files (the one that corresponds to the current PHP version),
-copy it to `<repo root>/composer.lock`and install the packages using that `composer.lock` file.
-
-## To check which dependencies can be updated
-Run
-```
-composer outdated
-```
-
-## To update dependencies
-1) Update `composer.json` to the desired version of the dependency
-2) Run
-```
-./tools/build/generate_composer_lock_files.sh && ./tools/build/install_PHP_deps_in_dev_env.sh
-```
-instead of the usual `composer update`
-3) Commit the changes to the composer's lock files
+All changes to `composer.json`, `composer.lock`, and the `vendor` directory should be made in the upstream [opentelemetry-php-distro](https://github.com/open-telemetry/opentelemetry-php-distro) repository.
 
 # Documentation
 
