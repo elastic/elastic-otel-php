@@ -13,6 +13,23 @@ this_script_dir="$(dirname "${BASH_SOURCE[0]}")"
 this_script_dir="$(realpath "${this_script_dir}")"
 edot_root_dir="$(realpath "${this_script_dir}/../..")"
 
+SKIP_NOTICE=false
+
+parse_args() {
+    while [[ "$#" -gt 0 ]]; do
+        case $1 in
+        --skip_notice)
+            SKIP_NOTICE=true
+            ;;
+        *)
+            ;;
+        esac
+        shift
+    done
+}
+
+parse_args "$@"
+
 echo "=== EDOT build_php_deps.sh: delegating to upstream ==="
 
 # Configure EDOT-specific PHP templates (e.g., ElasticVendorCustomizations.php)
@@ -24,3 +41,9 @@ pushd "${edot_root_dir}/upstream"
 popd
 
 echo "=== EDOT build_php_deps.sh: upstream build complete ==="
+
+# Append newly generated upstream NOTICE content (PHP deps) to EDOT NOTICE
+if [ "${SKIP_NOTICE}" = "false" ]; then
+    cat "${edot_root_dir}/upstream/NOTICE" >>"${edot_root_dir}/NOTICE"
+fi
+
