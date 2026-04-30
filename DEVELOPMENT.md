@@ -6,18 +6,18 @@ EDOT PHP is built on top of `opentelemetry-php-distro` which is included as a gi
 
 | Directory | Description |
 |-----------|-------------|
-| `upstream/` | Git submodule — [opentelemetry-php-distro](https://github.com/open-telemetry/opentelemetry-php-distro). Contains the upstream build system, native extension, PHP code, tests, and tools. |
+| `upstream/` | Git submodule — [opentelemetry-php-distro](https://github.com/open-telemetry/opentelemetry-php-distro). Contains the contrib build system, native extension, PHP code, tests, and tools. |
 | `elastic_prod/` | Elastic-only production code: native C++ vendor layer (`libelastic/`), PHP bootstrap (`bootstrap_elastic.php`), vendor customizations, and OpAMP remote config. |
-| `elastic_tests/` | Test patch system — `*.patch` files applied to upstream tests before component test runs, with `apply.sh` / `revert.sh` scripts. |
-| `tools/` | EDOT thin wrappers that delegate to `upstream/tools/` (e.g. `build_native.sh`, `test_phpt.sh`), plus Elastic-specific scripts (`configure_php_templates.sh`, `test_sources_license.sh`). |
+| `elastic_tests/` | Test patch system — `*.patch` files applied to contrib tests before component test runs, with `apply.sh` / `revert.sh` scripts. |
+| `tools/` | EDOT thin wrappers that delegate to `upstream/tools/` (for example, `build_native.sh`, `test_phpt.sh`), plus Elastic-specific scripts (`configure_php_templates.sh`, `test_sources_license.sh`). |
 | `packaging/` | Package definitions (`nfpm.yaml`) and install/uninstall scripts for deb/rpm/apk. |
 | `docs/` | Elastic user-facing documentation (configuration, setup, migration, release notes). |
 
-Most build and test scripts in `tools/` are thin wrappers that `cd upstream` and call the upstream equivalent, passing through all arguments. Elastic-specific scripts (license checks, template generation) run directly from the repo root.
+Most build and test scripts in `tools/` are thin wrappers that `cd upstream` and call the contrib equivalent, passing through all arguments. Elastic-specific scripts (license checks, template generation) run directly from the repo root.
 
 ### Contributing changes
 
-Changes that are **not Elastic-specific** (bug fixes, new instrumentations, performance improvements, etc.) should be contributed directly to the upstream [opentelemetry-php-distro](https://github.com/open-telemetry/opentelemetry-php-distro) repository. Once merged upstream, update the `upstream/` submodule in this repo to pull them in:
+Changes that are **not Elastic-specific** (bug fixes, new instrumentations, performance improvements, etc.) should be contributed directly to the contrib [opentelemetry-php-distro](https://github.com/open-telemetry/opentelemetry-php-distro) repository. Once merged upstream, update the `upstream/` submodule in this repo to pull them in:
 
 ```bash
 cd upstream
@@ -76,7 +76,7 @@ Since our system uses Conan as the repository for required dependencies, you nee
 ./upstream/prod/native/building/install_dependencies.sh --build_output_path ./upstream/prod/native/_build/custom-release --build_type Release --detect_conan_profile
 ```
 
-The script will install dependencies and generate the files necessary to configure the project in the next step. Note the `-DCMAKE_PROJECT_INCLUDE` argument — it injects the Elastic vendor library (`libelastic`) into the upstream build:
+The script will install dependencies and generate the files necessary to configure the project in the next step. Note the `-DCMAKE_PROJECT_INCLUDE` argument — it injects the Elastic vendor library (`libelastic`) into the contrib build:
 
 ```bash
 cmake -S ./upstream/prod/native/ -B ./upstream/prod/native/_build/custom-release/ \
@@ -165,19 +165,19 @@ cd elastic-otel-php
 
 # Updating docker images used for building and testing
 
-Docker images for building and testing are managed in the upstream repository. See the [upstream DEVELOPMENT.md](upstream/DEVELOPMENT.md) for instructions on building, updating, and publishing docker images.
+Docker images for building and testing are managed in the contrib repository. See the [upstream DEVELOPMENT.md](upstream/DEVELOPMENT.md) for instructions on building, updating, and publishing docker images.
 
-Changes to docker images should be contributed to the upstream [opentelemetry-php-distro](https://github.com/open-telemetry/opentelemetry-php-distro) repository.
+Changes to docker images should be contributed to the contrib [opentelemetry-php-distro](https://github.com/open-telemetry/opentelemetry-php-distro) repository.
 
 ## Building and publishing conan artifacts
 
-Since we use upstream as a base, Conan artifacts are cached in upstream docker images. Any additional artifacts should be managed in the upstream repository. See the [upstream DEVELOPMENT.md](upstream/DEVELOPMENT.md) for details on building and publishing Conan artifacts.
+Since we use contrib as a base, Conan artifacts are cached in the contrib docker images. Any additional artifacts should be managed in the contrib repository. See the [upstream DEVELOPMENT.md](upstream/DEVELOPMENT.md) for details on building and publishing Conan artifacts.
 
 # Managing PHP 3rd party dependencies
 
-PHP dependencies are managed in the upstream submodule. See the [upstream DEVELOPMENT.md](upstream/DEVELOPMENT.md) for instructions on installing, checking, and updating PHP dependencies.
+PHP dependencies are managed in the contrib submodule. See the [upstream DEVELOPMENT.md](upstream/DEVELOPMENT.md) for instructions on installing, checking, and updating PHP dependencies.
 
-All changes to `composer.json`, `composer.lock`, and the `vendor` directory should be made in the upstream [opentelemetry-php-distro](https://github.com/open-telemetry/opentelemetry-php-distro) repository.
+All changes to `composer.json`, `composer.lock`, and the `vendor` directory should be made in the contrib [opentelemetry-php-distro](https://github.com/open-telemetry/opentelemetry-php-distro) repository.
 
 # Documentation
 

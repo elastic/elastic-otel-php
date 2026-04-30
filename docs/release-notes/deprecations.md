@@ -72,7 +72,11 @@ The following environment variables are deprecated:
 
 The same applies to `elastic_otel.*` php.ini settings, which should be replaced with `opentelemetry_distro.*`.
 
-**Impact**<br> The deprecated names continue to work as fallbacks. If both the deprecated and the new name are set, the new name (`OTEL_PHP_*` / `opentelemetry_distro.*`) takes precedence.
+**Impact**
 
-**Action**<br> Update your configuration to use the `OTEL_PHP_*` environment variables and `opentelemetry_distro.*` php.ini settings. Refer to [Configuration](/reference/edot-php/configuration.md) for details.
+The deprecated names continue to work as fallbacks. If both the deprecated and the new name are set, the new name (`OTEL_PHP_*` / `opentelemetry_distro.*`) takes precedence.
+
+**Action** 
+
+Update your configuration to use the `OTEL_PHP_*` environment variables and `opentelemetry_distro.*` php.ini settings. Refer to [Configuration](/reference/edot-php/configuration.md) for details.
 ::::
