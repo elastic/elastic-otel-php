@@ -18,7 +18,7 @@ Learn how to configure the {{edot}} PHP (EDOT PHP) to send data to Elastic.
 Because the {{edot}} PHP is an extension of the OpenTelemetry PHP SDK, it supports:
 
 * [OpenTelemetry configuration options](#opentelemetry-configuration-options)
-* [EDOT PHP-specific configuration options](#options-only-available-in-edot-php)
+* [EDOT PHP-specific configuration options](#edot-php-specific-configuration-options)
 
 ## Configuration method
 
