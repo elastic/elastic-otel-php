@@ -105,6 +105,6 @@ docker run --rm -t ${INTERACTIVE} ${USERID} -v ${PWD}:/source \
     "${CONAN_HOME_MP[@]}" \
     -w /source/upstream/prod/native \
     -e GITHUB_SHA=${GITHUB_SHA} \
-    otel/opentelemetry-php-distro-dev:native-build-${BUILD_ARCHITECTURE}-gcc15.2.0-v0.0.2-conancache-v0.0.1 \
+    otel/opentelemetry-php-distro-dev:native-build-${BUILD_ARCHITECTURE}-gcc15.2.0-v0.0.2-conancache-v0.0.2 \
     sh -c "id && echo CONAN_HOME: \$CONAN_HOME && ${CONFIGURE} cmake --build --preset ${BUILD_ARCHITECTURE}-release ${NCPU} && ${UNIT_TESTS}"
 
