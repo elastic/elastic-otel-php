@@ -27,6 +27,28 @@ To check for security updates, go to [Security announcements for the Elastic sta
 % ### Fixes [edot-php-X.X.X-fixes]
 % *
 
+## v1.5.0 [edot-php-1.5.0-release-notes]
+
+### Features and enhancements [edot-php-1.5.0-features-enhancements]
+
+- **Rebased on upstream OpenTelemetry PHP distro** - EDOT PHP is now built on top of the upstream [opentelemetry-php-distro](https://github.com/open-telemetry/opentelemetry-php-distro) (v0.4.0) as a vendor customization layer. This brings full alignment with the OpenTelemetry PHP ecosystem while retaining Elastic-specific features such as remote configuration. ([#352](https://github.com/elastic/elastic-otel-php/issues/352), PR [#367](https://github.com/elastic/elastic-otel-php/pull/367))
+- **Configuration options renamed to `OTEL_PHP_*` prefix** - All configuration environment variables now follow the upstream `OTEL_PHP_*` naming convention (e.g. `OTEL_PHP_LOG_LEVEL`, `OTEL_PHP_ENABLED`). The previous `ELASTIC_OTEL_*` names are deprecated but still supported for backward compatibility - they are automatically mapped to their `OTEL_PHP_*` equivalents at startup. ([#352](https://github.com/elastic/elastic-otel-php/issues/352))
+- Added support for PHP 8.5 (upstream [#58](https://github.com/open-telemetry/opentelemetry-php-distro/issues/58))
+- Added user bootstrap config option (`OTEL_PHP_USER_BOOTSTRAP`) allowing users to specify a custom PHP file to be loaded during the distro bootstrap (upstream PR [#76](https://github.com/open-telemetry/opentelemetry-php-distro/pull/76))
+- Updated Laravel instrumentation to 1.7.0 (upstream PR [#65](https://github.com/open-telemetry/opentelemetry-php-distro/pull/65))
+- Updated OpenTelemetry SDK and instrumentation modules (upstream PR [#62](https://github.com/open-telemetry/opentelemetry-php-distro/pull/62))
+- Dependency shadowing/scoping with `OTelDistroScoped\` prefix to avoid conflicts with user-installed OpenTelemetry packages (upstream PR [#47](https://github.com/open-telemetry/opentelemetry-php-distro/pull/47))
+
+### Fixes [edot-php-1.5.0-fixes]
+
+- Fixed internal inferred spans filtering for scoped namespace (upstream PR [#56](https://github.com/open-telemetry/opentelemetry-php-distro/pull/56))
+
+### Other [edot-php-1.5.0-other]
+
+- Updated documentation for the upstream naming conventions ([#373](https://github.com/elastic/elastic-otel-php/issues/373), PR [#374](https://github.com/elastic/elastic-otel-php/pull/374))
+- Upstream PHP dependency notices are now propagated to the EDOT NOTICE file during build ([#375](https://github.com/elastic/elastic-otel-php/issues/375), PR [#376](https://github.com/elastic/elastic-otel-php/pull/376))
+
+
 ## 1.4.0 [edot-php-1.4.0-release-notes]
 
 ### Fixes [edot-php-1.4.0-fixes]
