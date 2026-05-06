@@ -43,7 +43,7 @@ Refer to [EDOT SDKs compatibility](opentelemetry://reference/compatibility/sdks.
 
 ## PHP versions
 
-EDOT PHP supports PHP versions 8.1 to 8.4.
+EDOT PHP supports PHP versions 8.1 to 8.5.
 
 Unlike the OpenTelemetry PHP agent, EDOT PHP supports extension-level instrumentation starting from PHP 8.1. This allows you to capture detailed traces from libraries such as cURL, PDO, and MySQLi even in PHP 8.1 environments.
 
@@ -70,17 +70,17 @@ The following operating systems are supported:
 
 The following frameworks are supported:
 
-- Laravel versions 6.x, 7.x, 8.x, 9.x, 10.x, and v11.x
-- Slim version 4.x
+- Laravel `6.x` to `13.x`
+- Slim `4.x`
 
 ## Instrumented libraries
 
 The following libraries are supported:
 
-- Curl versions 8.1 to 8.4
+- Curl versions 8.1 to 8.5
 - HTTP Async (php-http/httplug) version 2.x
-- MySQLi versions 8.1 to 8.4
-- PDO versions 8.1 to 8.4
+- MySQLi versions 8.1 to 8.5
+- PDO versions 8.1 to 8.5
 
 ## Instrumentations
 
