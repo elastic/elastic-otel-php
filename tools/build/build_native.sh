@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -x
-
 SKIP_CONFIGURE=false
 
 show_help() {
@@ -72,6 +70,8 @@ if [[ -n "${CONAN_CACHE_PATH}" ]]; then
     mkdir -p "${CONAN_CACHE_PATH}"
     # https://docs.conan.io/2/reference/environment.html#conan-home
     CONAN_HOME_MP=(-e "CONAN_HOME=/conan_home" -v "${CONAN_CACHE_PATH}:/conan_home")
+else
+    CONAN_HOME_MP=(-e "CONAN_HOME=/home/build/.conan2")
 fi
 
 echo "BUILD_ARCHITECTURE: $BUILD_ARCHITECTURE"
@@ -99,7 +99,7 @@ else
     UNIT_TESTS="ctest --preset ${BUILD_ARCHITECTURE}-release --verbose"
 fi
 
-ls -al "${PWD}"
+set -x
 
 docker run --rm -t ${INTERACTIVE} ${USERID} -v ${PWD}:/source \
     "${CONAN_HOME_MP[@]}" \
