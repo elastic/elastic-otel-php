@@ -1,3 +1,3 @@
-*.md @elastic/ingest-docs @elastic/apm-agent-approvers
-/docs/ @elastic/ingest-docs @elastic/apm-agent-approvers
-/.github/workflows @elastic/observablt-ci
+*.md @elastic/ingest-docs @elastic/apm-agent-approvers @SergeyKleyman @intuibase
+/docs/ @elastic/ingest-docs @elastic/apm-agent-approvers @SergeyKleyman @intuibase
+/.github/workflows @elastic/observablt-ci @SergeyKleyman @intuibase
