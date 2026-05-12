@@ -58,6 +58,10 @@ final class ElasticRemoteConfigParser
     /** @see https://github.com/elastic/kibana/blob/v9.1.0/.../edot_sdk_settings.ts#L104 */
     private const SEND_LOGS = 'send_logs';
 
+    // Options handled exclusively by the native side (ElasticConfigProvider)
+    private const INFER_SPANS = 'infer_spans';
+    private const OPAMP_POLLING_INTERVAL = 'opamp_polling_interval';
+
     // OTel env var names (inlined to avoid scoped class dependency)
     // @see OpenTelemetry\SDK\Common\Configuration\Variables
     private const OTEL_LOG_LEVEL = 'OTEL_LOG_LEVEL';
@@ -80,7 +84,7 @@ final class ElasticRemoteConfigParser
      */
     public static function parseAndApply(array $config): void
     {
-        self::logDebug('Parsing remote config', $config);
+        self::logDebug('Parsing remote config ' . json_encode($config, JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE), __LINE__, __FUNCTION__);
 
         foreach ($config as $optName => $optVal) {
             match ($optName) {
@@ -91,7 +95,10 @@ final class ElasticRemoteConfigParser
                 self::SEND_TRACES => self::applySendSignal($optName, $optVal, self::OTEL_TRACES_EXPORTER),
                 self::SEND_METRICS => self::applySendSignal($optName, $optVal, self::OTEL_METRICS_EXPORTER),
                 self::SEND_LOGS => self::applySendSignal($optName, $optVal, self::OTEL_LOGS_EXPORTER),
-                default => self::logDebug('Unsupported remote config option', ['option' => $optName]),
+                // Handled by native side (ElasticConfigProvider)
+                self::INFER_SPANS => null,
+                self::OPAMP_POLLING_INTERVAL => null,
+                default => self::logDebug('Unsupported remote config option: ' . $optName, __LINE__, __FUNCTION__),
             };
         }
 
@@ -101,7 +108,7 @@ final class ElasticRemoteConfigParser
     private static function applyLoggingLevel(mixed $val): void
     {
         if (!is_string($val)) {
-            self::logError('logging_level value is not a string: ' . get_debug_type($val));
+            self::logError('logging_level value is not a string: ' . get_debug_type($val), __LINE__, __FUNCTION__);
             return;
         }
 
@@ -117,25 +124,24 @@ final class ElasticRemoteConfigParser
         };
 
         if ($otelLevel === null) {
-            self::logError("Unknown logging_level value: $val");
+            self::logError("Unknown logging_level value: $val", __LINE__, __FUNCTION__);
             return;
         }
 
-        // OTel SDK reads log level directly from $_SERVER
-        $_SERVER[self::OTEL_LOG_LEVEL] = $otelLevel;
-        self::logDebug('Applied logging_level', ['remote' => $val, 'otel' => $otelLevel]);
+        self::setEnvVar(self::OTEL_LOG_LEVEL, $otelLevel);
+        self::logDebug("Applied logging_level remote=$val otel=$otelLevel", __LINE__, __FUNCTION__);
     }
 
     private static function applySamplingRate(mixed $val): void
     {
         if (!is_numeric($val)) {
-            self::logError('sampling_rate value is not numeric: ' . get_debug_type($val));
+            self::logError('sampling_rate value is not numeric: ' . get_debug_type($val), __LINE__, __FUNCTION__);
             return;
         }
 
         $rate = floatval($val);
         if ($rate < 0 || $rate > 1) {
-            self::logError("sampling_rate value out of range [0,1]: $rate");
+            self::logError("sampling_rate value out of range [0,1]: $rate", __LINE__, __FUNCTION__);
             return;
         }
 
@@ -144,14 +150,14 @@ final class ElasticRemoteConfigParser
             self::setEnvVar(self::OTEL_TRACES_SAMPLER, self::VALUE_PARENT_BASED_TRACE_ID_RATIO);
         } elseif ($currentSampler !== self::VALUE_PARENT_BASED_TRACE_ID_RATIO) {
             self::logDebug(
-                'OTEL_TRACES_SAMPLER is set to incompatible value, not applying sampling_rate',
-                ['sampler' => $currentSampler, 'rate' => $rate],
+                "OTEL_TRACES_SAMPLER is set to incompatible value, not applying sampling_rate sampler=$currentSampler rate=$rate",
+                __LINE__, __FUNCTION__,
             );
             return;
         }
 
         self::setEnvVar(self::OTEL_TRACES_SAMPLER_ARG, strval($rate));
-        self::logDebug('Applied sampling_rate', ['rate' => $rate]);
+        self::logDebug("Applied sampling_rate rate=$rate", __LINE__, __FUNCTION__);
     }
 
     private static function applySendSignal(string $optName, mixed $val, string $otelEnvVar): void
@@ -163,12 +169,12 @@ final class ElasticRemoteConfigParser
 
         if (!$shouldSend) {
             self::setEnvVar($otelEnvVar, self::VALUE_NONE);
-            self::logDebug("Applied $optName=false", ['envVar' => $otelEnvVar]);
+            self::logDebug("Applied $optName=false envVar=$otelEnvVar", __LINE__, __FUNCTION__);
         } else {
             // Remove any prior override so the default exporter resumes.
             // putenv() values persist across PHP-FPM requests in the same worker.
             self::unsetEnvVar($otelEnvVar);
-            self::logDebug("Applied $optName=true (unset override)", ['envVar' => $otelEnvVar]);
+            self::logDebug("Applied $optName=true (unset override) envVar=$otelEnvVar", __LINE__, __FUNCTION__);
         }
     }
 
@@ -187,14 +193,14 @@ final class ElasticRemoteConfigParser
 
         if ($deactivateAll) {
             self::setEnvVar(self::OTEL_PHP_DISABLED_INSTRUMENTATIONS, self::DISABLED_INSTRUMENTATIONS_ALL);
-            self::logDebug('Applied deactivate_all_instrumentations=true');
+            self::logDebug('Applied deactivate_all_instrumentations=true', __LINE__, __FUNCTION__);
             return;
         }
 
         if (array_key_exists(self::DEACTIVATE_INSTRUMENTATIONS, $config)) {
             $val = $config[self::DEACTIVATE_INSTRUMENTATIONS];
             if (!is_string($val)) {
-                self::logError('deactivate_instrumentations value is not a string: ' . get_debug_type($val));
+                self::logError('deactivate_instrumentations value is not a string: ' . get_debug_type($val), __LINE__, __FUNCTION__);
                 return;
             }
 
@@ -202,7 +208,7 @@ final class ElasticRemoteConfigParser
             // workers putenv() values persist across requests, causing stale entries
             // from previous remote configs to accumulate.
             self::setEnvVar(self::OTEL_PHP_DISABLED_INSTRUMENTATIONS, $val);
-            self::logDebug('Applied deactivate_instrumentations', ['value' => $val]);
+            self::logDebug("Applied deactivate_instrumentations value=$val", __LINE__, __FUNCTION__);
         }
     }
 
@@ -223,7 +229,7 @@ final class ElasticRemoteConfigParser
                 return false;
             }
         }
-        self::logError("Cannot parse $optName as bool: " . get_debug_type($val));
+        self::logError("Cannot parse $optName as bool: " . get_debug_type($val), __LINE__, __FUNCTION__);
         return null;
     }
 
@@ -262,17 +268,36 @@ final class ElasticRemoteConfigParser
         return $val !== false ? $val : null;
     }
 
-    /**
-     * @param array<string, mixed> $context
-     */
-    private static function logDebug(string $message, array $context = []): void
+    private static function logDebug(string $message, int $lineNumber, string $func): void
     {
-        $contextStr = $context !== [] ? ' ' . json_encode($context, JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE) : '';
-        error_log('[EDOT] [DEBUG] [ElasticRemoteConfigParser] ' . $message . $contextStr);
+        self::ensureClassesAliased();
+        self::logWithLevel(\OpenTelemetry\Distro\BootstrapStageLogger::LEVEL_DEBUG, $message, $lineNumber, $func);
     }
 
-    private static function logError(string $message): void
+    private static function logError(string $message, int $lineNumber, string $func): void
     {
-        error_log('[EDOT] [ERROR] [ElasticRemoteConfigParser] ' . $message);
+        self::ensureClassesAliased();
+        self::logWithLevel(\OpenTelemetry\Distro\BootstrapStageLogger::LEVEL_ERROR, $message, $lineNumber, $func);
+    }
+
+    private static function ensureClassesAliased(): void
+    {
+        static $aliased = false;
+        if ($aliased) {
+            return;
+        }
+        $prefix = \OpenTelemetry\Distro\OTelDistroScoperConfig::PREFIX . '\\';
+        if (!class_exists(\OpenTelemetry\Distro\BootstrapStageLogger::class, false)) {
+            class_alias($prefix . 'OpenTelemetry\\Distro\\BootstrapStageLogger', 'OpenTelemetry\\Distro\\BootstrapStageLogger');
+        }
+        if (!class_exists(\OpenTelemetry\Distro\Log\LogFeature::class, false)) {
+            class_alias($prefix . 'OpenTelemetry\\Distro\\Log\\LogFeature', 'OpenTelemetry\\Distro\\Log\\LogFeature');
+        }
+        $aliased = true;
+    }
+
+    private static function logWithLevel(int $statementLevel, string $message, int $lineNumber, string $func): void
+    {
+        \OpenTelemetry\Distro\BootstrapStageLogger::logWithFeatureAndLevel(\OpenTelemetry\Distro\Log\LogFeature::OPAMP, $statementLevel, $message, 'ElasticRemoteConfigParser.php', $lineNumber, __CLASS__, $func);
     }
 }
