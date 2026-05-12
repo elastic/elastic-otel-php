@@ -43,7 +43,21 @@ std::pair<int, std::shared_ptr<opentelemetry::php::config::OptionValueProviderIn
 ElasticVendor::getOptionValueProvider() {
     // Priority 10: vendor options override default (priority 0) but can be
     // overridden by dynamic options from coordinator
-    return {10, std::make_shared<ElasticConfigProvider>()};
+    if (!configProvider_) {
+        configProvider_ = std::make_shared<ElasticConfigProvider>();
+    }
+    return {10, configProvider_};
+}
+
+void ElasticVendor::setLogger(std::shared_ptr<opentelemetry::php::LoggerInterface> logger) {
+    if (!configProvider_) {
+        configProvider_ = std::make_shared<ElasticConfigProvider>();
+    }
+    configProvider_->setLogger(std::move(logger));
+}
+
+std::map<std::string, std::string> ElasticVendor::getAdditionalResourceAttributes() {
+    return {};
 }
 
 } // namespace elastic::otel

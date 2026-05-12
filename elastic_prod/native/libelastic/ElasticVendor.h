@@ -21,7 +21,13 @@
 
 #include "VendorCustomizationsInterface.h"
 
+#include <map>
+#include <memory>
+#include <string>
+
 namespace elastic::otel {
+
+class ElasticConfigProvider;
 
 class ElasticVendor : public opentelemetry::php::VendorCustomizationsInterface {
 public:
@@ -31,6 +37,11 @@ public:
     std::string getUserAgent() const override;
 
     std::pair<int, std::shared_ptr<opentelemetry::php::config::OptionValueProviderInterface>> getOptionValueProvider() override;
+    void setLogger(std::shared_ptr<opentelemetry::php::LoggerInterface> logger) override;
+    std::map<std::string, std::string> getAdditionalResourceAttributes() override;
+
+private:
+    std::shared_ptr<ElasticConfigProvider> configProvider_;
 };
 
 } // namespace elastic::otel

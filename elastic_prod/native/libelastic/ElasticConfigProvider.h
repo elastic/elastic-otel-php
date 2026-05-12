@@ -22,8 +22,11 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <unordered_map>
+#include <memory>
 
 #include "config/OptionValueProviderInterface.h"
+#include "LoggerInterface.h"
 
 namespace elastic::otel {
 
@@ -37,6 +40,10 @@ namespace elastic::otel {
  * getEnvironmentOptionValue("OTEL_PHP_LOG_LEVEL"). This provider translates
  * those to elastic_otel.log_level and ELASTIC_OTEL_LOG_LEVEL respectively,
  * providing backward compatibility for existing Elastic deployments.
+ *
+ * Additionally, parses the "elastic" remote config JSON file (received via
+ * OpAMP) and exposes vendor-specific options (e.g. opamp_polling_interval)
+ * as dynamic option values.
  */
 class ElasticConfigProvider : public opentelemetry::php::config::OptionValueProviderInterface {
 public:
@@ -45,8 +52,19 @@ public:
     std::optional<std::string> getDynamicOptionValue(std::string_view name) override;
     void update(configFiles_t const &configFiles) override;
 
-   private:
+    void setLogger(std::shared_ptr<opentelemetry::php::LoggerInterface> logger) {
+        logger_ = std::move(logger);
+    }
+
+private:
+    using optionsMap_t = std::unordered_map<std::string, std::string>;
+
+    static optionsMap_t parseElasticJsonConfig(std::string const &jsonStr);
+    optionsMap_t remapOptions(optionsMap_t const &remoteOptions) const;
+
     configFiles_t configFiles_;
+    optionsMap_t dynamicOptions_;
+    std::shared_ptr<opentelemetry::php::LoggerInterface> logger_;
 };
 
 } // namespace elastic::otel

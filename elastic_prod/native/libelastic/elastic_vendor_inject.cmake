@@ -71,11 +71,16 @@ function(_elastic_create_and_link)
             PRIVATE
                 "${CMAKE_SOURCE_DIR}/libcommon/code"
                 "${CMAKE_SOURCE_DIR}/libphpbridge/code"
+                "${CMAKE_BINARY_DIR}/libcommon/code/generated"  # for LogFeature.h etc.
                 "${php-headers-${_php_version}_INCLUDE_DIRS}"
                 "${php-headers-${_php_version}_INCLUDE_DIRS}/ext"
                 "${php-headers-${_php_version}_INCLUDE_DIRS}/main"
                 "${php-headers-${_php_version}_INCLUDE_DIRS}/TSRM"
                 "${php-headers-${_php_version}_INCLUDE_DIRS}/Zend"
+        )
+
+        target_link_libraries(${_elastic}
+            PRIVATE nlohmann_json::nlohmann_json
         )
 
         if(TARGET ${_target})
