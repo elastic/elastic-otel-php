@@ -142,7 +142,6 @@ ElasticConfigProvider::optionsMap_t ElasticConfigProvider::remapOptions(optionsM
             }
 
             result[STRINGIFY_HELPER(OTEL_PHP_LOG_LEVEL)] = loglevel;
-            result[STRINGIFY_HELPER(OTEL_PHP_LOG_LEVEL)] = loglevel;
             result[STRINGIFY_HELPER(OTEL_PHP_LOG_LEVEL_STDERR)] = loglevel;
             result[STRINGIFY_HELPER(OTEL_PHP_LOG_LEVEL_SYSLOG)] = loglevel;
             result[STRINGIFY_HELPER(OTEL_PHP_LOG_LEVEL_FILE)] = loglevel;
