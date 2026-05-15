@@ -27,7 +27,18 @@ To check for security updates, go to [Security announcements for the Elastic sta
 % ### Fixes [edot-php-X.X.X-fixes]
 % *
 
-## v1.5.0 [edot-php-1.5.0-release-notes]
+## 1.6.0 [edot-php-1.6.0-release-notes]
+
+### Features and enhancements [edot-php-1.6.0-features-enhancements]
+
+- Enabled opamp_polling_interval remote configuration option and improved remote configuration handling in native extension ([#272](https://github.com/elastic/elastic-otel-php/issues/272)) (PR [#381](https://github.com/elastic/elastic-otel-php/pull/381))
+
+### Other [edot-php-1.6.0-other]
+
+- ci(docs): scope pull_request triggers to integration branches (PR [#372](https://github.com/elastic/elastic-otel-php/pull/372))
+
+
+## 1.5.0 [edot-php-1.5.0-release-notes]
 
 ### Features and enhancements [edot-php-1.5.0-features-enhancements]
 
