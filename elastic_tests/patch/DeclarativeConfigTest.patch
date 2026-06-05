@@ -1,0 +1,13 @@
+diff --git a/tests/OTelDistroTests/ComponentTests/DeclarativeConfigTest.php b/tests/OTelDistroTests/ComponentTests/DeclarativeConfigTest.php
+index 132021a..44d42ec 100644
+--- a/tests/OTelDistroTests/ComponentTests/DeclarativeConfigTest.php
++++ b/tests/OTelDistroTests/ComponentTests/DeclarativeConfigTest.php
+@@ -65,7 +65,7 @@ final class DeclarativeConfigTest extends ComponentTestCaseBase
+                     attributes: [
+                         ServiceAttributes::SERVICE_NAME                         => self::EXPECTED_SERVICE_NAME,
+                         'test.custom.attribute'                                 => self::EXPECTED_CUSTOM_ATTRIBUTE_VALUE,
+-                        TelemetryIncubatingAttributes::TELEMETRY_DISTRO_NAME    => 'opentelemetry-php-distro',
++                        TelemetryIncubatingAttributes::TELEMETRY_DISTRO_NAME    => 'elastic',
+                     ],
+                 );
+ 
