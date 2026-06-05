@@ -95,33 +95,33 @@ test_package() {
 
     case "${PKG_TYPE}" in
         "apk")
-            local INSTALL_SMOKE="apk add --allow-untrusted --verbose --no-cache  /source/build/packages/${PKG_FILENAME} && php /source/packaging/test/smokeTest.php ${SCOPE_NAME}"
+            local INSTALL_SMOKE="apk add --allow-untrusted --verbose --no-cache  /source/_BUILT/packages/${PKG_FILENAME} && php /source/packaging/test/smokeTest.php ${SCOPE_NAME}"
             local UNINSTALL_SMOKE="apk del --verbose --no-cache elastic-otel-php && php /source/packaging/test/smokeTestUninstalled.php ${SCOPE_NAME}"
             docker run --rm \
                 --platform ${DOCKER_PLATFORM} \
                 -v ${PWD}:/source \
                 -e OTEL_PHP_LOG_LEVEL_STDERR=error \
-                php:${PHP_VERSION}-alpine sh -c "ls /source/build/packages && ${INSTALL_SMOKE} && ${TEST_LICENSE_FILES} && ${UNINSTALL_SMOKE} && ls -alR /opt/elastic"
+                php:${PHP_VERSION}-alpine sh -c "ls /source/_BUILT/packages && ${INSTALL_SMOKE} && ${TEST_LICENSE_FILES} && ${UNINSTALL_SMOKE} && ls -alR /opt/elastic"
         ;;
         "deb")
-            local INSTALL_SMOKE="dpkg -i  /source/build/packages/${PKG_FILENAME} && php /source/packaging/test/smokeTest.php ${SCOPE_NAME}"
+            local INSTALL_SMOKE="dpkg -i  /source/_BUILT/packages/${PKG_FILENAME} && php /source/packaging/test/smokeTest.php ${SCOPE_NAME}"
             local UNINSTALL_SMOKE="dpkg --purge elastic-otel-php && php /source/packaging/test/smokeTestUninstalled.php ${SCOPE_NAME}"
             docker run --rm \
                 --platform ${DOCKER_PLATFORM} \
                 -v ${PWD}:/source \
                 -e OTEL_PHP_LOG_LEVEL_STDERR=error \
-                php:${PHP_VERSION} sh -c "ls /source/build/packages && ${INSTALL_SMOKE} && ${TEST_LICENSE_FILES} && ${UNINSTALL_SMOKE} && ls -alR /opt/elastic"
+                php:${PHP_VERSION} sh -c "ls /source/_BUILT/packages && ${INSTALL_SMOKE} && ${TEST_LICENSE_FILES} && ${UNINSTALL_SMOKE} && ls -alR /opt/elastic"
         ;;
         "rpm")
             local INSTALL_PHP="cat /etc/redhat-release && dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-\$(grep -oP '(?<=release )\d+' /etc/redhat-release).noarch.rpm -y && dnf install https://rpms.remirepo.net/enterprise/remi-release-9.rpm -y && dnf install --setopt=install_weak_deps=False -y php${PHP_VERSION//./} php${PHP_VERSION//./}-syspaths"
-            local INSTALL_SMOKE="rpm -ivh /source/build/packages/${PKG_FILENAME} && php /source/packaging/test/smokeTest.php ${SCOPE_NAME}"
+            local INSTALL_SMOKE="rpm -ivh /source/_BUILT/packages/${PKG_FILENAME} && php /source/packaging/test/smokeTest.php ${SCOPE_NAME}"
             local UNINSTALL_SMOKE="rpm -ve elastic-otel-php && php /source/packaging/test/smokeTestUninstalled.php ${SCOPE_NAME}"
 
             docker run --rm \
                 --platform ${DOCKER_PLATFORM} \
                 -v ${PWD}:/source \
                 -e OTEL_PHP_LOG_LEVEL_STDERR=error \
-                redhat/ubi9 sh -c "ls /source/build/packages && ${INSTALL_PHP} && ${INSTALL_SMOKE} && ${TEST_LICENSE_FILES} && ${UNINSTALL_SMOKE} && ls -alR /opt/elastic"
+                redhat/ubi9 sh -c "ls /source/_BUILT/packages && ${INSTALL_PHP} && ${INSTALL_SMOKE} && ${TEST_LICENSE_FILES} && ${UNINSTALL_SMOKE} && ls -alR /opt/elastic"
         ;;
         *)
             echo -e "\033[0;33mPackage ${PKG_FILENAME} can't be tested because smoke test is not implemented\033[0;39m"
@@ -159,8 +159,8 @@ if [[ -n "${BUILD_ARCHITECTURE}" ]] && [[ "${BUILD_ARCHITECTURE}" =~ arm64$ ]]; 
 fi
 echo "Running on platform ${DOCKER_PLATFORM}";
 
-mkdir -p "${PWD}/build/packages"
-envsubst <packaging/nfpm.yaml >${PWD}/build/packages/nfpm.yaml
+mkdir -p "${PWD}/_BUILT/packages"
+envsubst <packaging/nfpm.yaml >${PWD}/_BUILT/packages/nfpm.yaml
 
 for pkg_type in "${PACKAGE_TYPES[@]}"
 do
@@ -173,9 +173,9 @@ do
         -e PACKAGE_GOARCHITECTURE="${PACKAGE_GOARCHITECTURE}" \
         -e PACKAGE_SHA="${PACKAGE_SHA}" \
         -v ${PWD}:/source \
-        -w /source/packaging goreleaser/nfpm package -f /source/build/packages/nfpm.yaml -t "/source/build/packages" -p ${pkg_type} | tee /tmp/nfpm_output.txt
+        -w /source/packaging goreleaser/nfpm package -f /source/_BUILT/packages/nfpm.yaml -t "/source/_BUILT/packages" -p ${pkg_type} | tee /tmp/nfpm_output.txt
 
-    PKG_FILENAME=$(grep "created package: " /tmp/nfpm_output.txt | sed 's/^.*: \/source\/build\/packages\///')
+    PKG_FILENAME=$(grep "created package: " /tmp/nfpm_output.txt | sed 's/^.*: \/source\/_BUILT\/packages\///')
 
     if [ -z "${PKG_FILENAME}" ]; then
         echo "Error creating package"
@@ -183,7 +183,7 @@ do
     fi
 
     # create sha512 file
-    pushd "${PWD}/build/packages"
+    pushd "${PWD}/_BUILT/packages"
     md5sum "${PKG_FILENAME}" >"${PKG_FILENAME}".sha512
     popd
 
@@ -191,14 +191,14 @@ do
 
 done
 
-rm ${PWD}/build/packages/nfpm.yaml
+rm ${PWD}/_BUILT/packages/nfpm.yaml
 
 echo "Creating debug symbols artifacts"
-DBGSYM="${PWD}/build/packages/elastic-otel-php-debugsymbols-${BUILD_ARCHITECTURE}.tar.gz"
+DBGSYM="${PWD}/_BUILT/packages/elastic-otel-php-debugsymbols-${BUILD_ARCHITECTURE}.tar.gz"
 pushd upstream/prod/native/_build/${BUILD_ARCHITECTURE}-release
 tar --transform 's/.*\///g' -zcvf ${DBGSYM} extension/code/*.debug loader/code/*.debug
 popd
 
-pushd "${PWD}/build/packages"
+pushd "${PWD}/_BUILT/packages"
 md5sum ${DBGSYM} >${DBGSYM}.sha512
 popd

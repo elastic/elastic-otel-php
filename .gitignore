@@ -1,9 +1,9 @@
-# Generated files (upstream)
-upstream/prod/php/OpenTelemetry/Distro/PhpPartVersion.php
-upstream/prod/php/OpenTelemetry/Distro/Log/LogFeature.php
-
 # Generated files (EDOT)
 elastic_prod/php/Elastic/OTel/ElasticVendorCustomizations.php
+
+# Generated files root (EDOT) — packages, NOTICE, test results, etc.
+# Same convention as upstream/_BUILT (replaces the old build/ directory)
+_BUILT/
 
 # Mac
 .DS_Store
@@ -21,7 +21,6 @@ elastic_prod/php/Elastic/OTel/ElasticVendorCustomizations.php
 composer.lock
 composer.phar
 vendor/
-upstream/prod/php/vendor_*/
 
 # PHP_CodeSniffer
 .php_cs.cache
@@ -29,18 +28,8 @@ upstream/prod/php/vendor_*/
 # PHPUnit
 .phpunit.result.cache
 
-#phpt results folder
-upstream/prod/native/extension/phpt/results/
-upstream/prod/native/phpbridge_extension/phpt/results/
-
-#native build folder
-upstream/prod/native/_build/
-
 # Built documentation
 html_docs
-
-# Packaging artifacts and generated unit test reports
-build/*
 
 # Backup files when using sed
 .bck

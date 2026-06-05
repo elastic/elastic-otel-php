@@ -9,7 +9,7 @@ on:
       - main
 
 env:
-  BUILD_PACKAGES: build/packages
+  BUILD_PACKAGES: _BUILT/packages
 
 permissions:
   contents: read
@@ -69,7 +69,7 @@ jobs:
       ## NOTE: The name of the zip should match the name of the folder to be zipped.
       - name: Prepare packages to be signed
         run: zip -r packages.zip packages/
-        working-directory: build
+        working-directory: _BUILT
 
       - uses: elastic/oblt-actions/google/auth@v1.9.3
         with:
@@ -161,7 +161,7 @@ jobs:
           RNOTES=$(./tools/build/get_release_note.sh --release-tag ${TAG_NAME})
           gh release create "${TAG_NAME}" --draft --title "${TAG_NAME}" --repo elastic/elastic-otel-php \
           --notes "${RNOTES}" \
-          build/packages/*.*
+          ${{ env.BUILD_PACKAGES }}/*.*
       - name: Verify sha512 sums
         if: startsWith(github.ref, 'refs/tags')
         run: |

@@ -271,13 +271,13 @@ final class ElasticRemoteConfigParser
     private static function logDebug(string $message, int $lineNumber, string $func): void
     {
         self::ensureClassesAliased();
-        self::logWithLevel(\OpenTelemetry\Distro\BootstrapStageLogger::LEVEL_DEBUG, $message, $lineNumber, $func);
+        self::logWithLevel(\OpenTelemetry\Distro\Log\LogLevel::debug, $message, $lineNumber, $func);
     }
 
     private static function logError(string $message, int $lineNumber, string $func): void
     {
         self::ensureClassesAliased();
-        self::logWithLevel(\OpenTelemetry\Distro\BootstrapStageLogger::LEVEL_ERROR, $message, $lineNumber, $func);
+        self::logWithLevel(\OpenTelemetry\Distro\Log\LogLevel::error, $message, $lineNumber, $func);
     }
 
     private static function ensureClassesAliased(): void
@@ -286,18 +286,37 @@ final class ElasticRemoteConfigParser
         if ($aliased) {
             return;
         }
+        // Upstream logging classes live in the scoped namespace
+        // (OTelDistroScoped\OpenTelemetry\Distro\Log\*). This class lives outside the
+        // scoper bubble, so bridge the scoped classes to their non-scoped names with
+        // class_alias (class_alias resolves enum cases and passes typed signatures).
         $prefix = \OpenTelemetry\Distro\OTelDistroScoperConfig::PREFIX . '\\';
-        if (!class_exists(\OpenTelemetry\Distro\BootstrapStageLogger::class, false)) {
-            class_alias($prefix . 'OpenTelemetry\\Distro\\BootstrapStageLogger', 'OpenTelemetry\\Distro\\BootstrapStageLogger');
-        }
-        if (!class_exists(\OpenTelemetry\Distro\Log\LogFeature::class, false)) {
-            class_alias($prefix . 'OpenTelemetry\\Distro\\Log\\LogFeature', 'OpenTelemetry\\Distro\\Log\\LogFeature');
+        foreach ([
+            'OpenTelemetry\\Distro\\Log\\LogBackend',
+            'OpenTelemetry\\Distro\\Log\\LogLevel',
+            'OpenTelemetry\\Distro\\Log\\LogFeature',
+        ] as $class) {
+            if (!class_exists($class, false)) {
+                class_alias($prefix . $class, $class);
+            }
         }
         $aliased = true;
     }
 
-    private static function logWithLevel(int $statementLevel, string $message, int $lineNumber, string $func): void
+    private static function logWithLevel(\OpenTelemetry\Distro\Log\LogLevel $level, string $message, int $lineNumber, string $func): void
     {
-        \OpenTelemetry\Distro\BootstrapStageLogger::logWithFeatureAndLevel(\OpenTelemetry\Distro\Log\LogFeature::OPAMP, $statementLevel, $message, 'ElasticRemoteConfigParser.php', $lineNumber, __CLASS__, $func);
+        $backend = \OpenTelemetry\Distro\Log\LogBackend::getSingletonInstance();
+        if (!$backend->isEnabledForLevel($level)) {
+            return;
+        }
+        $backend->write(
+            file: 'ElasticRemoteConfigParser.php',
+            line: $lineNumber,
+            func: $func,
+            featureOrCategory: \OpenTelemetry\Distro\Log\LogFeature::OPAMP,
+            level: $level,
+            message: $message,
+            context: [],
+        );
     }
 }

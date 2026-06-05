@@ -9,8 +9,8 @@ permissions:
   contents: read
 
 env:
-  BUILD_PACKAGES_SUB_DIR: build/packages
-  COMPONENT_TESTS_LOGS_SUB_DIR: build/component_tests_logs
+  BUILD_PACKAGES_SUB_DIR: _BUILT/packages
+  COMPONENT_TESTS_LOGS_SUB_DIR: _BUILT/component_tests_logs
 
 jobs:
   generate-component-tests-matrix:

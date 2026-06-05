@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 env:
-  UNIT_TESTS_LOGS_SUB_DIR: build/unit_tests_logs
+  UNIT_TESTS_LOGS_SUB_DIR: _BUILT/unit_tests_logs
 
 jobs:
   generate-php-versions:

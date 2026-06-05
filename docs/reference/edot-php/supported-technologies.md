@@ -118,6 +118,15 @@ product: preview
 
 EDOT PHP automatically detects and generates spans for common operations like database queries or HTTP calls, even when no manual instrumentation is present.
 
+### Attribute-based instrumentation
+
+```{applies_to}
+product:
+  edot_php: ga 1.7.0
+```
+
+EDOT PHP can automatically create spans from PHP 8 attributes (`#[WithSpan]`, `#[SpanAttribute]`) without writing instrumentation code manually. This feature is disabled by default; enable it by setting `OTEL_PHP_ATTR_HOOKS_ENABLED=true`. For details, see [Attribute-based instrumentation](attribute-instrumentation.md).
+
 ### Asynchronous data sending
 
 Telemetry data is sent in the background to avoid impacting application performance. This ensures minimal latency and efficient resource usage.

@@ -4,6 +4,7 @@ toc:
         children:
           - file: setup/limitations.md
       - file: configuration.md
+      - file: attribute-instrumentation.md
       - file: supported-technologies.md
       - file: migration.md
       - file: overhead.md
