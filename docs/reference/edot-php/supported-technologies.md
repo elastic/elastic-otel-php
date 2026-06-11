@@ -81,6 +81,7 @@ The following libraries are supported:
 - HTTP Async (php-http/httplug) version 2.x
 - MySQLi versions 8.1 to 8.5
 - PDO versions 8.1 to 8.5
+- PSR-18 HTTP Client (`psr/http-client`)
 
 ## Instrumentations
 
@@ -94,6 +95,7 @@ The following instrumentations are included in EDOT PHP.
 | mysqli | 1.0 | [open-telemetry/opentelemetry-auto-mysqli](https://packagist.org/packages/open-telemetry/opentelemetry-auto-mysqli) |
 | pdo | 1.0 | [open-telemetry/opentelemetry-auto-pdo](https://packagist.org/packages/open-telemetry/opentelemetry-auto-pdo) |
 | postgresql | 1.2 | [open-telemetry/opentelemetry-auto-postgresql](https://packagist.org/packages/open-telemetry/opentelemetry-auto-postgresql) |
+| psr18 | 1.7.0 | [open-telemetry/opentelemetry-auto-psr18](https://packagist.org/packages/open-telemetry/opentelemetry-auto-psr18) |
 | slim | 1.0 | [open-telemetry/opentelemetry-auto-slim](https://packagist.org/packages/open-telemetry/opentelemetry-auto-slim) |
 
 

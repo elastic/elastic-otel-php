@@ -19,7 +19,7 @@ EDOT PHP supports automatic span creation using PHP 8 attributes. Annotate metho
 
 ## Prerequisites
 
-- PHP 8.0 or later (PHP attributes require PHP 8+).
+- PHP 8.1 or later (PHP attributes require PHP 8+).
 - `open-telemetry/api` package installed in your application.
 - `OTEL_PHP_ATTR_HOOKS_ENABLED=true` set in the environment (disabled by default).
 
