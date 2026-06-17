@@ -59,7 +59,7 @@ If you change the exporter or the transport protocol, for example to gRPC or ano
 EDOT PHP also sets the `OTEL_PHP_AUTOLOAD_ENABLED` option to `true` by default. This turns on automatic instrumentation without requiring any changes to your application code.
 Modifying this option will have no effect: EDOT will override it and enforce it as `true`.
 
-The distro package bundles multiple dependencies, such as the OpenTelemetry SDK, the auto-instrumentations, and their transitive dependencies. The monitored application might include dependencies that clash with the ones in the distro package, which could cause the application to malfunction. To prevent this, the distro uses **scoped** dependencies by default: a unique prefix is added to their namespaces. Because the PHP runtime supports runtime reflection, changing namespaces might theoretically be incompatible with some corner-case code. To fall back to the original (not scoped) dependencies, set `OTEL_PHP_SCOPED_DEPS_ENABLED` (php.ini `opentelemetry_distro.scoped_deps_enabled`) to `false`. See [Supportability](#supportability).
+EDOT PHP bundles multiple dependencies, such as the OpenTelemetry SDK, auto-instrumentations, and their transitive dependencies. This means that your application might include dependencies that clash with the bundled ones, which can cause it to malfunction. To prevent this, EDOT PHP uses scoped dependencies by default: a unique prefix is added to all bundled namespaces. Because PHP supports runtime reflection, this namespace change might be incompatible with some edge cases. To fall back to the original (unscoped) dependencies, set `OTEL_PHP_SCOPED_DEPS_ENABLED` (php.ini: `opentelemetry_distro.scoped_deps_enabled`) to `false`. Refer to [Supportability](#supportability) for more information.
 
 ## EDOT PHP-specific configuration options
 
@@ -156,7 +156,7 @@ _Deprecated aliases: `ELASTIC_OTEL_TRANSACTION_SPAN_ENABLED`, `ELASTIC_OTEL_TRAN
 
 | Option(s)                   | Default | Accepted values   | Description                                                                                                                                                |
 | --------------------------- | ------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| OTEL_PHP_ATTR_HOOKS_ENABLED | `false`   | `true` or `false`     | Enables `#[WithSpan]` / `#[SpanAttribute]` attribute-based span creation. See [Attribute-based instrumentation](attribute-instrumentation.md). |
+| OTEL_PHP_ATTR_HOOKS_ENABLED | `false`   | `true` or `false`     | Turns on `#[WithSpan]` / `#[SpanAttribute]` attribute-based span creation. Refers to [Attribute-based instrumentation](attribute-instrumentation.md). |
 
 _Deprecated alias: `ELASTIC_OTEL_ATTR_HOOKS_ENABLED`_
 
@@ -228,7 +228,7 @@ as long as EDOT PHP is on version 1.2.0 or later, even if `sampling_rate` applie
 
 | Option(s)                    | Default | Accepted values   | Description                                                                                                                            |
 | ---------------------------- | ------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| OTEL_PHP_SCOPED_DEPS_ENABLED | `true`    | `true` or `false`     | Controls whether the distro uses scoped or original (not scoped) dependencies. See [Special considerations](#special-considerations). |
+| OTEL_PHP_SCOPED_DEPS_ENABLED | `true`    | `true` or `false`     | Controls whether EDOT PHP uses scoped or original (not scoped) dependencies. Refer to [Special considerations](#special-considerations). |
 
 _Deprecated alias: `ELASTIC_OTEL_SCOPED_DEPS_ENABLED`_
 
@@ -291,12 +291,12 @@ logger_provider:
             endpoint: http://localhost:4318/v1/logs
 ```
 
-For the full YAML schema, see the [OpenTelemetry Configuration Schema](https://github.com/open-telemetry/opentelemetry-configuration/blob/main/schema-docs.md).
+For the full YAML schema, refer to the [OpenTelemetry Configuration Schema](https://github.com/open-telemetry/opentelemetry-configuration/blob/main/schema-docs.md).
 
 ### Limitations
 
 - Central configuration (OpAMP) is not available when file-based configuration is active.
-- Resource detectors registered via `Registry::registerResourceDetector()` (for example, cloud provider detectors from `opentelemetry-php-contrib`) are not automatically active. They must provide a `ComponentProvider` and be explicitly listed in the YAML `resource.detection/development.detectors` section.
+- Resource detectors registered using `Registry::registerResourceDetector()` (for example, cloud provider detectors from `opentelemetry-php-contrib`) are not automatically active. They must provide a `ComponentProvider` and be explicitly listed in the YAML `resource.detection/development.detectors` section.
 
 ## Prevent logs export
 

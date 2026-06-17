@@ -127,7 +127,7 @@ product:
   edot_php: ga 1.7.0
 ```
 
-EDOT PHP can automatically create spans from PHP 8 attributes (`#[WithSpan]`, `#[SpanAttribute]`) without writing instrumentation code manually. This feature is disabled by default; enable it by setting `OTEL_PHP_ATTR_HOOKS_ENABLED=true`. For details, see [Attribute-based instrumentation](attribute-instrumentation.md).
+EDOT PHP can automatically create spans from PHP 8.1 attributes (`#[WithSpan]`, `#[SpanAttribute]`) without writing instrumentation code. This feature is deactivated by default; activate it by setting `OTEL_PHP_ATTR_HOOKS_ENABLED=true`. For details, refer to [Attribute-based instrumentation](attribute-instrumentation.md).
 
 ### Asynchronous data sending
 

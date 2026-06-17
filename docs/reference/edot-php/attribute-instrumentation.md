@@ -15,15 +15,15 @@ products:
 
 # Attribute-based instrumentation
 
-EDOT PHP supports automatic span creation using PHP 8 attributes. Annotate methods or functions with `#[WithSpan]` to create spans without writing instrumentation code manually.
+EDOT PHP supports automatic span creation using PHP 8.1 attributes. Annotate methods or functions with `#[WithSpan]` to create spans without writing instrumentation code manually.
 
 ## Prerequisites
 
-- PHP 8.1 or later (PHP attributes require PHP 8+).
+- PHP 8.1 or later (PHP attributes require PHP 8.1+).
 - `open-telemetry/api` package installed in your application.
-- `OTEL_PHP_ATTR_HOOKS_ENABLED=true` set in the environment (disabled by default).
+- `OTEL_PHP_ATTR_HOOKS_ENABLED=true` set in the environment (deactivated by default).
 
-## Enable
+## Activate
 
 Attribute-based instrumentation is disabled by default. Enable it using either an environment variable or the `php.ini` file:
 
@@ -81,7 +81,7 @@ class OrderService
 )]
 ```
 
-All arguments are optional and can be passed positionally or by name:
+All arguments are optional. You can pass them positionally or by name.
 
 ```php
 // Positional
@@ -136,7 +136,7 @@ class InvoiceService
 
 ## Exception recording
 
-If the annotated method throws, the span automatically records the exception and sets status to `ERROR`. The exception propagates normally.
+If the annotated method throws an exception, the span automatically records it and sets status to `ERROR`. The exception propagates normally.
 
 ```php
 #[WithSpan]
@@ -194,4 +194,4 @@ Every `#[WithSpan]` span includes these attributes from the declaration site:
 
 ## Compatibility
 
-`#[WithSpan]` and `#[SpanAttribute]` are the same attributes used by the official [opentelemetry-php-instrumentation](https://github.com/open-telemetry/opentelemetry-php-instrumentation) extension. Applications already using that extension can enable this feature without code changes.
+`#[WithSpan]` and `#[SpanAttribute]` are the same PHP attributes used by the official [opentelemetry-php-instrumentation](https://github.com/open-telemetry/opentelemetry-php-instrumentation) extension. Applications already using that extension can activate this feature without code changes.
