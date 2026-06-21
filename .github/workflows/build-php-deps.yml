@@ -19,7 +19,7 @@ jobs:
     env:
       COMPOSER_ALLOW_SUPERUSER: 1
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - name: Build PHP dependencies
