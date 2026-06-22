@@ -39,14 +39,15 @@ contents:
   dst: /opt/elastic/elastic-otel-php/
   expand: true
 # Upstream PHP code (bootstrap, classes, scoped vendor dependencies)
-- src: /source/upstream/prod/php
+# Built into upstream/_BUILT/php_code_for_packages by build_php_code_for_packages.sh
+- src: /source/upstream/_BUILT/php_code_for_packages
   dst: /opt/elastic/elastic-otel-php/php
   type: tree
   packager: rpm
-- src: /source/upstream/prod/php
+- src: /source/upstream/_BUILT/php_code_for_packages
   dst: /opt/elastic/elastic-otel-php/php
   packager: deb
-- src: /source/upstream/prod/php
+- src: /source/upstream/_BUILT/php_code_for_packages
   dst: /opt/elastic/elastic-otel-php/php
   packager: apk
 # Elastic PHP bootstrap wrapper (entry point for the native extension)
@@ -69,7 +70,7 @@ contents:
   type: config
 - src: /source/README.md
   dst: /opt/elastic/elastic-otel-php/docs/README.md
-- src: /source/NOTICE
+- src: /source/_BUILT/NOTICE
   dst: /opt/elastic/elastic-otel-php/NOTICE
 - src: /source/LICENSE
   dst: /opt/elastic/elastic-otel-php/LICENSE

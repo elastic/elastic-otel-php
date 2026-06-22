@@ -58,10 +58,10 @@ jobs:
           source ./upstream/tools/read_properties.sh
           read_properties upstream/project.properties PROJECT_PROPERTIES
           PHP_VERSIONS=${PROJECT_PROPERTIES_SUPPORTED_PHP_VERSIONS//[()]/}
-          ./tools/build/test_phpt.sh --build_architecture ${BUILD_ARCHITECTURE} --results_path ${PWD}/build/test_phpt_results --php_versions "${PHP_VERSIONS}"
+          ./tools/build/test_phpt.sh --build_architecture ${BUILD_ARCHITECTURE} --results_path ${PWD}/_BUILT/test_phpt_results --php_versions "${PHP_VERSIONS}"
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: test-phpt-failures-${{ matrix.arch }}
           path: |
-            build/test_phpt_results/*
+            _BUILT/test_phpt_results/*

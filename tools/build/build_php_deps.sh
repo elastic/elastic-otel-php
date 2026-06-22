@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 set -e -u -o pipefail
 #
-# Thin wrapper: delegates PHP dependency building (composer install + php-scoper)
-# to the upstream submodule's build_php_deps.sh.
+# Thin wrapper: delegates PHP code building (composer install + php-scoper)
+# to the upstream submodule's build_php_code_for_packages.sh.
 #
 # Upstream handles: composer install, php-scoper namespace prefixing,
 # autoloader patching, NOTICE generation, and verification.
-# Output lands in upstream/prod/php/vendor_XX/ which nfpm.yaml packages.
+# Output lands in upstream/_BUILT/php_code_for_packages/ (scoped/<ver>, not_scoped)
+# and upstream/_BUILT/NOTICE, which nfpm.yaml packages.
 #
 
 this_script_dir="$(dirname "${BASH_SOURCE[0]}")"
@@ -37,13 +38,18 @@ echo "=== EDOT build_php_deps.sh: delegating to upstream ==="
 "${edot_root_dir}/tools/build/configure_php_templates.sh"
 
 pushd "${edot_root_dir}/upstream"
-./tools/build/build_php_deps.sh "$@"
+./tools/build/build_php_code_for_packages.sh "$@"
 popd
 
 echo "=== EDOT build_php_deps.sh: upstream build complete ==="
 
-# Append newly generated upstream NOTICE content (PHP deps) to EDOT NOTICE
+# Generate the EDOT NOTICE freshly (never mutate a committed file): start from the
+# EDOT NOTICE template, then append the upstream-generated package notices.
+# Output lands in _BUILT/NOTICE (gitignored, same convention as upstream) which
+# nfpm.yaml packages.
 if [ "${SKIP_NOTICE}" = "false" ]; then
-    cat "${edot_root_dir}/upstream/NOTICE" >>"${edot_root_dir}/NOTICE"
+    mkdir -p "${edot_root_dir}/_BUILT"
+    cat "${edot_root_dir}/packaging/NOTICE.template" >"${edot_root_dir}/_BUILT/NOTICE"
+    cat "${edot_root_dir}/upstream/_BUILT/NOTICE" >>"${edot_root_dir}/_BUILT/NOTICE"
 fi
 

@@ -81,6 +81,7 @@ The following libraries are supported:
 - HTTP Async (php-http/httplug) version 2.x
 - MySQLi versions 8.1 to 8.5
 - PDO versions 8.1 to 8.5
+- PSR-18 HTTP Client (`psr/http-client`)
 
 ## Instrumentations
 
@@ -94,6 +95,7 @@ The following instrumentations are included in EDOT PHP.
 | mysqli | 1.0 | [open-telemetry/opentelemetry-auto-mysqli](https://packagist.org/packages/open-telemetry/opentelemetry-auto-mysqli) |
 | pdo | 1.0 | [open-telemetry/opentelemetry-auto-pdo](https://packagist.org/packages/open-telemetry/opentelemetry-auto-pdo) |
 | postgresql | 1.2 | [open-telemetry/opentelemetry-auto-postgresql](https://packagist.org/packages/open-telemetry/opentelemetry-auto-postgresql) |
+| psr18 | 1.7.0 | [open-telemetry/opentelemetry-auto-psr18](https://packagist.org/packages/open-telemetry/opentelemetry-auto-psr18) |
 | slim | 1.0 | [open-telemetry/opentelemetry-auto-slim](https://packagist.org/packages/open-telemetry/opentelemetry-auto-slim) |
 
 
@@ -117,6 +119,15 @@ product: preview
 ```
 
 EDOT PHP automatically detects and generates spans for common operations like database queries or HTTP calls, even when no manual instrumentation is present.
+
+### Attribute-based instrumentation
+
+```{applies_to}
+product:
+  edot_php: ga 1.7.0
+```
+
+EDOT PHP can automatically create spans from PHP 8.1 attributes (`#[WithSpan]`, `#[SpanAttribute]`) without writing instrumentation code. This feature is deactivated by default; activate it by setting `OTEL_PHP_ATTR_HOOKS_ENABLED=true`. For details, refer to [Attribute-based instrumentation](attribute-instrumentation.md).
 
 ### Asynchronous data sending
 
