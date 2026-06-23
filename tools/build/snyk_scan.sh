@@ -102,8 +102,9 @@ main() {
             --env SNYK_TOKEN \
             -v "${composer_json_full_path}:/repo_root/composer.json:ro" \
             -v "${composer_lock_full_path}:/repo_root/composer.lock:ro" \
+            -v "${repo_root_dir}/.snyk:/repo_root/.snyk:ro" \
             -w /repo_root \
-            snyk/snyk:php snyk monitor --org="a8dc6395-2bbd-4724-9d9b-8cc417ecdb52" --project-name="elastic-otel-php-PHP${PHP_version_dot_separated}-prod"
+            snyk/snyk:php snyk monitor --policy-path=/repo_root/.snyk --org="a8dc6395-2bbd-4724-9d9b-8cc417ecdb52" --project-name="elastic-otel-php-PHP${PHP_version_dot_separated}-prod"
 
         if [ $? -ne 0 ]; then
             echo "::error Snyk monitor failed for PHP version ${PHP_version_dot_separated}. Rerun the scan again to see the error still exits."
@@ -115,8 +116,9 @@ main() {
             --env SNYK_TOKEN \
             -v "${composer_json_full_path}:/repo_root/composer.json:ro" \
             -v "${composer_lock_full_path}:/repo_root/composer.lock:ro" \
+            -v "${repo_root_dir}/.snyk:/repo_root/.snyk:ro" \
             -w /repo_root \
-            snyk/snyk:php snyk test
+            snyk/snyk:php snyk test --policy-path=/repo_root/.snyk
 
         if [ $? -ne 0 ]; then
             echo "::error Snyk scan failed for PHP version ${PHP_version_dot_separated}. At least one vulnerable dependency found."

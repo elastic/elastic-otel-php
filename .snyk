@@ -1,0 +1,22 @@
+version: v1.25.0
+ignore:
+  SNYK-PHP-GUZZLEHTTPPSR7-17318030:
+    - '*':
+        reason: 'Temporary ignore until upstream generated lock files are refreshed'
+        expires: '2026-09-30T00:00:00.000Z'
+  SNYK-PHP-GUZZLEHTTPPSR7-17318033:
+    - '*':
+        reason: 'Temporary ignore until upstream generated lock files are refreshed'
+        expires: '2026-09-30T00:00:00.000Z'
+  SNYK-PHP-GUZZLEHTTPPSR7-17393718:
+    - '*':
+        reason: 'Temporary ignore until upstream generated lock files are refreshed'
+        expires: '2026-09-30T00:00:00.000Z'
+  SNYK-PHP-GUZZLEHTTPGUZZLE-17400370:
+    - '*':
+        reason: 'Temporary ignore until upstream generated lock files are refreshed'
+        expires: '2026-09-30T00:00:00.000Z'
+  SNYK-PHP-GUZZLEHTTPGUZZLE-17400374:
+    - '*':
+        reason: 'Temporary ignore until upstream generated lock files are refreshed'
+        expires: '2026-09-30T00:00:00.000Z'
