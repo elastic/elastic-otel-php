@@ -27,7 +27,7 @@ jobs:
     env:
       PHP_VERSION: ${{ matrix.php-version }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - name: Invoke test_php_static_and_unit.sh
