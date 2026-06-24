@@ -25,7 +25,7 @@ EDOT PHP supports automatic span creation using PHP 8.1 attributes. Annotate met
 
 ## Activate
 
-Attribute-based instrumentation is disabled by default. Enable it using either an environment variable or the `php.ini` file:
+Attribute-based instrumentation is deactivated by default. Enable it using either an environment variable or the `php.ini` file:
 
 ::::{tab-set}
 

@@ -27,6 +27,27 @@ To check for security updates, go to [Security announcements for the Elastic sta
 % ### Fixes [edot-php-X.X.X-fixes]
 % *
 
+## 1.7.0 [edot-php-1.7.0-release-notes]
+
+Based on [opentelemetry-php-distro v0.5.1](https://github.com/open-telemetry/opentelemetry-php-distro) (PR [#388](https://github.com/elastic/elastic-otel-php/pull/388)).
+
+### Features and enhancements [edot-php-1.7.0-features-enhancements]
+
+- **PSR-18 auto instrumentation** — HTTP clients implementing PSR-18 (`ClientInterface`) are now automatically instrumented (upstream PR [#111](https://github.com/open-telemetry/opentelemetry-php-distro/pull/111))
+- **Attribute-based instrumentation** — Annotate methods and functions with `#[WithSpan]` and `#[SpanAttribute]` to create spans automatically (upstream [#117](https://github.com/open-telemetry/opentelemetry-php-distro/issues/117), PR [#118](https://github.com/open-telemetry/opentelemetry-php-distro/pull/118))
+- **File-based declarative configuration** (`OTEL_CONFIG_FILE`) — Supports loading SDK configuration from a YAML file (upstream PR [#106](https://github.com/open-telemetry/opentelemetry-php-distro/pull/106))
+- **`earlySetup` support** — Allows registering OTLP transport before SDK initialization (upstream PR [#121](https://github.com/open-telemetry/opentelemetry-php-distro/pull/121))
+- **Disabling scoped dependencies through configuration** — Individual scoped dependencies can now be disabled through configuration (upstream PR [#95](https://github.com/open-telemetry/opentelemetry-php-distro/pull/95))
+
+### Fixes [edot-php-1.7.0-fixes]
+
+- **Security**: bumped `guzzlehttp/guzzle` to fix a security vulnerability (upstream PR [#123](https://github.com/open-telemetry/opentelemetry-php-distro/pull/123))
+- Fixed deprecated `ResourceAttributes` usage (upstream PR [#96](https://github.com/open-telemetry/opentelemetry-php-distro/pull/96))
+- Fixed deprecated `TraceAttributes` usage (upstream PR [#90](https://github.com/open-telemetry/opentelemetry-php-distro/pull/90))
+- Fixed passing production options to component tests app code (upstream PR [#107](https://github.com/open-telemetry/opentelemetry-php-distro/pull/107))
+- Fixed mock object leak in OpAmp tests (upstream PR [#103](https://github.com/open-telemetry/opentelemetry-php-distro/pull/103))
+
+
 ## 1.6.0 [edot-php-1.6.0-release-notes]
 
 ### Features and enhancements [edot-php-1.6.0-features-enhancements]
