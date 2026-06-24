@@ -30,7 +30,7 @@ If the `open_basedir` option ([documentation](https://www.php.net/manual/en/ini.
 
 ## `Xdebug` stability and memory issues
 
-We strongly advise against running the agent alongside the Xdebug extension. Using both extensions simultaneously can lead to stability issues in the instrumented application, such as increased memory usage or memory leaks. It is highly recommended to disable xdebug, preferably by disabling it directly in your `php.ini` configuration.
+We strongly advise against running the agent alongside the Xdebug extension. Using both extensions simultaneously can lead to stability issues in the instrumented application, such as increased memory usage or memory leaks. It is highly recommended to deactivate Xdebug, preferably by deactivating it directly in your `php.ini` configuration.
 
 ## File-based configuration (`OTEL_CONFIG_FILE`)
 
@@ -39,8 +39,8 @@ We strongly advise against running the agent alongside the Xdebug extension. Usi
 When using file-based (declarative) configuration:
 
 - Remote configuration (OpAMP) is not available — file-based and remote configuration are mutually exclusive.
-- Resource detectors registered via `Registry::registerResourceDetector()` (for example, cloud provider detectors from `opentelemetry-php-contrib`) are not automatically active. They must provide a `ComponentProvider` and be explicitly listed in the YAML `resource.detection/development.detectors` section.
-- The distro ships a built-in `distro` detector for the `telemetry.distro.name` and `telemetry.distro.version` attributes. See [Configuration](../configuration.md#distro-resource-detector) for usage.
+- Resource detectors registered through `Registry::registerResourceDetector()` (for example, cloud provider detectors from `opentelemetry-php-contrib`) are not automatically active. They must provide a `ComponentProvider` and be explicitly listed in the YAML `resource.detection/development.detectors` section.
+- EDOT PHP ships a built-in `distro` detector for the `telemetry.distro.name` and `telemetry.distro.version` attributes. See [Configuration](../configuration.md#edot-php-resource-detector) for usage.
 - Environment variable substitution (`${VAR_NAME}`) in YAML files relies on `$_SERVER` to read values. In web server contexts (Apache, nginx+FPM), process environment variables are not automatically available in `$_SERVER`. To use `${VAR_NAME}` substitution in your YAML configuration, ensure the variables are exposed to PHP:
   - **Apache (mod_php)**: Use `PassEnv VAR_NAME` or `SetEnv VAR_NAME value` in your virtual host configuration.
   - **PHP-FPM**: Set `env[VAR_NAME] = value` in your FPM pool configuration, or set `clear_env = no` to pass all process environment variables.

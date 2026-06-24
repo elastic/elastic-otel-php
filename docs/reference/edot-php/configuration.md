@@ -45,8 +45,8 @@ The most important OpenTelemetry options you should be aware of include:
 | OTEL_EXPORTER_OTLP_CLIENT_KEYPASS |  | String (passphrase) | Passphrase for the encrypted private key. Don't set or leave empty if the key is not encrypted. |
 | [OTEL_SERVICE_NAME](https://opentelemetry.io/docs/languages/sdk-configuration/general/#otel_service_name)                     | `unknown_service`       | String value                                    | Sets the value of the [service.name](https://opentelemetry.io/docs/specs/semconv/resource/#service) resource attribute.                                                                                    |
 | [OTEL_RESOURCE_ATTRIBUTES](https://opentelemetry.io/docs/languages/sdk-configuration/general/#otel_resource_attributes)       |                         | String of key-value pairs                       | Key-value pairs to be used as resource attributes. See [Resource SDK](https://opentelemetry.io/docs/specs/otel/resource/sdk#specifying-resource-information-via-an-environment-variable) for more details. |
-| [OTEL_TRACES_SAMPLER](https://opentelemetry.io/docs/languages/sdk-configuration/general/#otel_traces_sampler)                 | `parentbased_always_on` | `always_on`, `always_off`, `traceidratio`, etc. | Determines the sampler used for traces, which controls the amount of data collected and exported.                                                                                                          |
-| [OTEL_TRACES_SAMPLER_ARG](https://opentelemetry.io/docs/languages/sdk-configuration/general/#otel_traces_sampler_arg)         |                         | String or number                                | Provides an argument to the configured traces sampler, such as the sampling ratio for `traceidratio` (e.g., `0.25` for 25% sampling).                                                                      |
+| [OTEL_TRACES_SAMPLER](https://opentelemetry.io/docs/languages/sdk-configuration/general/#otel_traces_sampler)                 | `parentbased_always_on` | `always_on`, `always_off`, `traceidratio`, and so on | Determines the sampler used for traces, which controls the amount of data collected and exported.                                                                                                          |
+| [OTEL_TRACES_SAMPLER_ARG](https://opentelemetry.io/docs/languages/sdk-configuration/general/#otel_traces_sampler_arg)         |                         | String or number                                | Provides an argument to the configured traces sampler, such as the sampling ratio for `traceidratio` (for example, `0.25` for 25% sampling).                                                                      |
 | [OTEL_LOG_LEVEL](https://opentelemetry.io/docs/specs/otel/configuration/sdk-environment-variables/#general-sdk-configuration)                           | `info`                  | `error`, `warn`, `info`, `debug`                | Sets the verbosity level of the OpenTelemetry SDK’s internal logging. Useful for debugging configuration or troubleshooting instrumentation.                                                               |
 
 For full configuration options of PHP SDK, see the official [OpenTelemetry PHP SDK Configuration documentation](https://opentelemetry.io/docs/languages/php/sdk/#configuration).
@@ -246,12 +246,12 @@ When `OTEL_CONFIG_FILE` is set:
 
 - The SDK reads all configuration from the YAML file instead of individual `OTEL_*` environment variables.
 - Environment variable substitution (`${MY_VAR:-default}`) is supported within the YAML file.
-- Central configuration (OpAMP) is automatically disabled — file-based and remote configuration are mutually exclusive.
-- Distro-specific options (`OTEL_PHP_*`) continue to work as they are native extension options, independent of the SDK.
+- Central configuration (OpAMP) is automatically deactivated — file-based and remote configuration are mutually exclusive.
+- EDOT PHP-specific options (`OTEL_PHP_*`) continue to work as they are native extension options, independent of the SDK.
 
-### Distro resource detector
+### EDOT PHP resource detector
 
-The distro provides a `distro` resource detector that adds `telemetry.distro.name` and `telemetry.distro.version` resource attributes. To activate it in file-based configuration, add it to the `resource.detection/development.detectors` section:
+EDOT PHP provides a `distro` resource detector that adds `telemetry.distro.name` and `telemetry.distro.version` resource attributes. To activate it in file-based configuration, add it to the `resource.detection/development.detectors` section:
 
 ```yaml
 file_format: "1.0-rc.2"
