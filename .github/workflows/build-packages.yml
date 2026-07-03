@@ -54,7 +54,7 @@ jobs:
           path: upstream/prod/native/_build/${{ matrix.arch }}-release/
       - uses: actions/download-artifact@v8
         with:
-            name: php-dependencies
+            name: php-code-for-packages
       - name: Build packages
         run: |
           source "./upstream/tools/read_properties.sh"

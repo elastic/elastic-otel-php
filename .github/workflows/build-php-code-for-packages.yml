@@ -1,6 +1,6 @@
 ---
 
-name: build-php-deps
+name: build-php-code-for-packages
 
 on:
   workflow_call: ~
@@ -10,8 +10,8 @@ permissions:
   contents: read
 
 jobs:
-  build-php-deps:
-    name: build-php-dependencies
+  build-php-code-for-packages:
+    name: build-php-code-for-packages
     runs-on: ubuntu-latest
     timeout-minutes: 300
     strategy:
@@ -22,15 +22,15 @@ jobs:
       - uses: actions/checkout@v7
         with:
           submodules: recursive
-      - name: Build PHP dependencies
+      - name: Build PHP code (production code and its dependencies) for the packages
         run: |
           source ./upstream/tools/read_properties.sh
           read_properties upstream/project.properties PROJECT_PROPERTIES
           PHP_VERSIONS=${PROJECT_PROPERTIES_SUPPORTED_PHP_VERSIONS//[()]/}
-          ./tools/build/build_php_deps.sh --php_versions "${PHP_VERSIONS}"
+          ./tools/build/build_php_code_for_packages.sh --php_versions "${PHP_VERSIONS}"
       - uses: actions/upload-artifact@v7
         with:
-          name: php-dependencies
+          name: php-code-for-packages
           path: |
             elastic_prod/php/Elastic/OTel/ElasticVendorCustomizations.php
             upstream/_BUILT/php_code_for_packages

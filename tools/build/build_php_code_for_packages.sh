@@ -31,7 +31,18 @@ parse_args() {
 
 parse_args "$@"
 
-echo "=== EDOT build_php_deps.sh: delegating to upstream ==="
+echo "=== EDOT build_php_code_for_packages.sh: delegating to upstream ==="
+
+# Assemble EDOT's own PHP tree into _BUILT/php_code_for_packages/, mirroring how
+# upstream assembles prod/php/ into its own _BUILT/php_code_for_packages/:
+# top-level .php files copied flat, subdirectories (Elastic/) copied as-is.
+# .template sources are excluded — only their generated output should ship.
+_EDOT_BUILT_PHP_CODE_FOR_PACKAGES_DIR="${edot_root_dir}/_BUILT/php_code_for_packages"
+rm -rf "${_EDOT_BUILT_PHP_CODE_FOR_PACKAGES_DIR}"
+mkdir -p "${_EDOT_BUILT_PHP_CODE_FOR_PACKAGES_DIR}"
+cp "${edot_root_dir}/elastic_prod/php/"*.php "${_EDOT_BUILT_PHP_CODE_FOR_PACKAGES_DIR}/"
+cp -r "${edot_root_dir}/elastic_prod/php/Elastic" "${_EDOT_BUILT_PHP_CODE_FOR_PACKAGES_DIR}/"
+find "${_EDOT_BUILT_PHP_CODE_FOR_PACKAGES_DIR}" -name '*.template' -type f -delete
 
 # Configure EDOT-specific PHP templates (e.g., ElasticVendorCustomizations.php)
 # before upstream build, which will configure its own templates internally.
@@ -41,7 +52,7 @@ pushd "${edot_root_dir}/upstream"
 ./tools/build/build_php_code_for_packages.sh "$@"
 popd
 
-echo "=== EDOT build_php_deps.sh: upstream build complete ==="
+echo "=== EDOT build_php_code_for_packages.sh: upstream build complete ==="
 
 # Generate the EDOT NOTICE freshly (never mutate a committed file): start from the
 # EDOT NOTICE template, then append the upstream-generated package notices.

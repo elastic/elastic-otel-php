@@ -1,6 +1,3 @@
-# Generated files (EDOT)
-elastic_prod/php/Elastic/OTel/ElasticVendorCustomizations.php
-
 # Generated files root (EDOT) — packages, NOTICE, test results, etc.
 # Same convention as upstream/_BUILT (replaces the old build/ directory)
 _BUILT/

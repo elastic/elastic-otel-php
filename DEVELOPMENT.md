@@ -4,16 +4,19 @@
 
 EDOT PHP is built on top of `opentelemetry-php-distro` which is included as a git submodule. All Elastic-specific customizations live outside the submodule:
 
-| Directory | Description |
+| Directory / file | Description |
 |-----------|-------------|
-| `upstream/` | Git submodule — [opentelemetry-php-distro](https://github.com/open-telemetry/opentelemetry-php-distro). Contains the contrib build system, native extension, PHP code, tests, and tools. |
+| `upstream/` | Git submodule - [opentelemetry-php-distro](https://github.com/open-telemetry/opentelemetry-php-distro). Contains the contrib build system, native extension, PHP code, tests, and tools. |
 | `elastic_prod/` | Elastic-only production code: native C++ vendor layer (`libelastic/`), PHP bootstrap (`bootstrap_elastic.php`), vendor customizations, and OpAMP remote config. |
-| `elastic_tests/` | Test patch system — `*.patch` files applied to contrib tests before component test runs, with `apply.sh` / `revert.sh` scripts. |
+| `elastic_tests/` | Test patch system - `*.patch` files applied to contrib tests before component test runs, with `apply.sh` / `revert.sh` scripts. |
 | `tools/` | EDOT thin wrappers that delegate to `upstream/tools/` (for example, `build_native.sh`, `test_phpt.sh`), plus Elastic-specific scripts (`configure_php_templates.sh`, `test_sources_license.sh`). |
 | `packaging/` | Package definitions (`nfpm.yaml`) and install/uninstall scripts for deb/rpm/apk. |
 | `docs/` | Elastic user-facing documentation (configuration, setup, migration, release notes). |
+| `elastic-otel-php.properties` | EDOT's own properties file - holds only the EDOT package version. All other build parameters (supported PHP versions, `otel_proto_version`, etc.) are read from `upstream/project.properties` instead of being duplicated here. |
 
 Most build and test scripts in `tools/` are thin wrappers that `cd upstream` and call the contrib equivalent, passing through all arguments. Elastic-specific scripts (license checks, template generation) run directly from the repo root.
+
+This document only covers what's specific to EDOT. For everything else - building/testing the native library, managing PHP dependencies, Docker build images, Conan artifacts, releases - see [upstream/DEVELOPMENT.md](upstream/DEVELOPMENT.md).
 
 ### Contributing changes
 
@@ -39,87 +42,50 @@ Each of the scripts mentioned below has a help page; to display it, simply provi
 
 ### Building the native library like on CI
 
+`tools/build/build_native.sh` is EDOT-specific (not a thin wrapper): it runs its own Docker build so it can inject the Elastic vendor library (`libelastic/`) into the contrib CMake build via `-DCMAKE_PROJECT_INCLUDE`. Flags match upstream's script (see [upstream/DEVELOPMENT.md](upstream/DEVELOPMENT.md#building-the-native-library-like-on-ci) for what each one does):
+
 ```bash
 cd elastic-otel-php
 ./tools/build/build_native.sh --build_architecture linux-x86-64 --interactive --ncpu 2
 ```
 
-This script will configure the project and build the libraries for the linux-x86-64 architecture. Adding the interactive argument allows you to interrupt the build using the `Ctrl + C` combination, and with the ncpu option, you can build in parallel using the specified number of processor threads.
-If you are not adding new files to the project and just want to rebuild your changes,
-you can provide the `--skip_configure` argument - this will save time on reconfiguring the project.
-You can also save a lot of time by creating a local cache for Conan packages;
-the files will then be stored outside the container and reused repeatedly.
-To do this, provide a path to the `--conan_cache_path` argument, e.g., `~/.conan_cache`.
-The script will automatically execute native unit tests just after the build.
-If you would like to skip native unit tests you can use `--skip_unit_tests` command line option.
+Supported architectures: `linux-x86-64`, `linuxmusl-x86-64`, `linux-arm64`, `linuxmusl-arm64`.
 
-Currently, we support the following architectures:
-
-```bash
-linux-x86-64
-linuxmusl-x86-64
-linux-arm64
-linuxmusl-arm64
-```
-
-If you want to enable debug logging in tested classes, you need to export environment variable `ELASTIC_OTEL_DEBUG_LOG_TESTS=1` before run.
+To enable debug logging in tested classes, export `ELASTIC_OTEL_DEBUG_LOG_TESTS=1` before running (EDOT's env var name - different from upstream's `OTEL_PHP_DEBUG_LOG_TESTS`).
 
 ### Building the native library for other platforms
 
-You can always try to compile the native part for an unsupported architecture or platform. To facilitate this, we have made it possible to remove hard dependencies on Docker images, the compiler, and build profiles.
-
-To make everything work on your system, you will need the gcc compiler (at the time of writing, version 12.0+), cmake (v3.26+), and python 3.x.
-
-Since our system uses Conan as the repository for required dependencies, you need to install them first. The following script will install everything necessary in the `~/.conan2` folder. If you haven't used Conan before, provide the argument `--detect_conan_profile` to create a default profile – if you have used Conan before, you can skip this. If you are not using python-venv and have Conan installed directly on your system, you can pass the argument `--skip_venv_conan`, which will cause the script to skip creating a venv and installing Conan.
+Same manual Conan/CMake flow as upstream (see [upstream/DEVELOPMENT.md](upstream/DEVELOPMENT.md#building-the-native-library-for-other-platforms) for prerequisites and details), with one addition - pass `-DCMAKE_PROJECT_INCLUDE` to inject the Elastic vendor library:
 
 ```bash
 ./upstream/prod/native/building/install_dependencies.sh --build_output_path ./upstream/prod/native/_build/custom-release --build_type Release --detect_conan_profile
-```
 
-The script will install dependencies and generate the files necessary to configure the project in the next step. Note the `-DCMAKE_PROJECT_INCLUDE` argument — it injects the Elastic vendor library (`libelastic`) into the contrib build:
-
-```bash
 cmake -S ./upstream/prod/native/ -B ./upstream/prod/native/_build/custom-release/ \
   -DCMAKE_PREFIX_PATH=./upstream/prod/native/_build/custom-release/build/Release/generators/ \
   -DCMAKE_PROJECT_INCLUDE=${PWD}/elastic_prod/native/libelastic/elastic_vendor_inject.cmake \
   -DSKIP_CONAN_INSTALL=1 -DCMAKE_BUILD_TYPE=Release
-```
 
-Building:
-```bash
 cmake --build ./upstream/prod/native/_build/custom-release/
 ```
 
-If the build is successful, you can find the built libraries using the following command:
-```bash
-find upstream/prod/native/_build/custom-release -name opentelemetry*.so
-```
-
-As a result you should see:
-```bash
-upstream/prod/native/_build/custom-release/loader/code/opentelemetry_php_distro_loader.so
-upstream/prod/native/_build/custom-release/extension/code/opentelemetry_php_distro_84.so
-upstream/prod/native/_build/custom-release/extension/code/opentelemetry_php_distro_83.so
-upstream/prod/native/_build/custom-release/extension/code/opentelemetry_php_distro_82.so
-upstream/prod/native/_build/custom-release/extension/code/opentelemetry_php_distro_81.so
-```
+Built libraries land under `upstream/prod/native/_build/custom-release/{loader,extension}/code/`.
 
 ### Testing the native library
 
-The following script will run the phpt tests for the native library, which should be built in the previous step - make sure to use the same architecture. You can run tests for multiple PHP versions simultaneously by providing several versions separated by a space to the `--php_versions` parameter.
+`tools/build/test_phpt.sh` is a thin wrapper for upstream's script of the same name (see [upstream/DEVELOPMENT.md](upstream/DEVELOPMENT.md#testing-the-native-library)). Run it from the EDOT repo root against the library built in the previous step:
 
 ```bash
 cd elastic-otel-php
-  ./tools/build/test_phpt.sh --build_architecture linux-x86-64 --php_versions '81 82 83 84'
+./tools/build/test_phpt.sh --build_architecture linux-x86-64 --php_versions '81 82 83 84'
 ```
 
-### Building PHP dependencies
+### Building PHP code for the packages
 
-To ensure the instrumentation is fully successful, it is required to download and install dependencies for the PHP implementation. You can do this automatically using a script that will download and install them separately for each specified PHP version. Similar to the previous step, you need to provide the PHP versions separated by spaces as a parameter to the `--php_versions` argument.
+`tools/build/build_php_code_for_packages.sh` delegates to upstream's script of the same name - composer install, php-scoper prefixing, NOTICE generation (see [upstream/DEVELOPMENT.md](upstream/DEVELOPMENT.md#building-php-dependencies)) - then additionally configures EDOT-specific PHP templates (e.g. `ElasticVendorCustomizations.php`) and appends the upstream-generated notices to EDOT's own `_BUILT/NOTICE`.
 
 ```bash
 cd elastic-otel-php
-  ./tools/build/build_php_deps.sh --php_versions '81 82 83 84'
+./tools/build/build_php_code_for_packages.sh --php_versions '81 82 83 84'
 ```
 
 ### Building Packages
@@ -175,9 +141,9 @@ Since we use contrib as a base, Conan artifacts are cached in the contrib docker
 
 # Managing PHP 3rd party dependencies
 
-PHP dependencies are managed in the contrib submodule. See the [upstream DEVELOPMENT.md](upstream/DEVELOPMENT.md) for instructions on installing, checking, and updating PHP dependencies.
+PHP dependencies (`composer.json`, `composer.lock`, `vendor/`) are fully managed in the contrib submodule. See the [upstream DEVELOPMENT.md](upstream/DEVELOPMENT.md#managing-php-3rd-party-dependencies) for instructions on installing, checking, and updating PHP dependencies.
 
-All changes to `composer.json`, `composer.lock`, and the `vendor` directory should be made in the contrib [opentelemetry-php-distro](https://github.com/open-telemetry/opentelemetry-php-distro) repository.
+`tools/build/build_php_code_for_packages.sh` delegates to the equivalent upstream script (see the ["Building PHP code for the packages"](#building-php-code-for-the-packages) section above for what it additionally does), so you don't need to `cd upstream` first. All changes to `composer.json`, `composer.lock`, and the `vendor` directory should still be made - and committed - inside the `upstream/` submodule, then contributed back to the contrib [opentelemetry-php-distro](https://github.com/open-telemetry/opentelemetry-php-distro) repository.
 
 # Documentation
 

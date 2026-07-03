@@ -32,16 +32,22 @@ configure_file() {
 
 configure_from_template() {
     local _ARG_INPUT_FILE=$1
+    local _ARG_OUTPUT_FILE=${2:-${_ARG_INPUT_FILE%.template}}
     if [[ "${_ARG_INPUT_FILE}" != *.template ]]; then
         echo "configure_from_template error: File name must end with '.template'" >&2
         exit 1
     fi
-    local _OUTPUT_FILE=${_ARG_INPUT_FILE%.template}
-    echo "Configuring file ${_OUTPUT_FILE} from ${_ARG_INPUT_FILE}"
-    configure_file "${_ARG_INPUT_FILE}" >"${_OUTPUT_FILE}"
+    echo "Configuring file ${_ARG_OUTPUT_FILE} from ${_ARG_INPUT_FILE}"
+    mkdir -p "$(dirname "${_ARG_OUTPUT_FILE}")"
+    configure_file "${_ARG_INPUT_FILE}" >"${_ARG_OUTPUT_FILE}"
 }
 
-configure_from_template "${repo_root_dir}/elastic_prod/php/Elastic/OTel/ElasticVendorCustomizations.php.template"
+# Output lands directly in _BUILT/php_code_for_packages/ (not next to the .template
+# in elastic_prod/php/) so build_php_code_for_packages.sh can assemble the whole
+# EDOT PHP tree in one place, the same way upstream assembles its own.
+configure_from_template \
+    "${repo_root_dir}/elastic_prod/php/Elastic/OTel/ElasticVendorCustomizations.php.template" \
+    "${repo_root_dir}/_BUILT/php_code_for_packages/Elastic/OTel/ElasticVendorCustomizations.php"
 
 # ── Upstream templates ──────────────────────────────────────────────────
 cd "${repo_root_dir}/upstream"
