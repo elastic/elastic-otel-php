@@ -32,6 +32,6 @@ jobs:
         with:
           name: php-code-for-packages
           path: |
-            elastic_prod/php/Elastic/OTel/ElasticVendorCustomizations.php
+            _BUILT/php_code_for_packages
             upstream/_BUILT/php_code_for_packages
             _BUILT/NOTICE
