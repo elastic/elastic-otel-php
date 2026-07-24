@@ -135,7 +135,7 @@ product:
   edot_php: ga 1.7.0
 ```
 
-EDOT PHP can automatically create spans from PHP 8.1 attributes (`#[WithSpan]`, `#[SpanAttribute]`) without writing instrumentation code. This feature is deactivated by default; activate it by setting `OTEL_PHP_ATTR_HOOKS_ENABLED=true`. For details, refer to [Attribute-based instrumentation](attribute-instrumentation.md).
+EDOT PHP can automatically create spans from PHP 8.1 attributes (`#[WithSpan]`, `#[SpanAttribute]`) without writing instrumentation code. This feature is deactivated by default. Activate it by setting `OTEL_PHP_ATTR_HOOKS_ENABLED=true`. For details, refer to [Attribute-based instrumentation](attribute-instrumentation.md).
 
 ### PHP runtime metrics
 
@@ -144,7 +144,7 @@ product:
   edot_php: ga 1.8.0
 ```
 
-EDOT PHP automatically exports PHP runtime metrics — memory usage, garbage collection cycles, and peak memory — via the native async OTLP transport. No configuration is required; metrics are emitted as soon as EDOT PHP is active.
+EDOT PHP automatically exports PHP runtime metrics — memory usage, garbage collection cycles, and peak memory — via the native async OTLP transport. EDOT PHP requires no configuration to emit these metrics. It starts exporting as soon as it loads.
 
 ### Asynchronous data sending
 
