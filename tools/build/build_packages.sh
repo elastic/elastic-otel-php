@@ -121,7 +121,7 @@ test_package() {
                 --platform ${DOCKER_PLATFORM} \
                 -v ${PWD}:/source \
                 -e OTEL_PHP_LOG_LEVEL_STDERR=error \
-                redhat/ubi9 sh -c "ls /source/_BUILT/packages && ${INSTALL_PHP} && ${INSTALL_SMOKE} && ${TEST_LICENSE_FILES} && ${UNINSTALL_SMOKE} && ls -alR /opt/elastic"
+                rockylinux:9 sh -c "ls /source/_BUILT/packages && ${INSTALL_PHP} && ${INSTALL_SMOKE} && ${TEST_LICENSE_FILES} && ${UNINSTALL_SMOKE} && ls -alR /opt/elastic"
         ;;
         *)
             echo -e "\033[0;33mPackage ${PKG_FILENAME} can't be tested because smoke test is not implemented\033[0;39m"

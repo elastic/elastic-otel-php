@@ -99,6 +99,14 @@ The following instrumentations are included in EDOT PHP.
 | slim | 1.0 | [open-telemetry/opentelemetry-auto-slim](https://packagist.org/packages/open-telemetry/opentelemetry-auto-slim) |
 
 
+## Included metrics packages
+
+{applies_to}`edot_php: ga 1.8.0`
+
+| Included from EDOT PHP version | Package | Emitted metrics |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| 1.8.0 | [open-telemetry/opentelemetry-metrics-runtime](https://packagist.org/packages/open-telemetry/opentelemetry-metrics-runtime) | PHP memory usage, GC cycles, peak memory |
+
 ## Additional features and improvements
 ### Truly zero-config auto-instrumentation
 
@@ -128,6 +136,15 @@ product:
 ```
 
 EDOT PHP can automatically create spans from PHP 8.1 attributes (`#[WithSpan]`, `#[SpanAttribute]`) without writing instrumentation code. This feature is deactivated by default; activate it by setting `OTEL_PHP_ATTR_HOOKS_ENABLED=true`. For details, refer to [Attribute-based instrumentation](attribute-instrumentation.md).
+
+### PHP runtime metrics
+
+```{applies_to}
+product:
+  edot_php: ga 1.8.0
+```
+
+EDOT PHP automatically exports PHP runtime metrics — memory usage, garbage collection cycles, and peak memory — via the native async OTLP transport. No configuration is required; metrics are emitted as soon as EDOT PHP is active.
 
 ### Asynchronous data sending
 
