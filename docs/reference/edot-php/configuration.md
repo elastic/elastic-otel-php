@@ -171,7 +171,10 @@ _Deprecated alias: `ELASTIC_OTEL_ATTR_HOOKS_ENABLED`_
 
 ### Scoped dependencies bridge
 
-{applies_to}`edot_php: ga 1.8.0`
+```{applies_to}
+product:
+  edot_php: ga 1.8.0
+```
 
 | Option(s)                           | Default | Accepted values   | Description                                                                                                                                                                                                                                                                       |
 | ----------------------------------- | ------- | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -251,15 +254,18 @@ _Deprecated alias: `ELASTIC_OTEL_SCOPED_DEPS_ENABLED`_
 
 ### Scoped dependencies bridge interop
 
-{applies_to}`edot_php: ga 1.8.0`
+```{applies_to}
+product:
+  edot_php: ga 1.8.0
+```
 
-By default EDOT PHP's OpenTelemetry runtime is **scoped** (see [Special considerations](#special-considerations)): its classes live under a unique namespace prefix, separate from the standard `OpenTelemetry\*` classes an application installs via Composer. As a result, the application's own OpenTelemetry usage — instrumentation it writes itself, or officially published auto-instrumentation packages it installs (for example `open-telemetry/opentelemetry-auto-pdo`), using the public `OpenTelemetry\API\*` / `OpenTelemetry\Context\*` / `OpenTelemetry\SDK\*` API and the `OpenTelemetry\Instrumentation\hook()` function — runs against a **separate** runtime: its spans use a no-op tracer provider and an empty context, so EDOT PHP does not export them or connect them to its own traces.
+By default, EDOT PHP's OpenTelemetry runtime is **scoped** (refer to [Special considerations](#special-considerations)): its classes live under a unique namespace prefix, separate from the standard `OpenTelemetry\*` classes an application installs via Composer. As a result, the application's own OpenTelemetry usage — instrumentation it writes itself, or officially published auto-instrumentation packages it installs (for example `open-telemetry/opentelemetry-auto-pdo`), using the public `OpenTelemetry\API\*` / `OpenTelemetry\Context\*` / `OpenTelemetry\SDK\*` API and the `OpenTelemetry\Instrumentation\hook()` function — runs against a **separate** runtime: its spans use a no-op tracer provider and an empty context, so EDOT PHP does not export them or connect them to its own traces.
 
 Setting `OTEL_PHP_SCOPED_DEPS_BRIDGE_ENABLED=true` bridges the two: before the application's Composer autoloader runs, EDOT PHP registers class aliases that map the unscoped `OpenTelemetry\*` API onto its scoped implementation. The application's own OpenTelemetry usage then transparently uses EDOT PHP's tracer provider and context, and its spans are exported and correctly parented within EDOT PHP's traces.
 
 Because EDOT PHP ships specific versions of the OpenTelemetry packages, EDOT PHP checks at shutdown whether the application installed different versions of `open-telemetry/api`, `open-telemetry/context`, or `open-telemetry/sdk`, and logs a warning for each mismatch. The version that EDOT PHP bundles is always the one active at runtime. If the versions differ significantly, the shared runtime might behave unexpectedly. Align the application's versions with the versions bundled in EDOT PHP to prevent this.
 
-This option has no effect when scoping is turned off (`OTEL_PHP_SCOPED_DEPS_ENABLED=false`): without scoping EDOT PHP already uses the unscoped `OpenTelemetry\*` classes that the application uses, so OpenTelemetry usage shares the runtime without bridging.
+This option has no effect when scoping is turned off (`OTEL_PHP_SCOPED_DEPS_ENABLED=false`). Without scoping, EDOT PHP already uses the unscoped `OpenTelemetry\*` classes that the application uses, so OpenTelemetry usage shares the runtime without bridging.
 
 ## File-based configuration (declarative)
 

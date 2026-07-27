@@ -29,9 +29,7 @@ To check for security updates, go to [Security announcements for the Elastic sta
 
 ## 1.8.0 [edot-php-1.8.0-release-notes]
 
-Based on [opentelemetry-php-distro v0.6.0](https://github.com/open-telemetry/opentelemetry-php-distro/releases/tag/v0.6.0).
-
-### This release is based on the following OpenTelemetry PHP packages
+Based on [opentelemetry-php-distro v0.6.0](https://github.com/open-telemetry/opentelemetry-php-distro/releases/tag/v0.6.0) and the following OpenTelemetry PHP packages:
 
 - [open-telemetry/api 1.10.0](https://packagist.org/packages/open-telemetry/api#1.10.0)
 - [open-telemetry/sdk 1.15.0](https://packagist.org/packages/open-telemetry/sdk#1.15.0)
@@ -39,7 +37,7 @@ Based on [opentelemetry-php-distro v0.6.0](https://github.com/open-telemetry/ope
 
 ### Features and enhancements [edot-php-1.8.0-features-enhancements]
 
-- **PHP runtime metrics** — Automatically exports PHP runtime metrics (memory usage, garbage collection, etc.) via the native async OTLP transport by bundling `opentelemetry/opentelemetry-metrics-runtime` (upstream PR [#131](https://github.com/open-telemetry/opentelemetry-php-distro/pull/131))
+- **PHP runtime metrics** — Automatically exports PHP runtime metrics (memory usage, garbage collection, and more) via the native async OTLP transport by bundling `opentelemetry/opentelemetry-metrics-runtime` (upstream PR [#131](https://github.com/open-telemetry/opentelemetry-php-distro/pull/131))
 - **Scoped dependencies bridge** (`OTEL_PHP_SCOPED_DEPS_BRIDGE_ENABLED`) — Aliases the unscoped `OpenTelemetry\*` API onto EDOT PHP's scoped implementation before the app's Composer autoloader runs, so app-owned instrumentation and auto-instrumentation packages share EDOT PHP's tracer provider and context instead of silently running against a no-op provider (upstream PR [#126](https://github.com/open-telemetry/opentelemetry-php-distro/pull/126))
 - **OpenTelemetry SDK updated to 1.15.0** (upstream PR [#133](https://github.com/open-telemetry/opentelemetry-php-distro/pull/133))
 

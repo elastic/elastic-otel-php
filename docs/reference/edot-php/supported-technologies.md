@@ -101,7 +101,10 @@ The following instrumentations are included in EDOT PHP.
 
 ## Included metrics packages
 
-{applies_to}`edot_php: ga 1.8.0`
+```{applies_to}
+product:
+  edot_php: ga 1.8.0
+```
 
 | Included from EDOT PHP version | Package | Emitted metrics |
 | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
