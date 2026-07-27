@@ -56,6 +56,23 @@ foreach ($elasticToOtelEnvMap as $elasticVar => $otelVar) {
 }
 unset($elasticToOtelEnvMap, $elasticVar, $otelVar, $elasticVal);
 
+// ── EDOT default overrides ──────────────────────────────────────────────
+// Env vars where EDOT default differs from the upstream OTel PHP SDK default.
+// Only applied when the user has not explicitly set the variable.
+// Note: these defaults apply only when OTEL_CONFIG_FILE is not used;
+// the file-based SDK initializer does not read these env vars.
+$edotDefaults = [
+    // SDK default is false; EDOT enables SDK health metrics by default.
+    'OTEL_PHP_INTERNAL_METRICS_ENABLED' => 'true',
+];
+
+foreach ($edotDefaults as $var => $default) {
+    if (getenv($var) === false) {
+        putenv("{$var}={$default}");
+    }
+}
+unset($edotDefaults, $var, $default);
+
 // ── Delegate to upstream bootstrap ─────────────────────────────────────
 // The upstream bootstrap_php_part.php handles:
 //   - Scoper configuration and prefix resolution

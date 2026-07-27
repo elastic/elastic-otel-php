@@ -59,6 +59,15 @@ If you change the exporter or the transport protocol, for example to gRPC or ano
 EDOT PHP also sets the `OTEL_PHP_AUTOLOAD_ENABLED` option to `true` by default. This turns on automatic instrumentation without requiring any changes to your application code.
 Modifying this option will have no effect: EDOT will override it and enforce it as `true`.
 
+### EDOT PHP default overrides
+
+Some OpenTelemetry SDK options have different default values in EDOT PHP. You can still override these by setting the environment variable explicitly.
+
+| Environment variable | OTel SDK default | OTel PHP Distro default | EDOT PHP default | Notes |
+|---|---|---|---|---|
+| `OTEL_PHP_AUTOLOAD_ENABLED` | `false` | `true` (enforced) | `true` (enforced) | Cannot be overridden; EDOT always enables autoloading. |
+| `OTEL_PHP_INTERNAL_METRICS_ENABLED` | `false` | `false` | `true` | Enables SDK health metrics (spans exported, queue size, and so on). Can be set to `false` to turn off. Not applicable when `OTEL_CONFIG_FILE` is used. |
+
 EDOT PHP bundles multiple dependencies, such as the OpenTelemetry SDK, auto-instrumentations, and their transitive dependencies. This means that your application might include dependencies that clash with the bundled ones, which can cause it to malfunction. To prevent this, EDOT PHP uses scoped dependencies by default: a unique prefix is added to all bundled namespaces. Because PHP supports runtime reflection, this namespace change might be incompatible with some edge cases. To fall back to the original (unscoped) dependencies, set `OTEL_PHP_SCOPED_DEPS_ENABLED` (php.ini: `opentelemetry_distro.scoped_deps_enabled`) to `false`. Refer to [Supportability](#supportability) for more information.
 
 ## EDOT PHP-specific configuration options
