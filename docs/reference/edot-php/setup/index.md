@@ -28,7 +28,7 @@ To quickly get up and running, follow the [Elastic OpenTelemetry Quickstart guid
 - Exploring traces and metrics in {{kib}}.
 
 :::{warning}
-Avoid using the PHP SDK alongside any other APM agent, including Elastic APM agents. Running multiple agents in the same application process may lead to conflicting instrumentation, duplicate telemetry, or other unexpected behavior.
+Avoid using the PHP SDK alongside any other APM agent, including Elastic APM agents. Running multiple agents in the same application process can lead to conflicting instrumentation, duplicate telemetry, or other unexpected behavior.
 :::
 
 ### Operating system and PHP version
@@ -92,12 +92,18 @@ After completing the configuration, you should restart the PHP process. If you a
 To confirm that EDOT PHP has successfully connected to Elastic:
 
 1. Go to **APM** → **Traces** in Elastic Observability.
-2. Find the name of the service to which you just added EDOT PHP. It can take several minutes after initializing EDOT PHP for the service to show up in this list.
+2. Find the name of the service to which you added EDOT PHP. It can take several minutes after initializing EDOT PHP for the service to show up in this list.
 3. Select the name in the list to see trace data.
 
 :::{note}
 There might be no trace data to visualize unless you have used your application since initializing EDOT PHP.
 :::
+
+## Next steps
+
+- Verify configuration options in [Configuration](/reference/edot-php/configuration.md).
+- Check known constraints in [Limitations](/reference/edot-php/setup/limitations.md).
+- If using Laravel Octane (Swoole or RoadRunner), see [Long-running PHP servers](/reference/edot-php/long-running-server.md).
 
 ## Troubleshooting
 

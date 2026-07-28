@@ -29,7 +29,7 @@ To check for security updates, go to [Security announcements for the Elastic sta
 
 ## 1.8.0 [edot-php-1.8.0-release-notes]
 
-Based on [opentelemetry-php-distro v0.6.0](https://github.com/open-telemetry/opentelemetry-php-distro/releases/tag/v0.6.0) and the following OpenTelemetry PHP packages:
+Based on [opentelemetry-php-distro v0.6.1](https://github.com/open-telemetry/opentelemetry-php-distro/releases/tag/v0.6.1) and the following OpenTelemetry PHP packages:
 
 - [open-telemetry/api 1.10.0](https://packagist.org/packages/open-telemetry/api#1.10.0)
 - [open-telemetry/sdk 1.15.0](https://packagist.org/packages/open-telemetry/sdk#1.15.0)
@@ -45,9 +45,11 @@ Based on [opentelemetry-php-distro v0.6.0](https://github.com/open-telemetry/ope
 
 - `hook()` no longer requires the target class or function to already be declared at hook registration time (upstream PR [#127](https://github.com/open-telemetry/opentelemetry-php-distro/pull/127))
 - Shadows the SDK's `Sdk` resource detector to preserve `telemetry.distro.name` after upgrading to SDK 1.15.0 (upstream PR [#133](https://github.com/open-telemetry/opentelemetry-php-distro/pull/133))
+- **Security**: bumps `guzzlehttp/guzzle` to fix a security vulnerability (upstream PR [#140](https://github.com/open-telemetry/opentelemetry-php-distro/pull/140))
 
 ### Other [edot-php-1.8.0-other]
 
+- **Long-running PHP server support** — Adds guidance and documentation for using EDOT PHP with long-running PHP server frameworks such as Laravel Octane (Swoole and RoadRunner), including recommended configuration adjustments for transaction spans, inferred spans, and span export latency (upstream PR [#138](https://github.com/open-telemetry/opentelemetry-php-distro/pull/138))
 - Added Slim and Laravel auto-instrumentation component tests (upstream PR [#128](https://github.com/open-telemetry/opentelemetry-php-distro/pull/128))
 - Added support for local Composer package overrides for development (upstream PR [#125](https://github.com/open-telemetry/opentelemetry-php-distro/pull/125))
 

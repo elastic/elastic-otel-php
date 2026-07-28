@@ -7,6 +7,7 @@ toc:
       - file: attribute-instrumentation.md
       - file: supported-technologies.md
       - file: migration.md
+      - file: long-running-server.md
       - file: overhead.md
       - title: Troubleshooting
         crosslink: docs-content://troubleshoot/ingest/opentelemetry/edot-sdks/php/index.md
