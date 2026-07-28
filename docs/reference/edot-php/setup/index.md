@@ -103,7 +103,7 @@ There might be no trace data to visualize unless you have used your application 
 
 - Verify configuration options in [Configuration](/reference/edot-php/configuration.md).
 - Check known constraints in [Limitations](/reference/edot-php/setup/limitations.md).
-- If using Laravel Octane (Swoole or RoadRunner), see [Long-running PHP servers](/reference/edot-php/long-running-server.md).
+- If using Laravel Octane (Swoole or RoadRunner), check [Long-running PHP servers](/reference/edot-php/long-running-server.md).
 
 ## Troubleshooting
 

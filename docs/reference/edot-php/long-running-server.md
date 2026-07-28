@@ -40,7 +40,7 @@ With **Laravel Octane** (Swoole or RoadRunner), one PHP worker process handles m
 Because the worker process is a **CLI process** (started with `php artisan octane:start`), the SAPI is always `cli`, not `fpm-fcgi` or `apache2handler`. EDOT PHP uses this to distinguish:
 
 - `OTEL_PHP_TRANSACTION_SPAN_ENABLED` — root span for web SAPI (FPM/Apache). Not relevant here.
-- `OTEL_PHP_TRANSACTION_SPAN_ENABLED_CLI` — root span for CLI processes. In a long-running server this would wrap the **entire server lifetime** (from `octane:start` to `octane:stop`), not an individual request, which is not useful telemetry.
+- `OTEL_PHP_TRANSACTION_SPAN_ENABLED_CLI` — root span for CLI processes. In a long-running server, this would wrap the **entire server lifetime** (from `octane:start` to `octane:stop`), not an individual request, which is not useful telemetry.
 
 | Aspect | PHP-FPM / Apache | Long-running server (Octane) |
 |---|---|---|
@@ -48,13 +48,13 @@ Because the worker process is a **CLI process** (started with `php artisan octan
 | Process lifetime | One process per request | One worker process handles many requests |
 | PHP shutdown functions | Run after every request | Run only when the worker process exits |
 | EDOT PHP bootstrap | Runs per request | Runs once per worker process on startup |
-| Transaction span (`_CLI`) | Not applicable | Would span the entire server lifetime — turn it off |
+| Transaction span (`_CLI`) | Not applicable | Would span the entire server lifetime |
 
 ## Recommended configuration
 
 ### Turn off the CLI transaction span
 
-The auto root span (`OTEL_PHP_TRANSACTION_SPAN_ENABLED_CLI`) wraps the whole PHP process. In a long-running server this means one span lasting until the server shuts down, which is not useful telemetry.
+The auto root span (`OTEL_PHP_TRANSACTION_SPAN_ENABLED_CLI`) wraps the whole PHP process. In a long-running server, this means one span lasting until the server shuts down, which is not useful telemetry. Turn this setting off:
 
 ```bash
 export OTEL_PHP_TRANSACTION_SPAN_ENABLED_CLI=false
@@ -66,7 +66,7 @@ export OTEL_PHP_TRANSACTION_SPAN_ENABLED_CLI=false
 
 ### Turn off inferred spans
 
-Inferred spans (stack-trace sampling) are designed for traditional request-based PHP. In a long-running server the sampling runs continuously between requests, generating noise and consuming CPU.
+Inferred spans (stack-trace sampling) are designed for traditional request-based PHP. In a long-running server, the sampling runs continuously between requests, generating noise and consuming CPU. Turn inferred spans off:
 
 ```bash
 export OTEL_PHP_INFERRED_SPANS_ENABLED=false
@@ -76,9 +76,9 @@ This is the default value, so it is only needed if you previously turned on infe
 
 ### Span processor and export latency
 
-By default EDOT PHP uses `BatchSpanProcessor`, which accumulates spans in memory and exports them on a timer (default: every 5 seconds). PHP is single-threaded, so the timer check runs only when a new span ends via `onEnd()` — there is no background tick. Always use a graceful stop (`php artisan octane:stop`, SIGTERM) so that workers can finish their current request, run PHP shutdown functions, and flush the exporter before exiting. A hard stop (`SIGKILL`) bypasses all this.
+By default EDOT PHP uses `BatchSpanProcessor`, which accumulates spans in memory and exports them on a timer (the default is every 5 seconds). PHP is single-threaded, so the timer check runs only when a new span ends via `onEnd()` — there is no background tick. Always use a graceful stop (`php artisan octane:stop`, SIGTERM) so that workers can finish their current request, run PHP shutdown functions, and flush the exporter before exiting. A hard stop (`SIGKILL`) bypasses all this.
 
-With graceful stop, spans buffered in memory are flushed before the process exits, provided the OTLP endpoint is reachable. However, `BatchSpanProcessor` introduces **export latency** proportional to how frequently requests arrive. On a low-traffic application, a span created at 10:00 can not appear in the collector until 10:05 (the next request finally triggers the timer check). For near-real-time visibility, use `SimpleSpanProcessor`:
+With graceful stop, spans buffered in memory are flushed before the process exits, provided the OTLP endpoint is reachable. However, `BatchSpanProcessor` introduces **export latency** proportional to how frequently requests arrive. On a low-traffic application, a span created at 10:00 can't appear in the collector until 10:05 (the next request finally triggers the timer check). For near-real-time visibility, use `SimpleSpanProcessor`:
 
 ```bash
 export OTEL_PHP_TRACES_PROCESSOR=simple
@@ -116,7 +116,7 @@ Swoole creates worker processes by forking the master PHP process. EDOT PHP boot
 
 ### RoadRunner
 
-RoadRunner is a Go-based application server that manages PHP worker processes. Unlike Swoole, it does not fork — it spawns each PHP worker as a separate process. Each worker therefore bootstraps EDOT PHP independently on startup. From the instrumentation perspective the behavior is identical: the worker's SAPI is `cli`, it handles many requests without exiting between them, and the same configuration applies.
+RoadRunner is a Go-based application server that manages PHP worker processes. Unlike Swoole, it does not fork — it spawns each PHP worker as a separate process. Therefore, each worker bootstraps EDOT PHP independently on startup. From the instrumentation perspective, the behavior is identical: the worker's SAPI is `cli`, it handles many requests without exiting between them, and the same configuration applies.
 
 ## BatchSpanProcessor schedule delay
 
