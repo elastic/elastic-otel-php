@@ -25,35 +25,43 @@ Compared to the Elastic APM PHP agent, the {{edot}} PHP presents a number of adv
 
 ## Migration steps
 
-Follow these steps to migrate from the legacy Elastic APM PHP agent (`elastic-apm-php`) to the {{edot}} PHP (`elastic-otel-php`).
+Follow these steps to migrate from the legacy Elastic APM PHP agent (`apm-agent-php`) to the {{edot}} PHP (`elastic-otel-php`).
 
 ::::::{stepper}
 
 :::::{step} Uninstall the Elastic APM PHP agent
 
-Remove the previously installed `elastic-apm-php` package:
+Remove the previously installed `apm-agent-php` package:
 
 ::::{tab-set}
 
 :::{tab-item} Debian/Ubuntu
 ```bash
-sudo dpkg -r elastic-apm-php
+sudo dpkg -r apm-agent-php
 ```
 :::
 
 :::{tab-item} CentOS/Fedora
 ```bash
-sudo rpm -e elastic-apm-php
+sudo rpm -e apm-agent-php
 ```
 :::
 
 :::{tab-item} Alpine Linux
 ```bash
-sudo apk del elastic-apm-php
+sudo apk del apm-agent-php
 ```
 :::
 
 ::::
+
+To verify the removal, restart your PHP processes and confirm that the `elastic_apm` extension is no longer loaded:
+
+```bash
+php -m | grep elastic_apm
+```
+
+The command should return no output.
 :::::
 
 :::::{step} Install EDOT PHP
