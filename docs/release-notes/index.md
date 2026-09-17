@@ -27,6 +27,33 @@ To check for security updates, go to [Security announcements for the Elastic sta
 % ### Fixes [edot-php-X.X.X-fixes]
 % *
 
+## 1.9.0 [edot-php-1.9.0-release-notes]
+
+Based on [opentelemetry-php-distro v0.7.0](https://github.com/open-telemetry/opentelemetry-php-distro/releases/tag/v0.7.0) and the following OpenTelemetry PHP packages:
+
+- [open-telemetry/api 1.10.0](https://packagist.org/packages/open-telemetry/api#1.10.0)
+- [open-telemetry/sdk 1.15.0](https://packagist.org/packages/open-telemetry/sdk#1.15.0)
+- [open-telemetry/context 1.5.0](https://packagist.org/packages/open-telemetry/context#1.5.0)
+
+### Features and enhancements [edot-php-1.9.0-features-enhancements]
+
+- **HTTP request and response header capture** — curl, PSR-18, and async HTTP auto-instrumentation now capture HTTP request and response headers as span attributes, configurable via standardized configuration keys (upstream distro PR [#151](https://github.com/open-telemetry/opentelemetry-php-distro/pull/151), package changelogs: [curl 0.2.0→0.4.0](https://github.com/opentelemetry-php/contrib-auto-curl/compare/0.2.0...0.4.0), [psr18 1.2.0→1.4.0](https://github.com/opentelemetry-php/contrib-auto-psr18/compare/1.2.0...1.4.0), [http-async 1.2.0→1.4.0](https://github.com/opentelemetry-php/contrib-auto-http-async/compare/1.2.0...1.4.0))
+- **PostgreSQL SQLcommenter support** — `opentelemetry-auto-postgresql` now supports SQLcommenter for `pdo_pgsql` connections ([changelog](https://github.com/opentelemetry-php/contrib-auto-postgresql/releases/tag/0.4.0))
+- **OTel SDK self-observability metrics** — `sdk-configuration` now supports OTel SDK self-observability metrics, and the span suppression strategy is configurable via file-based configuration ([sdk-configuration 0.8.0→0.9.0](https://github.com/opentelemetry-php/config-sdk/compare/0.8.0...0.9.0))
+- **Laravel context flattening** — Opt-in context flattening for improved faceted log search is now available in Laravel auto-instrumentation ([laravel 1.7.0→1.9.0](https://github.com/opentelemetry-php/contrib-auto-laravel/compare/1.7.0...1.9.0))
+
+### Fixes [edot-php-1.9.0-fixes]
+
+- Deduplicates propagation headers on outgoing curl requests ([curl 0.2.0→0.4.0](https://github.com/opentelemetry-php/contrib-auto-curl/compare/0.2.0...0.4.0))
+- Fixes `STATUS_ERROR` not being set for non-zero exit codes in Laravel console `Command::execute` ([laravel 1.7.0→1.9.0](https://github.com/opentelemetry-php/contrib-auto-laravel/compare/1.7.0...1.9.0))
+- Prevents span leak in Laravel worker processes by ending spans on empty receive ([laravel 1.7.0→1.9.0](https://github.com/opentelemetry-php/contrib-auto-laravel/compare/1.7.0...1.9.0))
+- Corrects span kind to `KIND_SERVER` for Laravel Artisan `Kernel::handle` ([laravel 1.7.0→1.9.0](https://github.com/opentelemetry-php/contrib-auto-laravel/compare/1.7.0...1.9.0))
+- Fixes URL path construction in `httpTarget()` and queue name parameter index in `hookLater()` for Laravel ([laravel 1.7.0→1.9.0](https://github.com/opentelemetry-php/contrib-auto-laravel/compare/1.7.0...1.9.0))
+
+### Other [edot-php-1.9.0-other]
+
+- **Security auditing for production dependencies** — Adds automated composer audit for PHP production dependencies (upstream PR [#142](https://github.com/open-telemetry/opentelemetry-php-distro/pull/142))
+
 ## 1.8.0 [edot-php-1.8.0-release-notes]
 
 Based on [opentelemetry-php-distro v0.6.1](https://github.com/open-telemetry/opentelemetry-php-distro/releases/tag/v0.6.1) and the following OpenTelemetry PHP packages:

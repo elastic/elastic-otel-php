@@ -1,0 +1,28 @@
+---
+
+name: audit-php-deps
+
+on:
+  workflow_call: ~
+  workflow_dispatch: ~
+
+permissions:
+  contents: read
+
+jobs:
+  audit-php-deps:
+    name: audit-php-deps
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      COMPOSER_ALLOW_SUPERUSER: 1
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+      - name: Run composer audit for production dependencies
+        run: |
+          source ./upstream/tools/read_properties.sh
+          read_properties upstream/project.properties PROJECT_PROPERTIES
+          PHP_VERSIONS=${PROJECT_PROPERTIES_SUPPORTED_PHP_VERSIONS//[()]/}
+          cd upstream && ./tools/build/audit_PHP_deps.sh --php_versions "${PHP_VERSIONS}"

@@ -29,6 +29,9 @@ jobs:
   test-php-static-and-unit:
     uses: ./.github/workflows/test-php-static-and-unit.yml
 
+  audit-php-deps:
+    uses: ./.github/workflows/audit-php-deps.yml
+
   scan-snyk:
     uses: ./.github/workflows/scan-snyk.yml
     secrets: inherit
@@ -72,6 +75,7 @@ jobs:
     needs:
       - test-sources-license
       - test-php-static-and-unit
+      - audit-php-deps
       - tests-phpt
       - build-packages
       - test-otel-unit
