@@ -1,8 +1,9 @@
 toc:
       - file: index.md
-      - file: setup/index.md
+      - folder: setup
         children:
-          - file: setup/limitations.md
+          - file: index.md
+          - file: limitations.md
       - file: configuration.md
       - file: attribute-instrumentation.md
       - file: supported-technologies.md
