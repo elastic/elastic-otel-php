@@ -27,6 +27,23 @@ To check for security updates, go to [Security announcements for the Elastic sta
 % ### Fixes [edot-php-X.X.X-fixes]
 % *
 
+## 1.9.1 [edot-php-1.9.1-release-notes]
+
+Based on [opentelemetry-php-distro v0.7.1](https://github.com/open-telemetry/opentelemetry-php-distro/releases/tag/v0.7.1) (PR [#406](https://github.com/elastic/elastic-otel-php/pull/406)) and the following OpenTelemetry PHP packages:
+
+- [open-telemetry/api 1.10.1](https://packagist.org/packages/open-telemetry/api#1.10.1)
+- [open-telemetry/sdk 1.15.0](https://packagist.org/packages/open-telemetry/sdk#1.15.0)
+- [open-telemetry/context 1.6.0](https://packagist.org/packages/open-telemetry/context#1.6.0)
+
+### Fixes [edot-php-1.9.1-fixes]
+
+- **Security**: updates bundled PHP dependencies, including Symfony components, to versions that fix security advisories reported by `composer audit` (upstream PR [#162](https://github.com/open-telemetry/opentelemetry-php-distro/pull/162), package changelogs: [api 1.10.0→1.10.1](https://github.com/opentelemetry-php/api/compare/1.10.0...1.10.1), [context 1.5.0→1.6.0](https://github.com/opentelemetry-php/context/compare/1.5.0...1.6.0))
+
+### Other [edot-php-1.9.1-other]
+
+- Updates the OTLP protobuf definitions to v1.11.1 (upstream PR [#162](https://github.com/open-telemetry/opentelemetry-php-distro/pull/162), [gen-otlp-protobuf 1.10.0→1.11.1](https://github.com/opentelemetry-php/gen-otlp-protobuf/compare/1.10.0...1.11.1))
+- Pins the Composer version that the build and test tooling uses (upstream PR [#160](https://github.com/open-telemetry/opentelemetry-php-distro/pull/160))
+
 ## 1.9.0 [edot-php-1.9.0-release-notes]
 
 Based on [opentelemetry-php-distro v0.7.0](https://github.com/open-telemetry/opentelemetry-php-distro/releases/tag/v0.7.0) and the following OpenTelemetry PHP packages:

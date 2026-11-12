@@ -30,6 +30,18 @@ Review the deprecated functionality for Elastic Distribution of OpenTelemetry PH
 % ::::
 % TEMPLATE END
 
+## 1.9.1 [edot-php-1.9.1-deprecations]
+
+::::{dropdown} PHP 8.1 support is deprecated
+The next EDOT PHP release will drop support for PHP 8.1.
+
+**Impact**<br> Applications that run on PHP 8.1 can't use the next EDOT PHP release.
+
+**Action**<br> Upgrade your applications to PHP 8.2 or later before you upgrade EDOT PHP.
+
+View [upstream PR #162](https://github.com/open-telemetry/opentelemetry-php-distro/pull/162).
+::::
+
 ## 1.5.0 [edot-php-1.5.0-deprecations]
 
 ::::{dropdown} Deprecated `ELASTIC_OTEL_*` environment variables and `elastic_otel.*` INI settings

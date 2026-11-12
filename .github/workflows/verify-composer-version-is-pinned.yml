@@ -1,0 +1,23 @@
+---
+
+name: verify-composer-version-is-pinned
+
+on:
+  workflow_call: ~
+  workflow_dispatch: ~
+
+permissions:
+  contents: read
+
+jobs:
+  verify-composer-version-is-pinned:
+    name: verify-composer-version-is-pinned
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - name: Verify the Composer version is specified only in project.properties
+        run: ./tools/build/verify_composer_version_is_pinned.sh
