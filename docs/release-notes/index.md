@@ -27,6 +27,25 @@ To check for security updates, go to [Security announcements for the Elastic sta
 % ### Fixes [edot-php-X.X.X-fixes]
 % *
 
+## 1.9.2 [edot-php-1.9.2-release-notes]
+
+Based on [opentelemetry-php-distro v0.7.2](https://github.com/open-telemetry/opentelemetry-php-distro/releases/tag/v0.7.2) (PR [#408](https://github.com/elastic/elastic-otel-php/pull/408)).
+
+### This release is based on the following OpenTelemetry PHP packages
+
+- [open-telemetry/api 1.10.1](https://packagist.org/packages/open-telemetry/api#1.10.1)
+- [open-telemetry/sdk 1.15.0](https://packagist.org/packages/open-telemetry/sdk#1.15.0)
+- open-telemetry/context:
+  - PHP 8.1: [1.5.0](https://packagist.org/packages/open-telemetry/context#1.5.0)
+  - PHP 8.2: [1.6.0](https://packagist.org/packages/open-telemetry/context#1.6.0)
+  - PHP 8.3: [1.6.0](https://packagist.org/packages/open-telemetry/context#1.6.0)
+  - PHP 8.4: [1.6.0](https://packagist.org/packages/open-telemetry/context#1.6.0)
+  - PHP 8.5: [1.6.0](https://packagist.org/packages/open-telemetry/context#1.6.0)
+
+### Fixes [edot-php-1.9.2-fixes]
+
+- Fixes a fatal error on every request at shutdown on PHP 8.1. EDOT PHP now keeps the polyfilled functions, such as `ini_parse_quantity()`, in the global namespace in the scoped PHP code (upstream PR [#164](https://github.com/open-telemetry/opentelemetry-php-distro/pull/164), upstream issue [#163](https://github.com/open-telemetry/opentelemetry-php-distro/issues/163))
+
 ## 1.9.1 [edot-php-1.9.1-release-notes]
 
 Based on [opentelemetry-php-distro v0.7.1](https://github.com/open-telemetry/opentelemetry-php-distro/releases/tag/v0.7.1) (PR [#406](https://github.com/elastic/elastic-otel-php/pull/406)) and the following OpenTelemetry PHP packages:
