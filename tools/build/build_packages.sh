@@ -77,18 +77,16 @@ if [[ -z "${PACKAGE_VERSION+x}" ]] || [[ -z "${BUILD_ARCHITECTURE+x}" ]] || [[ -
 fi
 
 test_package() {
-    local highest_supported_php_version_no_dot
-    highest_supported_php_version_no_dot=$(get_array_max_value ${_UPSTREAM_PROPERTIES_SUPPORTED_PHP_VERSIONS})
-    local highest_supported_php_version_dot_separated
-    highest_supported_php_version_dot_separated=$(convert_no_dot_to_dot_separated_version "${highest_supported_php_version_no_dot}")
-    local PHP_VERSION="${highest_supported_php_version_dot_separated}"
     local PKG_TYPE=$1
     local PKG_FILENAME=$2
     local DOCKER_PLATFORM=$3
+    local PHP_VERSION_NO_DOT=$4
+    local PHP_VERSION
+    PHP_VERSION=$(convert_no_dot_to_dot_separated_version "${PHP_VERSION_NO_DOT}")
 
     echo ${PKG_FILENAME}
 
-    echo "Starting ${PKG_FILENAME} smoke test"
+    echo "Starting ${PKG_FILENAME} smoke test on PHP ${PHP_VERSION}"
     echo "Running on platform ${DOCKER_PLATFORM}";
 
     local TEST_LICENSE_FILES="echo -n 'Checking for \"copyright\" files existence: ' && test -f /opt/elastic/elastic-otel-php/LICENSE && test -f /opt/elastic/elastic-otel-php/NOTICE && echo -e '\033[0;32mOK\033[0;39m'"
@@ -129,7 +127,7 @@ test_package() {
     esac
 
     if [ $? -ne 0 ]; then
-        echo -e "\033[0;31mPackage ${PKG_FILENAME} smoke test FAILED\033[0;39m"
+        echo -e "\033[0;31mPackage ${PKG_FILENAME} smoke test on PHP ${PHP_VERSION} FAILED\033[0;39m"
         exit 1
     fi
 
@@ -152,6 +150,13 @@ export PACKAGE_VERSION="${PACKAGE_VERSION}"
 export BUILD_ARCHITECTURE="${BUILD_ARCHITECTURE}"
 export PACKAGE_GOARCHITECTURE="${PACKAGE_GOARCHITECTURE}"
 export PACKAGE_SHA="${PACKAGE_SHA}"
+
+# Each PHP version has its own scoped vendor tree, so test both ends of the supported range.
+# shellcheck disable=SC2086
+SMOKE_TEST_PHP_VERSIONS_NO_DOT=(
+    "$(get_array_min_value ${_UPSTREAM_PROPERTIES_SUPPORTED_PHP_VERSIONS})"
+    "$(get_array_max_value ${_UPSTREAM_PROPERTIES_SUPPORTED_PHP_VERSIONS})"
+)
 
 DOCKER_PLATFORM="linux/x86_64"
 if [[ -n "${BUILD_ARCHITECTURE}" ]] && [[ "${BUILD_ARCHITECTURE}" =~ arm64$ ]]; then
@@ -187,7 +192,10 @@ do
     md5sum "${PKG_FILENAME}" >"${PKG_FILENAME}".sha512
     popd
 
-    test_package ${pkg_type} "${PKG_FILENAME}" "${DOCKER_PLATFORM}"
+    for php_version_no_dot in "${SMOKE_TEST_PHP_VERSIONS_NO_DOT[@]}"
+    do
+        test_package ${pkg_type} "${PKG_FILENAME}" "${DOCKER_PLATFORM}" "${php_version_no_dot}"
+    done
 
 done
 

@@ -33,11 +33,11 @@ Review the deprecated functionality for Elastic Distribution of OpenTelemetry PH
 ## 1.9.1 [edot-php-1.9.1-deprecations]
 
 ::::{dropdown} PHP 8.1 support is deprecated
-The next EDOT PHP release will drop support for PHP 8.1.
+EDOT PHP 1.9.x is the last release series that supports PHP 8.1. The next minor release will drop support for PHP 8.1.
 
-**Impact**<br> Applications that run on PHP 8.1 can't use the next EDOT PHP release.
+**Impact**<br> Applications that run on PHP 8.1 can't use EDOT PHP releases later than 1.9.x.
 
-**Action**<br> Upgrade your applications to PHP 8.2 or later before you upgrade EDOT PHP.
+**Action**<br> Upgrade your applications to PHP 8.2 or later before you upgrade EDOT PHP to a release later than 1.9.x.
 
 View [upstream PR #162](https://github.com/open-telemetry/opentelemetry-php-distro/pull/162).
 ::::
