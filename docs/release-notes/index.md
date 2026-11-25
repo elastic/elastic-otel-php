@@ -29,7 +29,7 @@ To check for security updates, go to [Security announcements for the Elastic sta
 
 ## 1.10.0 [edot-php-1.10.0-release-notes]
 
-Based on [opentelemetry-php-distro v0.8.0](https://github.com/open-telemetry/opentelemetry-php-distro/releases/tag/v0.8.0) (PR [#NNN](https://github.com/elastic/elastic-otel-php/pull/NNN)).
+Based on [opentelemetry-php-distro v0.8.0](https://github.com/open-telemetry/opentelemetry-php-distro/releases/tag/v0.8.0) (PR [#409](https://github.com/elastic/elastic-otel-php/pull/409)).
 
 ### This release is based on the following OpenTelemetry PHP packages
 
