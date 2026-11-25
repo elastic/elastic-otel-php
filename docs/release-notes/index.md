@@ -27,6 +27,43 @@ To check for security updates, go to [Security announcements for the Elastic sta
 % ### Fixes [edot-php-X.X.X-fixes]
 % *
 
+## 1.10.0 [edot-php-1.10.0-release-notes]
+
+Based on [opentelemetry-php-distro v0.8.0](https://github.com/open-telemetry/opentelemetry-php-distro/releases/tag/v0.8.0) (PR [#NNN](https://github.com/elastic/elastic-otel-php/pull/NNN)).
+
+### This release is based on the following OpenTelemetry PHP packages
+
+- [open-telemetry/api 1.12.0](https://packagist.org/packages/open-telemetry/api#1.12.0)
+- [open-telemetry/sdk 1.17.0](https://packagist.org/packages/open-telemetry/sdk#1.17.0)
+- [open-telemetry/context 1.6.0](https://packagist.org/packages/open-telemetry/context#1.6.0)
+
+### Features and enhancements [edot-php-1.10.0-features-enhancements]
+
+- **Root span created by the SDK** — The SDK's `AutoRootSpan` now creates the transaction span. EDOT PHP still turns it on by default for web and CLI, and supplies the defaults to its own SDK only, so an application's own copy of the SDK isn't affected (upstream PR [#172](https://github.com/open-telemetry/opentelemetry-php-distro/pull/172))
+- **HTTP request and response capture** — The transaction span records the headers that `OTEL_INSTRUMENTATION_HTTP_SERVER_CAPTURE_REQUEST_HEADERS` and `OTEL_INSTRUMENTATION_HTTP_SERVER_CAPTURE_RESPONSE_HEADERS` list. You can also record the request body as `http.request.body.content` with `OTEL_PHP_INSTRUMENTATION_HTTP_SERVER_CAPTURE_REQUEST_BODY`. Refer to [HTTP capture configuration](/reference/edot-php/configuration.md#http-capture-configuration) (SDK package changelog: [sdk 1.15.0→1.17.0](https://github.com/opentelemetry-php/sdk/compare/1.15.0...1.17.0))
+- **Skip requests by header** — `OTEL_PHP_EXCLUDED_REQUEST_HEADERS` turns off the SDK for web requests with a matching header ([sdk 1.15.0→1.17.0](https://github.com/opentelemetry-php/sdk/compare/1.15.0...1.17.0))
+- **OpenTelemetry PHP package updates** — Updates the bundled packages to SDK 1.17.0, API 1.12.0, `exporter-otlp` 1.6.0, `sdk-configuration` 0.10.0, and semantic conventions 1.45.0. Native OTLP exporters follow `exporter-otlp` 1.6.0, OTLP proto v1.11.1, and semantic conventions 1.45.0. They no longer export histogram `min` and `max` values that weren't recorded (upstream PR [#172](https://github.com/open-telemetry/opentelemetry-php-distro/pull/172))
+- **Runtime metrics** — Adds the `process.paging.faults` and `process.uptime` metrics (package changelog: [metrics-runtime 0.2.0→0.3.0](https://github.com/opentelemetry-php/contrib-metrics-runtime/compare/0.2.0...0.3.0))
+- **Metrics and exporter options** — Adds composable samplers (experimental), `always_on`, `always_off`, and `trace_based` values for `OTEL_METRICS_EXEMPLAR_FILTER`, per-instrument-kind temporality selection, and the `OTEL_EXPORTER_OTLP_[SIGNAL_]CERTIFICATE`, `..._CLIENT_CERTIFICATE`, `..._CLIENT_KEY`, and `..._INSECURE` options (package changelogs: [sdk 1.15.0→1.17.0](https://github.com/opentelemetry-php/sdk/compare/1.15.0...1.17.0), [exporter-otlp 1.4.0→1.6.0](https://github.com/opentelemetry-php/exporter-otlp/compare/1.4.0...1.6.0))
+- **SQLcommenter 0.3 support** — The MySQLi and PDO instrumentations support SQLcommenter 0.3 (package changelogs: [mysqli 0.4.0→0.5.0](https://github.com/opentelemetry-php/contrib-auto-mysqli/compare/0.4.0...0.5.0), [pdo 0.5.0→0.6.0](https://github.com/opentelemetry-php/contrib-auto-pdo/compare/0.5.0...0.6.0))
+
+### Fixes [edot-php-1.10.0-fixes]
+
+- Keeps instrumentation spans and their parents exported when inferred spans are on (upstream PR [#167](https://github.com/open-telemetry/opentelemetry-php-distro/pull/167))
+- Ends inferred spans natively before the post hooks of instrumentations run. This also covers `#[WithSpan]` and fixes a `TypeError` when the caller of a hooked function uses `strict_types` (upstream PR [#170](https://github.com/open-telemetry/opentelemetry-php-distro/pull/170), upstream issue [#169](https://github.com/open-telemetry/opentelemetry-php-distro/issues/169))
+- Fixes the EDOT PHP OTLP exporters (`Contrib/Otlp`) so they work with `exporter-otlp` 1.5.0. Before, the OTLP metric exporter couldn't be created (upstream PR [#172](https://github.com/open-telemetry/opentelemetry-php-distro/pull/172))
+- Uses the span name from `#[WithSpan(span_name: ...)]` and falls back to `info` with a warning for an unrecognized `OTEL_LOG_LEVEL` ([api 1.10.0→1.12.0](https://github.com/opentelemetry-php/api/compare/1.10.0...1.12.0))
+- Stops the baggage propagator from dropping entries with percent-encoded values ([api 1.10.0→1.12.0](https://github.com/opentelemetry-php/api/compare/1.10.0...1.12.0))
+- Applies `OTEL_ATTRIBUTE_COUNT_LIMIT` and `OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT`, which the SDK ignored before. Fixes the wildcard matcher behind `OTEL_PHP_TRANSACTION_URL_GROUPS` and a failure of every export when the HTTP client decoded a gzip response itself ([sdk 1.15.0→1.17.0](https://github.com/opentelemetry-php/sdk/compare/1.15.0...1.17.0))
+- Runs the host resource detector without a shell ([sdk 1.15.0→1.17.0](https://github.com/opentelemetry-php/sdk/compare/1.15.0...1.17.0))
+- Fixes the Laravel instrumentation setting `db.query.text` on the `getModels` span, which made `toSql()` throw for MongoDB. The instrumentation also no longer mixes the query string into `url.path` ([laravel 1.9.0→1.9.1](https://github.com/opentelemetry-php/contrib-auto-laravel/compare/1.9.0...1.9.1))
+- Keeps binary SQL literals when SQLcommenter is installed (package changelog: [pdo 0.5.0→0.6.0](https://github.com/opentelemetry-php/contrib-auto-pdo/compare/0.5.0...0.6.0))
+
+### Other [edot-php-1.10.0-other]
+
+- Drops support for PHP 8.1. EDOT PHP supports PHP 8.2 to 8.5. Refer to [breaking changes](/release-notes/breaking-changes.md) (upstream PR [#172](https://github.com/open-telemetry/opentelemetry-php-distro/pull/172))
+- Updates the Slim (1.5.1) and PostgreSQL (0.4.1) instrumentations to the namespaced semantic convention classes ([slim 1.5.0→1.5.1](https://github.com/opentelemetry-php/contrib-auto-slim/compare/1.5.0...1.5.1), [postgresql 0.4.0→0.4.1](https://github.com/opentelemetry-php/contrib-auto-postgresql/compare/0.4.0...0.4.1))
+
 ## 1.9.2 [edot-php-1.9.2-release-notes]
 
 Based on [opentelemetry-php-distro v0.7.2](https://github.com/open-telemetry/opentelemetry-php-distro/releases/tag/v0.7.2) (PR [#408](https://github.com/elastic/elastic-otel-php/pull/408)).

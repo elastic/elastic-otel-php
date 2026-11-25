@@ -15,11 +15,11 @@ products:
 
 # Attribute-based instrumentation
 
-EDOT PHP supports automatic span creation using PHP 8.1 attributes. Annotate methods or functions with `#[WithSpan]` to create spans without writing instrumentation code manually.
+EDOT PHP supports automatic span creation using PHP attributes. Annotate methods or functions with `#[WithSpan]` to create spans without writing instrumentation code manually.
 
 ## Prerequisites
 
-- PHP 8.1 or later (PHP attributes require PHP 8.1+).
+- PHP 8.2 or later.
 - `open-telemetry/api` package installed in your application.
 - `OTEL_PHP_ATTR_HOOKS_ENABLED=true` set in the environment (deactivated by default).
 

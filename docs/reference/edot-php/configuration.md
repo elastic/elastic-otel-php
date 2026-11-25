@@ -159,6 +159,19 @@ _Deprecated aliases: `ELASTIC_OTEL_LOG_LEVEL`, `ELASTIC_OTEL_LOG_FILE`, `ELASTIC
 
 _Deprecated aliases: `ELASTIC_OTEL_TRANSACTION_SPAN_ENABLED`, `ELASTIC_OTEL_TRANSACTION_SPAN_ENABLED_CLI`, `ELASTIC_OTEL_TRANSACTION_URL_GROUPS`_
 
+### HTTP capture configuration
+
+{applies_to}`edot_php: ga 1.10.0`
+
+The transaction span reads these options. Set them as environment variables or in `php.ini`.
+
+| Option(s)                                                          | Default | Accepted values              | Description                                                                                                                                                                                                                                  |
+| ------------------------------------------------------------------ | ------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| OTEL_INSTRUMENTATION_HTTP_SERVER_CAPTURE_REQUEST_HEADERS           |         | Comma-separated header names | Records the listed request headers as `http.request.header.<name>`.                                                                                                                                                                          |
+| OTEL_INSTRUMENTATION_HTTP_SERVER_CAPTURE_RESPONSE_HEADERS          |         | Comma-separated header names | Records the listed response headers as `http.response.header.<name>`.                                                                                                                                                                        |
+| OTEL_PHP_INSTRUMENTATION_HTTP_SERVER_CAPTURE_REQUEST_BODY          | `false` | `true` or `false`            | Records the request body as `http.request.body.content`. EDOT PHP records only textual bodies, based on `Content-Type`, and skips binary and compressed bodies. EDOT PHP doesn't redact the body, so it might contain sensitive data. |
+| OTEL_PHP_INSTRUMENTATION_HTTP_SERVER_CAPTURE_REQUEST_BODY_MAX_SIZE | `1024`  | Number of bytes              | Maximum size of the recorded body. EDOT PHP cuts the body on a UTF-8 character boundary.                                                                                                                                                     |
+
 ### Attribute-based instrumentation configuration
 
 {applies_to}`edot_php: ga 1.7.0`
@@ -259,13 +272,21 @@ product:
   edot_php: ga 1.8.0
 ```
 
-By default, EDOT PHP's OpenTelemetry runtime is **scoped** (refer to [Special considerations](#special-considerations)): its classes live under a unique namespace prefix, separate from the standard `OpenTelemetry\*` classes an application installs via Composer. As a result, the application's own OpenTelemetry usage — instrumentation it writes itself, or officially published auto-instrumentation packages it installs (for example, `open-telemetry/opentelemetry-auto-pdo`), using the public `OpenTelemetry\API\*` / `OpenTelemetry\Context\*` / `OpenTelemetry\SDK\*` API and the `OpenTelemetry\Instrumentation\hook()` function — runs against a **separate** runtime. Its spans use a no-op tracer provider and an empty context, so EDOT PHP does not export them or connect them to its own traces.
+By default, EDOT PHP's OpenTelemetry runtime is **scoped** (refer to [Special considerations](#special-considerations)): its classes live under a unique namespace prefix, separate from the standard `OpenTelemetry\*` classes an application installs via Composer. As a result, the application's own OpenTelemetry usage — instrumentation it writes itself, or officially published auto-instrumentation packages it installs (for example, `open-telemetry/opentelemetry-auto-pdo`), using the public `OpenTelemetry\API\*` / `OpenTelemetry\Context\*` / `OpenTelemetry\SDK\*` API and the `OpenTelemetry\Instrumentation\hook()` function — runs against a **separate** runtime with an empty context, so its spans are never connected to EDOT PHP's traces. If the application doesn't install `open-telemetry/sdk`, its spans use a no-op tracer provider and EDOT PHP doesn't export them. If the application installs the SDK, that SDK configures itself from the standard `OTEL_*` variables (EDOT PHP sets `OTEL_PHP_AUTOLOAD_ENABLED=true`), so it exports its spans as separate traces.
 
 Setting `OTEL_PHP_SCOPED_DEPS_BRIDGE_ENABLED=true` bridges the two: before the application's Composer autoloader runs, EDOT PHP registers class aliases that map the unscoped `OpenTelemetry\*` API onto its scoped implementation. The application's own OpenTelemetry usage then transparently uses EDOT PHP's tracer provider and context, and its spans are exported and correctly parented within EDOT PHP's traces.
 
 Because EDOT PHP ships specific versions of the OpenTelemetry packages, EDOT PHP checks at shutdown whether the application installed different versions of `open-telemetry/api`, `open-telemetry/context`, or `open-telemetry/sdk`, and logs a warning for each mismatch. The version that EDOT PHP bundles is always the one active at runtime. If the versions differ significantly, the shared runtime might behave unexpectedly. Align the application's versions with the versions bundled in EDOT PHP to prevent this.
 
 This option has no effect when scoping is turned off (`OTEL_PHP_SCOPED_DEPS_ENABLED=false`). Without scoping, EDOT PHP already uses the unscoped `OpenTelemetry\*` classes that the application uses, so OpenTelemetry usage shares the runtime without bridging.
+
+**Known limitation: the application's own `open-telemetry/sdk` 1.16.** {applies_to}`edot_php: ga 1.10.0` With `open-telemetry/sdk` 1.16, setting `OTEL_PHP_TRANSACTION_SPAN_ENABLED` or `OTEL_PHP_TRANSACTION_SPAN_ENABLED_CLI` to `true` makes every copy of the SDK in the process start a root span while Composer is still loading its files. This happens before `open-telemetry/exporter-otlp` registers the `otlp` exporter. With the bridge turned off, the application's own SDK then has no exporter and silently loses its spans.
+
+EDOT PHP doesn't trigger this by itself. It turns the root span on by default without exporting the variable to the process environment. Only a variable that you set yourself, in the environment or in `php.ini`, reaches the application's SDK. To avoid the problem, use one of these options:
+
+- Don't set these variables to `true` explicitly. `true` is already the default.
+- Turn on the bridge with `OTEL_PHP_SCOPED_DEPS_BRIDGE_ENABLED=true`.
+- If your application installs its own `open-telemetry/sdk`, use the same versions of the OpenTelemetry PHP packages that EDOT PHP bundles. You can find them in the [release notes](/release-notes/index.md) of the EDOT PHP release that you use. Also allow the `tbachert/spi` Composer plugin in `config.allow-plugins` of your application's `composer.json`.
 
 ## File-based configuration (declarative)
 
@@ -283,13 +304,15 @@ When `OTEL_CONFIG_FILE` is set:
 - Environment variable substitution (`${MY_VAR:-default}`) is supported within the YAML file.
 - Central configuration (OpAMP) is automatically deactivated — file-based and remote configuration are mutually exclusive.
 - EDOT PHP-specific options (`OTEL_PHP_*`) continue to work as they are native extension options, independent of the SDK.
+- The file must declare `file_format: "1.0"`. EDOT PHP rejects the `1.0-rc.*` and `0.x` formats. {applies_to}`edot_php: ga 1.10.0`
+- `OTEL_CONFIG_FILE` names exactly one file. EDOT PHP no longer splits a comma-separated list. {applies_to}`edot_php: ga 1.10.0`
 
 ### EDOT PHP resource detector
 
 EDOT PHP provides a `distro` resource detector that adds `telemetry.distro.name` and `telemetry.distro.version` resource attributes. To activate it in file-based configuration, add it to the `resource.detection/development.detectors` section:
 
 ```yaml
-file_format: "1.0-rc.2"
+file_format: "1.0"
 
 resource:
   attributes:
