@@ -54,18 +54,50 @@ Update your configuration files to `file_format: "1.0"` and the 1.0 schema. Refe
 View [upstream PR #172](https://github.com/open-telemetry/opentelemetry-php-distro/pull/172).
 ::::
 
-::::{dropdown} Changes in the bundled OpenTelemetry PHP SDK
-- HTTP export retries in the SDK transport only cover the status codes 429, 502, 503, and 504. Before, they also covered 408 and every 5xx code. The EDOT PHP native OTLP transport keeps its own retry policy.
-- `Configuration::getEnum()` returns lowercase values. Enum configuration values and component names are case-insensitive.
-- `open-telemetry/exporter-otlp` requires `gen-otlp-protobuf` 1.11.1 (OTLP proto v1.11.1) and `google/protobuf` 4.31. If `ext-protobuf` is installed, it must be version 4.31 or later.
-- Code that extends or replaces the OTLP exporters must follow `exporter-otlp` 1.5.0. `ProtobufSerializer` no longer defines the `SUPPORTED_CONTENT_TYPES` type alias, so use `ContentTypes::*`. `MetricExporter` accepts an `AggregationTemporalitySelectorInterface` as its temporality argument.
-- The SDK registers exporter factories, transport factories, and propagators through SPI the first time the `Registry` is asked for one. `_register.php` files that Composer includes no longer do this. A component that you register with `Registry::register*()` before that first lookup wins over the built-in one. A component that you register with `$clobber` always wins.
+::::{dropdown} `Configuration::getEnum()` returns lowercase values
+Since `open-telemetry/sdk` 1.17, `Configuration::getEnum()` returns lowercase values. The SDK interprets enum configuration values and component names case-insensitively.
 
 **Impact**<br>
-Application code that relies on the previous behavior of these APIs can break.
+Application code that compares the result of `Configuration::getEnum()` with uppercase or mixed-case strings no longer matches.
 
 **Action**<br>
-Review your code against the points above. Allow the `tbachert/spi` Composer plugin in `config.allow-plugins` of your application's `composer.json` so the SPI registration takes effect. Without it, components register when their autoload files load, as before. EDOT PHP builds its own bundled dependencies with the plugin.
+Compare the result with lowercase strings.
+
+View [upstream PR #172](https://github.com/open-telemetry/opentelemetry-php-distro/pull/172).
+::::
+
+::::{dropdown} `ext-protobuf` 4.31 or later is required for PHP-based OTLP serialization
+`open-telemetry/exporter-otlp` requires `gen-otlp-protobuf` 1.11.1 (OTLP proto v1.11.1, up from v1.8.0) and `google/protobuf` 4.31. EDOT PHP serializes OTLP data natively by default, so this applies only when PHP code serializes the data: when you set `OTEL_PHP_NATIVE_OTLP_SERIALIZER_ENABLED=false`, or when your application uses its own `open-telemetry/exporter-otlp`.
+
+**Impact**<br>
+If the `ext-protobuf` PHP extension is installed and PHP code serializes OTLP data, versions earlier than 4.31 don't work.
+
+**Action**<br>
+Upgrade `ext-protobuf` to 4.31 or later, or remove the extension.
+
+View [upstream PR #172](https://github.com/open-telemetry/opentelemetry-php-distro/pull/172).
+::::
+
+::::{dropdown} Changes in the OTLP exporter classes
+Code that extends or replaces the OTLP exporters must follow `open-telemetry/exporter-otlp` 1.5.0. `ProtobufSerializer` no longer defines the `SUPPORTED_CONTENT_TYPES` type alias. `MetricExporter` accepts an `AggregationTemporalitySelectorInterface` as its temporality argument.
+
+**Impact**<br>
+Custom classes that extend `ProtobufSerializer` or `MetricExporter`, or that use `SUPPORTED_CONTENT_TYPES`, fail.
+
+**Action**<br>
+Replace `SUPPORTED_CONTENT_TYPES` with `ContentTypes::*`. Pass an `AggregationTemporalitySelectorInterface` as the temporality argument of `MetricExporter`.
+
+View [upstream PR #172](https://github.com/open-telemetry/opentelemetry-php-distro/pull/172).
+::::
+
+::::{dropdown} Components register through SPI
+The SDK registers exporter factories, transport factories, and propagators through SPI (`RegistrarInterface`) the first time the `Registry` is asked for one. `_register.php` files that Composer includes no longer do this. A component that you register with `Registry::register*()` before that first lookup wins over the built-in one. A component that you register with `$clobber` always wins. A package that registers a built-in name from its own autoload file now wins over the one in the SDK.
+
+**Impact**<br>
+Applications that register custom exporters, transport factories, or propagators with the built-in names can get a different component than before, depending on the registration order.
+
+**Action**<br>
+Allow the `tbachert/spi` Composer plugin in `config.allow-plugins` of your application's `composer.json` so the SPI registration takes effect. Without it, components register when their autoload files load, as before. Use `$clobber` if a component must always win. EDOT PHP builds its own bundled dependencies with the plugin.
 
 View [upstream PR #172](https://github.com/open-telemetry/opentelemetry-php-distro/pull/172).
 ::::

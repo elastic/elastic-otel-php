@@ -280,7 +280,7 @@ Because EDOT PHP ships specific versions of the OpenTelemetry packages, EDOT PHP
 
 This option has no effect when scoping is turned off (`OTEL_PHP_SCOPED_DEPS_ENABLED=false`). Without scoping, EDOT PHP already uses the unscoped `OpenTelemetry\*` classes that the application uses, so OpenTelemetry usage shares the runtime without bridging.
 
-**Known limitation: the application's own `open-telemetry/sdk` 1.16.** {applies_to}`edot_php: ga 1.10.0` With `open-telemetry/sdk` 1.16, setting `OTEL_PHP_TRANSACTION_SPAN_ENABLED` or `OTEL_PHP_TRANSACTION_SPAN_ENABLED_CLI` to `true` makes every copy of the SDK in the process start a root span while Composer is still loading its files. This happens before `open-telemetry/exporter-otlp` registers the `otlp` exporter. With the bridge turned off, the application's own SDK then has no exporter and silently loses its spans.
+{applies_to}`edot_php: ga 1.10.0` **Known limitation: the application's own `open-telemetry/sdk` 1.16.** With `open-telemetry/sdk` 1.16, setting `OTEL_PHP_TRANSACTION_SPAN_ENABLED` or `OTEL_PHP_TRANSACTION_SPAN_ENABLED_CLI` to `true` makes every copy of the SDK in the process start a root span while Composer is still loading its files. This happens before `open-telemetry/exporter-otlp` registers the `otlp` exporter. With the bridge turned off, the application's own SDK then has no exporter and silently loses its spans.
 
 EDOT PHP doesn't trigger this by itself. It turns the root span on by default without exporting the variable to the process environment. Only a variable that you set yourself, in the environment or in `php.ini`, reaches the application's SDK. To avoid the problem, use one of these options:
 
@@ -304,12 +304,16 @@ When `OTEL_CONFIG_FILE` is set:
 - Environment variable substitution (`${MY_VAR:-default}`) is supported within the YAML file.
 - Central configuration (OpAMP) is automatically deactivated — file-based and remote configuration are mutually exclusive.
 - EDOT PHP-specific options (`OTEL_PHP_*`) continue to work as they are native extension options, independent of the SDK.
-- The file must declare `file_format: "1.0"`. EDOT PHP rejects the `1.0-rc.*` and `0.x` formats. {applies_to}`edot_php: ga 1.10.0`
-- `OTEL_CONFIG_FILE` names exactly one file. EDOT PHP no longer splits a comma-separated list. {applies_to}`edot_php: ga 1.10.0`
+- {applies_to}`edot_php: ga 1.10.0` The file must declare `file_format: "1.0"`. EDOT PHP rejects the `1.0-rc.*` and `0.x` formats.
+- {applies_to}`edot_php: ga 1.7.0-1.9.2` The file must declare `file_format: "1.0-rc.2"`. EDOT PHP rejects other formats.
+- {applies_to}`edot_php: ga 1.10.0` `OTEL_CONFIG_FILE` names exactly one file. EDOT PHP doesn't split a comma-separated list.
+- {applies_to}`edot_php: ga 1.7.0-1.9.2` `OTEL_CONFIG_FILE` accepts a comma-separated list of files.
 
 ### EDOT PHP resource detector
 
-EDOT PHP provides a `distro` resource detector that adds `telemetry.distro.name` and `telemetry.distro.version` resource attributes. To activate it in file-based configuration, add it to the `resource.detection/development.detectors` section:
+EDOT PHP provides a `distro` resource detector that adds `telemetry.distro.name` and `telemetry.distro.version` resource attributes. To activate it in file-based configuration, add it to the `resource.detection/development.detectors` section.
+
+The following example uses `file_format: "1.0"`. {applies_to}`edot_php: ga 1.10.0` In EDOT PHP 1.7.0 to 1.9.2, use `file_format: "1.0-rc.2"` and the schema of that format instead. Refer to [breaking changes](/release-notes/breaking-changes.md) for the schema differences.
 
 ```yaml
 file_format: "1.0"
