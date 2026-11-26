@@ -43,9 +43,10 @@ Refer to [EDOT SDKs compatibility](opentelemetry://reference/compatibility/sdks.
 
 ## PHP versions
 
-EDOT PHP supports PHP versions 8.1 to 8.5.
+- {applies_to}`edot_php: ga 1.10.0` EDOT PHP supports PHP versions 8.2 to 8.5.
+- {applies_to}`edot_php: ga 1.0.0-1.9.2` EDOT PHP supports PHP versions 8.1 to 8.5.
 
-Unlike the OpenTelemetry PHP agent, EDOT PHP supports extension-level instrumentation starting from PHP 8.1. This allows you to capture detailed traces from libraries such as cURL, PDO, and MySQLi even in PHP 8.1 environments.
+Unlike the OpenTelemetry PHP agent, EDOT PHP supports extension-level instrumentation starting from the oldest PHP version that it supports. This allows you to capture detailed traces from libraries such as cURL, PDO, and MySQLi.
 
 ## Supported PHP SAPIs
 
@@ -77,10 +78,16 @@ The following frameworks are supported:
 
 The following libraries are supported:
 
-- Curl versions 8.1 to 8.5
+- Curl versions:
+  - {applies_to}`edot_php: ga 1.10.0` 8.2 to 8.5
+  - {applies_to}`edot_php: ga 1.0.0-1.9.2` 8.1 to 8.5
 - HTTP Async (php-http/httplug) version 2.x
-- MySQLi versions 8.1 to 8.5
-- PDO versions 8.1 to 8.5
+- MySQLi versions:
+  - {applies_to}`edot_php: ga 1.10.0` 8.2 to 8.5
+  - {applies_to}`edot_php: ga 1.0.0-1.9.2` 8.1 to 8.5
+- PDO versions:
+  - {applies_to}`edot_php: ga 1.10.0` 8.2 to 8.5
+  - {applies_to}`edot_php: ga 1.0.0-1.9.2` 8.1 to 8.5
 - PSR-18 HTTP Client (`psr/http-client`)
 
 ## Instrumentations
@@ -138,7 +145,7 @@ product:
   edot_php: ga 1.7.0
 ```
 
-EDOT PHP can automatically create spans from PHP 8.1 attributes (`#[WithSpan]`, `#[SpanAttribute]`) without writing instrumentation code. This feature is deactivated by default. Activate it by setting `OTEL_PHP_ATTR_HOOKS_ENABLED=true`. For details, refer to [Attribute-based instrumentation](attribute-instrumentation.md).
+EDOT PHP can automatically create spans from PHP attributes (`#[WithSpan]`, `#[SpanAttribute]`) without writing instrumentation code. This feature is deactivated by default. Activate it by setting `OTEL_PHP_ATTR_HOOKS_ENABLED=true`. For details, refer to [Attribute-based instrumentation](attribute-instrumentation.md).
 
 ### PHP runtime metrics
 
